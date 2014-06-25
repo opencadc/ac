@@ -19,13 +19,11 @@
 <a href="uml/UserAuth.png">  <img src="uml/UserAuth.png" alt="CADC User Authorization Model"></a>
 
 <h2>User Class Features </h2>
-In the system, a user is uniquely identified by a Principal (in CADC's case that is the CadcPrincipal) but can have a number of other  identities for different contexts:
+In the system, a user is uniquely identified by one Principal (in CADC's case that is of type NumericPrincipal) but can have a number of other  identities for different contexts:
 <ul>
     <li>HttpPrincipal: Web user identity associated with Simple HHTP User Password access.</li>
     <li>X500Principal: X509 certificate identity. </li>
-    <li>SShPubKeyPrincipal: An ssh key identity. </li>
-    <li>CadcPrincipal: An identity used internally at the CADC. </li>
-    <li>CookiePrincipal: Cookie based identity. </li>
+    <li>NumericPrincipal: An numeric identity associated with a user. Typically, used internally within a system.</li>
     <li>OpenIdPrincipal: An OpenID identity. </li>
 </ul>
 
