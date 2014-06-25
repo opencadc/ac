@@ -44,15 +44,38 @@ public class UserDetails
     private String city;
     private String country;
 
-    public PersonalTitle title;
-    public String telephone;
-    public String fax;
-    public String province;
-    public String postalCode;
-
     public UserDetails(String firstName, String lastName, String email,
             String address, String institute, String city, String country)
     {
+        if (firstName == null)
+        {
+            throw new IllegalArgumentException("null firstName");
+        }
+        if (lastName == null)
+        {
+            throw new IllegalArgumentException("null lastName");
+        }
+        if (email == null)
+        {
+            throw new IllegalArgumentException("null email");
+        }
+
+        if (address == null)
+        {
+            throw new IllegalArgumentException("null address");
+        }
+        if (institute == null)
+        {
+            throw new IllegalArgumentException("null institute");
+        }
+        if (city == null)
+        {
+            throw new IllegalArgumentException("null city");
+        }
+        if (country == null)
+        {
+            throw new IllegalArgumentException("null country");
+        }
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -97,11 +120,6 @@ public class UserDetails
         return country;
     }
 
-    public String getFax()
-    {
-        return fax;
-    }
-
     /*
      * (non-Javadoc)
      * 
@@ -112,19 +130,13 @@ public class UserDetails
     {
         final int prime = 31;
         int result = 1;
-        result = prime * result
-                + ((address == null) ? 0 : address.hashCode());
-        result = prime * result + ((city == null) ? 0 : city.hashCode());
-        result = prime * result
-                + ((country == null) ? 0 : country.hashCode());
-        result = prime * result
-                + ((email == null) ? 0 : email.hashCode());
-        result = prime * result
-                + ((firstName == null) ? 0 : firstName.hashCode());
-        result = prime * result
-                + ((institute == null) ? 0 : institute.hashCode());
-        result = prime * result
-                + ((lastName == null) ? 0 : lastName.hashCode());
+        result = prime * result + address.hashCode();
+        result = prime * result + city.hashCode();
+        result = prime * result + country.hashCode();
+        result = prime * result + email.hashCode();
+        result = prime * result + firstName.hashCode();
+        result = prime * result + institute.hashCode();
+        result = prime * result + lastName.hashCode();
         return result;
     }
 
@@ -149,128 +161,31 @@ public class UserDetails
             return false;
         }
         UserDetails other = (UserDetails) obj;
-        if (address == null)
-        {
-            if (other.address != null)
-            {
-                return false;
-            }
-        }
-        else if (!address.equals(other.address))
+        if (!firstName.equals(other.firstName))
         {
             return false;
         }
-        if (city == null)
-        {
-            if (other.city != null)
-            {
-                return false;
-            }
-        }
-        else if (!city.equals(other.city))
+        if (!lastName.equals(other.lastName))
         {
             return false;
         }
-        if (country == null)
-        {
-            if (other.country != null)
-            {
-                return false;
-            }
-        }
-        else if (!country.equals(other.country))
+        if (!email.equals(other.email))
         {
             return false;
         }
-        if (email == null)
-        {
-            if (other.email != null)
-            {
-                return false;
-            }
-        }
-        else if (!email.equals(other.email))
+        if (!institute.equals(other.institute))
         {
             return false;
         }
-        if (fax == null)
-        {
-            if (other.fax != null)
-            {
-                return false;
-            }
-        }
-        else if (!fax.equals(other.fax))
+        if (!address.equals(other.address))
         {
             return false;
         }
-        if (firstName == null)
-        {
-            if (other.firstName != null)
-            {
-                return false;
-            }
-        }
-        else if (!firstName.equals(other.firstName))
+        if (!city.equals(other.city))
         {
             return false;
         }
-        if (institute == null)
-        {
-            if (other.institute != null)
-            {
-                return false;
-            }
-        }
-        else if (!institute.equals(other.institute))
-        {
-            return false;
-        }
-        if (lastName == null)
-        {
-            if (other.lastName != null)
-            {
-                return false;
-            }
-        }
-        else if (!lastName.equals(other.lastName))
-        {
-            return false;
-        }
-        if (postalCode == null)
-        {
-            if (other.postalCode != null)
-            {
-                return false;
-            }
-        }
-        else if (!postalCode.equals(other.postalCode))
-        {
-            return false;
-        }
-        if (province == null)
-        {
-            if (other.province != null)
-            {
-                return false;
-            }
-        }
-        else if (!province.equals(other.province))
-        {
-            return false;
-        }
-        if (telephone == null)
-        {
-            if (other.telephone != null)
-            {
-                return false;
-            }
-        }
-        else if (!telephone.equals(other.telephone))
-        {
-            return false;
-        }
-        if (title != other.title)
+        if (!country.equals(other.country))
         {
             return false;
         }

@@ -52,6 +52,10 @@ public class User<T extends Principal>
     
     public User(final T userID)
     {
+        if(userID == null)
+        {
+            throw new IllegalArgumentException("null userID");
+        }
         this.userID = userID;
     }
     
@@ -100,14 +104,7 @@ public class User<T extends Principal>
             return false;
         }
         User<?> other = (User<?>) obj;
-        if (userID == null)
-        {
-            if (other.userID != null)
-            {
-                return false;
-            }
-        }
-        else if (!userID.equals(other.userID))
+        if (!userID.equals(other.userID))
         {
             return false;
         }

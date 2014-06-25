@@ -96,6 +96,10 @@ public class GroupProperty
         {
             throw new IllegalArgumentException("Null key");
         }
+        if(value == null)
+        {
+            throw new IllegalArgumentException("Null value");
+        }
         this.key = key;
         this.value = value;
         this.readOnly = readOnly;
@@ -176,14 +180,7 @@ public class GroupProperty
         {
             return false;
         }
-        if (value == null)
-        {
-            if (other.value != null)
-            {
-                return false;
-            }
-        }
-        else if (!value.equals(other.value))
+        if (!value.equals(other.value))
         {
             return false;
         }
