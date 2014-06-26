@@ -64,53 +64,33 @@ public class GroupTest
         
         group2 = new Group("TestGroup", owner);
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertFalse(group1.equals(group2));
+        assertEquals(group1,group2);
         
         group2.getUserMembers().add(user);
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1, group2);
+        assertEquals(group1,group2);
         
         group1.getGroupMembers().add(group2);
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertFalse(group1.equals(group2));
-        
-        group2.getGroupMembers().add(group2);
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1, group2);
+        assertEquals(group1,group2);
         
         group1.description = "Test group";
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertFalse(group1.equals(group2));
-        
-        group2.description = "Test group";
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1, group2);
+        assertEquals(group1,group2);
         
         // group read and write equality tests     
         group1.groupRead = group2;
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertFalse(group1.equals(group2));
-        
-        group2.groupRead = group2;
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1, group2);
+        assertEquals(group1,group2);
         
         // group write equality tests
         group1.groupWrite = group2;
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertFalse(group1.equals(group2));
-        
-        group2.groupWrite = group2;
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1, group2);
-        
+        assertEquals(group1,group2);
+
         group1.publicRead = true;
         assertEquals(group1.hashCode(), group2.hashCode());
-        assertFalse(group1.equals(group2));
-        
-        group2.publicRead = true;
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1, group2);
+        assertEquals(group1,group2);
         
         group2 = new Group("NewTestGroup", owner);
         assertFalse(group1.hashCode() == group2.hashCode());
@@ -118,5 +98,32 @@ public class GroupTest
         
         // test toString
         System.out.println(group1);
+    }
+    
+    @Test
+    public void exceptionTests()
+    {
+        boolean thrown = false;
+        try
+        {
+            new Group(null, new User<HttpPrincipal>(new HttpPrincipal("owner")));
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        
+        thrown = false;
+        try
+        {
+            new Group("NewTestGroup", null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
     }
 }

@@ -108,30 +108,7 @@ public class User<T extends Principal>
         {
             return false;
         }
-        if (userDetails == null)
-        {
-            if (other.userDetails != null)
-            {
-                return false;
-            }
-        }
-        else if (!userDetails.equals(other.userDetails))
-        {
-            return false;
-        }
-        if (posixDetails == null)
-        {
-            if (other.posixDetails != null)
-            {
-                return false;
-            }
-        }
-        else if (!posixDetails.equals(other.posixDetails))
-        {
-            return false;
-        }
-        return this.getPrincipals().equals(other.getPrincipals());
-
+        return true;
     }
     
     @Override

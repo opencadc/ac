@@ -36,7 +36,7 @@ package ca.nrc.cadc.auth.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 import javax.security.auth.x500.X500Principal;
 
@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 
 public class UserTest
 {
@@ -66,12 +67,9 @@ public class UserTest
 
         user1.userDetails = new UserDetails("Joe", "Raymond",
                 "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
-        assertFalse(user1.equals(user2));
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        user2.userDetails = user1.userDetails;
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
+
 
         User<X500Principal> user3 = new User<X500Principal>(
                 new X500Principal("cn=aaa,ou=ca"));
@@ -81,20 +79,12 @@ public class UserTest
         assertFalse(user3.hashCode() == user4.hashCode());
 
         user1.getPrincipals().add(new X500Principal("cn=aaa,ou=ca"));
-        assertFalse(user1.equals(user2));
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        user2.getPrincipals().add(new X500Principal("cn=aaa,ou=ca"));
-        assertEquals(user1, user1);
+        assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
         user1.posixDetails = new PosixDetails(12, 23,
                 "/home/myhome");
-        assertFalse(user1.equals(user2));
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        user2.getPrincipals().add(new X500Principal("cn=aaa,ou=ca"));
-        assertEquals(user1, user1);
+        assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
         User<NumericPrincipal> user5 = new User<NumericPrincipal>(
@@ -106,5 +96,137 @@ public class UserTest
         System.out.println(user1.userDetails);
         System.out.println(user1.posixDetails);
         
+    }
+    
+    @Test
+    public void exceptionTests()
+    {
+        boolean thrown = false;
+        try
+        {
+            new User<NumericPrincipal>(null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails(null, "Raymond",
+                    "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails("Joe", null,
+                    "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails("Joe", "Raymond",
+                    null, "123 Street", "CADC", "Victoria", "CA");
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails("Joe", "Raymond",
+                    "jr@email.com", null, "CADC", "Victoria", "CA");
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails("Joe", "Raymond",
+                    "jr@email.com", "123 Street", null, "Victoria", "CA");
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails("Joe", "Raymond",
+                    "jr@email.com", "123 Street", "CADC", null, "CA");
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new UserDetails("Joe", "Raymond",
+                    "jr@email.com", "123 Street", "CADC", "Victoria", null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new PosixDetails(11, 22, null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new HttpPrincipal(null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new OpenIdPrincipal(null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
     }
 }

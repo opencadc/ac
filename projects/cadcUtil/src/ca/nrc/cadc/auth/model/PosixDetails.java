@@ -139,21 +139,6 @@ public class PosixDetails
         {
             return false;
         }
-        if (loginShell == null)
-        {
-            if (other.loginShell != null)
-            {
-                return false;
-            }
-        }
-        else if (!loginShell.equals(other.loginShell))
-        {
-            return false;
-        }
-        if (uid != other.uid)
-        {
-            return false;
-        }
         return true;
     }
 

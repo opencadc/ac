@@ -170,88 +170,11 @@ public class Group
             return false;
         }
         Group other = (Group) obj;
-        if (description == null)
-        {
-            if (other.description != null)
-            {
-                return false;
-            }
-        }
-        else if (!description.equals(other.description))
+        if (!groupID.equals(other.groupID))
         {
             return false;
         }
-        if (groupRead == null)
-        {
-            if (other.groupRead != null)
-            {
-                return false;
-            }
-        }
-        else if (!groupRead.equals(other.groupRead))
-        {
-            return false;
-        }
-        if (groupWrite == null)
-        {
-            if (other.groupWrite != null)
-            {
-                return false;
-            }
-        }
-        else if (!groupWrite.equals(other.groupWrite))
-        {
-            return false;
-        }
-        if (groupID == null)
-        {
-            if (other.groupID != null)
-            {
-                return false;
-            }
-        }
-        else if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        if (groupMembers == null)
-        {
-            if (other.groupMembers != null)
-            {
-                return false;
-            }
-        }
-        else if (!groupMembers.equals(other.groupMembers))
-        {
-            return false;
-        }
-        if (!owner.equals(other.owner))
-        {
-            return false;
-        }
-        if (properties == null)
-        {
-            if (other.properties != null)
-            {
-                return false;
-            }
-        }
-        else if (!properties.equals(other.properties))
-        {
-            return false;
-        }
-        if (userMembers == null)
-        {
-            if (other.userMembers != null)
-            {
-                return false;
-            }
-        }
-        else if (!userMembers.equals(other.userMembers))
-        {
-            return false;
-        }
-        return (publicRead == other.publicRead);
+        return true;
     }
     
     @Override
