@@ -46,8 +46,7 @@ public class User<T extends Principal>
 
     private Set<Principal> principals = new HashSet<Principal>();
     
-    public UserDetails userDetails;
-    public PosixDetails posixDetails;
+    public Set<UserDetails> details = new HashSet<UserDetails>();
     
     
     public User(final T userID)
@@ -79,8 +78,7 @@ public class User<T extends Principal>
     {
         final int prime = 31;
         int result = 1;
-        result = prime * result
-                + ((userID == null) ? 0 : userID.hashCode());
+        result = prime * result + userID.hashCode();
         return result;
     }
 

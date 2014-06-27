@@ -76,7 +76,8 @@ public class Group
      * Ctor.
      * 
      * @param groupID
-     *            Unique ID for the group
+     *            Unique ID for the group. Must be a valid URI fragment component,
+     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
      * @param owner
      *            Owner/Creator of the group.
      */
@@ -87,6 +88,12 @@ public class Group
         {
             throw new IllegalArgumentException("Null groupID");
         }
+        
+        // check for invalid path characters in groupID
+        if(!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+            throw new IllegalArgumentException("Invalid group ID " + groupID
+                    + ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+
         this.groupID = groupID;
         if(owner == null)
         {

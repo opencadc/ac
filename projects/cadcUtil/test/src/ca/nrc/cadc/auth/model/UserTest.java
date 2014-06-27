@@ -65,8 +65,8 @@ public class UserTest
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
-        user1.userDetails = new UserDetails("Joe", "Raymond",
-                "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
+        user1.details.add(new PersonalDetails("Joe", "Raymond",
+                "jr@email.com", "123 Street", "CADC", "Victoria", "CA"));
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
@@ -82,8 +82,8 @@ public class UserTest
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
-        user1.posixDetails = new PosixDetails(12, 23,
-                "/home/myhome");
+        user1.details.add(new PosixDetails(12, 23,
+                "/home/myhome"));
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
@@ -93,8 +93,9 @@ public class UserTest
         
         // visual test of toString
         System.out.println(user1);
-        System.out.println(user1.userDetails);
-        System.out.println(user1.posixDetails);
+        System.out.println(new PersonalDetails("Joe", "Raymond",
+                "jr@email.com", "123 Street", "CADC", "Victoria", "CA"));
+        System.out.println(new PosixDetails(12, 23,"/home/myhome"));
         
     }
     
@@ -115,7 +116,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails(null, "Raymond",
+            new PersonalDetails(null, "Raymond",
                     "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
         }
         catch(IllegalArgumentException e)
@@ -127,7 +128,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails("Joe", null,
+            new PersonalDetails("Joe", null,
                     "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
         }
         catch(IllegalArgumentException e)
@@ -139,7 +140,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails("Joe", "Raymond",
+            new PersonalDetails("Joe", "Raymond",
                     null, "123 Street", "CADC", "Victoria", "CA");
         }
         catch(IllegalArgumentException e)
@@ -151,7 +152,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails("Joe", "Raymond",
+            new PersonalDetails("Joe", "Raymond",
                     "jr@email.com", null, "CADC", "Victoria", "CA");
         }
         catch(IllegalArgumentException e)
@@ -163,7 +164,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails("Joe", "Raymond",
+            new PersonalDetails("Joe", "Raymond",
                     "jr@email.com", "123 Street", null, "Victoria", "CA");
         }
         catch(IllegalArgumentException e)
@@ -175,7 +176,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails("Joe", "Raymond",
+            new PersonalDetails("Joe", "Raymond",
                     "jr@email.com", "123 Street", "CADC", null, "CA");
         }
         catch(IllegalArgumentException e)
@@ -187,7 +188,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new UserDetails("Joe", "Raymond",
+            new PersonalDetails("Joe", "Raymond",
                     "jr@email.com", "123 Street", "CADC", "Victoria", null);
         }
         catch(IllegalArgumentException e)

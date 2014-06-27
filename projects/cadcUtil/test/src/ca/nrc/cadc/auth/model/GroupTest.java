@@ -92,7 +92,7 @@ public class GroupTest
         assertEquals(group1.hashCode(), group2.hashCode());
         assertEquals(group1,group2);
         
-        group2 = new Group("NewTestGroup", owner);
+        group2 = new Group("NewTestGroup-._~.", owner);
         assertFalse(group1.hashCode() == group2.hashCode());
         assertFalse(group1.equals(group2));
         
@@ -119,6 +119,40 @@ public class GroupTest
         try
         {
             new Group("NewTestGroup", null);
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        // invavlid group IDs
+        thrown = false;
+        try
+        {
+            new Group("New/Test/Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new Group("New%Test%Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+        }
+        catch(IllegalArgumentException e)
+        {
+            thrown = true;
+        }
+        assertTrue(thrown);
+        
+        thrown = false;
+        try
+        {
+            new Group("New\\Test\\Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
         }
         catch(IllegalArgumentException e)
         {

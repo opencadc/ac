@@ -140,9 +140,6 @@ public class GroupProperty
         final int prime = 31;
         int result = 1;
         result = prime * result + ((key == null) ? 0 : key.hashCode());
-        result = prime * result + (readOnly ? 1231 : 1237);
-        result = prime * result
-                + ((value == null) ? 0 : value.hashCode());
         return result;
     }
 
@@ -165,26 +162,7 @@ public class GroupProperty
             return false;
         }
         GroupProperty other = (GroupProperty) obj;
-        if (key == null)
-        {
-            if (other.key != null)
-            {
-                return false;
-            }
-        }
-        else if (!key.equals(other.key))
-        {
-            return false;
-        }
-        if (readOnly != other.readOnly)
-        {
-            return false;
-        }
-        if (!value.equals(other.value))
-        {
-            return false;
-        }
-        return true;
+        return key.equals(other.key);
     }
     
     @Override

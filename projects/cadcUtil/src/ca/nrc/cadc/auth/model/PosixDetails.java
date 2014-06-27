@@ -37,7 +37,7 @@ package ca.nrc.cadc.auth.model;
 /**
  * Represents the posix account details associated with a user account.
  */
-public class PosixDetails
+public class PosixDetails implements UserDetails
 {
     private long uid;
     private long gid;
