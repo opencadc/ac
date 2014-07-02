@@ -32,87 +32,25 @@
  ************************************************************************
  */
 
+package ca.nrc.cadc.ac;
 
-
-package ca.nrc.cadc.auth.model;
-
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-
-public class User<T extends Principal>
+public interface UserDetails
 {
-    private T userID;
 
-    private Set<Principal> principals = new HashSet<Principal>();
-    
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-    
-    
-    public User(final T userID)
-    {
-        if(userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-    
-    
-    public Set<Principal> getPrincipals()
-    {
-        return principals;
-    }
-    
-    public T getUserID()
-    {
-        return userID;
-    }
-
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.lang.Object#hashCode()
      */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
+    public int hashCode();
 
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.lang.Object#equals(java.lang.Object)
      */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User<?> other = (User<?>) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-    
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-    
+    public boolean equals(Object obj);
+
+    public String toString();
+
 }

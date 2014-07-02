@@ -34,7 +34,7 @@
 
 
 
-package ca.nrc.cadc.auth.model;
+package ca.nrc.cadc.ac;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;

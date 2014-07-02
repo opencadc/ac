@@ -32,7 +32,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.auth.model;
+package ca.nrc.cadc.ac;
 
 import java.security.Principal;
 import java.util.HashSet;

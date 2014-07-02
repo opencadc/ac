@@ -32,7 +32,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.auth.model;
+package ca.nrc.cadc.ac;
 
 /**
  * Represents the posix account details associated with a user account.

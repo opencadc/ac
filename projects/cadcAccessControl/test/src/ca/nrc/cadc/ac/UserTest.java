@@ -32,7 +32,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.auth.model;
+package ca.nrc.cadc.ac;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

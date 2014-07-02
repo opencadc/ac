@@ -66,7 +66,7 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.auth.model;
+package ca.nrc.cadc.ac;
 
 /**
  * A property representing metadata for a group.
