@@ -66,164 +66,74 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupReader;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import java.io.InputStream;
 import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
+import javax.servlet.http.HttpServletResponse;
 
-public class Group
+public class ModifyGroupAction extends GroupsAction
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
+    private String groupName;
+    private InputStream inputStream;
 
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    ModifyGroupAction(GroupLogInfo logInfo, String groupName, InputStream inputStream)
     {
-        if (groupID == null)
+        super(logInfo);
+        this.groupName = groupName;
+        this.inputStream = inputStream;
+    }
+
+    public Object run()
+        throws Exception
+    {
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group group = GroupReader.read(this.inputStream);
+        Group oldGroup = groupPersistence.getGroup(this.groupName);
+        Group modifiedGroup = groupPersistence.modifyGroup(group);
+        this.response.sendRedirect(modifiedGroup.getID());
+
+        List addedMembers = new ArrayList();
+        for (User member : group.getUserMembers())
         {
-            throw new IllegalArgumentException("Null groupID");
+            if (!oldGroup.getUserMembers().remove(member))
+            {
+                addedMembers.add(member.getUserID().getName());
+            }
         }
-
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        for (Group gr : group.getGroupMembers())
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            if (!oldGroup.getGroupMembers().remove(gr))
+            {
+                addedMembers.add(gr.getID());
+            }
         }
-
-        this.groupID = groupID;
-        if (owner == null)
+        if (addedMembers.isEmpty())
         {
-            throw new IllegalArgumentException("Null owner");
+            addedMembers = null;
         }
-        this.owner = owner;
-    }
-
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        List deletedMembers = new ArrayList();
+        for (User member : oldGroup.getUserMembers())
         {
-            return true;
+            deletedMembers.add(member.getUserID().getName());
         }
-        if (obj == null)
+        for (Group gr : oldGroup.getGroupMembers())
         {
-            return false;
+            deletedMembers.add(gr.getID());
         }
-        if (!(obj instanceof Group))
+        if (deletedMembers.isEmpty())
         {
-            return false;
+            deletedMembers = null;
         }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
+        logGroupInfo(group.getID(), deletedMembers, addedMembers);
+        return null;
     }
 
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
-    }
 }

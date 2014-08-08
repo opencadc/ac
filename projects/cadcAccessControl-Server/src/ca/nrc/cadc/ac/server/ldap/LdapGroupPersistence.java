@@ -66,164 +66,117 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collection;
+import java.util.Map;
+import org.apache.log4j.Logger;
 
-public class Group
+public class LdapGroupPersistence<T extends Principal>
+    implements GroupPersistence<T>
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
+    private static final Logger logger = Logger.getLogger(LdapGroupPersistence.class);
+    private LdapConfig config;
 
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    public LdapGroupPersistence()
     {
-        if (groupID == null)
+        this.config = LdapConfig.getLdapConfig();
+    }
+
+    public Group getGroup(String groupName)
+        throws GroupNotFoundException, TransientException, AccessControlException
+    {
+        LdapGroupDAO groupDAO = null;
+        try
         {
-            throw new IllegalArgumentException("Null groupID");
+            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            Group ret = groupDAO.getGroup(groupName);
+            return ret;
         }
-
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        finally
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
         }
+    }
 
-        this.groupID = groupID;
-        if (owner == null)
+    public Group addGroup(Group group)
+        throws GroupAlreadyExistsException, TransientException, AccessControlException, UserNotFoundException
+    {
+        LdapGroupDAO groupDAO = null;
+        try
         {
-            throw new IllegalArgumentException("Null owner");
+            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            Group ret = groupDAO.addGroup(group);
+            return ret;
         }
-        this.owner = owner;
-    }
-
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        finally
         {
-            return true;
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
     }
 
-    @Override
-    public String toString()
+    public void deleteGroup(String groupName)
+        throws GroupNotFoundException, TransientException, AccessControlException
     {
-        return getClass().getSimpleName() + "[" + groupID + "]";
+        LdapGroupDAO groupDAO = null;
+        try
+        {
+            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            groupDAO.deleteGroup(groupName);
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+        }
     }
+
+    public Group modifyGroup(Group group)
+        throws GroupNotFoundException, TransientException, AccessControlException, UserNotFoundException
+    {
+        LdapGroupDAO groupDAO = null;
+        try
+        {
+            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            Group ret = groupDAO.modifyGroup(group);
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+        }
+    }
+
+    public Collection<Group> getGroups(Map<String, String> criteria)
+        throws TransientException, AccessControlException
+    {
+        throw new UnsupportedOperationException("To be implemented");
+    }
+
+    public boolean isMember(User<T> member, String groupName)
+        throws TransientException, AccessControlException
+    {
+        throw new UnsupportedOperationException("To be implemented");
+    }
+
 }

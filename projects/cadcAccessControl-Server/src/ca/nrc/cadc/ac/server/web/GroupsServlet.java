@@ -66,164 +66,93 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
-import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.io.PrintWriter;
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
-public class Group
+public class GroupsServlet extends HttpServlet
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
+    private static final Logger log = Logger.getLogger(GroupsServlet.class);
 
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    private void doAction(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        if (groupID == null)
+        long start = System.currentTimeMillis();
+        GroupLogInfo logInfo = new GroupLogInfo(request);
+        try
         {
-            throw new IllegalArgumentException("Null groupID");
-        }
+            log.info(logInfo.start());
 
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
+            action.doAction(subject, response);
+            log.info(logInfo.end());
+        }
+        catch (IllegalArgumentException e)
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            logInfo.setSuccess(false);
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
         }
-
-        this.groupID = groupID;
-        if (owner == null)
+        catch (Throwable t)
         {
-            throw new IllegalArgumentException("Null owner");
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.getWriter().write(message);
+            response.setStatus(500);
         }
-        this.owner = owner;
-    }
-
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        finally
         {
-            return true;
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
     }
 
     @Override
-    public String toString()
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        return getClass().getSimpleName() + "[" + groupID + "]";
+        doAction(request, response);
     }
+
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doHead(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
 }

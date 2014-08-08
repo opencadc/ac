@@ -68,162 +68,94 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.util.StringBuilderWriter;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
-public class Group
+public class UserWriter
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
-
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    public static void write(User user, StringBuilder builder)
+        throws IOException, WriterException
     {
-        if (groupID == null)
+        if (user == null)
         {
-            throw new IllegalArgumentException("Null groupID");
+            throw new WriterException("null User");
         }
 
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        write(user, new StringBuilderWriter(builder));
+    }
+
+    public static void write(User user, OutputStream out)
+        throws IOException, WriterException
+    {
+        OutputStreamWriter outWriter;
+        try
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            outWriter = new OutputStreamWriter(out, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported", e);
+        }
+        write(user, new BufferedWriter(outWriter));
+    }
+
+    public static void write(User user, Writer writer)
+        throws IOException, WriterException
+    {
+        write(getUserElement(user), writer);
+    }
+
+    public static Element getUserElement(User user)
+        throws WriterException
+    {
+        Element userElement = new Element("user");
+
+        Element userIDElement = new Element("userID");
+        userIDElement.addContent(IdentityWriter.write(user.getUserID()));
+        userElement.addContent(userIDElement);
+
+        Set<Principal> identities = user.getIdentities();
+        if (!identities.isEmpty())
+        {
+            Element identitiesElement = new Element("identities");
+            for (Principal identity : identities)
+            {
+                identitiesElement.addContent(IdentityWriter.write(identity));
+            }
+            userElement.addContent(identitiesElement);
         }
 
-        this.groupID = groupID;
-        if (owner == null)
+        if (!user.details.isEmpty())
         {
-            throw new IllegalArgumentException("Null owner");
+            Element detailsElement = new Element("details");
+            Set<UserDetails> userDetails = user.details;
+            for (UserDetails userDetail : userDetails)
+            {
+                detailsElement.addContent(UserDetailsWriter.write(userDetail));
+            }
+            userElement.addContent(detailsElement);
         }
-        this.owner = owner;
+
+        return userElement;
     }
 
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
+    private static void write(Element root, Writer writer)
+        throws IOException
     {
-        return groupID;
+        XMLOutputter outputter = new XMLOutputter();
+        outputter.setFormat(Format.getPrettyFormat());
+        outputter.output(new Document(root), writer);
     }
 
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
-    }
 }

@@ -65,8 +65,7 @@ public class UserTest
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
-        user1.details.add(new PersonalDetails("Joe", "Raymond",
-                "jr@email.com", "123 Street", "CADC", "Victoria", "CA"));
+        user1.details.add(new PersonalDetails("Joe", "Raymond"));
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
@@ -78,7 +77,7 @@ public class UserTest
         assertFalse(user3.equals(user4));
         assertFalse(user3.hashCode() == user4.hashCode());
 
-        user1.getPrincipals().add(new X500Principal("cn=aaa,ou=ca"));
+        user1.getIdentities().add(new X500Principal("cn=aaa,ou=ca"));
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
@@ -93,8 +92,7 @@ public class UserTest
         
         // visual test of toString
         System.out.println(user1);
-        System.out.println(new PersonalDetails("Joe", "Raymond",
-                "jr@email.com", "123 Street", "CADC", "Victoria", "CA"));
+        System.out.println(new PersonalDetails("Joe", "Raymond"));
         System.out.println(new PosixDetails(12, 23,"/home/myhome"));
         
     }
@@ -116,8 +114,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new PersonalDetails(null, "Raymond",
-                    "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
+            new PersonalDetails(null, "Raymond");
         }
         catch(IllegalArgumentException e)
         {
@@ -128,8 +125,7 @@ public class UserTest
         thrown = false;
         try
         {
-            new PersonalDetails("Joe", null,
-                    "jr@email.com", "123 Street", "CADC", "Victoria", "CA");
+            new PersonalDetails("Joe", null);
         }
         catch(IllegalArgumentException e)
         {
@@ -137,65 +133,6 @@ public class UserTest
         }
         assertTrue(thrown);
         
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", "Raymond",
-                    null, "123 Street", "CADC", "Victoria", "CA");
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", "Raymond",
-                    "jr@email.com", null, "CADC", "Victoria", "CA");
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", "Raymond",
-                    "jr@email.com", "123 Street", null, "Victoria", "CA");
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", "Raymond",
-                    "jr@email.com", "123 Street", "CADC", null, "CA");
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", "Raymond",
-                    "jr@email.com", "123 Street", "CADC", "Victoria", null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
         
         thrown = false;
         try

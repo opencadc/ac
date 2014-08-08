@@ -67,6 +67,7 @@
 ************************************************************************
 -->
 
+
 <!DOCTYPE project>
 <project default="build" basedir=".">
     <property environment="env"/>
@@ -85,17 +86,21 @@
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
 
-    <property name="project"    value="cadcAccessControl" />
+    <property name="project" value="cadcAccessControl-Server" />
 
-    <property name="cadcUtil"   value="${lib}/cadcUtil.jar" />
+    <property name="accessControl"  value="${lib}/cadcAccessControl.jar" />
+    <property name="cadcLog"        value="${lib}/cadcLog.jar" />
+    <property name="cadcUtil"       value="${lib}/cadcUtil.jar" />
+    <property name="cadcUWS"        value="${lib}/cadcUWS.jar" />
     
-    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"      value="${ext.lib}/log4j.jar" />
-    <property name="unboundid"  value="${ext.lib}/unboundid-ldapsdk-se.jar" />
+    <property name="jdom2"          value="${ext.lib}/jdom2.jar" />
+    <property name="log4j"          value="${ext.lib}/log4j.jar" />
+    <property name="servlet"        value="${ext.lib}/servlet-api.jar" />
+    <property name="unboundid"      value="${ext.lib}/unboundid-ldapsdk-se.jar" />
 
 
-    <property name="jars" value="${cadcUtil}:${jdom2}:${log4j}:${unboundid}" />
-    
+    <property name="jars" value="${accessControl}:${cadcLog}:${cadcUtil}:${cadcUWS}:${jdom2}:${log4j}:${servlet}:${unboundid}" />
+
     <target name="build" depends="compile">
         <jar jarfile="${build}/lib/${project}.jar"
                     basedir="${build}/class"

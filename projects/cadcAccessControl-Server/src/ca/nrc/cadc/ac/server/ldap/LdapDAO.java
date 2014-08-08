@@ -66,164 +66,119 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import com.unboundid.ldap.sdk.DN;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchScope;
+import java.security.AccessControlException;
+import java.security.AccessController;
 import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 
-public class Group
+public abstract class LdapDAO
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
+    private LDAPConnection conn;
+    LdapConfig config;
+    DN subjDN = null;
 
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    public LdapDAO(LdapConfig config)
     {
-        if (groupID == null)
+        if (config == null)
         {
-            throw new IllegalArgumentException("Null groupID");
+            throw new IllegalArgumentException("LDAP config required");
+        }
+        this.config = config;
+    }
+
+    public void close()
+    {
+        if (this.conn != null)
+        {
+            this.conn.close();
+        }
+    }
+
+    protected LDAPConnection getConnection() throws LDAPException, AccessControlException
+    {
+        if (this.conn == null)
+        {
+            this.conn = new LDAPConnection(this.config.getServer(), this.config.getPort());
+            this.conn.bind(this.config.getAdminUserDN(), this.config.getAdminPasswd());
+
+            Subject callerSubject = Subject.getSubject(AccessController.getContext());
+
+            if (callerSubject == null)
+            {
+                throw new AccessControlException("Caller not authenticated.");
+            }
+            Set<Principal> principals = callerSubject.getPrincipals();
+            if (principals.size() < 1)
+            {
+                throw new AccessControlException("Caller not authenticated.");
+            }
+            String ldapField = null;
+            for (Principal p : principals)
+            {
+                if ((p instanceof HttpPrincipal))
+                {
+                    ldapField = "(uid=" + p.getName() + ")";
+                    break;
+                }
+                if ((p instanceof NumericPrincipal))
+                {
+                    ldapField = "(entryid=" + p.getName() + ")";
+                    break;
+                }
+                if ((p instanceof X500Principal))
+                {
+                    ldapField = "(distinguishedname=" + p.getName() + ")";
+                    break;
+                }
+                if ((p instanceof OpenIdPrincipal))
+                {
+                    ldapField = "(openid=" + p.getName() + ")";
+                    break;
+                }
+            }
+
+            if (ldapField == null)
+            {
+                throw new AccessControlException("Identity of caller unknown.");
+            }
+
+            SearchResult searchResult = this.conn.search(this.config.getUsersDN(), SearchScope.ONE, ldapField, new String[]
+                                                     {
+                                                         "entrydn"
+            });
+
+            if (searchResult.getEntryCount() < 1)
+            {
+                throw new AccessControlException("No LDAP account when search with rule " + ldapField);
+            }
+
+            this.subjDN = ((SearchResultEntry) searchResult.getSearchEntries().get(0)).getAttributeValueAsDN("entrydn");
         }
 
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        return this.conn;
+    }
+
+    protected DN getSubjectDN() throws LDAPException
+    {
+        if (this.subjDN == null)
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            getConnection();
         }
-
-        this.groupID = groupID;
-        if (owner == null)
-        {
-            throw new IllegalArgumentException("Null owner");
-        }
-        this.owner = owner;
+        return this.subjDN;
     }
 
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
-    }
 }

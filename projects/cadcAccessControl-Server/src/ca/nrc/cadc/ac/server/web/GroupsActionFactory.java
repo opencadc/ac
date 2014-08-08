@@ -66,164 +66,112 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
-import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import ca.nrc.cadc.util.StringUtil;
+import java.io.IOException;
+import java.net.URLDecoder;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.log4j.Logger;
 
-public class Group
+public class GroupsActionFactory
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
+    private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
 
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    static GroupsAction getGroupsAction(HttpServletRequest request, GroupLogInfo logInfo)
+        throws IOException
     {
-        if (groupID == null)
+        GroupsAction action = null;
+        String method = request.getMethod();
+        String path = request.getPathInfo();
+        log.debug("method: " + method);
+        log.debug("path: " + path);
+
+        if (path == null)
         {
-            throw new IllegalArgumentException("Null groupID");
+            path = new String();
+        }
+        if (path.startsWith("/"))
+        {
+            path = path.substring(1);
+        }
+        if (path.endsWith("/"))
+        {
+            path = path.substring(0, path.length() - 1);
+        }
+        String[] segments = new String[0];
+        if (StringUtil.hasText(path))
+        {
+            segments = path.split("/");
         }
 
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        if (segments.length == 0)
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            if (method.equals("GET"))
+            {
+                action = new ListGroupsAction(logInfo);
+            }
+            else if (method.equals("PUT"))
+            {
+                action = new CreateGroupAction(logInfo, request.getInputStream());
+            }
+
+        }
+        else if (segments.length == 1)
+        {
+            String groupName = segments[0];
+            if (method.equals("GET"))
+            {
+                action = new GetGroupAction(logInfo, groupName);
+            }
+            else if (method.equals("DELETE"))
+            {
+                action = new DeleteGroupAction(logInfo, groupName);
+            }
+            else if (method.equals("POST"))
+            {
+                action = new ModifyGroupAction(logInfo, groupName, request.getInputStream());
+            }
+        }
+        else if (segments.length == 3)
+        {
+            String groupName = segments[0];
+            String memberCategory = segments[1];
+            if (method.equals("PUT"))
+            {
+                if (memberCategory.equals("groupMembers"))
+                {
+                    String groupMemberName = segments[2];
+                    action = new AddGroupMemberAction(logInfo, groupName, groupMemberName);
+                }
+                else if (memberCategory.equals("userMembers"))
+                {
+                    String userMemberID = URLDecoder.decode(segments[2], "UTF-8");
+                    String userMemberIDType = request.getParameter("idType");
+                    action = new AddUserMemberAction(logInfo, groupName, userMemberID, userMemberIDType);
+                }
+            }
+            else if (method.equals("DELETE"))
+            {
+                if (memberCategory.equals("groupMembers"))
+                {
+                    String groupMemberName = segments[2];
+                    action = new RemoveGroupMemberAction(logInfo, groupName, groupMemberName);
+                }
+                else if (memberCategory.equals("userMembers"))
+                {
+                    String memberUserID = URLDecoder.decode(segments[2], "UTF-8");
+                    String memberUserIDType = request.getParameter("idType");
+                    action = new RemoveUserMemberAction(logInfo, groupName, memberUserID, memberUserIDType);
+                }
+            }
         }
 
-        this.groupID = groupID;
-        if (owner == null)
+        if (action != null)
         {
-            throw new IllegalArgumentException("Null owner");
+            return action;
         }
-        this.owner = owner;
+        throw new IllegalArgumentException("Bad groups request: " + method + " on " + path);
     }
 
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
-    }
 }

@@ -68,162 +68,95 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import ca.nrc.cadc.xml.XmlUtil;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
-public class Group
+public class GroupsReader
 {
-    private String groupID;
-    
-    private User<? extends Principal> owner;
-    
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
 
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    public static List<Group> read(String xml)
+            throws ReaderException, IOException, URISyntaxException
     {
-        if (groupID == null)
+        if (xml == null)
         {
-            throw new IllegalArgumentException("Null groupID");
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
+    }
+
+    public static List<Group> read(InputStream in)
+            throws ReaderException, IOException, URISyntaxException
+    {
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+        InputStreamReader reader;
+        try
+        {
+            reader = new InputStreamReader(in, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported");
+        }
+        return read(reader);
+    }
+
+    public static List<Group> read(Reader reader)
+            throws ReaderException, IOException, URISyntaxException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
         }
 
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        Document document;
+        try
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
         }
 
-        this.groupID = groupID;
-        if (owner == null)
+        Element root = document.getRootElement();
+
+        String groupElemName = root.getName();
+
+        if (!groupElemName.equalsIgnoreCase("groups"))
         {
-            throw new IllegalArgumentException("Null owner");
+            String error = "Expected groups element, found " + groupElemName;
+            throw new ReaderException(error);
         }
-        this.owner = owner;
+
+        return parseGroups(root);
     }
 
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
+    protected static List<Group> parseGroups(Element groupsElement)
+            throws URISyntaxException, ReaderException
     {
-        return groupID;
-    }
+        List groups = new ArrayList();
 
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        List<Element> groupElements = groupsElement.getChildren("group");
+        for (Element groupElement : groupElements)
         {
-            return true;
+            groups.add(GroupReader.parseGroup(groupElement));
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
 
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
+        return groups;
     }
 }
