@@ -76,6 +76,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.security.Principal;
 import java.text.DateFormat;
 import java.util.Set;
 import org.jdom2.Attribute;
@@ -87,13 +88,13 @@ import org.jdom2.output.XMLOutputter;
 public class GroupWriter
 {
     public static void write(Group group, StringBuilder builder)
-            throws IOException, WriterException
+        throws IOException, WriterException
     {
         write(group, new StringBuilderWriter(builder));
     }
 
     public static void write(Group group, OutputStream out)
-            throws IOException, WriterException
+        throws IOException, WriterException
     {
         OutputStreamWriter outWriter;
         try
@@ -108,7 +109,7 @@ public class GroupWriter
     }
 
     public static void write(Group group, Writer writer)
-            throws IOException, WriterException
+        throws IOException, WriterException
     {
         if (group == null)
         {
@@ -119,13 +120,13 @@ public class GroupWriter
     }
 
     public static Element getGroupElement(Group group)
-            throws WriterException
+        throws WriterException
     {
         return getGroupElement(group, true);
     }
 
     public static Element getGroupElement(Group group, boolean deepCopy)
-            throws WriterException
+        throws WriterException
     {
         Element groupElement = new Element("group");
         String groupURI = "ivo://cadc.nrc.ca/gms#" + group.getID();
@@ -194,7 +195,7 @@ public class GroupWriter
             if ((group.getUserMembers() != null) && (!group.getUserMembers().isEmpty()))
             {
                 Element userMembersElement = new Element("userMembers");
-                for (User userMember : group.getUserMembers())
+                for (User<? extends Principal> userMember : group.getUserMembers())
                 {
                     userMembersElement.addContent(UserWriter.getUserElement(userMember));
                 }
@@ -206,10 +207,11 @@ public class GroupWriter
     }
 
     private static void write(Element root, Writer writer)
-            throws IOException
+        throws IOException
     {
         XMLOutputter outputter = new XMLOutputter();
         outputter.setFormat(Format.getPrettyFormat());
         outputter.output(new Document(root), writer);
     }
+    
 }

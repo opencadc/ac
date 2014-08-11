@@ -68,130 +68,103 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import java.util.Date;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 /**
- * A property representing metadata for a group.
  *
+ * @author jburke
  */
-public class GroupProperty
+public class GroupReaderWriterTest
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
-    
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
-    // The property identifier
-    private String key;
-    
-    // The value of the property
-    private Object value;
-    
-    // true if the property cannot be modified.
-    private boolean readOnly;
+    private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
 
-    /**
-     * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
-     * @param readOnly
-     */
-    public GroupProperty(String key, Object value, boolean readOnly)
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        if (key == null)
+        try
         {
-            throw new IllegalArgumentException("Null key");
+            String s = null;
+            Group g = GroupReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        if (value == null)
+        catch (IllegalArgumentException e) {}
+        
+        try
         {
-            throw new IllegalArgumentException("Null value");
+            InputStream in = null;
+            Group g = GroupReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        this.key = key;
-        this.value = value;
-        this.readOnly = readOnly;
-    }
-
-    /**
-     * @return property key
-     */
-    public String getKey()
-    {
-        return key;
-    }
-
-    /**
-     * @return value
-     */
-    public Object getValue()
-    {
-        return value;
-    }
-
-    /**
-     * @return read only
-     */
-    public boolean isReadOnly()
-    {
-        return readOnly;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (key == null ? 0 : key.hashCode());
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch (IOException e) {}
+        
+        try
         {
-            return true;
+            Reader r = null;
+            Group g = GroupReader.read(r);
+            fail("null element should throw ReaderException");
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof GroupProperty))
-        {
-            return false;
-        }
-        GroupProperty other = (GroupProperty) obj;
-        return key.equals(other.key);
+        catch (IllegalArgumentException e) {}
     }
-
-    @Override
-    public String toString()
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        return getClass().getSimpleName() + "[" + key + ": " + value + "]";
+        try
+        {
+            GroupWriter.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
+        }
+        catch (WriterException e) {}
     }
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
+        expected.description = "description";
+        expected.lastModified = new Date();
+        expected.publicRead = true;
+        expected.properties.add(new GroupProperty("key", "value", true));
+        
+        Group readGroup = new Group("read", new User<Principal>(new X500Principal("cn=foo,o=ca")));
+        Group writeGroup = new Group("write", new User<Principal>(new NumericPrincipal(123l)));
+        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
+        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
+        
+        expected.groupRead = readGroup;
+        expected.groupWrite = writeGroup;
+        expected.getGroupMembers().add(groupMember);
+        expected.getUserMembers().add(userMember);
+        
+        StringBuilder xml = new StringBuilder();
+        GroupWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        Group actual = GroupReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+        assertEquals(expected.description, actual.description);
+        assertEquals(expected.lastModified, actual.lastModified);
+        assertEquals(expected.publicRead, actual.publicRead);
+        assertEquals(expected.getProperties(), actual.getProperties());
+        assertEquals(expected.groupRead, actual.groupRead);
+        assertEquals(expected.groupWrite, actual.groupWrite);
+        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
+        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+    }
+    
 }

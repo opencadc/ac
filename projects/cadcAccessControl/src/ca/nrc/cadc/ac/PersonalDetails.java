@@ -70,6 +70,46 @@ package ca.nrc.cadc.ac;
 
 public class PersonalDetails implements UserDetails
 {
+    /**
+     * Name of the PersonalDetails element.
+     */
+    public static final String NAME = "personalDetails";
+    
+    /**
+     * Name of the firstName element.
+     */
+    public static final String FIRSTNAME = "firstName";
+    
+    /**
+     * Name of the lastName element.
+     */
+    public static final String LASTNAME = "lastName";
+    
+    /**
+     * Name of the email element.
+     */
+    public static final String EMAIL = "email";
+    
+    /**
+     * Name of the email element.
+     */
+    public static final String ADDRESS = "address";
+    
+    /**
+     * Name of the email element.
+     */
+    public static final String INSTITUTE = "institute";
+    
+    /**
+     * Name of the email element.
+     */
+    public static final String CITY = "city";
+    
+    /**
+     * Name of the email element.
+     */
+    public static final String COUNTRY = "country";
+        
     private String firstName;
     private String lastName;
     public String email;
@@ -111,9 +151,7 @@ public class PersonalDetails implements UserDetails
     {
         int prime = 31;
         int result = 1;
-
         result = prime * result + firstName.hashCode();
-
         result = prime * result + lastName.hashCode();
         return result;
     }

@@ -149,7 +149,7 @@ public class GroupsReader
     protected static List<Group> parseGroups(Element groupsElement)
             throws URISyntaxException, ReaderException
     {
-        List groups = new ArrayList();
+        List<Group> groups = new ArrayList<Group>();
 
         List<Element> groupElements = groupsElement.getChildren("group");
         for (Element groupElement : groupElements)

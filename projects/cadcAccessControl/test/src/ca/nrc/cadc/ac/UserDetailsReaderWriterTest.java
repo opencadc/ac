@@ -68,17 +68,108 @@
  */
 package ca.nrc.cadc.ac;
 
-public class ACConstants
-{
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import java.security.Principal;
+import javax.management.remote.JMXPrincipal;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-    public static final String PROPERTY_GROUP_DESCRIPTION = "ivo://ivoa.net/gms#description";
-    public static final String PROPERTY_OWNER_DN = "ivo://ivoa.net/gms#owner_dn";
-    public static final String PROPERTY_USER_DN = "ivo://ivoa.net/gms#user_dn";
-    public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
-    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/gms";
-    public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
-    public static final String ID_TYPE_X500 = "X500";
-    public static final String ID_TYPE_OPENID = "OpenID";
-    public static final String ID_TYPE_USERNAME = "HTTP";
-    public static final String ID_TYPE_UID = "UID";
+/**
+ *
+ * @author jburke
+ */
+public class UserDetailsReaderWriterTest
+{
+    private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
+
+    @Test
+    public void testReaderExceptions()
+        throws Exception
+    {
+        Element element = null;
+        try
+        {
+            UserDetails ud = UserDetailsReader.read(element);
+            fail("null element should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+         
+        element = new Element("foo");
+        try
+        {
+            UserDetails ud = UserDetailsReader.read(element);
+            fail("element not named 'userDetails' should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+         
+        element = new Element(UserDetails.NAME);
+        try
+        {
+            UserDetails ud = UserDetailsReader.read(element);
+            fail("element without 'type' attribute should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+         
+        element.setAttribute("type", "foo");
+        try
+        {
+            UserDetails ud = UserDetailsReader.read(element);
+            fail("element with unknown 'type' attribute should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+    }
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            Element element = UserDetailsWriter.write(null);
+            fail("null UserDetails should throw WriterException");
+        }
+        catch (WriterException e) {}
+    }
+     
+    @Test
+    public void testReadWritePersonalDetails()
+        throws Exception
+    {
+        PersonalDetails expected = new PersonalDetails("firstname", "lastname");
+        expected.address = "address";
+        expected.city = "city";
+        expected.country = "country";
+        expected.email = "email";
+        expected.institute = "institute";
+        Element element = UserDetailsWriter.write(expected);
+        assertNotNull(element);
+        
+        PersonalDetails actual = (PersonalDetails) UserDetailsReader.read(element);
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+        assertEquals(expected.address, actual.address);
+        assertEquals(expected.city, actual.city);
+        assertEquals(expected.country, actual.country);
+        assertEquals(expected.email, actual.email);
+        assertEquals(expected.institute, actual.institute);
+    }
+    
+    @Test
+    public void testReadWritePosixDetails()
+        throws Exception
+    {
+        UserDetails expected = new PosixDetails(123l, 456, "/dev/null");
+        Element element = UserDetailsWriter.write(expected);
+        assertNotNull(element);
+        
+        UserDetails actual = UserDetailsReader.read(element);
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
 }

@@ -523,7 +523,7 @@ public class GMSClient
 
     protected class GroupCredentials
     {
-        Collection<Group> groupMemberships = new ArrayList();
+        Collection<Group> groupMemberships = new ArrayList<Group>();
 
         protected GroupCredentials()
         {

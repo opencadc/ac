@@ -73,6 +73,26 @@ package ca.nrc.cadc.ac;
  */
 public class PosixDetails implements UserDetails
 {
+    /**
+     * Name of the PosixDetails element.
+     */
+    public static final String NAME = "posixDetails";
+    
+    /**
+     * Name of the uid element.
+     */
+    public static final String UID = "uid";
+    
+    /**
+     * Name of the gid element.
+     */
+    public static final String GID = "gid";
+    
+    /**
+     * Name of the homeDirectory element.
+     */
+    public static final String HOME_DIRECTORY = "homeDirectory";
+        
     private long uid;
     private long gid;
     private String homeDirectory;

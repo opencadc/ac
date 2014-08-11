@@ -70,6 +70,16 @@ package ca.nrc.cadc.ac;
 
 public abstract interface UserDetails
 {
+    /**
+     * Name of the UserDetails element.
+     */
+    public static final String NAME = "userDetails";
+    
+    /**
+     * Name of the property type attribute in the UserDetails element.
+     */
+    public static final String TYPE_ATTRIBUTE = "type";
+    
     /*
      * (non-Javadoc)
      * 

@@ -68,130 +68,47 @@
  */
 package ca.nrc.cadc.ac;
 
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 /**
- * A property representing metadata for a group.
  *
+ * @author jburke
  */
-public class GroupProperty
+public class ReaderWriterTest
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
     
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
-    // The property identifier
-    private String key;
-    
-    // The value of the property
-    private Object value;
-    
-    // true if the property cannot be modified.
-    private boolean readOnly;
-
-    /**
-     * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
-     * @param readOnly
-     */
-    public GroupProperty(String key, Object value, boolean readOnly)
+    public ReaderWriterTest()
     {
-        if (key == null)
-        {
-            throw new IllegalArgumentException("Null key");
-        }
-        if (value == null)
-        {
-            throw new IllegalArgumentException("Null value");
-        }
-        this.key = key;
-        this.value = value;
-        this.readOnly = readOnly;
+    }
+    
+    @BeforeClass
+    public static void setUpClass()
+    {
+    }
+    
+    @AfterClass
+    public static void tearDownClass()
+    {
+    }
+    
+    @Before
+    public void setUp()
+    {
+    }
+    
+    @After
+    public void tearDown()
+    {
     }
 
-    /**
-     * @return property key
-     */
-    public String getKey()
-    {
-        return key;
-    }
-
-    /**
-     * @return value
-     */
-    public Object getValue()
-    {
-        return value;
-    }
-
-    /**
-     * @return read only
-     */
-    public boolean isReadOnly()
-    {
-        return readOnly;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (key == null ? 0 : key.hashCode());
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof GroupProperty))
-        {
-            return false;
-        }
-        GroupProperty other = (GroupProperty) obj;
-        return key.equals(other.key);
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + key + ": " + value + "]";
-    }
+    // TODO add test methods here.
+    // The methods must be annotated with annotation @Test. For example:
+    //
+    // @Test
+    // public void hello() {}
 }

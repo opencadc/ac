@@ -84,20 +84,15 @@ import org.jdom2.output.XMLOutputter;
 
 public class UserWriter
 {
-    public static void write(User user, StringBuilder builder)
+    public static void write(User<? extends Principal> user, StringBuilder builder)
         throws IOException, WriterException
     {
-        if (user == null)
-        {
-            throw new WriterException("null User");
-        }
-
         write(user, new StringBuilderWriter(builder));
     }
 
-    public static void write(User user, OutputStream out)
+    public static void write(User<? extends Principal> user, OutputStream out)
         throws IOException, WriterException
-    {
+    {                
         OutputStreamWriter outWriter;
         try
         {
@@ -110,13 +105,18 @@ public class UserWriter
         write(user, new BufferedWriter(outWriter));
     }
 
-    public static void write(User user, Writer writer)
+    public static void write(User<? extends Principal> user, Writer writer)
         throws IOException, WriterException
     {
+        if (user == null)
+        {
+            throw new WriterException("null User");
+        }
+        
         write(getUserElement(user), writer);
     }
 
-    public static Element getUserElement(User user)
+    public static Element getUserElement(User<? extends Principal> user)
         throws WriterException
     {
         Element userElement = new Element("user");

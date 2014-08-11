@@ -78,14 +78,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
-import java.util.Set;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
 public class UserReader
 {
-    public static User read(String xml)
+    public static User<? extends Principal> read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
@@ -95,7 +94,7 @@ public class UserReader
         return read(new StringReader(xml));
     }
 
-    public static User read(InputStream in)
+    public static User<? extends Principal> read(InputStream in)
         throws ReaderException, IOException, URISyntaxException
     {
         if (in == null)
@@ -114,7 +113,7 @@ public class UserReader
         return read(reader);
     }
 
-    public static User read(Reader reader)
+    public static User<? extends Principal> read(Reader reader)
         throws ReaderException, IOException
     {
         if (reader == null)
@@ -138,7 +137,7 @@ public class UserReader
         return parseUser(root);
     }
 
-    protected static User<Principal> parseUser(Element userElement)
+    protected static User<? extends Principal> parseUser(Element userElement)
         throws ReaderException
     {
         Element userIDElement = userElement.getChild("userID");
@@ -157,7 +156,7 @@ public class UserReader
 
         Principal userID = IdentityReader.read(userIDIdentityElement);
 
-        User user = new User(userID);
+        User<Principal> user = new User<Principal>(userID);
 
         Element identitiesElement = userElement.getChild("identities");
         if (identitiesElement != null)

@@ -68,130 +68,111 @@
  */
 package ca.nrc.cadc.ac;
 
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 /**
- * A property representing metadata for a group.
  *
+ * @author jburke
  */
-public class GroupProperty
+public class GroupPropertyReaderWriterTest
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
-    
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
-    // The property identifier
-    private String key;
-    
-    // The value of the property
-    private Object value;
-    
-    // true if the property cannot be modified.
-    private boolean readOnly;
+    private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
-    /**
-     * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
-     * @param readOnly
-     */
-    public GroupProperty(String key, Object value, boolean readOnly)
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        if (key == null)
+        Element element = null;
+        try
         {
-            throw new IllegalArgumentException("Null key");
+            GroupProperty gp = GroupPropertyReader.read(element);
+            fail("null element should throw ReaderException");
         }
-        if (value == null)
+        catch (ReaderException e) {}
+         
+        element = new Element("foo");
+        try
         {
-            throw new IllegalArgumentException("Null value");
+            GroupProperty gp = GroupPropertyReader.read(element);
+            fail("element not named 'property' should throw ReaderException");
         }
-        this.key = key;
-        this.value = value;
-        this.readOnly = readOnly;
-    }
-
-    /**
-     * @return property key
-     */
-    public String getKey()
-    {
-        return key;
-    }
-
-    /**
-     * @return value
-     */
-    public Object getValue()
-    {
-        return value;
-    }
-
-    /**
-     * @return read only
-     */
-    public boolean isReadOnly()
-    {
-        return readOnly;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (key == null ? 0 : key.hashCode());
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch (ReaderException e) {}
+         
+        element = new Element("property");
+        try
         {
-            return true;
+            GroupProperty gp = GroupPropertyReader.read(element);
+            fail("element without 'key' attribute should throw ReaderException");
         }
-        if (obj == null)
+        catch (ReaderException e) {}
+         
+        element.setAttribute("key", "foo");
+        try
         {
-            return false;
+            GroupProperty gp = GroupPropertyReader.read(element);
+            fail("element without 'type' attribute should throw ReaderException");
         }
-        if (!(obj instanceof GroupProperty))
+        catch (ReaderException e) {}
+         
+        element.setAttribute("type", "Double");
+        try
         {
-            return false;
+            GroupProperty gp = GroupPropertyReader.read(element);
+            fail("Unsupported 'type' should throw ReaderException");
         }
-        GroupProperty other = (GroupProperty) obj;
-        return key.equals(other.key);
+        catch (ReaderException e) {}
     }
-
-    @Override
-    public String toString()
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        return getClass().getSimpleName() + "[" + key + ": " + value + "]";
+        try
+        {
+            Element element = GroupPropertyWriter.write(null);
+            fail("null GroupProperty should throw WriterException");
+        }
+        catch (WriterException e) {}
+         
+        GroupProperty gp = new GroupProperty("key", new Double(1.0), true);
+        try
+        {
+            Element element = GroupPropertyWriter.write(gp);
+            fail("Unsupported GroupProperty type should throw IllegalArgumentException");
+        }
+        catch (IllegalArgumentException e) {}
     }
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        // String type
+        GroupProperty expected = new GroupProperty("key", "value", true);
+        Element element = GroupPropertyWriter.write(expected);
+        assertNotNull(element);
+         
+        GroupProperty actual = GroupPropertyReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+         
+        // Integer tuype
+        expected = new GroupProperty("key", new Integer(1), false);
+        element = GroupPropertyWriter.write(expected);
+        assertNotNull(element);
+         
+        actual = GroupPropertyReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+    }
+     
 }

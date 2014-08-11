@@ -68,130 +68,16 @@
  */
 package ca.nrc.cadc.ac;
 
-/**
- * A property representing metadata for a group.
- *
- */
-public class GroupProperty
+public class AC
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
-    
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
-    // The property identifier
-    private String key;
-    
-    // The value of the property
-    private Object value;
-    
-    // true if the property cannot be modified.
-    private boolean readOnly;
-
-    /**
-     * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
-     * @param readOnly
-     */
-    public GroupProperty(String key, Object value, boolean readOnly)
-    {
-        if (key == null)
-        {
-            throw new IllegalArgumentException("Null key");
-        }
-        if (value == null)
-        {
-            throw new IllegalArgumentException("Null value");
-        }
-        this.key = key;
-        this.value = value;
-        this.readOnly = readOnly;
-    }
-
-    /**
-     * @return property key
-     */
-    public String getKey()
-    {
-        return key;
-    }
-
-    /**
-     * @return value
-     */
-    public Object getValue()
-    {
-        return value;
-    }
-
-    /**
-     * @return read only
-     */
-    public boolean isReadOnly()
-    {
-        return readOnly;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (key == null ? 0 : key.hashCode());
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof GroupProperty))
-        {
-            return false;
-        }
-        GroupProperty other = (GroupProperty) obj;
-        return key.equals(other.key);
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + key + ": " + value + "]";
-    }
+    public static final String PROPERTY_GROUP_DESCRIPTION = "ivo://ivoa.net/gms#description";
+    public static final String PROPERTY_OWNER_DN = "ivo://ivoa.net/gms#owner_dn";
+    public static final String PROPERTY_USER_DN = "ivo://ivoa.net/gms#user_dn";
+    public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
+    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/gms";
+    public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
+    public static final String ID_TYPE_X500 = "X500";
+    public static final String ID_TYPE_OPENID = "OpenID";
+    public static final String ID_TYPE_USERNAME = "HTTP";
+    public static final String ID_TYPE_UID = "UID";
 }

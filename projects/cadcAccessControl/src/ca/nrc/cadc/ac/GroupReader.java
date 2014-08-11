@@ -77,6 +77,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
+import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.List;
@@ -89,7 +90,7 @@ public class GroupReader
 {
 
     public static Group read(String xml)
-            throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
         {
@@ -99,7 +100,7 @@ public class GroupReader
     }
 
     public static Group read(InputStream in)
-            throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException, URISyntaxException
     {
         if (in == null)
         {
@@ -118,7 +119,7 @@ public class GroupReader
     }
 
     public static Group read(Reader reader)
-            throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException, URISyntaxException
     {
         if (reader == null)
         {
@@ -150,7 +151,7 @@ public class GroupReader
     }
 
     protected static Group parseGroup(Element groupElement)
-            throws URISyntaxException, ReaderException
+        throws URISyntaxException, ReaderException
     {
         String uri = groupElement.getAttributeValue("uri");
         if (uri == null)
@@ -180,7 +181,7 @@ public class GroupReader
             String error = "owner missing required user element";
             throw new ReaderException(error);
         }
-        User user = UserReader.parseUser(userElement);
+        User<? extends Principal> user = UserReader.parseUser(userElement);
 
         Group group = new Group(groupID, user);
 

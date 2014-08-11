@@ -105,7 +105,7 @@
     </target>
 
     <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.dev}/xerces.jar" />
+    <property name="xerces"     value="${ext.lib}/xerces.jar" />
     <property name="asm"        value="${ext.dev}/asm.jar" />
     <property name="cglib"      value="${ext.dev}/cglib.jar" />
     <property name="easymock"   value="${ext.dev}/easymock.jar" />
@@ -125,8 +125,17 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <test name="ca.nrc.cadc.ac.UserTest" />
             <test name="ca.nrc.cadc.ac.GroupTest" />
+            <test name="ca.nrc.cadc.ac.GroupPropertyTest" />
+            <test name="ca.nrc.cadc.ac.GroupPropertyReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.GroupReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.IdentityReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.PersonalDetailsTest" />
+            <test name="ca.nrc.cadc.ac.PosixDetailsTest" />
+            <test name="ca.nrc.cadc.ac.UserDetailsReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.UserReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.UserTest" />
+            
             <formatter type="plain" usefile="false" />
         </junit>
     </target>

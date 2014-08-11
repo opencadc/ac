@@ -68,130 +68,80 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 /**
- * A property representing metadata for a group.
  *
+ * @author jburke
  */
-public class GroupProperty
+public class UserReaderWriterTest
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
-    
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
-    // The property identifier
-    private String key;
-    
-    // The value of the property
-    private Object value;
-    
-    // true if the property cannot be modified.
-    private boolean readOnly;
+    private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
 
-    /**
-     * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
-     * @param readOnly
-     */
-    public GroupProperty(String key, Object value, boolean readOnly)
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        if (key == null)
+        try
         {
-            throw new IllegalArgumentException("Null key");
+            String s = null;
+            User<? extends Principal> u = UserReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        if (value == null)
+        catch (IllegalArgumentException e) {}
+        
+        try
         {
-            throw new IllegalArgumentException("Null value");
+            InputStream in = null;
+            User<? extends Principal> u = UserReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        this.key = key;
-        this.value = value;
-        this.readOnly = readOnly;
-    }
-
-    /**
-     * @return property key
-     */
-    public String getKey()
-    {
-        return key;
-    }
-
-    /**
-     * @return value
-     */
-    public Object getValue()
-    {
-        return value;
-    }
-
-    /**
-     * @return read only
-     */
-    public boolean isReadOnly()
-    {
-        return readOnly;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (key == null ? 0 : key.hashCode());
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch (IOException e) {}
+        
+        try
         {
-            return true;
+            Reader r = null;
+            User<? extends Principal> u = UserReader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof GroupProperty))
-        {
-            return false;
-        }
-        GroupProperty other = (GroupProperty) obj;
-        return key.equals(other.key);
+        catch (IllegalArgumentException e) {}
     }
-
-    @Override
-    public String toString()
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        return getClass().getSimpleName() + "[" + key + ": " + value + "]";
+        try
+        {
+            UserWriter.write(null, new StringBuilder());
+            fail("null User should throw WriterException");
+        }
+        catch (WriterException e) {}
     }
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.details.add(new PersonalDetails("firstname", "lastname"));
+        
+        StringBuilder xml = new StringBuilder();
+        UserWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        User<? extends Principal> actual = UserReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
 }

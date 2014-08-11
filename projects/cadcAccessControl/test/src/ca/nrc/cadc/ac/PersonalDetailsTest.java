@@ -65,133 +65,66 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */
-package ca.nrc.cadc.ac;
+ */package ca.nrc.cadc.ac;
+
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * A property representing metadata for a group.
  *
+ * @author jburke
  */
-public class GroupProperty
+public class PersonalDetailsTest
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
+    private static Logger log = Logger.getLogger(PersonalDetailsTest.class);
     
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
-    // The property identifier
-    private String key;
-    
-    // The value of the property
-    private Object value;
-    
-    // true if the property cannot be modified.
-    private boolean readOnly;
-
-    /**
-     * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
-     * @param readOnly
-     */
-    public GroupProperty(String key, Object value, boolean readOnly)
+    @Test
+    public void simplePersonalDetailsTest() throws Exception
     {
-        if (key == null)
+        PersonalDetails pd1 = new PersonalDetails("firstname", "lastname");
+        
+        assertEquals("firstname", pd1.getFirstName());
+        assertEquals("lastname", pd1.getLastName());
+
+        PersonalDetails pd2 = pd1;
+        assertEquals(pd1.hashCode(), pd2.hashCode());
+        assertEquals(pd1, pd2);
+        assertTrue(pd1 == pd2);
+        
+        // test toString
+        System.out.println(pd1);
+    }
+    
+    @Test
+    public void exceptionTests()
+    {
+        boolean thrown = false;
+        try
         {
-            throw new IllegalArgumentException("Null key");
+            new PersonalDetails(null, "lastname");
         }
-        if (value == null)
+        catch(IllegalArgumentException e)
         {
-            throw new IllegalArgumentException("Null value");
+            thrown = true;
         }
-        this.key = key;
-        this.value = value;
-        this.readOnly = readOnly;
-    }
-
-    /**
-     * @return property key
-     */
-    public String getKey()
-    {
-        return key;
-    }
-
-    /**
-     * @return value
-     */
-    public Object getValue()
-    {
-        return value;
-    }
-
-    /**
-     * @return read only
-     */
-    public boolean isReadOnly()
-    {
-        return readOnly;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (key == null ? 0 : key.hashCode());
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        assertTrue(thrown);
+        
+        
+        thrown = false;
+        try
         {
-            return true;
+            new PersonalDetails("firstname", null);
         }
-        if (obj == null)
+        catch(IllegalArgumentException e)
         {
-            return false;
+            thrown = true;
         }
-        if (!(obj instanceof GroupProperty))
-        {
-            return false;
-        }
-        GroupProperty other = (GroupProperty) obj;
-        return key.equals(other.key);
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + key + ": " + value + "]";
-    }
+        assertTrue(thrown);
+    }    
+    
 }
