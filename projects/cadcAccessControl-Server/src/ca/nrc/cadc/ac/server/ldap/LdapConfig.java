@@ -78,7 +78,8 @@ public class LdapConfig
 {
     private static final Logger logger = Logger.getLogger(LdapConfig.class);
 
-    public static final String CONFIG = LdapConfig.class.getSimpleName() + ".properties";
+    public static final String CONFIG = LdapConfig.class.getSimpleName() + 
+                                        ".properties";
     public static final String LDAP_SERVER = "server";
     public static final String LDAP_PORT = "port";
     public static final String LDAP_ADMIN = "admin";
@@ -86,6 +87,7 @@ public class LdapConfig
     public static final String LDAP_USERS_DN = "usersDn";
     public static final String LDAP_GROUPS_DN = "groupsDn";
     public static final String LDAP_DELETED_GROUPS_DN = "deletedGroupsDn";
+
     private String usersDN;
     private String groupsDN;
     private String deletedGroupsDN;
@@ -110,87 +112,103 @@ public class LdapConfig
             {
                 throw new IOException("File not found");
             }
-
         }
         catch (Exception ex)
         {
-            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
+            throw new RuntimeException("failed to read " + CONFIG + 
+                                       " from " + url, ex);
         }
 
-        String server = config.getProperty("server");
+        String server = config.getProperty(LDAP_SERVER);
         if (!StringUtil.hasText(server))
         {
-            throw new RuntimeException("failed to read server property");
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_SERVER);
         }
 
-        String port = config.getProperty("port");
+        String port = config.getProperty(LDAP_PORT);
         if (!StringUtil.hasText(port))
         {
-            throw new RuntimeException("failed to read port property");
+            throw new RuntimeException("failed to read property " + LDAP_PORT);
         }
 
-        String ldapAdmin = config.getProperty("admin");
+        String ldapAdmin = config.getProperty(LDAP_ADMIN);
         if (!StringUtil.hasText(ldapAdmin))
         {
-            throw new RuntimeException("failed to read admin property");
+            throw new RuntimeException("failed to read property " + LDAP_ADMIN);
         }
 
-        String ldapPasswd = config.getProperty("passwd");
+        String ldapPasswd = config.getProperty(LDAP_PASSWD);
         if (!StringUtil.hasText(ldapPasswd))
         {
-            throw new RuntimeException("failed to read passwd property");
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_PASSWD);
         }
 
-        String ldapUsersDn = config.getProperty("usersDn");
+        String ldapUsersDn = config.getProperty(LDAP_USERS_DN);
         if (!StringUtil.hasText(ldapUsersDn))
         {
-            throw new RuntimeException("failed to read usersDn property");
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_USERS_DN);
         }
 
-        String ldapGroupsDn = config.getProperty("groupsDn");
+        String ldapGroupsDn = config.getProperty(LDAP_GROUPS_DN);
         if (!StringUtil.hasText(ldapGroupsDn))
         {
-            throw new RuntimeException("failed to read groupsDn property");
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_GROUPS_DN);
         }
 
-        String ldapDeletedGroupsDn = config.getProperty("deletedGroupsDn");
+        String ldapDeletedGroupsDn = config.getProperty(LDAP_DELETED_GROUPS_DN);
         if (!StringUtil.hasText(ldapDeletedGroupsDn))
         {
-            throw new RuntimeException("failed to read deletedGroupsDn property");
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_DELETED_GROUPS_DN);
         }
 
-        return new LdapConfig(server, Integer.valueOf(port), ldapAdmin, ldapPasswd, ldapUsersDn, ldapGroupsDn, ldapDeletedGroupsDn);
+        return new LdapConfig(server, Integer.valueOf(port), ldapAdmin, 
+                              ldapPasswd, ldapUsersDn, ldapGroupsDn, 
+                              ldapDeletedGroupsDn);
     }
 
-    public LdapConfig(String server, int port, String adminUserDN, String adminPasswd, String usersDN, String groupsDN, String deletedGroupsDN)
+    public LdapConfig(String server, int port, String adminUserDN, 
+                      String adminPasswd, String usersDN, String groupsDN, 
+                      String deletedGroupsDN)
     {
         if (!StringUtil.hasText(server))
         {
-            throw new IllegalArgumentException("Illegal LDAP server name: " + server);
+            throw new IllegalArgumentException("Illegal LDAP server name: " + 
+                                               server);
         }
         if (port < 0)
         {
-            throw new IllegalArgumentException("Illegal LDAP server port: " + port);
+            throw new IllegalArgumentException("Illegal LDAP server port: " + 
+                                               port);
         }
         if (!StringUtil.hasText(adminUserDN))
         {
-            throw new IllegalArgumentException("Illegal Admin DN: " + adminUserDN);
+            throw new IllegalArgumentException("Illegal Admin DN: " + 
+                                               adminUserDN);
         }
         if (!StringUtil.hasText(adminPasswd))
         {
-            throw new IllegalArgumentException("Illegal Admin password: " + adminPasswd);
+            throw new IllegalArgumentException("Illegal Admin password: " + 
+                                               adminPasswd);
         }
         if (!StringUtil.hasText(usersDN))
         {
-            throw new IllegalArgumentException("Illegal users LDAP DN: " + usersDN);
+            throw new IllegalArgumentException("Illegal users LDAP DN: " + 
+                                               usersDN);
         }
         if (!StringUtil.hasText(groupsDN))
         {
-            throw new IllegalArgumentException("Illegal groups LDAP DN: " + groupsDN);
+            throw new IllegalArgumentException("Illegal groups LDAP DN: " + 
+                                               groupsDN);
         }
         if (!StringUtil.hasText(deletedGroupsDN))
         {
-            throw new IllegalArgumentException("Illegal groups LDAP DN: " + deletedGroupsDN);
+            throw new IllegalArgumentException("Illegal groups LDAP DN: " + 
+                                               deletedGroupsDN);
         }
 
         this.server = server;

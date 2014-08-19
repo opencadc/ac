@@ -15,56 +15,93 @@ import org.jdom2.output.XMLOutputter;
 
 public class GroupsWriter
 {
-  public static void write(List<Group> groups, StringBuilder builder)
-    throws IOException, WriterException
-  {
-    write(groups, new StringBuilderWriter(builder));
-  }
-
-  public static void write(List<Group> groups, OutputStream out)
-    throws IOException, WriterException
-  {
-    OutputStreamWriter outWriter;
-    try
+    /**
+     * Write a List of Group's to a StringBuilder.
+     * @param groups List of Group's to write.
+     * @param builder
+     * @throws java.io.IOException
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
+    public static void write(List<Group> groups, StringBuilder builder)
+        throws IOException, WriterException
     {
-      outWriter = new OutputStreamWriter(out, "UTF-8");
-    }
-    catch (UnsupportedEncodingException e)
-    {
-      throw new RuntimeException("UTF-8 encoding not supported", e);
-    }
-    write(groups, new BufferedWriter(outWriter));
-  }
-
-  public static void write(List<Group> groups, Writer writer)
-    throws IOException, WriterException
-  {
-    if (groups == null)
-    {
-      throw new WriterException("null groups");
+        write(groups, new StringBuilderWriter(builder));
     }
 
-    write(getGroupsElement(groups), writer);
-  }
-
-  public static Element getGroupsElement(List<Group> groups)
-    throws WriterException
-  {
-    Element groupsElement = new Element("groups");
-
-    for (Group group : groups)
+    /**
+     * Write a List of Group's to an OutputStream.
+     * 
+     * @param groups List of Group's to write.
+     * @param out OutputStream to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
+    public static void write(List<Group> groups, OutputStream out)
+        throws IOException, WriterException
     {
-      groupsElement.addContent(GroupWriter.getGroupElement(group));
+        OutputStreamWriter outWriter;
+        try
+        {
+        outWriter = new OutputStreamWriter(out, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+        throw new RuntimeException("UTF-8 encoding not supported", e);
+        }
+        write(groups, new BufferedWriter(outWriter));
     }
 
-    return groupsElement;
-  }
+    /**
+     * Write a List of Group's to a Writer.
+     * 
+     * @param groups List of Group's to write.
+     * @param writer  Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
+    public static void write(List<Group> groups, Writer writer)
+        throws IOException, WriterException
+    {
+        if (groups == null)
+        {
+        throw new WriterException("null groups");
+        }
 
-  private static void write(Element root, Writer writer)
-    throws IOException
-  {
-    XMLOutputter outputter = new XMLOutputter();
-    outputter.setFormat(Format.getPrettyFormat());
-    outputter.output(new Document(root), writer);
-  }
+        write(getGroupsElement(groups), writer);
+    }
+
+    /**
+     * 
+     * @param groups List of Group's to write.
+     * @return Element of list of Group's.
+     * @throws ca.nrc.cadc.ac.WriterException 
+     */
+    public static Element getGroupsElement(List<Group> groups)
+        throws WriterException
+    {
+        Element groupsElement = new Element("groups");
+
+        for (Group group : groups)
+        {
+            groupsElement.addContent(GroupWriter.getGroupElement(group));
+        }
+
+        return groupsElement;
+    }
+
+    /**
+     * Write to root Element to a writer.
+     * 
+     * @param root Root Element to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     */
+    private static void write(Element root, Writer writer)
+        throws IOException
+    {
+        XMLOutputter outputter = new XMLOutputter();
+        outputter.setFormat(Format.getPrettyFormat());
+        outputter.output(new Document(root), writer);
+    }
+    
 }

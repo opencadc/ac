@@ -91,19 +91,19 @@ public class PluginFactory
     @Override
     public String toString()
     {
-        return getClass().getName() + "[" + this.config.entrySet().size() + "]";
+        return getClass().getName() + "[" + config.entrySet().size() + "]";
     }
 
     private void init()
     {
-        this.config = new Properties();
+        config = new Properties();
         URL url = null;
         try
         {
             url = PluginFactory.class.getClassLoader().getResource(CONFIG);
             if (url != null)
             {
-                this.config.load(url.openStream());
+                config.load(url.openStream());
             }
         }
         catch (Exception ex)
@@ -114,12 +114,12 @@ public class PluginFactory
 
     public <T extends Principal> GroupPersistence<T> getGroupPersistence()
     {
-        GroupPersistence ret = null;
+        GroupPersistence<T> ret = null;
         String name = GroupPersistence.class.getName();
-        String cname = this.config.getProperty(name);
+        String cname = config.getProperty(name);
         if (cname == null)
         {
-            ret = new LdapGroupPersistence();
+            ret = new LdapGroupPersistence<T>();
         }
         else
         {
@@ -138,12 +138,12 @@ public class PluginFactory
 
     public <T extends Principal> UserPersistence<T> getUserPersistence()
     {
-        UserPersistence ret = null;
+        UserPersistence<T> ret = null;
         String name = UserPersistence.class.getName();
-        String cname = this.config.getProperty(name);
+        String cname = config.getProperty(name);
         if (cname == null)
         {
-            ret = new LdapUserPersistence();
+            ret = new LdapUserPersistence<T>();
         }
         else
         {

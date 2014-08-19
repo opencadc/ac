@@ -81,6 +81,9 @@ public class GroupsServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(GroupsServlet.class);
 
+    /**
+     * Create a GroupAction and run the action safely.
+     */
     private void doAction(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
@@ -90,6 +93,15 @@ public class GroupsServlet extends HttpServlet
         {
             log.info(logInfo.start());
 
+            // Note: For this servlet, one does not want the subject to be
+            // augmented with all user principals, only the one in which
+            // they used to connect to the service.  This is accomplished
+            // by ensuring that there is no authenticator implementation
+            // available in the classpath with the name:
+            //   ca.nrc.cadc.auth.AuthenticatorImpl.class
+            // See cadcUtil method ca.nrc.cadc.auth.AuthenticationUtil#getAuthenticator()
+            // for more information.
+            
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
             GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);

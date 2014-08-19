@@ -104,12 +104,9 @@ public class PosixDetails implements UserDetails
 
     /**
      * 
-     * @param uid
-     *            posix uid
-     * @param gid
-     *            posix gid
-     * @param homeDirectory
-     *            home directory
+     * @param uid posix uid
+     * @param gid posix gid
+     * @param homeDirectory home directory
      */
     public PosixDetails(long uid, long gid, String homeDirectory)
     {

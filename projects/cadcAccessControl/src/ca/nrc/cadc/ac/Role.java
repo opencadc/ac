@@ -66,42 +66,47 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.server.JobRunner;
-import ca.nrc.cadc.uws.server.JobUpdater;
-import ca.nrc.cadc.uws.server.SyncOutput;
-
-public class ACSearchRunner
-    implements JobRunner
+/**
+ *
+ * @author jburke
+ */
+public enum Role
 {
-    private JobUpdater jobUpdater;
-    private SyncOutput syncOut;
-    private Job job;
+    OWNER("owner"),
+    MEMBER("member"),
+    RW("rw");
+    
+    private final String value;
 
-    @Override
-    public void setJobUpdater(JobUpdater jobUpdater)
+    private Role(String value)
     {
-        this.jobUpdater = jobUpdater;
+        this.value = value;
     }
 
-    @Override
-    public void setJob(Job job)
+    public static Role toValue(String s)
     {
-        this.job = job;
+        for (Role role : values())
+            if (role.value.equals(s))
+                return role;
+        throw new IllegalArgumentException("invalid value: " + s);
     }
 
-    @Override
-    public void setSyncOutput(SyncOutput syncOut)
-    {
-        this.syncOut = syncOut;
+    public String getValue()
+    { 
+        return value;
     }
 
-    @Override
-    public void run()
+    public int checksum()
     {
-        // TODO Run the search query against GroupPersistence
+        return value.hashCode();
     }
-
+    
+    @Override
+    public String toString()
+    {
+        return this.getClass().getSimpleName() + "[" + value + "]";
+    }
+    
 }

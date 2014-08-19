@@ -84,9 +84,17 @@ import org.jdom2.JDOMException;
 
 public class GroupsReader
 {
-
+    /**
+     * Construct a list of Group's from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return Groups List of Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static List<Group> read(String xml)
-            throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
         {
@@ -95,8 +103,17 @@ public class GroupsReader
         return read(new StringReader(xml));
     }
 
+    /**
+     * Construct a list of Group's from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return Groups List of Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static List<Group> read(InputStream in)
-            throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException, URISyntaxException
     {
         if (in == null)
         {
@@ -114,8 +131,17 @@ public class GroupsReader
         return read(reader);
     }
 
+    /**
+     * Construct a List of Group's from a Reader.
+     * 
+     * @param reader Reader.
+     * @return Groups List of Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static List<Group> read(Reader reader)
-            throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException, URISyntaxException
     {
         if (reader == null)
         {

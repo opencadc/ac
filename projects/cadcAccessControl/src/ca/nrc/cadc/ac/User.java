@@ -80,7 +80,7 @@ public class User<T extends Principal>
 
     public Set<UserDetails> details = new HashSet<UserDetails>();
 
-    public User(T userID)
+    public User(final T userID)
     {
         if (userID == null)
         {

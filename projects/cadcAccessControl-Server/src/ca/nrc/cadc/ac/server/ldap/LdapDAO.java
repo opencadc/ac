@@ -88,6 +88,7 @@ import javax.security.auth.x500.X500Principal;
 public abstract class LdapDAO
 {
     private LDAPConnection conn;
+    
     LdapConfig config;
     DN subjDN = null;
 
@@ -102,49 +103,52 @@ public abstract class LdapDAO
 
     public void close()
     {
-        if (this.conn != null)
+        if (conn != null)
         {
-            this.conn.close();
+            conn.close();
         }
     }
 
-    protected LDAPConnection getConnection() throws LDAPException, AccessControlException
+    protected LDAPConnection getConnection()
+        throws LDAPException, AccessControlException
     {
-        if (this.conn == null)
+        if (conn == null)
         {
-            this.conn = new LDAPConnection(this.config.getServer(), this.config.getPort());
-            this.conn.bind(this.config.getAdminUserDN(), this.config.getAdminPasswd());
+            conn = new LDAPConnection(config.getServer(), config.getPort());
+            conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
 
-            Subject callerSubject = Subject.getSubject(AccessController.getContext());
-
+            Subject callerSubject = 
+                    Subject.getSubject(AccessController.getContext());
             if (callerSubject == null)
             {
                 throw new AccessControlException("Caller not authenticated.");
             }
+            
             Set<Principal> principals = callerSubject.getPrincipals();
-            if (principals.size() < 1)
+            if (principals.isEmpty())
             {
                 throw new AccessControlException("Caller not authenticated.");
             }
+            
             String ldapField = null;
             for (Principal p : principals)
             {
-                if ((p instanceof HttpPrincipal))
+                if (p instanceof HttpPrincipal)
                 {
                     ldapField = "(uid=" + p.getName() + ")";
                     break;
                 }
-                if ((p instanceof NumericPrincipal))
+                if (p instanceof NumericPrincipal)
                 {
                     ldapField = "(entryid=" + p.getName() + ")";
                     break;
                 }
-                if ((p instanceof X500Principal))
+                if (p instanceof X500Principal)
                 {
                     ldapField = "(distinguishedname=" + p.getName() + ")";
                     break;
                 }
-                if ((p instanceof OpenIdPrincipal))
+                if (p instanceof OpenIdPrincipal)
                 {
                     ldapField = "(openid=" + p.getName() + ")";
                     break;
@@ -156,29 +160,30 @@ public abstract class LdapDAO
                 throw new AccessControlException("Identity of caller unknown.");
             }
 
-            SearchResult searchResult = this.conn.search(this.config.getUsersDN(), SearchScope.ONE, ldapField, new String[]
-                                                     {
-                                                         "entrydn"
-            });
+            SearchResult searchResult = 
+                    conn.search(config.getUsersDN(), SearchScope.ONE, 
+                                ldapField, new String[] {"entrydn"});
 
             if (searchResult.getEntryCount() < 1)
             {
-                throw new AccessControlException("No LDAP account when search with rule " + ldapField);
+                throw new AccessControlException(
+                        "No LDAP account when search with rule " + ldapField);
             }
 
-            this.subjDN = ((SearchResultEntry) searchResult.getSearchEntries().get(0)).getAttributeValueAsDN("entrydn");
+            subjDN = ((SearchResultEntry) searchResult.getSearchEntries()
+                    .get(0)).getAttributeValueAsDN("entrydn");
         }
 
-        return this.conn;
+        return conn;
     }
 
     protected DN getSubjectDN() throws LDAPException
     {
-        if (this.subjDN == null)
+        if (subjDN == null)
         {
             getConnection();
         }
-        return this.subjDN;
+        return subjDN;
     }
 
 }

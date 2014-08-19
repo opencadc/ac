@@ -101,12 +101,22 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
+/**
+ * Client class for communicating with the access control web service.
+ */
 public class GMSClient
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
+    
+    // socket factory to use when connecting
     public SSLSocketFactory sslSocketFactory;
+    
     private String baseURL;
 
+    /**
+     *
+     * @param baseURL
+     */
     public GMSClient(String baseURL)
         throws IllegalArgumentException
     {
@@ -137,18 +147,29 @@ public class GMSClient
         }
     }
 
-    public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
-    {
-        this.sslSocketFactory = sslSocketFactory;
-    }
-
+    /**
+     * Get a list of groups.
+     *
+     * @return The list of groups.
+     */
     public List<Group> getGroups()
     {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
+    /**
+     * Create a new group
+     *
+     * @param group The group to create
+     * @return The newly created group will all the information.
+     * @throws GroupAlreadyExistsException If a group with the same name already exists.
+     * @throws AccessControlException If unauthorized to perform this operation.
+     * @throws UserNotFoundException
+     * @throws IOException
+     */
     public Group createGroup(Group group)
-        throws GroupAlreadyExistsException, AccessControlException, UserNotFoundException, IOException
+        throws GroupAlreadyExistsException, AccessControlException, 
+               UserNotFoundException, IOException
     {
         URL createGroupURL = new URL(this.baseURL + "/groups");
         log.debug("createGroupURL request to " + createGroupURL.toString());
@@ -201,6 +222,15 @@ public class GMSClient
         }
     }
 
+    /**
+     * Get the group object.
+     *
+     * @param groupName Identifies the group to get.
+     * @return The group.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws AccessControlException If unauthorized to perform this operation.
+     * @throws java.io.IOException
+     */
     public Group getGroup(String groupName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
@@ -244,8 +274,19 @@ public class GMSClient
         }
     }
 
+    /**
+     * Update a group.
+     *
+     * @param group The update group object.
+     * @return The group after update.
+     * @throws IllegalArgumentException If cyclical membership is detected.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws AccessControlException If unauthorized to perform this operation.
+     * @throws java.io.IOException
+     */
     public Group updateGroup(Group group)
-        throws IllegalArgumentException, GroupNotFoundException, AccessControlException, IOException
+        throws IllegalArgumentException, GroupNotFoundException,
+               AccessControlException, IOException
     {
         URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
         log.debug("updateGroup request to " + updateGroupURL.toString());
@@ -291,6 +332,14 @@ public class GMSClient
         }
     }
 
+    /**
+     * Delete the group.
+     *
+     * @param groupName Identifies the group to delete.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws AccessControlException If unauthorized to perform this operation.
+     * @throws java.io.IOException
+     */
     public void deleteGroup(String groupName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
@@ -326,8 +375,19 @@ public class GMSClient
         }
     }
 
+    /**
+     * Add a group as a member of another group.
+     *
+     * @param targetGroupName The group in which to add the group member.
+     * @param groupMemberName The group member to add.
+     * @throws IllegalArgumentException If cyclical membership is detected.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws AccessControlException If unauthorized to perform this operation.
+     * @throws java.io.IOException
+     */
     public void addGroupMember(String targetGroupName, String groupMemberName)
-        throws IllegalArgumentException, GroupNotFoundException, AccessControlException, IOException
+        throws IllegalArgumentException, GroupNotFoundException,
+               AccessControlException, IOException
     {
         URL addGroupMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName + "/groupMembers/" + groupMemberName);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
@@ -362,6 +422,15 @@ public class GMSClient
         }
     }
 
+    /**
+     * Add a user as a member of a group.
+     *
+     * @param targetGroupName The group in which to add the group member.
+     * @param userID The user to add.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws java.io.IOException
+     * @throws AccessControlException If unauthorized to perform this operation.
+     */
     public void addUserMember(String targetGroupName, Principal userID)
         throws GroupNotFoundException, AccessControlException, IOException
     {
@@ -401,6 +470,15 @@ public class GMSClient
         }
     }
 
+    /**
+     * Remove a group as a member of another group.
+     *
+     * @param targetGroupName The group from which to remove the group member.
+     * @param groupMemberName The group member to remove.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws java.io.IOException
+     * @throws AccessControlException If unauthorized to perform this operation.
+     */
     public void removeGroupMember(String targetGroupName, String groupMemberName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
@@ -437,6 +515,15 @@ public class GMSClient
         }
     }
 
+    /**
+     * Remove a user as a member of a group.
+     *
+     * @param targetGroupName The group from which to remove the group member.
+     * @param userID The user to remove.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws java.io.IOException
+     * @throws AccessControlException If unauthorized to perform this operation.
+     */
     public void removeUserMember(String targetGroupName, Principal userID)
         throws GroupNotFoundException, AccessControlException, IOException
     {
@@ -481,6 +568,17 @@ public class GMSClient
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * @param sslSocketFactory the sslSocketFactory to set
+     */
+    public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
+    {
+        this.sslSocketFactory = sslSocketFactory;
+    }
+    
+    /**
+     * @return the sslSocketFactory
+     */
     private SSLSocketFactory getSSLSocketFactory()
     {
         if (this.sslSocketFactory == null)
@@ -521,6 +619,10 @@ public class GMSClient
         }
     }
 
+    /**
+     * Class used to hold list of groups in which
+     * a user is a member.
+     */
     protected class GroupCredentials
     {
         Collection<Group> groupMemberships = new ArrayList<Group>();

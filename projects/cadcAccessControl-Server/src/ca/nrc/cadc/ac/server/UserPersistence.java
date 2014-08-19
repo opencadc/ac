@@ -76,7 +76,17 @@ import java.security.Principal;
 
 public abstract interface UserPersistence<T extends Principal>
 {
-    public abstract User<T> getUser(T paramT)
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     * @throws UserNotFoundException when the member is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, AccessControlException;
 
 }

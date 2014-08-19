@@ -68,6 +68,10 @@
  */
 package ca.nrc.cadc.ac;
 
+/**
+ * Thrown when a member could not be found.
+ *
+ */
 public class MemberNotFoundException extends Exception
 {
 }

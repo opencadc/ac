@@ -84,12 +84,28 @@ import org.jdom2.output.XMLOutputter;
 
 public class UserWriter
 {
+    /**
+     * Write a User to a StringBuilder.
+     * 
+     * @param user User to write.
+     * @param builder StringBuilder to write to.
+     * @throws java.io.IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static void write(User<? extends Principal> user, StringBuilder builder)
         throws IOException, WriterException
     {
         write(user, new StringBuilderWriter(builder));
     }
 
+    /**
+     * Write a User to an OutputStream.
+     *
+     * @param user User to write.
+     * @param out OutputStream to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static void write(User<? extends Principal> user, OutputStream out)
         throws IOException, WriterException
     {                
@@ -105,6 +121,14 @@ public class UserWriter
         write(user, new BufferedWriter(outWriter));
     }
 
+    /**
+     * Write a User to a Writer.
+     *
+     * @param user User to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static void write(User<? extends Principal> user, Writer writer)
         throws IOException, WriterException
     {
@@ -116,15 +140,25 @@ public class UserWriter
         write(getUserElement(user), writer);
     }
 
+    /**
+     * Build the member Element of a User.
+     *
+     * @param user User.
+     * @return member Element.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static Element getUserElement(User<? extends Principal> user)
         throws WriterException
     {
+        // Create the user Element.
         Element userElement = new Element("user");
 
+        // userID element
         Element userIDElement = new Element("userID");
         userIDElement.addContent(IdentityWriter.write(user.getUserID()));
         userElement.addContent(userIDElement);
 
+        // identities
         Set<Principal> identities = user.getIdentities();
         if (!identities.isEmpty())
         {
@@ -136,6 +170,7 @@ public class UserWriter
             userElement.addContent(identitiesElement);
         }
 
+        // details
         if (!user.details.isEmpty())
         {
             Element detailsElement = new Element("details");
@@ -150,6 +185,13 @@ public class UserWriter
         return userElement;
     }
 
+    /**
+     * Write to root Element to a writer.
+     *
+     * @param root Root Element to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     */
     private static void write(Element root, Writer writer)
         throws IOException
     {

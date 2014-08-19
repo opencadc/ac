@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
@@ -78,27 +79,28 @@ import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
-import java.util.Map;
 import org.apache.log4j.Logger;
 
 public class LdapGroupPersistence<T extends Principal>
     implements GroupPersistence<T>
 {
-    private static final Logger logger = Logger.getLogger(LdapGroupPersistence.class);
-    private LdapConfig config;
+    private static final Logger log = 
+            Logger.getLogger(LdapGroupPersistence.class);
+    private final LdapConfig config;
 
     public LdapGroupPersistence()
     {
-        this.config = LdapConfig.getLdapConfig();
+        config = LdapConfig.getLdapConfig();
     }
 
     public Group getGroup(String groupName)
-        throws GroupNotFoundException, TransientException, AccessControlException
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
     {
         LdapGroupDAO groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
             Group ret = groupDAO.getGroup(groupName);
             return ret;
         }
@@ -112,12 +114,13 @@ public class LdapGroupPersistence<T extends Principal>
     }
 
     public Group addGroup(Group group)
-        throws GroupAlreadyExistsException, TransientException, AccessControlException, UserNotFoundException
+        throws GroupAlreadyExistsException, TransientException, 
+               AccessControlException, UserNotFoundException
     {
         LdapGroupDAO groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
             Group ret = groupDAO.addGroup(group);
             return ret;
         }
@@ -131,12 +134,13 @@ public class LdapGroupPersistence<T extends Principal>
     }
 
     public void deleteGroup(String groupName)
-        throws GroupNotFoundException, TransientException, AccessControlException
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
     {
         LdapGroupDAO groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
             groupDAO.deleteGroup(groupName);
         }
         finally
@@ -149,12 +153,13 @@ public class LdapGroupPersistence<T extends Principal>
     }
 
     public Group modifyGroup(Group group)
-        throws GroupNotFoundException, TransientException, AccessControlException, UserNotFoundException
+        throws GroupNotFoundException, TransientException,
+               AccessControlException, UserNotFoundException
     {
         LdapGroupDAO groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(this.config, new LdapUserDAO(this.config));
+            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
             Group ret = groupDAO.modifyGroup(group);
             return ret;
         }
@@ -167,16 +172,43 @@ public class LdapGroupPersistence<T extends Principal>
         }
     }
 
-    public Collection<Group> getGroups(Map<String, String> criteria)
-        throws TransientException, AccessControlException
+    public Collection<Group> getGroups(User<T> user, Role role)
+        throws UserNotFoundException, TransientException, AccessControlException
     {
-        throw new UnsupportedOperationException("To be implemented");
+        LdapGroupDAO groupDAO = null;
+        try
+        {
+            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            Collection<Group> ret = groupDAO.getGroups(user, role);
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+        }
     }
 
-    public boolean isMember(User<T> member, String groupName)
-        throws TransientException, AccessControlException
+    public boolean isMember(User<T> member, String groupID)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
     {
-        throw new UnsupportedOperationException("To be implemented");
+        LdapGroupDAO groupDAO = null;
+        try
+        {
+            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            boolean ret = groupDAO.isMember(member, groupID);
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+        }
     }
 
 }

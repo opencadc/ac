@@ -71,32 +71,108 @@ package ca.nrc.cadc.ac.server;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
-import java.util.Map;
 
 public abstract interface GroupPersistence<T extends Principal>
 {
-    public abstract Group getGroup(String paramString)
-        throws GroupNotFoundException, TransientException, AccessControlException;
+    /**
+     * Get the group with the given Group ID.
+     *
+     * @param groupID The Group ID.
+     * 
+     * @return A Group instance
+     *
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract Group getGroup(String groupID)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException;
 
-    public abstract Group addGroup(Group paramGroup)
-        throws GroupAlreadyExistsException, TransientException, AccessControlException, UserNotFoundException;
+    /**
+     * Creates the group.
+     *
+     * @param group The group to create
+     * 
+     * @return created group
+     *
+     * @throws GroupAlreadyExistsException If a group with the same ID already
+     *                                     exists.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     * @throws UserNotFoundException If owner or a member not valid user.
+     */
+    public abstract Group addGroup(Group group)
+        throws GroupAlreadyExistsException, TransientException,
+               AccessControlException, UserNotFoundException;
 
-    public abstract void deleteGroup(String paramString)
-        throws GroupNotFoundException, TransientException, AccessControlException;
+    /**
+     * Deletes the group.
+     *
+     * @param groupID The Group ID.
+     *
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract void deleteGroup(String groupID)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException;
 
-    public abstract Group modifyGroup(Group paramGroup)
-        throws GroupNotFoundException, TransientException, AccessControlException, UserNotFoundException;
+    /**
+     * Modify the given group.
+     *
+     * @param group The group to update.
+     * 
+     * @return The newly updated group.
+     * 
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     * @throws UserNotFoundException If owner or group members not valid users.
+     */
+    public abstract Group modifyGroup(Group group)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException, UserNotFoundException;
 
-    public abstract Collection<Group> getGroups(Map<String, String> paramMap)
-        throws TransientException, AccessControlException;
+    /**
+     * Obtain a Collection of Groups that fit the given query.
+     *
+     * @param user<T> ID of user
+     * @param role Role of the user, either owner, member, or read/write.
+     * 
+     * @return Collection of Groups matching the query, or empty Collection.
+     *         Never null.
+     *
+     * @throws UserNotFoundException If owner or group members not valid users.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract Collection<Group> getGroups(User<T> user, Role role)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
 
-    public abstract boolean isMember(User<T> paramUser, String paramString)
-        throws TransientException, AccessControlException;
+    /**
+     * Check whether the user is a member of the group.
+     *
+     * @param user<T> ID of user
+     * @param groupID ID of group
+     *
+     * @return true or false
+     *
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract boolean isMember(User<T> user, String groupID)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException;
 
 }

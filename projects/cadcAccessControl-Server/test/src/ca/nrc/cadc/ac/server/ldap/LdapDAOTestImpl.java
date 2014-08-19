@@ -1,4 +1,4 @@
-/*
+/**
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -62,46 +62,29 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
- *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.server.JobRunner;
-import ca.nrc.cadc.uws.server.JobUpdater;
-import ca.nrc.cadc.uws.server.SyncOutput;
 
-public class ACSearchRunner
-    implements JobRunner
+
+package ca.nrc.cadc.ac.server.ldap;
+
+import java.security.AccessControlException;
+
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+
+public class LdapDAOTestImpl extends LdapDAO
 {
-    private JobUpdater jobUpdater;
-    private SyncOutput syncOut;
-    private Job job;
-
-    @Override
-    public void setJobUpdater(JobUpdater jobUpdater)
+    public LdapDAOTestImpl(LdapConfig config)
     {
-        this.jobUpdater = jobUpdater;
+        super(config);
     }
-
+    
     @Override
-    public void setJob(Job job)
+    public LDAPConnection getConnection() throws LDAPException,
+    AccessControlException
     {
-        this.job = job;
+        return super.getConnection();
     }
-
-    @Override
-    public void setSyncOutput(SyncOutput syncOut)
-    {
-        this.syncOut = syncOut;
-    }
-
-    @Override
-    public void run()
-    {
-        // TODO Run the search query against GroupPersistence
-    }
-
 }

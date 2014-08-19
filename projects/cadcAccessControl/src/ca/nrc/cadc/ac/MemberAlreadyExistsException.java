@@ -68,6 +68,10 @@
  */
 package ca.nrc.cadc.ac;
 
+/**
+ * Thrown when there is a member conflict.
+ *
+ */
 public class MemberAlreadyExistsException extends Exception
 {
 }

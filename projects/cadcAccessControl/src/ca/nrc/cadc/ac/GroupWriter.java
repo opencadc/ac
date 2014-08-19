@@ -87,12 +87,27 @@ import org.jdom2.output.XMLOutputter;
 
 public class GroupWriter
 {
+    /**
+     * Write a Group to a StringBuilder.
+     * @param group
+     * @param builder
+     * @throws java.io.IOException
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static void write(Group group, StringBuilder builder)
         throws IOException, WriterException
     {
         write(group, new StringBuilderWriter(builder));
     }
 
+    /**
+     * Write a Group to an OutputStream.
+     * 
+     * @param group Group to write.
+     * @param out OutputStream to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static void write(Group group, OutputStream out)
         throws IOException, WriterException
     {
@@ -108,6 +123,14 @@ public class GroupWriter
         write(group, new BufferedWriter(outWriter));
     }
 
+    /**
+     * Write a Group to a Writer.
+     * 
+     * @param group Group to write.
+     * @param writer  Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
     public static void write(Group group, Writer writer)
         throws IOException, WriterException
     {
@@ -119,6 +142,12 @@ public class GroupWriter
         write(getGroupElement(group), writer);
     }
 
+    /**
+     * 
+     * @param group
+     * @return 
+     * @throws ca.nrc.cadc.ac.WriterException 
+     */
     public static Element getGroupElement(Group group)
         throws WriterException
     {
@@ -128,10 +157,12 @@ public class GroupWriter
     public static Element getGroupElement(Group group, boolean deepCopy)
         throws WriterException
     {
+        // Create the root group element.
         Element groupElement = new Element("group");
-        String groupURI = "ivo://cadc.nrc.ca/gms#" + group.getID();
+        String groupURI = AC.GROUP_URI + group.getID();
         groupElement.setAttribute(new Attribute("uri", groupURI));
 
+        // Group owner
         Element ownerElement = new Element("owner");
         Element userElement = UserWriter.getUserElement(group.getOwner());
         ownerElement.addContent(userElement);
@@ -139,6 +170,7 @@ public class GroupWriter
 
         if (deepCopy)
         {
+            // Group description
             if (group.description != null)
             {
                 Element descriptionElement = new Element("description");
@@ -146,18 +178,21 @@ public class GroupWriter
                 groupElement.addContent(descriptionElement);
             }
 
+            // Group publicRead
             Element publicReadElement = new Element("publicRead");
             publicReadElement.setText(String.valueOf(group.publicRead));
             groupElement.addContent(publicReadElement);
 
+            // lastModified
             if (group.lastModified != null)
             {
                 Element lastModifiedElement = new Element("lastModified");
-                DateFormat df = DateUtil.getDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", DateUtil.UTC);
+                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
                 lastModifiedElement.setText(df.format(group.lastModified));
                 groupElement.addContent(lastModifiedElement);
             }
 
+            // Group properties
             if (!group.getProperties().isEmpty())
             {
                 Element propertiesElement = new Element("properties");
@@ -168,6 +203,7 @@ public class GroupWriter
                 groupElement.addContent(propertiesElement);
             }
 
+            // Group groupMembers.
             if ((group.getGroupMembers() != null) && (!group.getGroupMembers().isEmpty()))
             {
                 Element groupMembersElement = new Element("groupMembers");
@@ -178,6 +214,7 @@ public class GroupWriter
                 groupElement.addContent(groupMembersElement);
             }
 
+            // Group groupRead.
             if (group.groupRead != null)
             {
                 Element groupReadElement = new Element("groupRead");
@@ -185,6 +222,7 @@ public class GroupWriter
                 groupElement.addContent(groupReadElement);
             }
 
+            // Group groupWrite.
             if (group.groupWrite != null)
             {
                 Element groupWriteElement = new Element("groupWrite");
@@ -192,6 +230,7 @@ public class GroupWriter
                 groupElement.addContent(groupWriteElement);
             }
 
+            // Group userMembers
             if ((group.getUserMembers() != null) && (!group.getUserMembers().isEmpty()))
             {
                 Element userMembersElement = new Element("userMembers");
@@ -206,6 +245,13 @@ public class GroupWriter
         return groupElement;
     }
 
+    /**
+     * Write to root Element to a writer.
+     * 
+     * @param root Root Element to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     */
     private static void write(Element root, Writer writer)
         throws IOException
     {

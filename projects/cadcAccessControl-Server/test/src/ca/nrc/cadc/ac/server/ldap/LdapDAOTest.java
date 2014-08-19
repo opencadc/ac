@@ -1,4 +1,4 @@
-/*
+/**
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -62,53 +62,111 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
- *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+
+package ca.nrc.cadc.ac.server.ldap;
+
+import static org.junit.Assert.assertTrue;
+
+import java.security.PrivilegedExceptionAction;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-/**
- *
- * @author jburke
- */
-public class ReaderWriterTest
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+
+import com.unboundid.ldap.sdk.LDAPConnection;
+
+public class LdapDAOTest
 {
+    LdapConfig config = new LdapConfig(
+            "mach275.cadc.dao.nrc.ca",
+            389,
+            "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot",
+            "go4it", "ou=Users,ou=ds,dc=canfar,dc=net",
+            "ou=Groups,ou=ds,dc=canfar,dc=net",
+            "ou=DeletedGroups,ou=ds,dc=canfar,dc=net");
     
-    public ReaderWriterTest()
+    @Test
+    public void testLdapBindConnection() throws Exception
     {
-    }
-    
-    @BeforeClass
-    public static void setUpClass()
-    {
-    }
-    
-    @AfterClass
-    public static void tearDownClass()
-    {
-    }
-    
-    @Before
-    public void setUp()
-    {
-    }
-    
-    @After
-    public void tearDown()
-    {
-    }
+        //TODO use a test user to test with. To be done when addUser available.
+        //LdapUserDAO<X500Principal> userDAO = new LdapUserDAO<X500Principal>();
 
-    // TODO add test methods here.
-    // The methods must be annotated with annotation @Test. For example:
-    //
-    // @Test
-    // public void hello() {}
+        // User authenticated with HttpPrincipal
+        HttpPrincipal httpPrincipal = new HttpPrincipal("cadcauthtest2");
+        Subject subject = new Subject();
+
+        subject.getPrincipals().add(httpPrincipal);
+        
+        final LdapDAOTestImpl ldapDao = new LdapDAOTestImpl(config);
+
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    LDAPConnection ldapCon = ldapDao.getConnection();
+                    assertTrue(ldapCon.isConnected());
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+               
+        
+        X500Principal subjPrincipal = new X500Principal(
+                "cn=cadc authtest2 10635,ou=cadc,o=hia");
+        subject = new Subject();
+        subject.getPrincipals().add(subjPrincipal);
+        
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    LDAPConnection ldapCon = ldapDao.getConnection();
+                    assertTrue(ldapCon.isConnected());
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+        
+        
+        NumericPrincipal numPrincipal = new NumericPrincipal(1866);       
+        subject.getPrincipals().add(numPrincipal);
+
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+
+                    LDAPConnection ldapCon = ldapDao.getConnection();
+                    assertTrue(ldapCon.isConnected());
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+
+    }
 }

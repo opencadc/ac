@@ -84,6 +84,15 @@ import org.jdom2.JDOMException;
 
 public class UserReader
 {
+    /**
+     * Construct a User from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return User User.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static User<? extends Principal> read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
@@ -94,6 +103,15 @@ public class UserReader
         return read(new StringReader(xml));
     }
 
+    /**
+     * Construct a User from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return User User.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static User<? extends Principal> read(InputStream in)
         throws ReaderException, IOException, URISyntaxException
     {
@@ -113,6 +131,14 @@ public class UserReader
         return read(reader);
     }
 
+    /**
+     * Construct a User from a Reader.
+     * 
+     * @param reader Reader.
+     * @return User User.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     */
     public static User<? extends Principal> read(Reader reader)
         throws ReaderException, IOException
     {
@@ -121,6 +147,7 @@ public class UserReader
             throw new IllegalArgumentException("reader must not be null");
         }
 
+        // Create a JDOM Document from the XML
         Document document;
         try
         {
@@ -132,6 +159,7 @@ public class UserReader
             throw new ReaderException(error, jde);
         }
 
+        // Root element and namespace of the Document
         Element root = document.getRootElement();
 
         return parseUser(root);
@@ -140,6 +168,7 @@ public class UserReader
     protected static User<? extends Principal> parseUser(Element userElement)
         throws ReaderException
     {
+        // userID element of the User element
         Element userIDElement = userElement.getChild("userID");
         if (userIDElement == null)
         {
@@ -147,6 +176,7 @@ public class UserReader
             throw new ReaderException(error);
         }
 
+        // identity element of the userID element
         Element userIDIdentityElement = userIDElement.getChild("identity");
         if (userIDIdentityElement == null)
         {
@@ -158,6 +188,7 @@ public class UserReader
 
         User<Principal> user = new User<Principal>(userID);
 
+        // identities
         Element identitiesElement = userElement.getChild("identities");
         if (identitiesElement != null)
         {
@@ -169,6 +200,7 @@ public class UserReader
 
         }
 
+        // details
         Element detailsElement = userElement.getChild("details");
         if (detailsElement != null)
         {

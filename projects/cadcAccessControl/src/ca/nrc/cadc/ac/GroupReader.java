@@ -89,6 +89,15 @@ import org.jdom2.JDOMException;
 public class GroupReader
 {
 
+    /**
+     * Construct a Group from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return Group Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static Group read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
@@ -99,6 +108,15 @@ public class GroupReader
         return read(new StringReader(xml));
     }
 
+    /**
+     * Construct a Group from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return Group Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static Group read(InputStream in)
         throws ReaderException, IOException, URISyntaxException
     {
@@ -118,6 +136,15 @@ public class GroupReader
         return read(reader);
     }
 
+    /**
+     * Construct a Group from a Reader.
+     * 
+     * @param reader Reader.
+     * @return Group Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
     public static Group read(Reader reader)
         throws ReaderException, IOException, URISyntaxException
     {
@@ -160,14 +187,16 @@ public class GroupReader
             throw new ReaderException(error);
         }
 
-        int index = uri.indexOf("ivo://cadc.nrc.ca/gms#");
+        // Group groupID
+        int index = uri.indexOf(AC.GROUP_URI);
         if (index == -1)
         {
             String error = "group uri attribute malformed: " + uri;
             throw new ReaderException(error);
         }
-        String groupID = uri.substring("ivo://cadc.nrc.ca/gms#".length());
+        String groupID = uri.substring(AC.GROUP_URI.length());
 
+        // Group owner
         Element ownerElement = groupElement.getChild("owner");
         if (ownerElement == null)
         {
@@ -175,6 +204,7 @@ public class GroupReader
             throw new ReaderException(error);
         }
 
+        // Owner user
         Element userElement = ownerElement.getChild("user");
         if (userElement == null)
         {
@@ -185,18 +215,20 @@ public class GroupReader
 
         Group group = new Group(groupID, user);
 
+        // description
         Element descriptionElement = groupElement.getChild("description");
         if (descriptionElement != null)
         {
             group.description = descriptionElement.getText();
         }
 
+        // lastModified
         Element lastModifiedElement = groupElement.getChild("lastModified");
         if (lastModifiedElement != null)
         {
             try
             {
-                DateFormat df = DateUtil.getDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", DateUtil.UTC);
+                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
                 group.lastModified = df.parse(lastModifiedElement.getText());
             }
             catch (ParseException e)
@@ -208,12 +240,14 @@ public class GroupReader
 
         }
 
+        // publicRead
         Element publicReadElement = groupElement.getChild("publicRead");
         if (publicReadElement != null)
         {
             group.publicRead = Boolean.valueOf(publicReadElement.getText());
         }
 
+        // properties
         Element propertiesElement = groupElement.getChild("properties");
         if (propertiesElement != null)
         {
@@ -225,6 +259,7 @@ public class GroupReader
 
         }
 
+        // groupMembers
         Element groupMembersElement = groupElement.getChild("groupMembers");
         if (groupMembersElement != null)
         {
@@ -236,6 +271,7 @@ public class GroupReader
 
         }
 
+        // groupRead
         Element groupReadElement = groupElement.getChild("groupRead");
         if (groupReadElement != null)
         {
@@ -247,6 +283,7 @@ public class GroupReader
 
         }
 
+        // groupWrite
         Element groupWriteElement = groupElement.getChild("groupWrite");
         if (groupWriteElement != null)
         {
@@ -258,6 +295,7 @@ public class GroupReader
 
         }
 
+        // userMembers
         Element userMembersElement = groupElement.getChild("userMembers");
         if (userMembersElement != null)
         {

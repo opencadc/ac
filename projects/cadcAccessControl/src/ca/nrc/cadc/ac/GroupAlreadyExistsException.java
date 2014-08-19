@@ -70,7 +70,10 @@ package ca.nrc.cadc.ac;
 
 public class GroupAlreadyExistsException extends Exception
 {
-
+    /**
+     * Thrown when there is a group conflict.
+     *
+     */
     public GroupAlreadyExistsException(String message)
     {
         super(message);

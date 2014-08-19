@@ -88,38 +88,49 @@
 
     <property name="project" value="cadcAccessControl-Server" />
 
-    <property name="accessControl"  value="${lib}/cadcAccessControl.jar" />
-    <property name="cadcLog"        value="${lib}/cadcLog.jar" />
-    <property name="cadcUtil"       value="${lib}/cadcUtil.jar" />
-    <property name="cadcUWS"        value="${lib}/cadcUWS.jar" />
+    <property name="cadcAccessControl"   value="${lib}/cadcAccessControl.jar" />
+    <property name="cadcLog"             value="${lib}/cadcLog.jar" />
+    <property name="cadcRegistry"        value="${lib}/cadcRegistryClient.jar" />
+    <property name="cadcUtil"            value="${lib}/cadcUtil.jar" />
+    <property name="cadcUWS"             value="${lib}/cadcUWS.jar" />
     
-    <property name="jdom2"          value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"          value="${ext.lib}/log4j.jar" />
-    <property name="servlet"        value="${ext.lib}/servlet-api.jar" />
-    <property name="unboundid"      value="${ext.lib}/unboundid-ldapsdk-se.jar" />
+    <property name="jdom2"               value="${ext.lib}/jdom2.jar" />
+    <property name="log4j"               value="${ext.lib}/log4j.jar" />
+    <property name="servlet"             value="${ext.lib}/servlet-api.jar" />
+    <property name="unboundid"           value="${ext.lib}/unboundid-ldapsdk-se.jar" />
+    <property name="xerces"              value="${ext.lib}/xerces.jar" />
 
-
-    <property name="jars" value="${accessControl}:${cadcLog}:${cadcUtil}:${cadcUWS}:${jdom2}:${log4j}:${servlet}:${unboundid}" />
+    <property name="jars" value="${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${jdom2}:${log4j}:${servlet}:${unboundid}:${xerces}" />
 
     <target name="build" depends="compile">
         <jar jarfile="${build}/lib/${project}.jar"
-                    basedir="${build}/class"
-                    update="no">
-                <include name="ca/nrc/cadc/**" />
+             basedir="${build}/class"
+             update="no">
+            <include name="ca/nrc/cadc/**" />
         </jar>
     </target>
 
     <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.dev}/xerces.jar" />
-    <property name="asm"        value="${ext.dev}/asm.jar" />
-    <property name="cglib"      value="${ext.dev}/cglib.jar" />
-    <property name="easymock"   value="${ext.dev}/easymock.jar" />
-    <property name="junit"      value="${ext.dev}/junit.jar" />
-    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
-    
-    <property name="testingJars" value="${build}/class:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+    <property name="gson"           value="${ext.lib}/gson.jar" />
+    <property name="easyMock"       value="${ext.dev}/easymock.jar" />
+    <property name="junit"          value="${ext.dev}/junit.jar" />
+    <property name="xmlunit"        value="${ext.dev}/xmlunit.jar" />
+    <property name="xerces"         value="${ext.lib}/xerces.jar" />
+    <property name="cglib"          value="${ext.dev}/cglib.jar" />
+    <property name="objenesis"      value="${ext.dev}/objenesis.jar" />
+    <property name="asm"            value="${ext.dev}/asm.jar" />
 
-    <target name="test" depends="compile-test">
+    <property name="testingJars"    value="${jars}:${gson}:${easyMock}:${junit}:${xmlunit}:${xerces}:${cglib}:${asm}:${objenesis}" />
+
+    <target name="resources">
+        <copy todir="${build}/class">
+            <fileset dir="config">
+                <include name="**.properties" />
+            </fileset>
+        </copy>
+    </target>
+    
+    <target name="test" depends="compile-test,resources">
         <echo message="Running test" />
 
         <!-- Run the junit test suite -->
@@ -130,8 +141,10 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <test name="ca.nrc.cadc.ac.UserTest" />
-            <test name="ca.nrc.cadc.ac.GroupTest" />
+            <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTestImpl" />-->
+            <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
+            <!--<test name="ca.nrc.cadc.ac.server.web.GroupActionFactoryTest" />-->
             <formatter type="plain" usefile="false" />
         </junit>
     </target>

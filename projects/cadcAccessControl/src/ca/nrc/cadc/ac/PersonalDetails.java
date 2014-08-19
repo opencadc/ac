@@ -144,7 +144,7 @@ public class PersonalDetails implements UserDetails
     }
 
     /* (non-Javadoc)
-     * 
+     * @see ca.nrc.cadc.auth.model.UserDetails#hashCode()
      */
     @Override
     public int hashCode()
