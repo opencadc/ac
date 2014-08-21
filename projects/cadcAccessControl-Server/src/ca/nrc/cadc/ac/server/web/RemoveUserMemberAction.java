@@ -77,13 +77,12 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class RemoveUserMemberAction extends GroupsAction
 {
-    private String groupName;
-    private String userID;
-    private String userIDType;
+    private final String groupName;
+    private final String userID;
+    private final String userIDType;
 
     RemoveUserMemberAction(GroupLogInfo logInfo, String groupName, String userID, String userIDType)
     {
@@ -107,7 +106,7 @@ public class RemoveUserMemberAction extends GroupsAction
         }
         groupPersistence.modifyGroup(group);
 
-        List deletedMembers = new ArrayList();
+        List<String> deletedMembers = new ArrayList<String>();
         deletedMembers.add(toRemove.getUserID().getName());
         logGroupInfo(group.getID(), deletedMembers, null);
         return null;

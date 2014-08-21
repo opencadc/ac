@@ -69,7 +69,7 @@
 package ca.nrc.cadc.ac;
 
 /**
- * Holder of commonly used consts in GMS
+ * Holder of commonly used consts in cadcAccessControl
  */
 public class AC
 {

@@ -82,7 +82,7 @@ import javax.servlet.http.HttpServletResponse;
 
 public class CreateGroupAction extends GroupsAction
 {
-    private InputStream inputStream;
+    private final InputStream inputStream;
 
     CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
     {
@@ -99,10 +99,10 @@ public class CreateGroupAction extends GroupsAction
         this.response.setContentType("application/xml");
         GroupWriter.write(newGroup, this.response.getOutputStream());
 
-        List addedMembers = null;
+        List<String> addedMembers = null;
         if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
         {
-            addedMembers = new ArrayList();
+            addedMembers = new ArrayList<String>();
             for (Group gr : newGroup.getGroupMembers())
             {
                 addedMembers.add(gr.getID());

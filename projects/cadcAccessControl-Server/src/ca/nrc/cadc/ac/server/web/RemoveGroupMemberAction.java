@@ -77,8 +77,8 @@ import java.util.Set;
 
 public class RemoveGroupMemberAction extends GroupsAction
 {
-    private String groupName;
-    private String groupMemberName;
+    private final String groupName;
+    private final String groupMemberName;
 
     RemoveGroupMemberAction(GroupLogInfo logInfo, String groupName, String groupMemberName)
     {
@@ -99,7 +99,7 @@ public class RemoveGroupMemberAction extends GroupsAction
         }
         groupPersistence.modifyGroup(group);
 
-        List deletedMembers = new ArrayList();
+        List<String> deletedMembers = new ArrayList<String>();
         deletedMembers.add(toRemove.getID());
         logGroupInfo(group.getID(), deletedMembers, null);
         return null;

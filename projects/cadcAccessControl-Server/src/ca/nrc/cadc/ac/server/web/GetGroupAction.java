@@ -74,7 +74,7 @@ import javax.servlet.http.HttpServletResponse;
 
 public class GetGroupAction extends GroupsAction
 {
-    private String groupName;
+    private final String groupName;
 
     GetGroupAction(GroupLogInfo logInfo, String groupName)
     {

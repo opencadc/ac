@@ -145,7 +145,7 @@ public abstract interface GroupPersistence<T extends Principal>
     /**
      * Obtain a Collection of Groups that fit the given query.
      *
-     * @param user<T> ID of user
+     * @param user user
      * @param role Role of the user, either owner, member, or read/write.
      * 
      * @return Collection of Groups matching the query, or empty Collection.
@@ -162,7 +162,7 @@ public abstract interface GroupPersistence<T extends Principal>
     /**
      * Check whether the user is a member of the group.
      *
-     * @param user<T> ID of user
+     * @param user user
      * @param groupID ID of group
      *
      * @return true or false
@@ -170,9 +170,10 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws ca.nrc.cadc.ac.UserNotFoundException
      */
     public abstract boolean isMember(User<T> user, String groupID)
         throws GroupNotFoundException, TransientException,
-               AccessControlException;
+               AccessControlException, UserNotFoundException;
 
 }

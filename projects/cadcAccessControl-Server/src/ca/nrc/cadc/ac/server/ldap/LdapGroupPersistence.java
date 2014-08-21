@@ -97,10 +97,10 @@ public class LdapGroupPersistence<T extends Principal>
         throws GroupNotFoundException, TransientException,
                AccessControlException
     {
-        LdapGroupDAO groupDAO = null;
+        LdapGroupDAO<T> groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
             Group ret = groupDAO.getGroup(groupName);
             return ret;
         }
@@ -117,10 +117,10 @@ public class LdapGroupPersistence<T extends Principal>
         throws GroupAlreadyExistsException, TransientException, 
                AccessControlException, UserNotFoundException
     {
-        LdapGroupDAO groupDAO = null;
+        LdapGroupDAO<T> groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
             Group ret = groupDAO.addGroup(group);
             return ret;
         }
@@ -137,10 +137,10 @@ public class LdapGroupPersistence<T extends Principal>
         throws GroupNotFoundException, TransientException,
                AccessControlException
     {
-        LdapGroupDAO groupDAO = null;
+        LdapGroupDAO<T> groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
             groupDAO.deleteGroup(groupName);
         }
         finally
@@ -156,10 +156,10 @@ public class LdapGroupPersistence<T extends Principal>
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException
     {
-        LdapGroupDAO groupDAO = null;
+        LdapGroupDAO<T> groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
             Group ret = groupDAO.modifyGroup(group);
             return ret;
         }
@@ -175,10 +175,10 @@ public class LdapGroupPersistence<T extends Principal>
     public Collection<Group> getGroups(User<T> user, Role role)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        LdapGroupDAO groupDAO = null;
+        LdapGroupDAO<T> groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
+            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
             Collection<Group> ret = groupDAO.getGroups(user, role);
             return ret;
         }
@@ -191,15 +191,15 @@ public class LdapGroupPersistence<T extends Principal>
         }
     }
 
-    public boolean isMember(User<T> member, String groupID)
+    public boolean isMember(User<T> user, String groupID)
         throws GroupNotFoundException, TransientException,
-               AccessControlException
+               AccessControlException, UserNotFoundException
     {
-        LdapGroupDAO groupDAO = null;
+        LdapGroupDAO<T> groupDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO(config, new LdapUserDAO(config));
-            boolean ret = groupDAO.isMember(member, groupID);
+            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
+            boolean ret = groupDAO.isMember(user, groupID);
             return ret;
         }
         finally

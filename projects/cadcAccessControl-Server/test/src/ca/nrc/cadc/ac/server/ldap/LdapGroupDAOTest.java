@@ -46,21 +46,50 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.util.Log4jInit;
+import java.util.Collection;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import static org.junit.Assert.fail;
+import org.junit.BeforeClass;
 
 public class LdapGroupDAOTest
 {
-    final String groupID1 = "acs-daotest-group1-" + System.currentTimeMillis();
-    final String groupID2 = "acs-daotest-group2-" + System.currentTimeMillis();
+    private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
     
-    LdapConfig config = new LdapConfig(
-            "199.116.235.122",
-//            "mach275.cadc.dao.nrc.ca",
-            389,
+    static User<X500Principal> authtest1;
+    static User<X500Principal> authtest2;
+    static User<X500Principal> regtest1;
+    
+    static String groupID1;
+    static String groupID2;
+    
+    static LdapConfig config;
+    
+    @BeforeClass
+    public static void setUpBeforeClass()
+        throws Exception
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        
+        groupID1 = "acs-daotest-group1-" + System.currentTimeMillis();
+        groupID2 = "acs-daotest-group2-" + System.currentTimeMillis();
+        
+        authtest1 = new User<X500Principal>(
+                new X500Principal("cn=cadc authtest1 10627,ou=cadc,o=hia"));
+        authtest2 = new User<X500Principal>(
+                new X500Principal("cn=cadc authtest2 10635,ou=cadc,o=hia"));
+        regtest1 = new User<X500Principal>(
+                new X500Principal("CN=CADC Regtest1 10577,OU=CADC,O=HIA"));
+    
+        config = new LdapConfig("mach275.cadc.dao.nrc.ca", 389,
             "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot",
             "go4it", "ou=Users,ou=ds,dc=canfar,dc=net",
             "ou=TestGroups,ou=ds,dc=canfar,dc=net",
             "ou=DeletedGroups,ou=ds,dc=canfar,dc=net");
+    }
 
     LdapGroupDAO<X500Principal> getGroupDAO()
     {
@@ -68,19 +97,11 @@ public class LdapGroupDAOTest
                 new LdapUserDAO<X500Principal>(config));
     }
 
-    @Test
+//    @Test
     public void testOneGroup() throws Exception
     {
-
-        final User<X500Principal> owner = new User<X500Principal>(
-                new X500Principal("cn=cadc authtest1 10627,ou=cadc,o=hia"));
-        final User<X500Principal> authtest2 = new User<X500Principal>(
-                new X500Principal("CN=cadc authtest2 10635,OU=cadc,O=hia"));
-        final User<X500Principal> regtest1 = new User<X500Principal>(
-                new X500Principal("CN=CADC Regtest1 10577,OU=CADC,O=HIA"));
-        
         Subject subject = new Subject();
-        subject.getPrincipals().add(owner.getUserID());
+        subject.getPrincipals().add(authtest1.getUserID());
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -89,77 +110,11 @@ public class LdapGroupDAOTest
             {
                 try
                 {
-                    Group expectGroup = new Group(groupID1, owner);
+                    Group expectGroup = new Group(groupID1, authtest1);
                     Group actualGroup = getGroupDAO().addGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
                     
-//                    Group otherGroup = new Group(groupID2, authtest2);
-//                    otherGroup = getGroupDAO().addGroup(otherGroup);
-
-                    // modify group fields
-                    // description
-                    expectGroup.description = "Happy testing";
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-
-//                    // groupRead
-//                    expectGroup.groupRead = otherGroup;
-//                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-//                    assertGroupsEqual(expectGroup, actualGroup);
-//
-//                    // groupWrite
-//                    expectGroup.groupWrite = otherGroup;
-//                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-//                    assertGroupsEqual(expectGroup, actualGroup);
-
-                    // publicRead
-                    expectGroup.publicRead = true;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-
-//                    // userMembers
-//                    expectGroup.getUserMembers().add(authtest2);
-//                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-//                    assertGroupsEqual(expectGroup, actualGroup);
-//
-//                    // groupMembers
-//                    expectGroup.getGroupMembers().add(otherGroup);
-//                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-//                    assertGroupsEqual(expectGroup, actualGroup);
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
-    }
-
-//    @Test
-    public void testMultipleGroups() throws Exception
-    {
-
-        final User<X500Principal> owner = new User<X500Principal>(
-                new X500Principal("cn=cadc authtest1 10627,ou=cadc,o=hia"));
-        final User<X500Principal> authtest2 = new User<X500Principal>(
-                new X500Principal("cn=cadc authtest2 10635,ou=cadc,o=hia"));
-
-        Subject subject = new Subject();
-        subject.getPrincipals().add(owner.getUserID());
-
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    Group expectGroup = new Group(groupID1, owner);
-                    Group actualGroup = getGroupDAO().addGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-                    
-                    Group otherGroup = new Group(groupID2, authtest2);
+                    Group otherGroup = new Group(groupID2, authtest1);
                     otherGroup = getGroupDAO().addGroup(otherGroup);
 
                     // modify group fields
@@ -198,6 +153,113 @@ public class LdapGroupDAOTest
                 {
                     throw new Exception("Problems", e);
                 }
+            }
+        });
+    }
+
+//    @Test
+    public void testMultipleGroups() throws Exception
+    {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(authtest1.getUserID());
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    Group expectGroup = new Group(groupID1, authtest1);
+                    Group actualGroup = getGroupDAO().addGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+                    
+                    Group otherGroup = new Group(groupID2, authtest1);
+                    otherGroup = getGroupDAO().addGroup(otherGroup);
+
+                    // modify group fields
+                    // description
+                    expectGroup.description = "Happy testing";
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // groupRead
+                    expectGroup.groupRead = otherGroup;
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // groupWrite
+                    expectGroup.groupWrite = otherGroup;
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // publicRead
+                    expectGroup.publicRead = true;
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // userMembers
+                    expectGroup.getUserMembers().add(authtest2);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // groupMembers
+                    expectGroup.getGroupMembers().add(otherGroup);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+    
+    @Test
+    public void testGetGroups() throws Exception
+    {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(authtest1.getUserID());
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    Group expectGroup = new Group(groupID1, authtest1);
+                    Group actualGroup = getGroupDAO().addGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+                    System.out.println("new group: " + groupID1);
+                    
+                    Collection<Group> groups = getGroupDAO().getGroups(authtest1, Role.OWNER);
+                    System.out.println("# groups found: " + groups.size());
+                    boolean found = false;
+                    for (Group group : groups)
+                    {
+                        System.out.println("found group: " + group.getID());
+                        if (!group.getOwner().equals(authtest1))
+                        {
+                            fail("returned group with wrong owner");
+                        }
+                        if (group.getID().equals(groupID1))
+                        {
+                            found = true;
+                        }
+                    }
+                    if (!found)
+                    {
+                        fail("");
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+                return null;
             }
         });
     }

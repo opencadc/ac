@@ -81,8 +81,8 @@ import javax.servlet.http.HttpServletResponse;
 
 public class ModifyGroupAction extends GroupsAction
 {
-    private String groupName;
-    private InputStream inputStream;
+    private final String groupName;
+    private final InputStream inputStream;
 
     ModifyGroupAction(GroupLogInfo logInfo, String groupName, InputStream inputStream)
     {
@@ -100,7 +100,7 @@ public class ModifyGroupAction extends GroupsAction
         Group modifiedGroup = groupPersistence.modifyGroup(group);
         this.response.sendRedirect(modifiedGroup.getID());
 
-        List addedMembers = new ArrayList();
+        List<String> addedMembers = new ArrayList<String>();
         for (User member : group.getUserMembers())
         {
             if (!oldGroup.getUserMembers().remove(member))
@@ -119,7 +119,7 @@ public class ModifyGroupAction extends GroupsAction
         {
             addedMembers = null;
         }
-        List deletedMembers = new ArrayList();
+        List<String> deletedMembers = new ArrayList<String>();
         for (User member : oldGroup.getUserMembers())
         {
             deletedMembers.add(member.getUserID().getName());

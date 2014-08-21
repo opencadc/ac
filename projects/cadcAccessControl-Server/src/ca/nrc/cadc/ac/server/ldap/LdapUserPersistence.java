@@ -97,11 +97,11 @@ public class LdapUserPersistence<T extends Principal>
     public User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        LdapUserDAO userDAO = null;
+        LdapUserDAO<T> userDAO = null;
         try
         {
-            userDAO = new LdapUserDAO(this.config);
-            User ret = userDAO.getUser(userID);
+            userDAO = new LdapUserDAO<T>(this.config);
+            User<T> ret = userDAO.getUser(userID);
             return ret;
         }
         finally

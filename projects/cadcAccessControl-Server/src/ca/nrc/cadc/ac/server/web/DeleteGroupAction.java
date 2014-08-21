@@ -78,7 +78,7 @@ import java.util.Set;
 
 public class DeleteGroupAction extends GroupsAction
 {
-    private String groupName;
+    private final String groupName;
 
     DeleteGroupAction(GroupLogInfo logInfo, String groupName)
     {
@@ -94,7 +94,7 @@ public class DeleteGroupAction extends GroupsAction
         groupPersistence.deleteGroup(this.groupName);
         if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))
         {
-            this.logInfo.addedMembers = new ArrayList();
+            this.logInfo.addedMembers = new ArrayList<String>();
             for (Group gr : deletedGroup.getGroupMembers())
             {
                 this.logInfo.deletedMembers.add(gr.getID());

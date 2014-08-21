@@ -81,11 +81,12 @@ import java.util.Set;
 
 public class AddUserMemberAction extends GroupsAction
 {
-    private String groupName;
-    private String userID;
-    private String userIDType;
+    private final String groupName;
+    private final String userID;
+    private final String userIDType;
 
-    AddUserMemberAction(GroupLogInfo logInfo, String groupName, String userID, String userIDType)
+    AddUserMemberAction(GroupLogInfo logInfo, String groupName, String userID,
+                        String userIDType)
     {
         super(logInfo);
         this.groupName = groupName;
@@ -107,7 +108,7 @@ public class AddUserMemberAction extends GroupsAction
         }
         groupPersistence.modifyGroup(group);
 
-        List addedMembers = new ArrayList();
+        List<String> addedMembers = new ArrayList<String>();
         addedMembers.add(toAdd.getUserID().getName());
         logGroupInfo(group.getID(), null, addedMembers);
         return null;
