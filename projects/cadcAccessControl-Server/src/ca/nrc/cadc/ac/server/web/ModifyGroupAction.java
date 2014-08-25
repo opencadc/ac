@@ -82,12 +82,14 @@ import javax.servlet.http.HttpServletResponse;
 public class ModifyGroupAction extends GroupsAction
 {
     private final String groupName;
+    private final String request;
     private final InputStream inputStream;
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName, InputStream inputStream)
+    ModifyGroupAction(GroupLogInfo logInfo, String groupName, String request, InputStream inputStream)
     {
         super(logInfo);
         this.groupName = groupName;
+        this.request = request;
         this.inputStream = inputStream;
     }
 
@@ -98,8 +100,7 @@ public class ModifyGroupAction extends GroupsAction
         Group group = GroupReader.read(this.inputStream);
         Group oldGroup = groupPersistence.getGroup(this.groupName);
         Group modifiedGroup = groupPersistence.modifyGroup(group);
-        this.response.sendRedirect(modifiedGroup.getID());
-
+        
         List<String> addedMembers = new ArrayList<String>();
         for (User member : group.getUserMembers())
         {
@@ -133,6 +134,8 @@ public class ModifyGroupAction extends GroupsAction
             deletedMembers = null;
         }
         logGroupInfo(group.getID(), deletedMembers, addedMembers);
+        
+        this.response.sendRedirect(request);
         return null;
     }
 

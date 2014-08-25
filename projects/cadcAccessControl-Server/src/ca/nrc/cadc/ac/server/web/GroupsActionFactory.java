@@ -130,7 +130,7 @@ public class GroupsActionFactory
             }
             else if (method.equals("POST"))
             {
-                action = new ModifyGroupAction(logInfo, groupName, request.getInputStream());
+                action = new ModifyGroupAction(logInfo, groupName, request.getRequestURI(), request.getInputStream());
             }
         }
         else if (segments.length == 3)

@@ -129,12 +129,14 @@ public class GMSClient
             URL testURL = new URL(baseURL);
             if (!testURL.getProtocol().equals("https"))
             {
-                throw new IllegalArgumentException("URL must have HTTPS protocol");
+                throw new IllegalArgumentException(
+                        "URL must have HTTPS protocol");
             }
         }
         catch (MalformedURLException e)
         {
-            throw new IllegalArgumentException("URL is malformed: " + e.getMessage());
+            throw new IllegalArgumentException("URL is malformed: " + 
+                                               e.getMessage());
         }
 
         if (baseURL.endsWith("/"))
@@ -162,7 +164,8 @@ public class GMSClient
      *
      * @param group The group to create
      * @return The newly created group will all the information.
-     * @throws GroupAlreadyExistsException If a group with the same name already exists.
+     * @throws GroupAlreadyExistsException If a group with the same name already
+     *                                     exists.
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws UserNotFoundException
      * @throws IOException
@@ -190,7 +193,10 @@ public class GMSClient
         if (error != null)
         {
             log.debug("createGroup throwable", error);
-            if ((transfer.getResponseCode() == 401) || (transfer.getResponseCode() == 403))
+            // transfer returns a -1 code for anonymous uploads.
+            if ((transfer.getResponseCode() == -1) || 
+                (transfer.getResponseCode() == 401) || 
+                (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
             }
@@ -246,7 +252,10 @@ public class GMSClient
         if (error != null)
         {
             log.debug("getGroup throwable", error);
-            if ((transfer.getResponseCode() == 401) || (transfer.getResponseCode() == 403))
+            // transfer returns a -1 code for anonymous access.
+            if ((transfer.getResponseCode() == -1) || 
+                (transfer.getResponseCode() == 401) || 
+                (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
             }
@@ -295,7 +304,8 @@ public class GMSClient
         GroupWriter.write(group, groupXML);
         log.debug("updateGroup: " + groupXML);
 
-        HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(), "application/xml", true);
+        HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(), 
+                                         "application/xml", true);
 
         transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
@@ -304,7 +314,14 @@ public class GMSClient
         if (error != null)
         {
             log.debug("updateGroup throwable", error);
-            if ((transfer.getResponseCode() == 401) || (transfer.getResponseCode() == 403))
+            if (transfer.getResponseCode() == 302)
+            {
+                return getGroup(group.getID());
+            }
+            // transfer returns a -1 code for anonymous access.
+            if ((transfer.getResponseCode() == -1) || 
+                (transfer.getResponseCode() == 401) || 
+                (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
             }
@@ -345,19 +362,22 @@ public class GMSClient
     {
         URL deleteGroupURL = new URL(this.baseURL + "/groups/" + groupName);
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
-        HttpURLConnection conn = (HttpURLConnection) deleteGroupURL.openConnection();
+        HttpURLConnection conn = 
+                (HttpURLConnection) deleteGroupURL.openConnection();
         conn.setRequestMethod("DELETE");
 
         SSLSocketFactory sf = getSSLSocketFactory();
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(getSSLSocketFactory());
+            ((HttpsURLConnection) conn)
+                    .setSSLSocketFactory(getSSLSocketFactory());
         }
         int responseCode = conn.getResponseCode();
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("deleteGroup response " + responseCode + ": " + errMessage);
+            log.debug("deleteGroup response " + responseCode + ": " + 
+                      errMessage);
 
             if ((responseCode == 401) || (responseCode == 403))
             {
@@ -389,24 +409,39 @@ public class GMSClient
         throws IllegalArgumentException, GroupNotFoundException,
                AccessControlException, IOException
     {
-        URL addGroupMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName + "/groupMembers/" + groupMemberName);
+        URL addGroupMemberURL = new URL(this.baseURL + "/groups/" + 
+                                        targetGroupName + "/groupMembers/" + 
+                                        groupMemberName);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
 
-        HttpURLConnection conn = (HttpURLConnection) addGroupMemberURL.openConnection();
+        HttpURLConnection conn = 
+                (HttpURLConnection) addGroupMemberURL.openConnection();
         conn.setRequestMethod("PUT");
 
         SSLSocketFactory sf = getSSLSocketFactory();
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(getSSLSocketFactory());
+            ((HttpsURLConnection) conn)
+                    .setSSLSocketFactory(getSSLSocketFactory());
         }
-        int responseCode = conn.getResponseCode();
+        
+        // Try to handle anonymous access and throw AccessControlException 
+        int responseCode = -1;
+        try
+        {
+            responseCode = conn.getResponseCode();
+        }
+        catch (Exception ignore) {}
+    
         if ((responseCode != 200) && (responseCode != 201))
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("addGroupMember response " + responseCode + ": " + errMessage);
+            log.debug("addGroupMember response " + responseCode + ": " + 
+                      errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403))
+            if ((responseCode == -1) || 
+                (responseCode == 401) || 
+                (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -436,25 +471,40 @@ public class GMSClient
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
-        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName + "/userMembers/" + encodedUserID + "?idType=" + userIDType);
+        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + 
+                                       targetGroupName + "/userMembers/" + 
+                                       encodedUserID + "?idType=" + userIDType);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
 
-        HttpURLConnection conn = (HttpURLConnection) addUserMemberURL.openConnection();
+        HttpURLConnection conn = 
+                (HttpURLConnection) addUserMemberURL.openConnection();
         conn.setRequestMethod("PUT");
 
         SSLSocketFactory sf = getSSLSocketFactory();
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(getSSLSocketFactory());
+            ((HttpsURLConnection) conn)
+                    .setSSLSocketFactory(getSSLSocketFactory());
         }
-        int responseCode = conn.getResponseCode();
+        
+        // Try to handle anonymous access and throw AccessControlException 
+        int responseCode = -1;
+        try
+        {
+            responseCode = conn.getResponseCode();
+        }
+        catch (Exception ignore) {}
+
         if ((responseCode != 200) && (responseCode != 201))
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("addUserMember response " + responseCode + ": " + errMessage);
+            log.debug("addUserMember response " + responseCode + ": " + 
+                      errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403))
+            if ((responseCode == -1) || 
+                (responseCode == 401) || 
+                (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -479,27 +529,44 @@ public class GMSClient
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
-    public void removeGroupMember(String targetGroupName, String groupMemberName)
+    public void removeGroupMember(String targetGroupName, 
+                                  String groupMemberName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
-        URL removeGroupMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName + "/groupMembers/" + groupMemberName);
-        log.debug("removeGroupMember request to " + removeGroupMemberURL.toString());
+        URL removeGroupMemberURL = new URL(this.baseURL + "/groups/" + 
+                                           targetGroupName + "/groupMembers/" + 
+                                           groupMemberName);
+        log.debug("removeGroupMember request to " + 
+                  removeGroupMemberURL.toString());
 
-        HttpURLConnection conn = (HttpURLConnection) removeGroupMemberURL.openConnection();
+        HttpURLConnection conn = 
+                (HttpURLConnection) removeGroupMemberURL.openConnection();
         conn.setRequestMethod("DELETE");
 
         SSLSocketFactory sf = getSSLSocketFactory();
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(getSSLSocketFactory());
+            ((HttpsURLConnection) conn)
+                    .setSSLSocketFactory(getSSLSocketFactory());
         }
-        int responseCode = conn.getResponseCode();
+        
+        // Try to handle anonymous access and throw AccessControlException 
+        int responseCode = -1;
+        try
+        {
+            responseCode = conn.getResponseCode();
+        }
+        catch (Exception ignore) {}
+        
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("removeGroupMember response " + responseCode + ": " + errMessage);
+            log.debug("removeGroupMember response " + responseCode + ": " + 
+                      errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403))
+            if ((responseCode == -1) || 
+                (responseCode == 401) || 
+                (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -529,25 +596,42 @@ public class GMSClient
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
-        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName + "/userMembers/" + encodedUserID + "?idType=" + userIDType);
+        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + 
+                                          targetGroupName + "/userMembers/" + 
+                                          encodedUserID + "?idType=" + 
+                                          userIDType);
 
-        log.debug("removeUserMember request to " + removeUserMemberURL.toString());
+        log.debug("removeUserMember request to " + 
+                  removeUserMemberURL.toString());
 
-        HttpURLConnection conn = (HttpURLConnection) removeUserMemberURL.openConnection();
+        HttpURLConnection conn = 
+                (HttpURLConnection) removeUserMemberURL.openConnection();
         conn.setRequestMethod("DELETE");
 
         SSLSocketFactory sf = getSSLSocketFactory();
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(getSSLSocketFactory());
+            ((HttpsURLConnection) conn)
+                    .setSSLSocketFactory(getSSLSocketFactory());
         }
-        int responseCode = conn.getResponseCode();
+        
+        // Try to handle anonymous access and throw AccessControlException 
+        int responseCode = -1;
+        try
+        {
+            responseCode = conn.getResponseCode();
+        }
+        catch (Exception ignore) {}
+
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("removeUserMember response " + responseCode + ": " + errMessage);
+            log.debug("removeUserMember response " + responseCode + ": " + 
+                      errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403))
+            if ((responseCode == -1) || 
+                (responseCode == 401) || 
+                (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -597,8 +681,10 @@ public class GMSClient
         Subject subject = Subject.getSubject(acContext);
         if (subject != null)
         {
-            Set groupCredentialSet = subject.getPrivateCredentials(GroupCredentials.class);
-            if ((groupCredentialSet != null) && (groupCredentialSet.size() == 1))
+            Set groupCredentialSet = 
+                    subject.getPrivateCredentials(GroupCredentials.class);
+            if ((groupCredentialSet != null) && 
+                (groupCredentialSet.size() == 1))
             {
                 Iterator i = groupCredentialSet.iterator();
                 return ((GroupCredentials) i.next()).groupMemberships;

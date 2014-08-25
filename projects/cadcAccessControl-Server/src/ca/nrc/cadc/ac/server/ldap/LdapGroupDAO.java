@@ -267,6 +267,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
             catch (LDAPException e)
             {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
