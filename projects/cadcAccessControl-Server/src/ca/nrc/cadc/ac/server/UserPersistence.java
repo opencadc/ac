@@ -68,11 +68,13 @@
  */
 package ca.nrc.cadc.ac.server;
 
+import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.Collection;
 
 public abstract interface UserPersistence<T extends Principal>
 {
@@ -82,11 +84,41 @@ public abstract interface UserPersistence<T extends Principal>
      * @param userID The userID.
      *
      * @return User instance.
-     * @throws UserNotFoundException when the member is not found.
+     * 
+     * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     public abstract User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, AccessControlException;
 
+    /**
+     * Get all groups the user specified by userID belongs to.
+     * 
+     * @param userID The userID.
+     * 
+     * @return Collection of Group instances.
+     * 
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract Collection<Group> getUserGroups(T userID)
+        throws UserNotFoundException, TransientException, AccessControlException;
+    
+    /**
+     * Check whether the user is a member of the group.
+     *
+     * @param userID The userID.
+     * @param groupID The groupID.
+     *
+     * @return true or false
+     *
+     * @throws UserNotFoundException If the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract boolean isMember(T userID, String groupID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
 }

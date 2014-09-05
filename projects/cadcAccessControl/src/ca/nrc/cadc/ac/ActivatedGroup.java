@@ -68,30 +68,18 @@
  */
 package ca.nrc.cadc.ac;
 
+import java.security.Principal;
+
 /**
- * Holder of commonly used consts in cadcAccessControl
+ *
+ * @author jburke
  */
-public class AC
+public class ActivatedGroup extends Group
 {
-    // Denotes a description given to a group
-    public static final String PROPERTY_GROUP_DESCRIPTION = "ivo://ivoa.net/gms#description";
+
+    public ActivatedGroup(String groupID, User<? extends Principal> owner)
+    {
+        super(groupID, owner);
+    }
     
-    // Denotes the DN of a group owner
-    public static final String PROPERTY_OWNER_DN = "ivo://ivoa.net/gms#owner_dn";
-    
-    // Denotes the DN of a user
-    public static final String PROPERTY_USER_DN = "ivo://ivoa.net/gms#user_dn";
-    
-    // Denotes a group readable by public
-    public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
-    
-    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/ac";
-    
-    // Group URI attribute once the group name is appended
-    public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
-    
-//    public static final String ID_TYPE_X500 = "X500";
-//    public static final String ID_TYPE_OPENID = "OpenID";
-//    public static final String ID_TYPE_USERNAME = "HTTP";
-//    public static final String ID_TYPE_UID = "UID";
 }

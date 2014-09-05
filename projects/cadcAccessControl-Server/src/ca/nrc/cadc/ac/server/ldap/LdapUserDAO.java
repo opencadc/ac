@@ -68,13 +68,16 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import com.unboundid.ldap.sdk.CompareRequest;
+import com.unboundid.ldap.sdk.CompareResult;
 import com.unboundid.ldap.sdk.DN;
-import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.SearchRequest;
 import com.unboundid.ldap.sdk.SearchResultEntry;
@@ -84,8 +87,8 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
@@ -106,11 +109,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
     /**
      * Get the user specified by userID.
-     * 
-     * @param userID The unique userID.
+     *
+     * @param userID The userID.
+     *
      * @return User instance.
+     * 
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
      */
     public User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, AccessControlException
@@ -158,6 +164,169 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         return user;
     }
 
+    /**
+     * Get all groups the user specified by userID belongs to.
+     * 
+     * @param userID The userID.
+     * 
+     * @return Collection of Group instances.
+     * 
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<Group> getUserGroups(T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        try
+        {
+            String searchField = (String) attribType.get(userID.getClass());
+            if (searchField == null)
+            {
+                throw new IllegalArgumentException(
+                        "Unsupported principal type " + userID.getClass());
+            }
+
+            User user = getUser(userID);
+            Filter filter = Filter.createANDFilter(
+                        Filter.createEqualityFilter(searchField, 
+                                                    user.getUserID().getName()),
+                        Filter.createPresenceFilter("memberOf"));
+
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getUsersDN(), SearchScope.SUB, 
+                                      filter, new String[] {"memberOf"});
+
+            searchRequest.addControl(
+                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+
+            SearchResultEntry searchResult = 
+                    getConnection().searchForEntry(searchRequest);
+            
+            Collection<Group> groups = new HashSet<Group>();
+            if (searchResult != null)
+            {
+                String[] members = 
+                        searchResult.getAttributeValues("memberOf");
+                if (members != null)
+                {
+                    for (String member : members)
+                    {
+                        String groupCN = DN.getRDNString(member);
+                        int index = groupCN.indexOf("=");
+                        String groupName = groupCN.substring(index + 1);
+                        // Ignore existing illegal group names.
+                        try
+                        {
+                            groups.add(new Group(groupName, user));
+                        }
+                        catch (IllegalArgumentException ignore) { }
+                    }
+                }
+            }
+            return groups;
+        }
+        catch (LDAPException e)
+        {
+            // TODO check which LDAP exceptions are transient and which
+            // ones are
+            // access control
+            throw new TransientException("Error getting user groups", e);
+        }
+    }
+    
+    /**
+     * Check whether the user is a member of the group.
+     *
+     * @param userID The userID.
+     * @param groupID The groupID.
+     *
+     * @return true or false
+     *
+     * @throws UserNotFoundException If the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public boolean isMemberX(T userID, String groupID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException
+    {
+        try
+        {
+            String searchField = (String) attribType.get(userID.getClass());
+            if (searchField == null)
+            {
+                throw new IllegalArgumentException(
+                        "Unsupported principal type " + userID.getClass());
+            }
+
+            User user = getUser(userID);
+            Filter filter = Filter.createANDFilter(
+                        Filter.createEqualityFilter(searchField, 
+                                                    user.getUserID().getName()),
+                        Filter.createEqualityFilter("memberOf", groupID));
+
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getUsersDN(), SearchScope.SUB, 
+                                      filter, new String[] {"cn"});
+
+            searchRequest.addControl(
+                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+            
+            SearchResultEntry searchResults = 
+                    getConnection().searchForEntry(searchRequest);
+            
+            if (searchResults == null)
+            {
+                return false;
+            }
+            return true;
+        }
+        catch (LDAPException e1)
+        {
+            // TODO check which LDAP exceptions are transient and which
+            // ones are
+            // access control
+            throw new TransientException("Error getting the user", e1);
+        }
+    }
+    
+    public boolean isMember(T userID, String groupID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException
+    {
+        try
+        {
+            String searchField = (String) attribType.get(userID.getClass());
+            if (searchField == null)
+            {
+                throw new IllegalArgumentException(
+                        "Unsupported principal type " + userID.getClass());
+            }
+
+            User user = getUser(userID);
+            DN userDN = getUserDN(user);
+
+            CompareRequest compareRequest = 
+                    new CompareRequest(userDN.toNormalizedString(), 
+                                      "memberOf", groupID);
+
+            compareRequest.addControl(
+                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+            
+            CompareResult compareResult = 
+                    getConnection().compare(compareRequest);
+            return compareResult.compareMatched();
+        }
+        catch (LDAPException e)
+        {
+            // TODO check which LDAP exceptions are transient and which
+            // ones are
+            // access control
+            throw new TransientException("Error getting the user", e);
+        }
+    }
+    
     /**
      * Returns a member user identified by the X500Principal only.
      * @param userDN

@@ -66,32 +66,114 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server;
+
+import ca.nrc.cadc.ac.IdentityType;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.ParameterUtil;
+import java.util.List;
+import org.apache.log4j.Logger;
 
 /**
- * Holder of commonly used consts in cadcAccessControl
+ * Request Validator. This class extracts and validates the ID, TYPE, ROLE
+ * and GURI parameters.
+ *
  */
-public class AC
+public class RequestValidator
 {
-    // Denotes a description given to a group
-    public static final String PROPERTY_GROUP_DESCRIPTION = "ivo://ivoa.net/gms#description";
+    private static final Logger log = Logger.getLogger(RequestValidator.class);
     
-    // Denotes the DN of a group owner
-    public static final String PROPERTY_OWNER_DN = "ivo://ivoa.net/gms#owner_dn";
+    private String id;
+    private IdentityType type;
+    private Role role;
+    private String guri;
     
-    // Denotes the DN of a user
-    public static final String PROPERTY_USER_DN = "ivo://ivoa.net/gms#user_dn";
+    public RequestValidator() { }
+
+    private void clear()
+    {
+        this.id = null;
+        this.type = null;
+        this.role = null;
+        this.guri = null;
+    }
     
-    // Denotes a group readable by public
-    public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
+    public void validate(List<Parameter> paramList)
+    {
+        clear();
+        if (paramList == null || paramList.isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "Missing required parameters: ID and TYPE");
+        }
+
+        //  ID
+        String param = ParameterUtil.findParameterValue("ID", paramList);
+        if (param == null || param.trim().isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "ID parameter required but not found");
+        }
+        this.id = param.trim();
+        log.debug("ID: " + id);
+
+        //  TYPE
+        param = ParameterUtil.findParameterValue("TYPE", paramList);
+        if (param == null || param.trim().isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "TYPE parameter required but not found");
+        }
+        this.type = IdentityType.toValue(param);
+        log.debug("TYPE: " + type);
+        
+        //  ROLE
+        param = ParameterUtil.findParameterValue("ROLE", paramList);
+        if (param == null || param.trim().isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "ROLE parameter required but not found");
+        }
+        this.role = Role.toValue(param);
+        log.debug("ROLE: " + role);
+        
+        //  GURI
+        param = ParameterUtil.findParameterValue("GURI", paramList);
+        if (param != null)
+        {
+            if (param.isEmpty())
+                throw new IllegalArgumentException(
+                        "GURI parameter specified without a value");
+            this.guri = param.trim();
+        }
+        log.debug("GURI: " + guri);
+        
+        if (role != null && guri != null)
+        {
+            throw new IllegalArgumentException(
+                    "ROLE and GURI cannot be used in the same search");
+        }
+    }
+
+    public String getId()
+    {
+        return id;
+    }
     
-    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/ac";
+    public IdentityType getType()
+    {
+        return type;
+    }
+
+    public Role getRole()
+    {
+        return role;
+    }
     
-    // Group URI attribute once the group name is appended
-    public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
-    
-//    public static final String ID_TYPE_X500 = "X500";
-//    public static final String ID_TYPE_OPENID = "OpenID";
-//    public static final String ID_TYPE_USERNAME = "HTTP";
-//    public static final String ID_TYPE_UID = "UID";
+    public String getGUri()
+    {
+        return guri;
+    }
+
 }

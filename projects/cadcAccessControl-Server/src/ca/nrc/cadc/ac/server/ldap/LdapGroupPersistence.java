@@ -71,8 +71,8 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.net.TransientException;
@@ -172,34 +172,15 @@ public class LdapGroupPersistence<T extends Principal>
         }
     }
 
-    public Collection<Group> getGroups(User<T> user, Role role)
-        throws UserNotFoundException, TransientException, AccessControlException
+    public Collection<Group> searchGroups(T userID, Role role, String groupID)
+        throws UserNotFoundException, GroupNotFoundException,
+               TransientException, AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
         try
         {
             groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
-            Collection<Group> ret = groupDAO.getGroups(user, role);
-            return ret;
-        }
-        finally
-        {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-        }
-    }
-
-    public boolean isMember(User<T> user, String groupID)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException, UserNotFoundException
-    {
-        LdapGroupDAO<T> groupDAO = null;
-        try
-        {
-            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
-            boolean ret = groupDAO.isMember(user, groupID);
+            Collection<Group> ret = groupDAO.searchGroups(userID, role, groupID);
             return ret;
         }
         finally

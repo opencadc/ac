@@ -68,17 +68,47 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupsWriter;
+import ca.nrc.cadc.ac.IdentityType;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.RequestValidator;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.uws.ErrorSummary;
+import ca.nrc.cadc.uws.ErrorType;
+import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.server.JobNotFoundException;
+import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
+import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collection;
+import java.util.Date;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
 public class ACSearchRunner
     implements JobRunner
 {
+    private static Logger log = Logger.getLogger(ACSearchRunner.class);
+    
     private JobUpdater jobUpdater;
     private SyncOutput syncOut;
     private Job job;
+    private JobLogInfo logInfo;
 
     @Override
     public void setJobUpdater(JobUpdater jobUpdater)
@@ -101,7 +131,193 @@ public class ACSearchRunner
     @Override
     public void run()
     {
-        // TODO Run the search query against GroupPersistence
-    }
+        log.debug("RUN ACSearchRunner: " + job.ownerSubject);
+        
+        logInfo = new JobLogInfo(job);
 
+        String startMessage = logInfo.start();
+        log.info(startMessage);
+
+        long t1 = System.currentTimeMillis();
+        search();
+        long t2 = System.currentTimeMillis();
+
+        logInfo.setElapsedTime(t2 - t1);
+
+        String endMessage = logInfo.end();
+        log.info(endMessage);
+    }
+    
+    private void search()
+    {
+        try
+        {
+            ExecutionPhase ep = 
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, 
+                                    ExecutionPhase.EXECUTING, new Date());
+            if ( !ExecutionPhase.EXECUTING.equals(ep) )
+            {
+                String message = job.getID() + 
+                                 ": QUEUED -> EXECUTING [FAILED] -- DONE";
+                logInfo.setSuccess(false);
+                logInfo.setMessage(message);
+                return;
+            }
+            log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
+
+            RequestValidator rv = new RequestValidator();
+            rv.validate(job.getParameterList());
+
+            Principal userID = getUserPrincipal(rv.getId(), rv.getType());
+            
+            PluginFactory factory = new PluginFactory();
+            GroupPersistence dao = factory.getGroupPersistence();
+            Collection<Group> groups = 
+                dao.searchGroups(userID, rv.getRole(), rv.getGUri());
+            syncOut.setResponseCode(HttpServletResponse.SC_OK);
+            GroupsWriter.write(groups, syncOut.getOutputStream());
+            
+            // Mark the Job as completed.
+            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, 
+                                ExecutionPhase.COMPLETED, new Date());
+        }
+        catch (TransientException t)
+        {
+            logInfo.setSuccess(false);
+            logInfo.setMessage(t.getMessage());
+            log.debug("FAIL", t);
+            
+            syncOut.setResponseCode(400);
+            
+            ErrorSummary errorSummary =
+                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+            try
+            {
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+                                    ExecutionPhase.ERROR, errorSummary, 
+                                    new Date());
+            }
+            catch(Throwable oops)
+            {
+                log.debug("failed to set final error status after " + t, oops);
+            }
+        }
+        catch (UserNotFoundException t)
+        {
+            logInfo.setSuccess(false);
+            logInfo.setMessage(t.getMessage());
+            log.debug("FAIL", t);
+            
+            syncOut.setResponseCode(404);
+            
+            ErrorSummary errorSummary =
+                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+            try
+            {
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+                                    ExecutionPhase.ERROR, errorSummary,
+                                    new Date());
+            }
+            catch(Throwable oops)
+            {
+                log.debug("failed to set final error status after " + t, oops);
+            }
+        }
+        catch (GroupNotFoundException t)
+        {
+            logInfo.setSuccess(false);
+            logInfo.setMessage(t.getMessage());
+            log.debug("FAIL", t);
+            
+            syncOut.setResponseCode(404);
+            
+            ErrorSummary errorSummary =
+                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+            try
+            {
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+                                    ExecutionPhase.ERROR, errorSummary,
+                                    new Date());
+            }
+            catch(Throwable oops)
+            {
+                log.debug("failed to set final error status after " + t, oops);
+            }
+        }
+        catch (AccessControlException t)
+        {
+            logInfo.setSuccess(false);
+            logInfo.setMessage(t.getMessage());
+            log.debug("FAIL", t);
+            
+            syncOut.setResponseCode(401);
+            
+            ErrorSummary errorSummary =
+                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+            try
+            {
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+                                    ExecutionPhase.ERROR, errorSummary,
+                                    new Date());
+            }
+            catch(Throwable oops)
+            {
+                log.debug("failed to set final error status after " + t, oops);
+            }
+        }
+        catch (Throwable t)
+        {
+            logInfo.setSuccess(false);
+            logInfo.setMessage(t.getMessage());
+            log.debug("FAIL", t);
+            
+            syncOut.setResponseCode(400);
+            
+            ErrorSummary errorSummary =
+                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+            try
+            {
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+                                    ExecutionPhase.ERROR, errorSummary,
+                                    new Date());
+            }
+            catch(Throwable oops)
+            {
+                log.debug("failed to set final error status after " + t, oops);
+            }
+        }
+    }
+    
+    private Principal getUserPrincipal(String userID, IdentityType type)
+    {
+        if (type == IdentityType.OPENID)
+        {
+            return new OpenIdPrincipal(userID);
+        }
+        if (type == IdentityType.UID)
+        {
+            try
+            {
+                Long numericId = Long.valueOf(userID);
+                return new NumericPrincipal(numericId);
+            }
+            catch (NumberFormatException e)
+            {
+                throw new IllegalArgumentException("Illegal UID userID " +
+                                                   userID + " because " +
+                                                   e.getMessage());
+            }
+        }
+        if (type == IdentityType.USERNAME)
+        {
+            return new HttpPrincipal(userID);
+        }
+        if (type == IdentityType.X500)
+        {
+            return new X500Principal(userID);
+        }
+        throw new IllegalArgumentException("Unknown user type " + 
+                                           type.getValue());
+    }
+    
 }

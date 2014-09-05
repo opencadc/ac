@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.util.List;
+import java.util.Collection;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.Format;
@@ -22,7 +22,7 @@ public class GroupsWriter
      * @throws java.io.IOException
      * @throws ca.nrc.cadc.ac.WriterException
      */
-    public static void write(List<Group> groups, StringBuilder builder)
+    public static void write(Collection<Group> groups, StringBuilder builder)
         throws IOException, WriterException
     {
         write(groups, new StringBuilderWriter(builder));
@@ -36,7 +36,7 @@ public class GroupsWriter
      * @throws IOException if the writer fails to write.
      * @throws ca.nrc.cadc.ac.WriterException
      */
-    public static void write(List<Group> groups, OutputStream out)
+    public static void write(Collection<Group> groups, OutputStream out)
         throws IOException, WriterException
     {
         OutputStreamWriter outWriter;
@@ -59,7 +59,7 @@ public class GroupsWriter
      * @throws IOException if the writer fails to write.
      * @throws ca.nrc.cadc.ac.WriterException
      */
-    public static void write(List<Group> groups, Writer writer)
+    public static void write(Collection<Group> groups, Writer writer)
         throws IOException, WriterException
     {
         if (groups == null)
@@ -76,7 +76,7 @@ public class GroupsWriter
      * @return Element of list of Group's.
      * @throws ca.nrc.cadc.ac.WriterException 
      */
-    public static Element getGroupsElement(List<Group> groups)
+    public static Element getGroupsElement(Collection<Group> groups)
         throws WriterException
     {
         Element groupsElement = new Element("groups");

@@ -70,122 +70,146 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.net.TransientException;
-import java.security.AccessControlException;
-import java.security.Principal;
+import ca.nrc.cadc.util.Log4jInit;
+import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-public class LdapUserPersistence<T extends Principal>
-    implements UserPersistence<T>
+/**
+ *
+ * @author jburke
+ */
+public class LdapUserDAOTest
 {
-    private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
-    private LdapConfig config;
-
-    public LdapUserPersistence()
+    private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
+    
+    static final String cadcTestDN = "CN=CADCtest_636,OU=CADC,O=HIA,C=CA";
+    
+    static User<X500Principal> cadcTest;
+    static LdapConfig config;
+    
+    @BeforeClass
+    public static void setUpBeforeClass()
+        throws Exception
     {
-        try
-        {
-            this.config = LdapConfig.getLdapConfig();
-        }
-        catch (RuntimeException e)
-        {
-            logger.error("test/config/LdapConfig.properties file required.", e);
-        }
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        
+        cadcTest = new User<X500Principal>(new X500Principal(cadcTestDN));
+    
+        config = new LdapConfig("mach275.cadc.dao.nrc.ca", 389,
+            "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot",
+            "go4it", 
+            "ou=Users,ou=ds,dc=canfar,dc=net",
+            "ou=TestGroups,ou=ds,dc=canfar,dc=net",
+            "ou=DeletedGroups,ou=ds,dc=canfar,dc=net");
     }
 
-    /**
-     * Get the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    public User<T> getUser(T userID)
-        throws UserNotFoundException, TransientException, AccessControlException
+    LdapUserDAO<X500Principal> getUserDAO()
     {
-        LdapUserDAO<T> userDAO = null;
-        try
-        {
-            userDAO = new LdapUserDAO<T>(this.config);
-            User<T> ret = userDAO.getUser(userID);
-            return ret;
-        }
-        finally
-        {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
-        }
+        return new LdapUserDAO<X500Principal>(config);
     }
     
     /**
-     * Get all groups the user specified by userID belongs to.
-     * 
-     * @param userID The userID.
-     * 
-     * @return Collection of Group instances.
-     * 
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * Test of getUser method, of class LdapUserDAO.
      */
-    public Collection<Group> getUserGroups(T userID)
-        throws UserNotFoundException, TransientException, AccessControlException
+//    @Test
+    public void testGetUser() throws Exception
     {
-        LdapUserDAO<T> userDAO = null;
-        try
+        Subject subject = new Subject();
+        subject.getPrincipals().add(cadcTest.getUserID());
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
-            userDAO = new LdapUserDAO<T>(this.config);
-            Collection<Group> ret = userDAO.getUserGroups(userID);
-            return ret;
-        }
-        finally
-        {
-            if (userDAO != null)
+            public Object run() throws Exception
             {
-                userDAO.close();
+                try
+                {
+                    User actual = getUserDAO().getUser(cadcTest.getUserID());
+                    assertEquals(cadcTest, actual);
+                    
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
             }
-        }
+        });
+    }
+
+    /**
+     * Test of getUserGroups method, of class LdapUserDAO.
+     */
+//    @Test
+    public void testGetUserGroups() throws Exception
+    {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(cadcTest.getUserID());
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {            
+                    Collection<Group> groups = getUserDAO().getUserGroups(cadcTest.getUserID());
+                    assertNotNull(groups);
+                    assertTrue(!groups.isEmpty());
+                    for (Group group : groups)
+                        log.debug(group);
+                    
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
     }
     
     /**
-     * Check whether the user is a member of the group.
-     *
-     * @param userID The userID.
-     * @param groupID The groupID.
-     *
-     * @return true or false
-     *
-     * @throws UserNotFoundException If the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * Test of getUserGroups method, of class LdapUserDAO.
      */
-    public boolean isMember(T userID, String groupID)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
+    @Test
+    public void testIsMember() throws Exception
     {
-        LdapUserDAO<T> userDAO = null;
-        try
-        {
-            userDAO = new LdapUserDAO<T>(this.config);
-            boolean ret = userDAO.isMember(userID, groupID);
-            return ret;
-        }
-        finally
-        {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
-        }
-    }
+        Subject subject = new Subject();
+        subject.getPrincipals().add(cadcTest.getUserID());
 
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {   
+                    boolean isMember = getUserDAO().isMember(cadcTest.getUserID(), "foo");
+                    assertFalse(isMember);
+                    
+                    String groupID = "cn=cadcsw,cn=groups,ou=ds,dc=canfar,dc=net";
+                    isMember = getUserDAO().isMember(cadcTest.getUserID(), groupID);
+                    assertTrue(isMember);
+                    
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+    
 }

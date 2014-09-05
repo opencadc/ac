@@ -71,8 +71,8 @@ package ca.nrc.cadc.ac.server;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
@@ -145,35 +145,21 @@ public abstract interface GroupPersistence<T extends Principal>
     /**
      * Obtain a Collection of Groups that fit the given query.
      *
-     * @param user user
+     * @param userID The userID.
      * @param role Role of the user, either owner, member, or read/write.
+     * @param groupID The Group ID.
      * 
      * @return Collection of Groups matching the query, or empty Collection.
      *         Never null.
      *
      * @throws UserNotFoundException If owner or group members not valid users.
+     * @throws ca.nrc.cadc.ac.GroupNotFoundException
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Collection<Group> getGroups(User<T> user, Role role)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
-
-    /**
-     * Check whether the user is a member of the group.
-     *
-     * @param user user
-     * @param groupID ID of group
-     *
-     * @return true or false
-     *
-     * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     * @throws ca.nrc.cadc.ac.UserNotFoundException
-     */
-    public abstract boolean isMember(User<T> user, String groupID)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException, UserNotFoundException;
+    public abstract Collection<Group> searchGroups(T userID, Role role, 
+                                                   String groupID)
+        throws UserNotFoundException, GroupNotFoundException,
+               TransientException, AccessControlException;
 
 }
