@@ -197,21 +197,19 @@ public class GroupReader
         String groupID = uri.substring(AC.GROUP_URI.length());
 
         // Group owner
+        User<? extends Principal> user = null;
         Element ownerElement = groupElement.getChild("owner");
-        if (ownerElement == null)
+        if (ownerElement != null)
         {
-            String error = "group missing required owner element";
-            throw new ReaderException(error);
+            // Owner user
+            Element userElement = ownerElement.getChild("user");
+            if (userElement == null)
+            {
+                String error = "owner missing required user element";
+                throw new ReaderException(error);
+            }
+            user = UserReader.parseUser(userElement);
         }
-
-        // Owner user
-        Element userElement = ownerElement.getChild("user");
-        if (userElement == null)
-        {
-            String error = "owner missing required user element";
-            throw new ReaderException(error);
-        }
-        User<? extends Principal> user = UserReader.parseUser(userElement);
 
         Group group = new Group(groupID, user);
 

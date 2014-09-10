@@ -163,10 +163,13 @@ public class GroupWriter
         groupElement.setAttribute(new Attribute("uri", groupURI));
 
         // Group owner
-        Element ownerElement = new Element("owner");
-        Element userElement = UserWriter.getUserElement(group.getOwner());
-        ownerElement.addContent(userElement);
-        groupElement.addContent(ownerElement);
+        if (group.getOwner() != null)
+        {
+            Element ownerElement = new Element("owner");
+            Element userElement = UserWriter.getUserElement(group.getOwner());
+            ownerElement.addContent(userElement);
+            groupElement.addContent(ownerElement);
+        }
 
         if (deepCopy)
         {

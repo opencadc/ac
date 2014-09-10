@@ -169,7 +169,7 @@ public abstract class LdapDAO
                 throw new AccessControlException(
                         "No LDAP account when search with rule " + ldapField);
             }
-
+            
             subjDN = ((SearchResultEntry) searchResult.getSearchEntries()
                     .get(0)).getAttributeValueAsDN("entrydn");
         }

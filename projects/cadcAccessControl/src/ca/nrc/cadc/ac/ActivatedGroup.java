@@ -70,16 +70,17 @@ package ca.nrc.cadc.ac;
 
 import java.security.Principal;
 
-/**
- *
- * @author jburke
- */
 public class ActivatedGroup extends Group
 {
 
+    public ActivatedGroup(String groupID)
+    {
+        super(groupID);
+    }
+    
     public ActivatedGroup(String groupID, User<? extends Principal> owner)
     {
         super(groupID, owner);
     }
-    
+
 }

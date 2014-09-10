@@ -83,6 +83,7 @@ import com.unboundid.ldap.sdk.SearchRequest;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV1RequestControl;
+import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
@@ -138,7 +139,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     new String[] {"cn", "entryid", "entrydn", "dn"});
 
             searchRequest.addControl(
-                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
 
             searchResult = getConnection().searchForEntry(searchRequest);
         }
@@ -198,7 +200,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                                       filter, new String[] {"memberOf"});
 
             searchRequest.addControl(
-                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
 
             SearchResultEntry searchResult = 
                     getConnection().searchForEntry(searchRequest);
@@ -271,7 +274,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                                       filter, new String[] {"cn"});
 
             searchRequest.addControl(
-                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
             
             SearchResultEntry searchResults = 
                     getConnection().searchForEntry(searchRequest);
@@ -310,9 +314,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             CompareRequest compareRequest = 
                     new CompareRequest(userDN.toNormalizedString(), 
                                       "memberOf", groupID);
-
+            
             compareRequest.addControl(
-                    new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
             
             CompareResult compareResult = 
                     getConnection().compare(compareRequest);
@@ -337,10 +342,22 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     User<X500Principal> getMember(DN userDN)
         throws UserNotFoundException, LDAPException
     {
-        SearchResultEntry searchResult = getConnection().getEntry(
-                userDN.toNormalizedString(), 
-                        (String[]) this.attribType.values().toArray(
-                                new String[this.attribType.values().size()]));
+        Filter filter = 
+            Filter.createEqualityFilter("entrydn", 
+                                        userDN.toNormalizedString());
+        
+        SearchRequest searchRequest = 
+                new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
+                                  filter, 
+                                  (String[]) this.attribType.values().toArray(
+                                  new String[this.attribType.values().size()]));
+        
+        searchRequest.addControl(
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
+        
+        SearchResultEntry searchResult = 
+                getConnection().searchForEntry(searchRequest);
 
         if (searchResult == null)
         {
@@ -371,9 +388,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         SearchRequest searchRequest = 
                 new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
                                  searchField, new String[] {"entrydn"});
-
+        
         searchRequest.addControl(
-                new ProxiedAuthorizationV1RequestControl(getSubjectDN()));
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
 
         SearchResultEntry searchResult = 
                 getConnection().searchForEntry(searchRequest);

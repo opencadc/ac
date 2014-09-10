@@ -131,7 +131,22 @@ public class GroupReaderWriterTest
     }
      
     @Test
-    public void testReadWrite()
+    public void testMinimalReadWrite()
+        throws Exception
+    {
+        Group expected = new Group("groupID", null);
+                
+        StringBuilder xml = new StringBuilder();
+        GroupWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        Group actual = GroupReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
+    @Test
+    public void testMaximalReadWrite()
         throws Exception
     {
         Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));

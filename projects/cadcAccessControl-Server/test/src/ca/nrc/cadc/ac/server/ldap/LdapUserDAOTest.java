@@ -92,9 +92,18 @@ public class LdapUserDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
     
-    static final String cadcTestDN = "CN=CADCtest_636,OU=CADC,O=HIA,C=CA";
+    static String server = "mach275.cadc.dao.nrc.ca";
+    static int port = 389;
+    static String adminDN = "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot";
+    static String adminPW = "go4it";
+    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+//    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
+//    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
-    static User<X500Principal> cadcTest;
+    static final String testUserDN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
+    
+    static User<X500Principal> testUser;
     static LdapConfig config;
     
     @BeforeClass
@@ -103,14 +112,9 @@ public class LdapUserDAOTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
         
-        cadcTest = new User<X500Principal>(new X500Principal(cadcTestDN));
+        testUser = new User<X500Principal>(new X500Principal(testUserDN));
     
-        config = new LdapConfig("mach275.cadc.dao.nrc.ca", 389,
-            "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot",
-            "go4it", 
-            "ou=Users,ou=ds,dc=canfar,dc=net",
-            "ou=TestGroups,ou=ds,dc=canfar,dc=net",
-            "ou=DeletedGroups,ou=ds,dc=canfar,dc=net");
+        config = new LdapConfig(server, port, adminDN, adminPW, userBaseDN, groupBaseDN);
     }
 
     LdapUserDAO<X500Principal> getUserDAO()
@@ -121,11 +125,11 @@ public class LdapUserDAOTest
     /**
      * Test of getUser method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testGetUser() throws Exception
     {
         Subject subject = new Subject();
-        subject.getPrincipals().add(cadcTest.getUserID());
+        subject.getPrincipals().add(testUser.getUserID());
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -134,8 +138,8 @@ public class LdapUserDAOTest
             {
                 try
                 {
-                    User actual = getUserDAO().getUser(cadcTest.getUserID());
-                    assertEquals(cadcTest, actual);
+                    User actual = getUserDAO().getUser(testUser.getUserID());
+                    assertEquals(testUser, actual);
                     
                     return null;
                 }
@@ -154,7 +158,7 @@ public class LdapUserDAOTest
     public void testGetUserGroups() throws Exception
     {
         Subject subject = new Subject();
-        subject.getPrincipals().add(cadcTest.getUserID());
+        subject.getPrincipals().add(testUser.getUserID());
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -163,7 +167,7 @@ public class LdapUserDAOTest
             {
                 try
                 {            
-                    Collection<Group> groups = getUserDAO().getUserGroups(cadcTest.getUserID());
+                    Collection<Group> groups = getUserDAO().getUserGroups(testUser.getUserID());
                     assertNotNull(groups);
                     assertTrue(!groups.isEmpty());
                     for (Group group : groups)
@@ -182,11 +186,11 @@ public class LdapUserDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-    @Test
+//    @Test
     public void testIsMember() throws Exception
     {
         Subject subject = new Subject();
-        subject.getPrincipals().add(cadcTest.getUserID());
+        subject.getPrincipals().add(testUser.getUserID());
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -195,11 +199,11 @@ public class LdapUserDAOTest
             {
                 try
                 {   
-                    boolean isMember = getUserDAO().isMember(cadcTest.getUserID(), "foo");
+                    boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
                     assertFalse(isMember);
                     
-                    String groupID = "cn=cadcsw,cn=groups,ou=ds,dc=canfar,dc=net";
-                    isMember = getUserDAO().isMember(cadcTest.getUserID(), groupID);
+                    String groupID = "cn=cadcdaotestgroup,cn=groups,ou=ds,dc=canfartest,dc=net";
+                    isMember = getUserDAO().isMember(testUser.getUserID(), groupID);
                     assertTrue(isMember);
                     
                     return null;

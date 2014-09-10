@@ -68,6 +68,7 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import static ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest.config;
 import static org.junit.Assert.assertTrue;
 
 import java.security.PrivilegedExceptionAction;
@@ -84,13 +85,14 @@ import com.unboundid.ldap.sdk.LDAPConnection;
 
 public class LdapDAOTest
 {
-    LdapConfig config = new LdapConfig(
-            "mach275.cadc.dao.nrc.ca",
-            389,
-            "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot",
-            "go4it", "ou=Users,ou=ds,dc=canfar,dc=net",
-            "ou=Groups,ou=ds,dc=canfar,dc=net",
-            "ou=DeletedGroups,ou=ds,dc=canfar,dc=net");
+    static String server = "mach275.cadc.dao.nrc.ca";
+    static int port = 389;
+    static String adminDN = "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot";
+    static String adminPW = "go4it";
+    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    
+    LdapConfig config = new LdapConfig(server, port, adminDN, adminPW, userBaseDN, groupBaseDN);
     
     @Test
     public void testLdapBindConnection() throws Exception
@@ -99,7 +101,7 @@ public class LdapDAOTest
         //LdapUserDAO<X500Principal> userDAO = new LdapUserDAO<X500Principal>();
 
         // User authenticated with HttpPrincipal
-        HttpPrincipal httpPrincipal = new HttpPrincipal("cadcauthtest2");
+        HttpPrincipal httpPrincipal = new HttpPrincipal("CadcDaoTest1");
         Subject subject = new Subject();
 
         subject.getPrincipals().add(httpPrincipal);
@@ -125,7 +127,7 @@ public class LdapDAOTest
                
         
         X500Principal subjPrincipal = new X500Principal(
-                "cn=cadc authtest2 10635,ou=cadc,o=hia");
+                "cn=cadcdaotest1,ou=cadc,o=hia,c=ca");
         subject = new Subject();
         subject.getPrincipals().add(subjPrincipal);
         

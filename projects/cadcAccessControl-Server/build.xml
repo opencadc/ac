@@ -141,11 +141,10 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTest" />-->
-            <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTestImpl" />-->
+            <test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTest" />
             <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
-            <!--<test name="ca.nrc.cadc.ac.server.web.GroupActionFactoryTest" />-->
-            <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />-->
+            <test name="ca.nrc.cadc.ac.server.web.GroupActionFactoryTest" />
+            <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
             <formatter type="plain" usefile="false" />
         </junit>
     </target>

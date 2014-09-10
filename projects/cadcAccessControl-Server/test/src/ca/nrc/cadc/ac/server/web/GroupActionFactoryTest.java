@@ -216,6 +216,7 @@ public class GroupActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("groupName");
             EasyMock.expect(request.getMethod()).andReturn("POST");
+            EasyMock.expect(request.getRequestURI()).andReturn(null);
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
             GroupsAction action = GroupsActionFactory.getGroupsAction(request, null);

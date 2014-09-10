@@ -86,11 +86,9 @@ public class LdapConfig
     public static final String LDAP_PASSWD = "passwd";
     public static final String LDAP_USERS_DN = "usersDn";
     public static final String LDAP_GROUPS_DN = "groupsDn";
-    public static final String LDAP_DELETED_GROUPS_DN = "deletedGroupsDn";
 
     private String usersDN;
     private String groupsDN;
-    private String deletedGroupsDN;
     private String server;
     private int port;
     private String adminUserDN;
@@ -159,21 +157,12 @@ public class LdapConfig
                                        LDAP_GROUPS_DN);
         }
 
-        String ldapDeletedGroupsDn = config.getProperty(LDAP_DELETED_GROUPS_DN);
-        if (!StringUtil.hasText(ldapDeletedGroupsDn))
-        {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_DELETED_GROUPS_DN);
-        }
-
         return new LdapConfig(server, Integer.valueOf(port), ldapAdmin, 
-                              ldapPasswd, ldapUsersDn, ldapGroupsDn, 
-                              ldapDeletedGroupsDn);
+                              ldapPasswd, ldapUsersDn, ldapGroupsDn);
     }
 
     public LdapConfig(String server, int port, String adminUserDN, 
-                      String adminPasswd, String usersDN, String groupsDN, 
-                      String deletedGroupsDN)
+                      String adminPasswd, String usersDN, String groupsDN)
     {
         if (!StringUtil.hasText(server))
         {
@@ -205,11 +194,6 @@ public class LdapConfig
             throw new IllegalArgumentException("Illegal groups LDAP DN: " + 
                                                groupsDN);
         }
-        if (!StringUtil.hasText(deletedGroupsDN))
-        {
-            throw new IllegalArgumentException("Illegal groups LDAP DN: " + 
-                                               deletedGroupsDN);
-        }
 
         this.server = server;
         this.port = port;
@@ -217,7 +201,6 @@ public class LdapConfig
         this.adminPasswd = adminPasswd;
         this.usersDN = usersDN;
         this.groupsDN = groupsDN;
-        this.deletedGroupsDN = deletedGroupsDN;
     }
 
     public String getUsersDN()
@@ -228,11 +211,6 @@ public class LdapConfig
     public String getGroupsDN()
     {
         return this.groupsDN;
-    }
-
-    public String getDeletedGroupsDN()
-    {
-        return this.deletedGroupsDN;
     }
 
     public String getServer()

@@ -81,55 +81,60 @@ public class GroupTest
     @Test
     public void simpleGroupTest() throws Exception
     {
-        
-        User<HttpPrincipal> owner = new User<HttpPrincipal>(new HttpPrincipal("owner"));
-        Group group1 = new Group("TestGroup", owner);
-        User<HttpPrincipal> user = new User<HttpPrincipal>(new HttpPrincipal("user"));
-        
-        group1.getUserMembers().add(user);
-        assertEquals(1, group1.getUserMembers().size());
-
+        Group group1 = new Group("TestGroup");
         Group group2 = group1;
         assertEquals(group1.hashCode(), group2.hashCode());
         assertEquals(group1, group2);
         assertTrue(group1 == group2);
         
-        group2 = new Group("TestGroup", owner);
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        User<HttpPrincipal> owner = new User<HttpPrincipal>(new HttpPrincipal("owner"));
+        Group group3 = new Group("TestGroup", owner);
+        User<HttpPrincipal> user = new User<HttpPrincipal>(new HttpPrincipal("user"));
         
-        group2.getUserMembers().add(user);
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        group3.getUserMembers().add(user);
+        assertEquals(1, group3.getUserMembers().size());
+
+        Group group4 = group3;
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3, group4);
+        assertTrue(group3 == group4);
         
-        group1.getGroupMembers().add(group2);
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        group4 = new Group("TestGroup", owner);
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
         
-        group1.description = "Test group";
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        group4.getUserMembers().add(user);
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
+        
+        group3.getGroupMembers().add(group4);
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
+        
+        group3.description = "Test group";
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
         
         // group read and write equality tests     
-        group1.groupRead = group2;
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        group3.groupRead = group4;
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
         
         // group write equality tests
-        group1.groupWrite = group2;
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        group3.groupWrite = group4;
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
 
-        group1.publicRead = true;
-        assertEquals(group1.hashCode(), group2.hashCode());
-        assertEquals(group1,group2);
+        group3.publicRead = true;
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
         
-        group2 = new Group("NewTestGroup-._~.", owner);
-        assertFalse(group1.hashCode() == group2.hashCode());
-        assertFalse(group1.equals(group2));
+        group4 = new Group("NewTestGroup-._~.", owner);
+        assertFalse(group3.hashCode() == group4.hashCode());
+        assertFalse(group3.equals(group4));
         
         // test toString
-        System.out.println(group1);
+        System.out.println(group3);
     }
     
     @Test
@@ -151,10 +156,11 @@ public class GroupTest
         try
         {
             new Group("NewTestGroup", null);
+            thrown = true;
         }
         catch(IllegalArgumentException e)
         {
-            thrown = true;
+            fail("Owner can be null");
         }
         assertTrue(thrown);
         
