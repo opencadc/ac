@@ -94,7 +94,7 @@ public class LdapUserDAOTest
     
     static String server = "mach275.cadc.dao.nrc.ca";
     static int port = 389;
-    static String adminDN = "uid=webproxy,ou=administrators,ou=topologymanagement,o=netscaperoot";
+    static String adminDN = "uid=webproxy,ou=Webproxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
     static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
     static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";

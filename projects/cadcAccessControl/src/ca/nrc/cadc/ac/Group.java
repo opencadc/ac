@@ -199,7 +199,7 @@ public class Group
     @Override
     public int hashCode()
     {
-        return 31 + groupID.hashCode();
+        return 31 + groupID.toLowerCase().hashCode();
     }
 
     /* (non-Javadoc)
@@ -221,7 +221,7 @@ public class Group
             return false;
         }
         Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
+        if (!groupID.equalsIgnoreCase(other.groupID))
         {
             return false;
         }

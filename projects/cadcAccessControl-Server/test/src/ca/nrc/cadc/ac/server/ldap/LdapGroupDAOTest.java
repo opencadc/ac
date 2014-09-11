@@ -70,10 +70,10 @@ public class LdapGroupDAOTest
     static int port = 389;
     static String adminDN = "uid=webproxy,ou=webproxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
-//    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-//    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    //static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
+    //static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
     static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
     static String daoTestDN2 = "cn=cadcdaotest2,ou=cadc,o=hia,c=ca";

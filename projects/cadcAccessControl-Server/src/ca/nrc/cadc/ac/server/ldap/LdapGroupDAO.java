@@ -114,7 +114,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             "(groupdn = \"ldap:///<ACTUAL_GROUP>\");)";
     private static final String PUB_GROUP_ACI = "(targetattr = \"*\") " + 
             "(version 3.0;acl \"Group Public\";" + 
-            "allow (read,compare,search)userdn=\"ldap:///anyone\";)";
+            "allow (read,compare,search)userdn=\"ldap:///all\";)";
     
     private LdapUserDAO<T> userPersist;
 
@@ -327,7 +327,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             Filter filter = Filter.createANDFilter(
                     Filter.createEqualityFilter("cn", groupID),
                     Filter.createNOTFilter(
-                        Filter.createEqualityFilter("nsaccountlock", "true")));
+                        Filter.createEqualityFilter("nsaccountlock", "TRUE")));
             
             SearchRequest searchRequest =  new SearchRequest(
                     config.getGroupsDN(), SearchScope.SUB, 
@@ -379,7 +379,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             User<X500Principal> user;
                             try
                             {
-                                user = userPersist.getMember(memberDN);
+                                user = userPersist.getMember(memberDN, false);
                             }
                             catch (UserNotFoundException e)
                             {
@@ -391,8 +391,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         else if (memberDN.isDescendantOf(config.getGroupsDN(),
                                                          false))
                         {
-                            Group memberGroup = getGroup(memberDN);
-                            ldapGroup.getGroupMembers().add(memberGroup);
+                            ldapGroup.getGroupMembers().add(new Group(memberDN.getRDNString().replace("cn=", "")));
                         }
                         else
                         {
@@ -412,10 +411,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             // TODO it's gotta be a better way to do this.
                             String grRead = aci.substring(
                                     aci.indexOf("ldap:///"));
-                            grRead = grRead.substring(grRead.indexOf("cn"),
-                                                      grRead.lastIndexOf('"'));
+                            grRead = grRead.substring(grRead.indexOf("cn=") + 3,
+                                                      grRead.indexOf(','));
 
-                            Group groupRead = getGroup(new DN(grRead));
+                            Group groupRead = new Group(grRead.trim());
                             ldapGroup.groupRead = groupRead;
                         }
                         else if (aci.contains("Group Write"))
@@ -423,10 +422,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             // TODO it's gotta be a better way to do this.
                             String grWrite = aci.substring(
                                     aci.indexOf("ldap:///"));
-                            grWrite = grWrite.substring(grWrite.indexOf("cn"), 
-                                                    grWrite.lastIndexOf('"'));
+                            grWrite = grWrite.substring(grWrite.indexOf("cn=") + 3, 
+                                                    grWrite.indexOf(','));
 
-                            Group groupWrite = getGroup(new DN(grWrite));
+                            Group groupWrite = getGroup(grWrite.trim());
                             ldapGroup.groupWrite = groupWrite;
                         }
                         else if (aci.equals(PUB_GROUP_ACI))
@@ -445,10 +444,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             // ones are
             // access control
             throw new TransientException("Error getting the group", e1);
-        }
-        catch (UserNotFoundException e2)
-        {
-            throw new RuntimeException("BUG - owner or member not found", e2);
         }
     }
 

@@ -129,7 +129,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField = "(" + searchField + "=" + userID.getName() + ")";
+        searchField = "(&(objectclass=cadcaccount)(" + searchField + "=" + userID.getName() + "))";
 
         SearchResultEntry searchResult = null;
         try
@@ -137,7 +137,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest = new SearchRequest(config.getUsersDN(), 
                     SearchScope.SUB, searchField, 
                     new String[] {"cn", "entryid", "entrydn", "dn"});
-
+ 
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
                             getSubjectDN().toNormalizedString()));
@@ -164,7 +164,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         searchResult.getAttributeValueAsInteger("entryid")));
 
         return user;
-    }
+    }   
 
     /**
      * Get all groups the user specified by userID belongs to.
@@ -335,11 +335,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     /**
      * Returns a member user identified by the X500Principal only.
      * @param userDN
+     * @param bindAsSubject - true if Ldap commands executed as subject 
+     * (proxy authorization) or false if they are executed as the user
+     * in the connection.
      * @return
      * @throws UserNotFoundException
      * @throws LDAPException
      */
-    User<X500Principal> getMember(DN userDN)
+    User<X500Principal> getMember(DN userDN, boolean bindAsSubject)
         throws UserNotFoundException, LDAPException
     {
         Filter filter = 
@@ -352,9 +355,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                                   (String[]) this.attribType.values().toArray(
                                   new String[this.attribType.values().size()]));
         
-        searchRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-                            getSubjectDN().toNormalizedString()));
+        if (bindAsSubject)
+        {
+        	searchRequest.addControl(
+        				new ProxiedAuthorizationV2RequestControl("dn:" + 
+        						getSubjectDN().toNormalizedString()));
+        }
         
         SearchResultEntry searchResult = 
                 getConnection().searchForEntry(searchRequest);
@@ -370,6 +376,19 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         (String) attribType.get(X500Principal.class))));
 
         return user;
+    }
+    
+    /**
+     * Returns a member user identified by the X500Principal only.
+     * @param userDN
+     * @return
+     * @throws UserNotFoundException
+     * @throws LDAPException
+     */
+    User<X500Principal> getMember(DN userDN)
+        throws UserNotFoundException, LDAPException
+    {
+        return getMember(userDN, true);
     }
 
     DN getUserDN(User<? extends Principal> user)
