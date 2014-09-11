@@ -68,18 +68,6 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupReader;
-import ca.nrc.cadc.ac.GroupWriter;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.NetUtil;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -96,13 +84,32 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupReader;
+import ca.nrc.cadc.ac.GroupWriter;
+import ca.nrc.cadc.ac.GroupsReader;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.NetUtil;
 
 /**
  * Client class for communicating with the access control web service.
+ * 
+ * TODO: Cache the group memberships using getCachedGroups(), setCachedGroups()
  */
 public class GMSClient
 {
@@ -647,9 +654,150 @@ public class GMSClient
         }
     }
 
-    public Collection<Group> searchGroups()
+    public List<Group> getMemberships(Principal userID, Role role)
+        throws IOException
     {
-        throw new UnsupportedOperationException();
+        if (userID == null || role == null)
+        {
+            throw new IllegalArgumentException("userID and role are required.");
+        }
+        
+        String idType = AuthenticationUtil.getPrincipalType(userID);
+        String id = userID.getName();
+        String roleString = role.getValue();
+        
+        StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
+        searchGroupURL.append("/search?");
+        
+        searchGroupURL.append("ID=" + URLEncoder.encode(id, "UTF-8"));
+        searchGroupURL.append("&TYPE=" + URLEncoder.encode(idType, "UTF-8"));
+        searchGroupURL.append("&ROLE=" + URLEncoder.encode(roleString, "UTF-8"));
+        
+        log.debug("getMemberships request to " + searchGroupURL.toString());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        URL url = new URL(searchGroupURL.toString());
+        HttpDownload transfer = new HttpDownload(url, out);
+
+        transfer.setSSLSocketFactory(getSSLSocketFactory());
+        transfer.run();
+
+        Throwable error = transfer.getThrowable();
+        if (error != null)
+        {
+            log.debug("getMemberships throwable", error);
+            // transfer returns a -1 code for anonymous access.
+            if ((transfer.getResponseCode() == -1) || 
+                (transfer.getResponseCode() == 401) || 
+                (transfer.getResponseCode() == 403))
+            {
+                throw new AccessControlException(error.getMessage());
+            }
+            if (transfer.getResponseCode() == 400)
+            {
+                throw new IllegalArgumentException(error.getMessage());
+            }
+            throw new IOException(error);
+        }
+
+        try
+        {
+            String groupsXML = new String(out.toByteArray(), "UTF-8");
+            log.debug("getMemberships returned: " + groupsXML);
+            return GroupsReader.read(groupsXML);
+        }
+        catch (Exception bug)
+        {
+            log.error("Unexpected exception", bug);
+            throw new RuntimeException(bug);
+        }
+    }
+    
+    public Group getMembership(Principal userID, String groupName)
+        throws IOException
+    {
+        return getMembership(userID, groupName, Role.MEMBER);
+    }
+    
+    public Group getMembership(Principal userID, String groupName, Role role)
+        throws IOException
+    {
+        if (userID == null || groupName == null || role == null)
+        {
+            throw new IllegalArgumentException("userID and role are required.");
+        }
+        
+        String idType = AuthenticationUtil.getPrincipalType(userID);
+        String id = userID.getName();
+        String roleString = role.getValue();
+        
+        StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
+        searchGroupURL.append("/search?");
+        
+        searchGroupURL.append("ID=" + URLEncoder.encode(id, "UTF-8"));
+        searchGroupURL.append("&TYPE=" + URLEncoder.encode(idType, "UTF-8"));
+        searchGroupURL.append("&ROLE=" + URLEncoder.encode(roleString, "UTF-8"));
+        searchGroupURL.append("&GURI=" + URLEncoder.encode(groupName, "UTF-8"));
+        
+        log.debug("getMembership request to " + searchGroupURL.toString());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        URL url = new URL(searchGroupURL.toString());
+        HttpDownload transfer = new HttpDownload(url, out);
+
+        transfer.setSSLSocketFactory(getSSLSocketFactory());
+        transfer.run();
+
+        Throwable error = transfer.getThrowable();
+        if (error != null)
+        {
+            log.debug("getMembership throwable", error);
+            // transfer returns a -1 code for anonymous access.
+            if ((transfer.getResponseCode() == -1) || 
+                (transfer.getResponseCode() == 401) || 
+                (transfer.getResponseCode() == 403))
+            {
+                throw new AccessControlException(error.getMessage());
+            }
+            if (transfer.getResponseCode() == 400)
+            {
+                throw new IllegalArgumentException(error.getMessage());
+            }
+            throw new IOException(error);
+        }
+
+        try
+        {
+            String groupsXML = new String(out.toByteArray(), "UTF-8");
+            log.debug("getMembership returned: " + groupsXML);
+            List<Group> groups = GroupsReader.read(groupsXML);
+            if (groups.size() == 0)
+            {
+                return null;
+            }
+            if (groups.size() == 1)
+            {
+                return groups.get(0);
+            }
+            throw new IllegalStateException(
+                    "Duplicate membership for " + id + " in group " + groupName);
+        }
+        catch (Exception bug)
+        {
+            log.error("Unexpected exception", bug);
+            throw new RuntimeException(bug);
+        }
+    }
+    
+    public boolean isMember(Principal userID, String groupName)
+        throws IOException
+    {
+        return isMember(userID, groupName, Role.MEMBER);
+    }
+    
+    public boolean isMember(Principal userID, String groupName, Role role)
+        throws IOException
+    {
+        Group group = getMembership(userID, groupName, role);
+        return group != null;
     }
 
     /**
