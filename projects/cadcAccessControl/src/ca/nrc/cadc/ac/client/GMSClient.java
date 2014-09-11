@@ -68,18 +68,6 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupReader;
-import ca.nrc.cadc.ac.GroupWriter;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.NetUtil;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -96,13 +84,31 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupReader;
+import ca.nrc.cadc.ac.GroupWriter;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.NetUtil;
 
 /**
  * Client class for communicating with the access control web service.
+ * 
+ * TODO: Cache the group memberships using getCachedGroups(), setCachedGroups()
  */
 public class GMSClient
 {
@@ -647,9 +653,30 @@ public class GMSClient
         }
     }
 
-    public Collection<Group> searchGroups()
+    public Collection<Group> getMemberships(Principal userID, Role role)
     {
         throw new UnsupportedOperationException();
+    }
+    
+    public Group getMembership(Principal userID, String groupName)
+    {
+        return getMembership(userID, groupName, Role.MEMBER);
+    }
+    
+    public Group getMembership(Principal userID, String groupName, Role role)
+    {
+        throw new UnsupportedOperationException();
+    }
+    
+    public boolean isMember(Principal userID, String groupName)
+    {
+        return isMember(userID, groupName, Role.MEMBER);
+    }
+    
+    public boolean isMember(Principal userID, String groupName, Role role)
+    {
+        Group group = getMembership(userID, groupName, role);
+        return group != null;
     }
 
     /**
