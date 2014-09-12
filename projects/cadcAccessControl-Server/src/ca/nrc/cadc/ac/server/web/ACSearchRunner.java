@@ -77,6 +77,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.RequestValidator;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
@@ -167,13 +168,14 @@ public class ACSearchRunner
 
             RequestValidator rv = new RequestValidator();
             rv.validate(job.getParameterList());
-
-            Principal userID = getUserPrincipal(rv.getId(), rv.getType());
+            
+            Principal userID = AuthenticationUtil.createPrincipal(rv.getUserID(), rv.getIDType().getValue());
+            //Principal userID = getUserPrincipal(rv.getId(), rv.getType());
             
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.getGroupPersistence();
             Collection<Group> groups = 
-                dao.searchGroups(userID, rv.getRole(), rv.getGUri());
+                dao.searchGroups(userID, rv.getRole(), rv.getGroupID());
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
             GroupsWriter.write(groups, syncOut.getOutputStream());
             
@@ -288,36 +290,36 @@ public class ACSearchRunner
         }
     }
     
-    private Principal getUserPrincipal(String userID, IdentityType type)
-    {
-        if (type == IdentityType.OPENID)
-        {
-            return new OpenIdPrincipal(userID);
-        }
-        if (type == IdentityType.UID)
-        {
-            try
-            {
-                Long numericId = Long.valueOf(userID);
-                return new NumericPrincipal(numericId);
-            }
-            catch (NumberFormatException e)
-            {
-                throw new IllegalArgumentException("Illegal UID userID " +
-                                                   userID + " because " +
-                                                   e.getMessage());
-            }
-        }
-        if (type == IdentityType.USERNAME)
-        {
-            return new HttpPrincipal(userID);
-        }
-        if (type == IdentityType.X500)
-        {
-            return new X500Principal(userID);
-        }
-        throw new IllegalArgumentException("Unknown user type " + 
-                                           type.getValue());
-    }
+//    private Principal getUserPrincipal(String userID, IdentityType type)
+//    {
+//        if (type == IdentityType.OPENID)
+//        {
+//            return new OpenIdPrincipal(userID);
+//        }
+//        if (type == IdentityType.UID)
+//        {
+//            try
+//            {
+//                Long numericId = Long.valueOf(userID);
+//                return new NumericPrincipal(numericId);
+//            }
+//            catch (NumberFormatException e)
+//            {
+//                throw new IllegalArgumentException("Illegal UID userID " +
+//                                                   userID + " because " +
+//                                                   e.getMessage());
+//            }
+//        }
+//        if (type == IdentityType.USERNAME)
+//        {
+//            return new HttpPrincipal(userID);
+//        }
+//        if (type == IdentityType.X500)
+//        {
+//            return new X500Principal(userID);
+//        }
+//        throw new IllegalArgumentException("Unknown user type " + 
+//                                           type.getValue());
+//    }
     
 }

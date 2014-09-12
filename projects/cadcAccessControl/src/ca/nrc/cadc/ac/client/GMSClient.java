@@ -655,7 +655,7 @@ public class GMSClient
     }
 
     public List<Group> getMemberships(Principal userID, Role role)
-        throws IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         if (userID == null || role == null)
         {
@@ -692,6 +692,10 @@ public class GMSClient
             {
                 throw new AccessControlException(error.getMessage());
             }
+            if (transfer.getResponseCode() == 404)
+            {
+                throw new UserNotFoundException(error.getMessage());
+            }
             if (transfer.getResponseCode() == 400)
             {
                 throw new IllegalArgumentException(error.getMessage());
@@ -713,13 +717,13 @@ public class GMSClient
     }
     
     public Group getMembership(Principal userID, String groupName)
-        throws IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         return getMembership(userID, groupName, Role.MEMBER);
     }
     
     public Group getMembership(Principal userID, String groupName, Role role)
-        throws IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         if (userID == null || groupName == null || role == null)
         {
@@ -757,6 +761,10 @@ public class GMSClient
             {
                 throw new AccessControlException(error.getMessage());
             }
+            if (transfer.getResponseCode() == 404)
+            {
+                throw new UserNotFoundException(error.getMessage());
+            }
             if (transfer.getResponseCode() == 400)
             {
                 throw new IllegalArgumentException(error.getMessage());
@@ -788,13 +796,13 @@ public class GMSClient
     }
     
     public boolean isMember(Principal userID, String groupName)
-        throws IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         return isMember(userID, groupName, Role.MEMBER);
     }
     
     public boolean isMember(Principal userID, String groupName, Role role)
-        throws IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         Group group = getMembership(userID, groupName, role);
         return group != null;

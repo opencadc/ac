@@ -84,19 +84,19 @@ public class RequestValidator
 {
     private static final Logger log = Logger.getLogger(RequestValidator.class);
     
-    private String id;
-    private IdentityType type;
+    private String userID;
+    private IdentityType idType;
     private Role role;
-    private String guri;
+    private String groupID;
     
     public RequestValidator() { }
 
     private void clear()
     {
-        this.id = null;
-        this.type = null;
+        this.userID = null;
+        this.idType = null;
         this.role = null;
-        this.guri = null;
+        this.groupID = null;
     }
     
     public void validate(List<Parameter> paramList)
@@ -108,27 +108,27 @@ public class RequestValidator
                     "Missing required parameters: ID and TYPE");
         }
 
-        //  ID
+        // ID
         String param = ParameterUtil.findParameterValue("ID", paramList);
         if (param == null || param.trim().isEmpty())
         {
             throw new IllegalArgumentException(
                     "ID parameter required but not found");
         }
-        this.id = param.trim();
-        log.debug("ID: " + id);
+        this.userID = param.trim();
+        log.debug("ID: " + userID);
 
-        //  TYPE
+        // TYPE
         param = ParameterUtil.findParameterValue("TYPE", paramList);
         if (param == null || param.trim().isEmpty())
         {
             throw new IllegalArgumentException(
                     "TYPE parameter required but not found");
         }
-        this.type = IdentityType.toValue(param);
-        log.debug("TYPE: " + type);
+        this.idType = IdentityType.toValue(param);
+        log.debug("TYPE: " + idType);
         
-        //  ROLE
+        // ROLE
         param = ParameterUtil.findParameterValue("ROLE", paramList);
         if (param == null || param.trim().isEmpty())
         {
@@ -138,32 +138,26 @@ public class RequestValidator
         this.role = Role.toValue(param);
         log.debug("ROLE: " + role);
         
-        //  GURI
-        param = ParameterUtil.findParameterValue("GURI", paramList);
+        // GROUPID
+        param = ParameterUtil.findParameterValue("GROUPID", paramList);
         if (param != null)
         {
             if (param.isEmpty())
                 throw new IllegalArgumentException(
-                        "GURI parameter specified without a value");
-            this.guri = param.trim();
+                        "GROUPID parameter specified without a value");
+            this.groupID = param.trim();
         }
-        log.debug("GURI: " + guri);
-        
-        if (role != null && guri != null)
-        {
-            throw new IllegalArgumentException(
-                    "ROLE and GURI cannot be used in the same search");
-        }
+        log.debug("GROUPID: " + groupID);
     }
 
-    public String getId()
+    public String getUserID()
     {
-        return id;
+        return userID;
     }
     
-    public IdentityType getType()
+    public IdentityType getIDType()
     {
-        return type;
+        return idType;
     }
 
     public Role getRole()
@@ -171,9 +165,9 @@ public class RequestValidator
         return role;
     }
     
-    public String getGUri()
+    public String getGroupID()
     {
-        return guri;
+        return groupID;
     }
 
 }
