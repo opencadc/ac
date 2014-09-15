@@ -157,16 +157,6 @@ public class GMSClient
     }
 
     /**
-     * Get a list of groups.
-     *
-     * @return The list of groups.
-     */
-    public List<Group> getGroups()
-    {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    /**
      * Create a new group
      *
      * @param group The group to create

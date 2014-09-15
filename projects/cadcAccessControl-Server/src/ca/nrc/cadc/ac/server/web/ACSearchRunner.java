@@ -169,13 +169,14 @@ public class ACSearchRunner
             RequestValidator rv = new RequestValidator();
             rv.validate(job.getParameterList());
             
-            Principal userID = AuthenticationUtil.createPrincipal(rv.getUserID(), rv.getIDType().getValue());
-            //Principal userID = getUserPrincipal(rv.getId(), rv.getType());
+            Principal userID = 
+                AuthenticationUtil.createPrincipal(rv.getUserID(), 
+                                                   rv.getIDType().getValue());
             
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.getGroupPersistence();
             Collection<Group> groups = 
-                dao.searchGroups(userID, rv.getRole(), rv.getGroupID());
+                dao.getGroups(userID, rv.getRole(), rv.getGroupID());
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
             GroupsWriter.write(groups, syncOut.getOutputStream());
             

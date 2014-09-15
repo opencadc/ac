@@ -172,7 +172,7 @@ public class LdapGroupPersistence<T extends Principal>
         }
     }
 
-    public Collection<Group> searchGroups(T userID, Role role, String groupID)
+    public Collection<Group> getGroups(T userID, Role role, String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException
     {
@@ -180,7 +180,7 @@ public class LdapGroupPersistence<T extends Principal>
         try
         {
             groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
-            Collection<Group> ret = groupDAO.searchGroups(userID, role, groupID);
+            Collection<Group> ret = groupDAO.getGroups(userID, role, groupID);
             return ret;
         }
         finally

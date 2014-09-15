@@ -695,7 +695,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException
      * @throws GroupNotFoundException
      */
-    public Collection<Group> searchGroups(T userID, Role role, String groupID)
+    public Collection<Group> getGroups(T userID, Role role, String groupID)
         throws TransientException, AccessControlException,
                GroupNotFoundException, UserNotFoundException
     {

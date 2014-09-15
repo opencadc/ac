@@ -258,7 +258,7 @@ public class LdapGroupDAOTest
                     testGroup = getGroupDAO().addGroup(testGroup);
                     
                     Collection<Group> groups = 
-                        getGroupDAO().searchGroups(daoTestUser1.getUserID(), 
+                        getGroupDAO().getGroups(daoTestUser1.getUserID(), 
                                                    Role.OWNER, null);
 
                     boolean found = false;
@@ -299,36 +299,25 @@ public class LdapGroupDAOTest
             {
                 try
                 {   
-                    Group memberGroup = new Group(getGroupID(), daoTestUser2);
-                    memberGroup = getGroupDAO().addGroup(memberGroup);
-                    log.debug("member group: " + memberGroup.getID());
-                    
-                    Group testGroup = new Group(getGroupID(), daoTestUser1);
-                    testGroup.getGroupMembers().add(memberGroup);
-                    testGroup = getGroupDAO().addGroup(testGroup);
-                    log.debug("test group: " + testGroup.getID());
+                    Group expectedGroup = new Group("CadcDaoTestGroup1");
                     
                     Collection<Group> groups = 
-                        getGroupDAO().searchGroups(daoTestUser2.getUserID(), 
+                        getGroupDAO().getGroups(daoTestUser2.getUserID(), 
                                                    Role.MEMBER, null);
                     
                     log.debug("# groups found: " + groups.size());
                     boolean found = false;
                     for (Group group : groups)
                     {
-                        log.debug("found group: " + group.getID());
-                        if (group.equals(testGroup))
-                        {
-                            log.debug("found test group: " + group.getID());
-                            Set<Group> members = group.getGroupMembers();
+                        log.debug("found test group: " + group.getID());
+                        Set<Group> members = group.getGroupMembers();
 
-                            log.debug("#test group members: " + members.size());
-                            for (Group member : members)
+                        log.debug("#test group members: " + members.size());
+                        for (Group member : members)
+                        {
+                            if (member.equals(expectedGroup))
                             {
-                                if (member.equals(memberGroup))
-                                {
-                                    found = true;
-                                }
+                                found = true;
                             }
                         }
                     }
@@ -357,18 +346,10 @@ public class LdapGroupDAOTest
             {
                 try
                 {             
-                    Group rwGroup = new Group(getGroupID(), daoTestUser2);
-                    rwGroup = getGroupDAO().addGroup(rwGroup);
-                    log.debug("rw group: " + rwGroup.getID());
-                    
-                    Group testGroup = new Group(getGroupID(), daoTestUser1);
-                    testGroup.groupRead = rwGroup;
-                    testGroup.groupWrite = rwGroup;
-                    testGroup = getGroupDAO().addGroup(testGroup);
-                    log.debug("test group: " + testGroup.getID());
+                    Group expectedGroup = new Group("CadcDaoTestGroup1");
                     
                     Collection<Group> groups = 
-                        getGroupDAO().searchGroups(daoTestUser2.getUserID(), 
+                        getGroupDAO().getGroups(daoTestUser2.getUserID(), 
                                                    Role.RW, null);
                     System.out.println("# groups found: " + groups.size());
                     
@@ -383,7 +364,7 @@ public class LdapGroupDAOTest
                         {
                             fail("returned group with wrong owner");
                         }
-                        if (group.getID().equals(testGroup.getID()))
+                        if (group.equals(expectedGroup))
                         {
                             found = true;
                         }
@@ -612,7 +593,7 @@ public class LdapGroupDAOTest
                 
                 try
                 {
-                    getGroupDAO().searchGroups(unknownPrincipal, Role.OWNER, 
+                    getGroupDAO().getGroups(unknownPrincipal, Role.OWNER, 
                                                groupID);
                     fail("searchGroups with unknown user should throw " + 
                          "UserNotFoundException");
@@ -621,7 +602,7 @@ public class LdapGroupDAOTest
                 
                 try
                 {
-                    getGroupDAO().searchGroups(daoTestPrincipal1, Role.OWNER, 
+                    getGroupDAO().getGroups(daoTestPrincipal1, Role.OWNER, 
                                                "foo");
                     fail("searchGroups with unknown user should throw " + 
                          "GroupNotFoundException");
@@ -637,7 +618,7 @@ public class LdapGroupDAOTest
             {
                 try
                 {                    
-                    getGroupDAO().searchGroups(daoTestPrincipal1, Role.OWNER, 
+                    getGroupDAO().getGroups(daoTestPrincipal1, Role.OWNER, 
                                                groupID);
                     fail("searchGroups with anonymous access should throw " + 
                          "AccessControlException");

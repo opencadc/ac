@@ -157,8 +157,8 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Collection<Group> searchGroups(T userID, Role role, 
-                                                   String groupID)
+    public abstract Collection<Group> getGroups(T userID, Role role, 
+                                                String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
 
