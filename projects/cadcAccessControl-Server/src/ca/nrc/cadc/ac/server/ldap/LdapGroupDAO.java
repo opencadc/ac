@@ -68,6 +68,17 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.ActivatedGroup;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
@@ -76,6 +87,7 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.DN;
@@ -90,15 +102,6 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.logging.Level;
-import javax.security.auth.x500.X500Principal;
-import org.apache.log4j.Logger;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -112,9 +115,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             "(version 3.0;acl \"Group Write\";allow " + 
             "(read,compare,search,selfwrite,write,add)" + 
             "(groupdn = \"ldap:///<ACTUAL_GROUP>\");)";
-    private static final String PUB_GROUP_ACI = "(targetattr = \"*\") " + 
-            "(version 3.0;acl \"Group Public\";" + 
-            "allow (read,compare,search)userdn=\"ldap:///all\";)";
     
     private LdapUserDAO<T> userPersist;
 
@@ -185,7 +185,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             new ActivatedGroup(modifiedGroup.getID(),
                                                modifiedGroup.getOwner());
                     activatedGroup.description = modifiedGroup.description;
-                    activatedGroup.publicRead = modifiedGroup.publicRead;
                     activatedGroup.groupRead = modifiedGroup.groupRead;
                     activatedGroup.groupWrite = modifiedGroup.groupWrite;
                     activatedGroup.getProperties()
@@ -240,10 +239,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
                 // acis
                 List<String> acis = new ArrayList<String>();
-                if (group.publicRead)
-                {
-                    acis.add(PUB_GROUP_ACI);
-                }
                 if (groupWriteAci != null)
                 {
                     acis.add(groupWriteAci);
@@ -428,10 +423,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             Group groupWrite = getGroup(grWrite.trim());
                             ldapGroup.groupWrite = groupWrite;
                         }
-                        else if (aci.equals(PUB_GROUP_ACI))
-                        {
-                            ldapGroup.publicRead = true;
-                        }
                     }
                 }
             }
@@ -529,10 +520,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                              writeGrDN.toNormalizedString()));
         }
 
-        if (newGroup.publicRead)
-        {
-            acis.add(PUB_GROUP_ACI);
-        }
         modifs.add(new Modification(ModificationType.REPLACE, "aci", (String[]) 
                                     acis.toArray(new String[acis.size()])));
 
@@ -645,8 +632,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         
         if (group.groupRead != null || 
-            group.groupWrite != null || 
-            group.publicRead)
+            group.groupWrite != null)
         {
             modifs.add(new Modification(ModificationType.DELETE, "aci"));
         }

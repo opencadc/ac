@@ -68,18 +68,25 @@
  */
 package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
 import java.util.Date;
+
 import javax.security.auth.x500.X500Principal;
+
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 
 /**
  *
@@ -152,7 +159,6 @@ public class GroupReaderWriterTest
         Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
         expected.description = "description";
         expected.lastModified = new Date();
-        expected.publicRead = true;
         expected.properties.add(new GroupProperty("key", "value", true));
         
         Group readGroup = new Group("read", new User<Principal>(new X500Principal("cn=foo,o=ca")));
@@ -174,7 +180,6 @@ public class GroupReaderWriterTest
         assertEquals(expected, actual);
         assertEquals(expected.description, actual.description);
         assertEquals(expected.lastModified, actual.lastModified);
-        assertEquals(expected.publicRead, actual.publicRead);
         assertEquals(expected.getProperties(), actual.getProperties());
         assertEquals(expected.groupRead, actual.groupRead);
         assertEquals(expected.groupWrite, actual.groupWrite);

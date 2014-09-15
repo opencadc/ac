@@ -66,165 +66,109 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+package ca.nrc.cadc.ac.client;
 
-public class Group
+import java.net.URI;
+import java.net.URL;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.Log4jInit;
+
+public class GMSClientTest
 {
-    private String groupID;
     
-    private User<? extends Principal> owner;
+    private static final Logger log = Logger.getLogger(GMSClientTest.class);
     
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
-
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    
-    /**
-     * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
-     *                  and "-", ".","_","~" characters.
-     */
-    public Group(String groupID)
+    public GMSClientTest()
     {
-        this(groupID, null);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
-     *                  and "-", ".","_","~" characters.
-     * @param owner     Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+    
+    @Test
+    public void testGroupCaching()
     {
-        if (groupID == null)
+        try
         {
-            throw new IllegalArgumentException("Null groupID");
+            Subject subject = new Subject();
+            final HttpPrincipal userID = new HttpPrincipal("test");
+            subject.getPrincipals().add(userID);
+
+            Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+                {
+                    @Override
+                    public Object run() throws Exception
+                    {
+                        RegistryClient regClient = new RegistryClient();
+                        URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI));
+                        GMSClient client = new GMSClient(baseURL.toString());
+
+                        List<Group> initial = client.getCachedGroups(userID, Role.MEMBER);
+                        Assert.assertNull("Cache should be null", initial);
+
+                        List<Group> expected = new ArrayList<Group>();
+                        Group group1 = new Group("1");
+                        Group group2 = new Group("2");
+                        expected.add(group1);
+                        expected.add(group2);
+
+                        client.setCachedGroups(userID, expected, Role.MEMBER);
+
+                        List<Group> actual = client.getCachedGroups(userID, Role.MEMBER);
+                        Assert.assertEquals("Wrong cached groups", expected, actual);
+                        
+                        // check against another role
+                        actual = client.getCachedGroups(userID, Role.OWNER);
+                        Assert.assertNull("Cache should be null", actual);
+                        
+                        // check against another userid
+                        final HttpPrincipal userID2 = new HttpPrincipal("test2");
+                        actual = client.getCachedGroups(userID2, Role.MEMBER);
+                        Assert.assertNull("Cache should be null", actual);
+
+                        return null;
+                    }
+                });
+
+            // do the same without a subject
+            RegistryClient regClient = new RegistryClient();
+            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI));
+            GMSClient client = new GMSClient(baseURL.toString());
+
+            List<Group> initial = client.getCachedGroups(userID, Role.MEMBER);
+            Assert.assertNull("Cache should be null", initial);
+
+            List<Group> newgroups = new ArrayList<Group>();
+            Group group1 = new Group("1");
+            Group group2 = new Group("2");
+            newgroups.add(group1);
+            newgroups.add(group2);
+
+            client.setCachedGroups(userID, newgroups, Role.MEMBER);
+
+            List<Group> actual = client.getCachedGroups(userID, Role.MEMBER);
+            Assert.assertNull("Cache should still be null", actual);
         }
 
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        catch (Throwable t)
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t.getMessage());
         }
-
-        this.groupID = groupID;
-        this.owner = owner;
     }
 
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.toLowerCase().hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-        if (!groupID.equalsIgnoreCase(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
-    }
 }

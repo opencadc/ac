@@ -68,8 +68,6 @@
  */
 package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -81,10 +79,13 @@ import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.List;
-import java.util.Set;
+
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
+
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.xml.XmlUtil;
 
 public class GroupReader
 {
@@ -237,14 +238,7 @@ public class GroupReader
             }
 
         }
-
-        // publicRead
-        Element publicReadElement = groupElement.getChild("publicRead");
-        if (publicReadElement != null)
-        {
-            group.publicRead = Boolean.valueOf(publicReadElement.getText());
-        }
-
+        
         // properties
         Element propertiesElement = groupElement.getChild("properties");
         if (propertiesElement != null)

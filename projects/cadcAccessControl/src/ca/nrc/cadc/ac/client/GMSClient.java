@@ -79,10 +79,10 @@ import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -108,8 +108,6 @@ import ca.nrc.cadc.net.NetUtil;
 
 /**
  * Client class for communicating with the access control web service.
- * 
- * TODO: Cache the group memberships using getCachedGroups(), setCachedGroups()
  */
 public class GMSClient
 {
@@ -652,6 +650,12 @@ public class GMSClient
             throw new IllegalArgumentException("userID and role are required.");
         }
         
+        List<Group> cachedGroups = getCachedGroups(userID, role);
+        if (cachedGroups != null)
+        {
+            return cachedGroups;
+        }
+        
         String idType = AuthenticationUtil.getPrincipalType(userID);
         String id = userID.getName();
         String roleString = role.getValue();
@@ -697,7 +701,9 @@ public class GMSClient
         {
             String groupsXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getMemberships returned: " + groupsXML);
-            return GroupsReader.read(groupsXML);
+            List<Group> groups = GroupsReader.read(groupsXML);
+            setCachedGroups(userID, groups, role);
+            return groups;
         }
         catch (Exception bug)
         {
@@ -720,6 +726,20 @@ public class GMSClient
             throw new IllegalArgumentException("userID and role are required.");
         }
         
+        List<Group> cachedGroups = getCachedGroups(userID, role);
+        if (cachedGroups != null)
+        {
+            int index = cachedGroups.indexOf(groupName);
+            if (index != -1)
+            {
+                return cachedGroups.get(index);
+            }
+            else
+            {
+                return null;
+            }
+        }
+        
         String idType = AuthenticationUtil.getPrincipalType(userID);
         String id = userID.getName();
         String roleString = role.getValue();
@@ -730,7 +750,7 @@ public class GMSClient
         searchGroupURL.append("ID=" + URLEncoder.encode(id, "UTF-8"));
         searchGroupURL.append("&TYPE=" + URLEncoder.encode(idType, "UTF-8"));
         searchGroupURL.append("&ROLE=" + URLEncoder.encode(roleString, "UTF-8"));
-        searchGroupURL.append("&GURI=" + URLEncoder.encode(groupName, "UTF-8"));
+        searchGroupURL.append("&GROUPID=" + URLEncoder.encode(groupName, "UTF-8"));
         
         log.debug("getMembership request to " + searchGroupURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -773,6 +793,8 @@ public class GMSClient
             }
             if (groups.size() == 1)
             {
+                // don't cache these results as it is not a complete
+                // list of memberships--it only applies to one group.
                 return groups.get(0);
             }
             throw new IllegalStateException(
@@ -821,45 +843,83 @@ public class GMSClient
         return this.sslSocketFactory;
     }
 
-    protected Collection<Group> getCachedGroups()
+    protected List<Group> getCachedGroups(Principal userID, Role role)
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
-        if (subject != null)
+        
+        // only consult cache if the userID is of the calling subject
+        if (userIsSubject(userID, subject))
         {
-            Set groupCredentialSet = 
-                    subject.getPrivateCredentials(GroupCredentials.class);
+            
+            Set groupCredentialSet = subject.getPrivateCredentials(GroupMemberships.class);
             if ((groupCredentialSet != null) && 
                 (groupCredentialSet.size() == 1))
             {
                 Iterator i = groupCredentialSet.iterator();
-                return ((GroupCredentials) i.next()).groupMemberships;
+                GroupMemberships groupMemberships = ((GroupMemberships) i.next());
+                return groupMemberships.memberships.get(role);
             }
         }
         return null;
     }
 
-    protected void setCachedGroups(Collection<Group> groups)
+    protected void setCachedGroups(Principal userID, List<Group> groups, Role role)
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
-        if (subject != null)
+        
+        // only save to cache if the userID is of the calling subject
+        if (userIsSubject(userID, subject))
         {
-            GroupCredentials groupCredentials = new GroupCredentials();
-            groupCredentials.groupMemberships.addAll(groups);
-            subject.getPrivateCredentials().add(groupCredentials);
+            GroupMemberships groupCredentials = null;
+            Set groupCredentialSet = subject.getPrivateCredentials(GroupMemberships.class);
+            if ((groupCredentialSet != null) && 
+                (groupCredentialSet.size() == 1))
+            {
+                Iterator i = groupCredentialSet.iterator();
+                groupCredentials = ((GroupMemberships) i.next());
+            }
+            else
+            {
+                groupCredentials = new GroupMemberships();
+                subject.getPrivateCredentials().add(groupCredentials);
+            }
+            
+            groupCredentials.memberships.put(role,  groups);
         }
+    }
+    
+    protected boolean userIsSubject(Principal userID, Subject subject)
+    {
+        if (userID == null || subject == null)
+        {
+            return false;
+        }
+        
+        Set<Principal> subjectPrincipals = subject.getPrincipals();
+        Iterator<Principal> i = subjectPrincipals.iterator();
+        Principal next = null;
+        while (i.hasNext())
+        {
+            next = i.next();
+            if (next.equals(userID))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Class used to hold list of groups in which
      * a user is a member.
      */
-    protected class GroupCredentials
+    protected class GroupMemberships
     {
-        Collection<Group> groupMemberships = new ArrayList<Group>();
+        Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
 
-        protected GroupCredentials()
+        protected GroupMemberships()
         {
         }
 

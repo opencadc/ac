@@ -68,8 +68,6 @@
  */
 package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.util.StringBuilderWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -78,12 +76,15 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
 import java.text.DateFormat;
-import java.util.Set;
+
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
+
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.util.StringBuilderWriter;
 
 public class GroupWriter
 {
@@ -180,11 +181,6 @@ public class GroupWriter
                 descriptionElement.setText(group.description);
                 groupElement.addContent(descriptionElement);
             }
-
-            // Group publicRead
-            Element publicReadElement = new Element("publicRead");
-            publicReadElement.setText(String.valueOf(group.publicRead));
-            groupElement.addContent(publicReadElement);
 
             // lastModified
             if (group.lastModified != null)

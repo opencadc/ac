@@ -34,17 +34,24 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.ActivatedGroup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.ac.ActivatedGroup;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -53,14 +60,6 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.util.Log4jInit;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
-import java.util.Set;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import static org.junit.Assert.fail;
-import org.junit.BeforeClass;
 
 public class LdapGroupDAOTest
 {
@@ -177,15 +176,6 @@ public class LdapGroupDAOTest
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
-                    // publicRead
-                    expectGroup.publicRead = true;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-                    
-                    expectGroup.publicRead = false;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-
                     // userMembers
                     expectGroup.getUserMembers().add(daoTestUser2);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
@@ -208,7 +198,6 @@ public class LdapGroupDAOTest
                     expectGroup.description = "Happy testing";
                     expectGroup.groupRead = otherGroup;
                     expectGroup.groupWrite = otherGroup;
-                    expectGroup.publicRead = true;
                     expectGroup.getUserMembers().add(daoTestUser2);
                     expectGroup.getGroupMembers().add(otherGroup);
                     
@@ -662,7 +651,6 @@ public class LdapGroupDAOTest
         {
             assertTrue(gr2.getUserMembers().contains(user));
         }
-        assertEquals(gr1.publicRead, gr2.publicRead);
         assertEquals(gr1.groupRead, gr2.groupRead);
         assertEquals(gr1.groupWrite, gr2.groupWrite);
         assertEquals(gr1.groupWrite, gr2.groupWrite);

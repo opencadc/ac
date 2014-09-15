@@ -87,14 +87,15 @@
 
     <property name="project"    value="cadcAccessControl" />
 
-    <property name="cadcUtil"   value="${lib}/cadcUtil.jar" />
+    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
+	<property name="cadcRegistryClient" value="${lib}/cadcRegistryClient.jar" />
     
     <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
     <property name="log4j"      value="${ext.lib}/log4j.jar" />
     <property name="unboundid"  value="${ext.lib}/unboundid-ldapsdk-se.jar" />
 
 
-    <property name="jars" value="${cadcUtil}:${jdom2}:${log4j}:${unboundid}" />
+    <property name="jars" value="${cadcUtil}:${cadcRegistryClient}:${jdom2}:${log4j}:${unboundid}" />
     
     <target name="build" depends="compile">
         <jar jarfile="${build}/lib/${project}.jar"
@@ -113,31 +114,5 @@
     <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
     
     <property name="testingJars" value="${build}/class:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
-
-    <target name="test" depends="compile-test">
-        <echo message="Running test" />
-
-        <!-- Run the junit test suite -->
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.GroupTest" />
-            <test name="ca.nrc.cadc.ac.GroupPropertyTest" />
-            <test name="ca.nrc.cadc.ac.GroupPropertyReaderWriterTest" />
-            <test name="ca.nrc.cadc.ac.GroupReaderWriterTest" />
-            <test name="ca.nrc.cadc.ac.IdentityReaderWriterTest" />
-            <test name="ca.nrc.cadc.ac.PersonalDetailsTest" />
-            <test name="ca.nrc.cadc.ac.PosixDetailsTest" />
-            <test name="ca.nrc.cadc.ac.UserDetailsReaderWriterTest" />
-            <test name="ca.nrc.cadc.ac.UserReaderWriterTest" />
-            <test name="ca.nrc.cadc.ac.UserTest" />
-            
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
 
 </project>

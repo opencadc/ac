@@ -68,9 +68,13 @@
  */
 package ca.nrc.cadc.ac;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 
@@ -122,10 +126,6 @@ public class GroupTest
         
         // group write equality tests
         group3.groupWrite = group4;
-        assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
-
-        group3.publicRead = true;
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
         
