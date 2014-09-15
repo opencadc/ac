@@ -68,14 +68,16 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import java.io.IOException;
-import java.io.PrintWriter;
+
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.auth.AuthenticationUtil;
 
 public class GroupsServlet extends HttpServlet
 {
@@ -106,7 +108,6 @@ public class GroupsServlet extends HttpServlet
             logInfo.setSubject(subject);
             GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
             action.doAction(subject, response);
-            log.info(logInfo.end());
         }
         catch (IllegalArgumentException e)
         {
