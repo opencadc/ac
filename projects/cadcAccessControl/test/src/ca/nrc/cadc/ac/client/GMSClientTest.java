@@ -100,6 +100,40 @@ public class GMSClientTest
     }
     
     @Test
+    public void testUserIsSubject()
+    {
+        try
+        {
+            Subject subject = new Subject();
+            HttpPrincipal userID = new HttpPrincipal("test");
+            HttpPrincipal userID2 = new HttpPrincipal("test2");
+            subject.getPrincipals().add(userID);
+            
+            RegistryClient regClient = new RegistryClient();
+            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI));
+            GMSClient client = new GMSClient(baseURL.toString());
+
+            Assert.assertFalse(client.userIsSubject(null, null));
+            Assert.assertFalse(client.userIsSubject(userID, null));
+            Assert.assertFalse(client.userIsSubject(null, subject));
+            Assert.assertFalse(client.userIsSubject(userID2, subject));
+            Assert.assertTrue(client.userIsSubject(userID, subject));
+            
+            HttpPrincipal userID3 = new HttpPrincipal("test3");
+            subject.getPrincipals().add(userID3);
+            
+            Assert.assertTrue(client.userIsSubject(userID, subject));
+            Assert.assertFalse(client.userIsSubject(userID2, subject));
+            Assert.assertTrue(client.userIsSubject(userID3, subject));
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t.getMessage());
+        }
+    }
+    
+    @Test
     public void testGroupCaching()
     {
         try
@@ -163,7 +197,6 @@ public class GMSClientTest
             List<Group> actual = client.getCachedGroups(userID, Role.MEMBER);
             Assert.assertNull("Cache should still be null", actual);
         }
-
         catch (Throwable t)
         {
             log.error("Unexpected exception", t);

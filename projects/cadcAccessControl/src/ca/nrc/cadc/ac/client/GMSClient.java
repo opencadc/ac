@@ -107,7 +107,8 @@ import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.NetUtil;
 
 /**
- * Client class for communicating with the access control web service.
+ * Client class for performing group searching and group actions
+ * with the access control web service.
  */
 public class GMSClient
 {
@@ -119,8 +120,10 @@ public class GMSClient
     private String baseURL;
 
     /**
-     *
-     * @param baseURL
+     * Constructor.
+     * 
+     * @param baseURL The URL of the supporting access control web service
+     * obtained from the registry.
      */
     public GMSClient(String baseURL)
         throws IllegalArgumentException
@@ -165,7 +168,7 @@ public class GMSClient
     }
 
     /**
-     * Create a new group
+     * Create a new group.
      *
      * @param group The group to create
      * @return The newly created group will all the information.
@@ -652,6 +655,17 @@ public class GMSClient
         }
     }
 
+    /**
+     * Get all the memberships of the user of a certain role.
+     * 
+     * @param userID Identifies the user.
+     * @param role The role to look up.
+     * @return A list of groups for which the user has the role.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
+     * @throws IllegalArgumentException If a parameter is null.
+     * @throws IOException If an unknown error occured.
+     */
     public List<Group> getMemberships(Principal userID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
@@ -722,12 +736,41 @@ public class GMSClient
         }
     }
     
+    /**
+     * Return the group, specified by paramter groupName, if the user,
+     * identified by userID, is a member of that group.  Return null
+     * otherwise.
+     * 
+     * This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
+     *  
+     * @param userID Identifies the user.
+     * @param groupName Identifies the group.
+     * @return The group or null of the user is not a member.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
+     * @throws IllegalArgumentException If a parameter is null.
+     * @throws IOException If an unknown error occured.
+     */
     public Group getMembership(Principal userID, String groupName)
         throws UserNotFoundException, AccessControlException, IOException
     {
         return getMembership(userID, groupName, Role.MEMBER);
     }
     
+    /**
+     * Return the group, specified by paramter groupName, if the user,
+     * identified by userID, is a member (of type role) of that group.
+     * Return null otherwise.
+     * 
+     * @param userID Identifies the user.
+     * @param groupName Identifies the group.
+     * @param role The membership role to search.
+     * @return The group or null of the user is not a member.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
+     * @throws IllegalArgumentException If a parameter is null.
+     * @throws IOException If an unknown error occured.
+     */
     public Group getMembership(Principal userID, String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
@@ -817,12 +860,37 @@ public class GMSClient
         }
     }
     
+    /**
+     * Check if userID is a member of groupName.
+     * 
+     * This is equivalent to isMember(userID, groupName, Role.MEMBER)
+     * 
+     * @param userID Identifies the user.
+     * @param groupName Identifies the group.
+     * @return True if the user is a member of the group
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
+     * @throws IllegalArgumentException If a parameter is null.
+     * @throws IOException If an unknown error occured.
+     */
     public boolean isMember(Principal userID, String groupName)
         throws UserNotFoundException, AccessControlException, IOException
     {
         return isMember(userID, groupName, Role.MEMBER);
     }
     
+    /**
+     * Check if userID is a member (of type role) of groupName.
+     * 
+     * @param userID Identifies the user.
+     * @param groupName Identifies the group.
+     * @param role The type of membership.
+     * @return True if the user is a member of the group
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
+     * @throws IllegalArgumentException If a parameter is null.
+     * @throws IOException If an unknown error occured.
+     */
     public boolean isMember(Principal userID, String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
