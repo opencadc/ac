@@ -102,6 +102,7 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
+import java.util.logging.Level;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -148,6 +149,22 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         if (group.getOwner() == null)
         {
             throw new IllegalArgumentException("Group owner must be specified");
+        }
+        
+        try
+        {
+            User<X500Principal> subjectUser = 
+                    userPersist.getMember(getSubjectDN());
+            if (!subjectUser.equals(group.getOwner()))
+            {
+                throw new AccessControlException("Group owner must be group " + 
+                                                 " creator");
+            }
+        }
+        catch (LDAPException e)
+        {
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         
         try
