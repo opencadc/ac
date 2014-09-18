@@ -96,8 +96,9 @@ public class LdapUserDAOTest
     static int port = 389;
     static String adminDN = "uid=webproxy,ou=Webproxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
-    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
 //    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
 //    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
@@ -114,7 +115,7 @@ public class LdapUserDAOTest
         
         testUser = new User<X500Principal>(new X500Principal(testUserDN));
     
-        config = new LdapConfig(server, port, adminDN, adminPW, userBaseDN, groupBaseDN);
+        config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
     }
 
     LdapUserDAO<X500Principal> getUserDAO()

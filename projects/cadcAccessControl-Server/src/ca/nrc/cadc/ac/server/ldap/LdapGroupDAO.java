@@ -151,22 +151,11 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throw new IllegalArgumentException("Group owner must be specified");
         }
         
-        try
+        if (!isCreatorOwner(group.getOwner()))
         {
-            User<X500Principal> subjectUser = 
-                    userPersist.getMember(getSubjectDN());
-            if (!subjectUser.equals(group.getOwner()))
-            {
-                throw new AccessControlException("Group owner must be group " + 
-                                                 " creator");
-            }
+            throw new AccessControlException("Group owner must be creator");
         }
-        catch (LDAPException e)
-        {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-        
+
         try
         {
             getGroup(group.getID());
@@ -175,127 +164,29 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         catch (GroupNotFoundException ex)
         {
             try
-            {             
-                try
-                {
-                    Group inactiveGroup = getInactiveGroup(group.getID());
-
-                    // Check requestor owns the group.
-                    DN ownerDN = userPersist.getUserDN(group.getOwner());
-                    if (!ownerDN.equals(getSubjectDN()))
-                    {
-                       throw new AccessControlException(
-                           "Unable to activate group " + group.getID() + 
-                           " because " + getSubjectDN().toString()
-                           + " is not the owner"); 
-                    }
-                    
-                    List<Modification> mods = new ArrayList<Modification>();
-                    Modification mod = 
-                        new Modification(ModificationType.DELETE, 
-                                         "nsaccountlock");
-                    mods.add(mod);
-                    
-                    Group modifiedGroup = modifyGroup(group, inactiveGroup, 
-                                                      mods);
-                    Group activatedGroup = 
-                            new ActivatedGroup(modifiedGroup.getID(),
-                                               modifiedGroup.getOwner());
-                    activatedGroup.description = modifiedGroup.description;
-                    activatedGroup.groupRead = modifiedGroup.groupRead;
-                    activatedGroup.groupWrite = modifiedGroup.groupWrite;
-                    activatedGroup.getProperties()
-                            .addAll(modifiedGroup.getProperties());
-                    activatedGroup.getGroupMembers()
-                            .addAll(modifiedGroup.getGroupMembers());
-                    activatedGroup.getUserMembers()
-                            .addAll(modifiedGroup.getUserMembers());
-                    return activatedGroup;
-                }
-                catch (GroupNotFoundException ignore) {}
-                
+            {        
                 if (!group.getProperties().isEmpty())
                 {
                     throw new UnsupportedOperationException(
                             "Support for groups properties not available");
                 }
-
+                
+                Group inactiveGroup = getInactiveGroup(group.getID());
+                if (inactiveGroup != null)
+                {
+                    return reactiveGroup(group, inactiveGroup);
+                }
+                
                 DN ownerDN = userPersist.getUserDN(group.getOwner());
-                String groupWriteAci = null;
-                String groupReadAci = null;
-                if (group.groupWrite != null)
-                {
-                    DN groupWrite = getGroupDN(group.groupWrite.getID());
-                    groupWriteAci = GROUP_WRITE_ACI.replace(
-                            ACTUAL_GROUP_TOKEN, 
-                            groupWrite.toNormalizedString());
-                }
-
-                if (group.groupRead != null)
-                {
-                    DN groupRead = getGroupDN(group.groupRead.getID());
-                    groupReadAci = GROUP_READ_ACI.replace(
-                            ACTUAL_GROUP_TOKEN, 
-                            groupRead.toNormalizedString());
-                }
-
-                // add new group
-                List<Attribute> attributes = new ArrayList<Attribute>();
-                attributes.add(new Attribute("objectClass", 
-                                             "groupofuniquenames"));
-
-                attributes.add(new Attribute("cn", group.getID()));
-                if (group.description != null)
-                {
-                    attributes.add(new Attribute("description", 
-                                                 group.description));
-                }
-
-                attributes.add(new Attribute("owner", 
-                                             ownerDN.toNormalizedString()));
-
-                // acis
-                List<String> acis = new ArrayList<String>();
-                if (groupWriteAci != null)
-                {
-                    acis.add(groupWriteAci);
-                }
-                if (groupReadAci != null)
-                {
-                    acis.add(groupReadAci);
-                }
-
-                if (!acis.isEmpty())
-                {
-                    attributes.add(new Attribute("aci", 
-                            (String[]) acis.toArray(new String[acis.size()])));
-                }
-
-                List<String> members = new ArrayList<String>();
-                for (User<?> member : group.getUserMembers())
-                {
-                    DN memberDN = this.userPersist.getUserDN(member);
-                    members.add(memberDN.toNormalizedString());
-                }
-                for (Group gr : group.getGroupMembers())
-                {
-                    DN grDN = getGroupDN(gr.getID());
-                    members.add(grDN.toNormalizedString());
-                }
-                if (!members.isEmpty())
-                {
-                    attributes.add(new Attribute("uniquemember", 
-                        (String[]) members.toArray(new String[members.size()])));
-                }
-
-                AddRequest addRequest = 
-                        new AddRequest(getGroupDN(group.getID()), attributes);
-
-                addRequest.addControl(
-                        new ProxiedAuthorizationV2RequestControl(
-                                "dn:" + getSubjectDN().toNormalizedString()));
-
-                LDAPResult result = getConnection().add(addRequest);
+                Attribute ownerAttribute = 
+                        new Attribute("owner", ownerDN.toNormalizedString());
+                
+                // add group to groups tree
+                LDAPResult result = addGroup(group, ownerAttribute);
+                
+                // add group to admin groups tree
+                result = addAdminGroup(group, ownerAttribute);
+                
                 try
                 {
                     return getGroup(group.getID());
@@ -412,36 +303,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         }
                     }
                 }
-
-                // TODO not sure this is going to fly...
-                if (group.getAttributeValues("aci") != null)
-                {
-                    for (String aci : group.getAttributeValues("aci"))
-                    {
-                        if (aci.contains("Group Read"))
-                        {
-                            // TODO it's gotta be a better way to do this.
-                            String grRead = aci.substring(
-                                    aci.indexOf("ldap:///"));
-                            grRead = grRead.substring(grRead.indexOf("cn=") + 3,
-                                                      grRead.indexOf(','));
-
-                            Group groupRead = new Group(grRead.trim());
-                            ldapGroup.groupRead = groupRead;
-                        }
-                        else if (aci.contains("Group Write"))
-                        {
-                            // TODO it's gotta be a better way to do this.
-                            String grWrite = aci.substring(
-                                    aci.indexOf("ldap:///"));
-                            grWrite = grWrite.substring(grWrite.indexOf("cn=") + 3, 
-                                                    grWrite.indexOf(','));
-
-                            Group groupWrite = getGroup(grWrite.trim());
-                            ldapGroup.groupWrite = groupWrite;
-                        }
-                    }
-                }
             }
             
             return ldapGroup;
@@ -509,36 +370,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             modifs.add(new Modification(ModificationType.REPLACE, "description", 
                                         newGroup.description));
         }
-
-        List<String> acis = new ArrayList<String>();
-        if (newGroup.groupRead != null)
-        {
-            if (newGroup.groupRead.equals(newGroup))
-            {
-                throw new IllegalArgumentException(
-                        "cyclical reference from groupRead to group");
-            }
-
-            DN readGrDN = getGroupDN(newGroup.groupRead.getID());
-            acis.add(GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            readGrDN.toNormalizedString()));
-        }
-
-        if (newGroup.groupWrite != null)
-        {
-            if (newGroup.groupWrite.equals(newGroup))
-            {
-                throw new IllegalArgumentException(
-                        "cyclical reference from groupWrite to group");
-            }
-
-            DN writeGrDN = getGroupDN(newGroup.groupWrite.getID());
-            acis.add(GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                             writeGrDN.toNormalizedString()));
-        }
-
-        modifs.add(new Modification(ModificationType.REPLACE, "aci", (String[]) 
-                                    acis.toArray(new String[acis.size()])));
 
         List<String> newMembers = new ArrayList<String>();
         for (User<?> member : newGroup.getUserMembers())
@@ -646,12 +477,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         if (group.description != null)
         {
             modifs.add(new Modification(ModificationType.DELETE, "description"));
-        }
-        
-        if (group.groupRead != null || 
-            group.groupWrite != null)
-        {
-            modifs.add(new Modification(ModificationType.DELETE, "aci"));
         }
         
         if (!group.getGroupMembers().isEmpty() || 
@@ -829,25 +654,25 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             List<Filter> filters = new ArrayList<Filter>();
             for (Group member : queryGroups)
             {
-                // Require both groupRead and groupWrite
-                if (member.groupRead != null && member.groupWrite != null)
-                {
-                    DN groupRead = getGroupDN(member.groupRead.getID());
-                    String groupReadAci = 
-                        GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                           groupRead.toNormalizedString());
-                    DN groupWrite = getGroupDN(member.groupRead.getID());
-                    String groupWriteAci = 
-                        GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            groupWrite.toNormalizedString());
-                    System.out.println(groupReadAci);
-                    System.out.println(groupWriteAci);
-
-                    Filter filter = Filter.createANDFilter(
-                            Filter.createEqualityFilter("aci", groupReadAci),
-                            Filter.createEqualityFilter("aci", groupWriteAci));
-                    filters.add(filter);
-                }
+//                // Require both groupRead and groupWrite
+//                if (member.groupRead != null && member.groupWrite != null)
+//                {
+//                    DN groupRead = getGroupDN(member.groupRead.getID());
+//                    String groupReadAci = 
+//                        GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                           groupRead.toNormalizedString());
+//                    DN groupWrite = getGroupDN(member.groupRead.getID());
+//                    String groupWriteAci = 
+//                        GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                            groupWrite.toNormalizedString());
+//                    System.out.println(groupReadAci);
+//                    System.out.println(groupWriteAci);
+//
+//                    Filter filter = Filter.createANDFilter(
+//                            Filter.createEqualityFilter("aci", groupReadAci),
+//                            Filter.createEqualityFilter("aci", groupWriteAci));
+//                    filters.add(filter);
+//                }
             }
 
             Collection<Group> groups = new ArrayList<Group>();
@@ -895,89 +720,89 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
     }
     
-    protected Collection<Group> getRWGroups2(User<T> user, DN userDN, 
-                                             String groupID)
-        throws TransientException, AccessControlException,
-               GroupNotFoundException, UserNotFoundException
-    {
-        try
-        {
-            Collection<Group> groups = new ArrayList<Group>();
-            
-            Collection<Group> queryGroups =  new ArrayList<Group>();
-            if (groupID != null)
-            {
-                queryGroups.add(new Group(groupID, user));
-            }
-            else
-            {
-                // List of Groups the user belongs to.
-                queryGroups.addAll(getMemberGroups(user, userDN, groupID));
-            
-                // List of Groups the user owns;
-                queryGroups.addAll(getOwnerGroups(user, userDN, groupID));
-            }
-            
-            for (Group member : queryGroups)
-            {
-                // Require both groupRead and groupWrite
-                if (member.groupRead != null && member.groupWrite != null)
-                {
-                    DN groupRead = getGroupDN(member.groupRead.getID());
-                    String groupReadAci = 
-                            GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            groupRead.toNormalizedString());
-                    DN groupWrite = getGroupDN(member.groupWrite.getID());
-                    String groupWriteAci = 
-                            GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            groupWrite.toNormalizedString());
-
-                    Filter filter = Filter.createANDFilter(
-                            Filter.createEqualityFilter("aci", groupReadAci),
-                            Filter.createEqualityFilter("aci", groupWriteAci));
-
-                    SearchRequest searchRequest = new SearchRequest(
-                            config.getGroupsDN(), SearchScope.SUB, filter, 
-                            new String[] {"cn", "owner", "description", 
-                                          "modifytimestamp"});
-
-                    searchRequest.addControl(
-                            new ProxiedAuthorizationV2RequestControl("dn:" + 
-                                    getSubjectDN().toNormalizedString()));
-
-                    SearchResult results = getConnection().search(searchRequest);
-                    for (SearchResultEntry result : results.getSearchEntries())
-                    {
-                        String groupName = result.getAttributeValue("cn");
-                        DN ownerDN = result.getAttributeValueAsDN("owner");
-                        User<X500Principal> owner = userPersist.getMember(ownerDN);
-
-                        // Ignore existing illegal group names.
-                        try
-                        {
-                            Group group = new Group(groupName, owner);
-                            group.description = result.getAttributeValue("description");
-                            group.lastModified = 
-                                    result.getAttributeValueAsDate("modifytimestamp");
-                            groups.add(group);
-                        }
-                        catch (IllegalArgumentException ignore) { } 
-                    }
-                }
-            }
-            return groups;
-        }
-        catch (LDAPException e1)
-        {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting groups", e1);
-        }
-    }
+//    protected Collection<Group> getRWGroups2(User<T> user, DN userDN, 
+//                                             String groupID)
+//        throws TransientException, AccessControlException,
+//               GroupNotFoundException, UserNotFoundException
+//    {
+//        try
+//        {
+//            Collection<Group> groups = new ArrayList<Group>();
+//            
+//            Collection<Group> queryGroups =  new ArrayList<Group>();
+//            if (groupID != null)
+//            {
+//                queryGroups.add(new Group(groupID, user));
+//            }
+//            else
+//            {
+//                // List of Groups the user belongs to.
+//                queryGroups.addAll(getMemberGroups(user, userDN, groupID));
+//            
+//                // List of Groups the user owns;
+//                queryGroups.addAll(getOwnerGroups(user, userDN, groupID));
+//            }
+//            
+//            for (Group member : queryGroups)
+//            {
+//                // Require both groupRead and groupWrite
+//                if (member.groupRead != null && member.groupWrite != null)
+//                {
+//                    DN groupRead = getGroupDN(member.groupRead.getID());
+//                    String groupReadAci = 
+//                            GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                            groupRead.toNormalizedString());
+//                    DN groupWrite = getGroupDN(member.groupWrite.getID());
+//                    String groupWriteAci = 
+//                            GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                            groupWrite.toNormalizedString());
+//
+//                    Filter filter = Filter.createANDFilter(
+//                            Filter.createEqualityFilter("aci", groupReadAci),
+//                            Filter.createEqualityFilter("aci", groupWriteAci));
+//
+//                    SearchRequest searchRequest = new SearchRequest(
+//                            config.getGroupsDN(), SearchScope.SUB, filter, 
+//                            new String[] {"cn", "owner", "description", 
+//                                          "modifytimestamp"});
+//
+//                    searchRequest.addControl(
+//                            new ProxiedAuthorizationV2RequestControl("dn:" + 
+//                                    getSubjectDN().toNormalizedString()));
+//
+//                    SearchResult results = getConnection().search(searchRequest);
+//                    for (SearchResultEntry result : results.getSearchEntries())
+//                    {
+//                        String groupName = result.getAttributeValue("cn");
+//                        DN ownerDN = result.getAttributeValueAsDN("owner");
+//                        User<X500Principal> owner = userPersist.getMember(ownerDN);
+//
+//                        // Ignore existing illegal group names.
+//                        try
+//                        {
+//                            Group group = new Group(groupName, owner);
+//                            group.description = result.getAttributeValue("description");
+//                            group.lastModified = 
+//                                    result.getAttributeValueAsDate("modifytimestamp");
+//                            groups.add(group);
+//                        }
+//                        catch (IllegalArgumentException ignore) { } 
+//                    }
+//                }
+//            }
+//            return groups;
+//        }
+//        catch (LDAPException e)
+//        {
+//            // TODO check which LDAP exceptions are transient and which
+//            // ones are
+//            // access control
+//            throw new TransientException("Error getting groups", e);
+//        }
+//    }
     
-    private Group getInactiveGroup(String groupID)
-        throws UserNotFoundException, GroupNotFoundException, LDAPException
+    protected Group getInactiveGroup(final String groupID)
+        throws UserNotFoundException, LDAPException
     {
         Filter filter = Filter.createANDFilter(
                 Filter.createEqualityFilter("cn", groupID),
@@ -998,7 +823,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             String msg = "Inactive Group not found " + groupID;
             logger.debug(msg);
-            throw new GroupNotFoundException(msg);
+            return null;
         }
 
         String groupCN = searchResult.getAttributeValue("cn");
@@ -1007,6 +832,134 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         User<X500Principal> owner = userPersist.getMember(groupOwner);
 
         return new Group(groupCN, owner);
+    }
+    
+    protected Group reactiveGroup(final Group newGroup, 
+                                  final Group inactiveGroup)
+        throws UserNotFoundException, LDAPException, TransientException
+    {
+        // Check requestor owns the group.
+        DN ownerDN = userPersist.getUserDN(newGroup.getOwner());
+        if (!ownerDN.equals(getSubjectDN()))
+        {
+           throw new AccessControlException(
+               "Unable to activate group " + newGroup.getID() + 
+               " because " + getSubjectDN().toString()
+               + " is not the owner"); 
+        }
+
+        List<Modification> mods = new ArrayList<Modification>();
+        mods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
+
+        Group modifiedGroup = modifyGroup(newGroup, inactiveGroup, mods);
+        Group activatedGroup = 
+                new ActivatedGroup(modifiedGroup.getID(),
+                                   modifiedGroup.getOwner());
+        activatedGroup.description = modifiedGroup.description;
+        activatedGroup.getProperties()
+                .addAll(modifiedGroup.getProperties());
+        activatedGroup.getGroupMembers()
+                .addAll(modifiedGroup.getGroupMembers());
+        activatedGroup.getUserMembers()
+                .addAll(modifiedGroup.getUserMembers());
+        return activatedGroup;
+    }
+    
+    /**
+     * 
+     * @param group
+     * @param ownerAttribute
+     * @return
+     * @throws UserNotFoundException
+     * @throws LDAPException 
+     */
+    protected LDAPResult addGroup(final Group group, 
+                                  final Attribute ownerAttribute)
+        throws UserNotFoundException, LDAPException
+    {
+        // add new group
+        List<Attribute> attributes = new ArrayList<Attribute>();
+        attributes.add(ownerAttribute);
+        attributes.add(new Attribute("objectClass", "groupofuniquenames"));
+        attributes.add(new Attribute("cn", group.getID()));
+        attributes.add(new Attribute("memberRead", 
+                                     String.valueOf(group.memberRead)));
+        
+        if (group.description != null)
+        {
+            attributes.add(new Attribute("description", group.description));
+        }
+
+        List<String> members = new ArrayList<String>();
+        for (User<?> member : group.getUserMembers())
+        {
+            DN memberDN = this.userPersist.getUserDN(member);
+            members.add(memberDN.toNormalizedString());
+        }
+        for (Group gr : group.getGroupMembers())
+        {
+            DN grDN = getGroupDN(gr.getID());
+            members.add(grDN.toNormalizedString());
+        }
+        if (!members.isEmpty())
+        {
+            attributes.add(new Attribute("uniquemember", 
+                (String[]) members.toArray(new String[members.size()])));
+        }
+
+        AddRequest addRequest = 
+                new AddRequest(getGroupDN(group.getID()), attributes);
+
+        addRequest.addControl(
+                new ProxiedAuthorizationV2RequestControl(
+                        "dn:" + getSubjectDN().toNormalizedString()));
+
+        return getConnection().add(addRequest);
+    }
+    
+    /**
+     * 
+     * @param group
+     * @param ownerAttribute
+     * @return
+     * @throws UserNotFoundException
+     * @throws LDAPException 
+     */
+    protected LDAPResult addAdminGroup(final Group group, 
+                                       final Attribute ownerAttribute)
+        throws UserNotFoundException, LDAPException
+    {
+        // add new group
+        List<Attribute> attributes = new ArrayList<Attribute>();
+        attributes.add(ownerAttribute);
+        attributes.add(new Attribute("objectClass", "groupofuniquenames"));
+        attributes.add(new Attribute("cn", group.getID()));
+
+        List<String> admins = new ArrayList<String>();
+        for (User<?> user : group.getUserAdmins())
+        {
+            DN userDN = this.userPersist.getUserDN(user);
+            admins.add(userDN.toNormalizedString());
+        }
+        for (Group gr : group.getGroupAdmins())
+        {
+            DN grDN = getGroupDN(gr.getID());
+            admins.add(grDN.toNormalizedString());
+        }
+        if (!admins.isEmpty())
+        {
+            attributes.add(new Attribute("uniquemember", 
+                (String[]) admins.toArray(new String[admins.size()])));
+        }
+
+        AddRequest addRequest = 
+                new AddRequest(getAdminGroupDN(group.getID()), attributes);
+
+        addRequest.addControl(
+                new ProxiedAuthorizationV2RequestControl(
+                        "dn:" + getSubjectDN().toNormalizedString()));
+
+        return getConnection().add(addRequest);
     }
 
     /**
@@ -1038,7 +991,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         return group;
     }
 
-    protected DN getGroupDN(String groupID)
+    /**
+     * 
+     * @param groupID
+     * @return 
+     */
+    protected DN getGroupDN(final String groupID)
     {
         try
         {
@@ -1048,6 +1006,48 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
         }
         throw new IllegalArgumentException(groupID + " not a valid group ID");
+    }
+    
+    /**
+     * 
+     * @param groupID
+     * @return 
+     */
+    protected DN getAdminGroupDN(final String groupID)
+    {
+        try
+        {
+            return new DN("cn=" + groupID + "," + config.getAdminGroupsDN());
+        }
+        catch (LDAPException e)
+        {
+        }
+        throw new IllegalArgumentException(groupID + " not a valid group ID");
+    }
+    
+    /**
+     * 
+     * @param owner
+     * @return
+     * @throws UserNotFoundException 
+     */
+    protected boolean isCreatorOwner(final User<? extends Principal> owner)
+        throws UserNotFoundException
+    {
+        try
+        {
+            User<X500Principal> subjectUser = 
+                    userPersist.getMember(getSubjectDN());
+            if (subjectUser.equals(owner))
+            {
+                return true;
+            }
+            return false;
+        }
+        catch (LDAPException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
 }

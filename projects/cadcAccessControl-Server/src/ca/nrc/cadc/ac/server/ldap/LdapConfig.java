@@ -86,9 +86,11 @@ public class LdapConfig
     public static final String LDAP_PASSWD = "passwd";
     public static final String LDAP_USERS_DN = "usersDn";
     public static final String LDAP_GROUPS_DN = "groupsDn";
+    public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDn";
 
     private String usersDN;
     private String groupsDN;
+    private String adminGroupsDN;
     private String server;
     private int port;
     private String adminUserDN;
@@ -156,18 +158,26 @@ public class LdapConfig
             throw new RuntimeException("failed to read property " + 
                                        LDAP_GROUPS_DN);
         }
+        
+        String ldapAdminGroupsDn = config.getProperty(LDAP_ADMIN_GROUPS_DN);
+        if (!StringUtil.hasText(ldapAdminGroupsDn))
+        {
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_ADMIN_GROUPS_DN);
+        }
 
         return new LdapConfig(server, Integer.valueOf(port), ldapAdmin, 
-                              ldapPasswd, ldapUsersDn, ldapGroupsDn);
+                              ldapPasswd, ldapUsersDn, ldapGroupsDn,
+                              ldapAdminGroupsDn);
     }
 
     public LdapConfig(String server, int port, String adminUserDN, 
-                      String adminPasswd, String usersDN, String groupsDN)
+                      String adminPasswd, String usersDN, String groupsDN,
+                      String adminGroupsDN)
     {
         if (!StringUtil.hasText(server))
         {
-            throw new IllegalArgumentException("Illegal LDAP server name: " + 
-                                               server);
+            throw new IllegalArgumentException("Illegal LDAP server name");
         }
         if (port < 0)
         {
@@ -176,23 +186,23 @@ public class LdapConfig
         }
         if (!StringUtil.hasText(adminUserDN))
         {
-            throw new IllegalArgumentException("Illegal Admin DN: " + 
-                                               adminUserDN);
+            throw new IllegalArgumentException("Illegal Admin DN");
         }
         if (!StringUtil.hasText(adminPasswd))
         {
-            throw new IllegalArgumentException("Illegal Admin password: " + 
-                                               adminPasswd);
+            throw new IllegalArgumentException("Illegal Admin password");
         }
         if (!StringUtil.hasText(usersDN))
         {
-            throw new IllegalArgumentException("Illegal users LDAP DN: " + 
-                                               usersDN);
+            throw new IllegalArgumentException("Illegal users LDAP DN");
         }
         if (!StringUtil.hasText(groupsDN))
         {
-            throw new IllegalArgumentException("Illegal groups LDAP DN: " + 
-                                               groupsDN);
+            throw new IllegalArgumentException("Illegal groups LDAP DN");
+        }
+        if (!StringUtil.hasText(adminGroupsDN))
+        {
+            throw new IllegalArgumentException("Illegal admin groups LDAP DN");
         }
 
         this.server = server;
@@ -201,6 +211,7 @@ public class LdapConfig
         this.adminPasswd = adminPasswd;
         this.usersDN = usersDN;
         this.groupsDN = groupsDN;
+        this.adminGroupsDN = adminGroupsDN;
     }
 
     public String getUsersDN()
@@ -211,6 +222,11 @@ public class LdapConfig
     public String getGroupsDN()
     {
         return this.groupsDN;
+    }
+    
+    public String getAdminGroupsDN()
+    {
+        return this.adminGroupsDN;
     }
 
     public String getServer()

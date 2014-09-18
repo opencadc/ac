@@ -69,10 +69,11 @@ public class LdapGroupDAOTest
     static int port = 389;
     static String adminDN = "uid=webproxy,ou=webproxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
-    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    //static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-    //static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
+    //static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
+    //static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
     static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
     static String daoTestDN2 = "cn=cadcdaotest2,ou=cadc,o=hia,c=ca";
@@ -115,7 +116,7 @@ public class LdapGroupDAOTest
         anonSubject = new Subject();
         anonSubject.getPrincipals().add(unknownUser.getUserID());
     
-        config = new LdapConfig(server, port, adminDN, adminPW, userBaseDN, groupBaseDN);
+        config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
     }
 
     LdapGroupDAO<X500Principal> getGroupDAO()
@@ -158,24 +159,6 @@ public class LdapGroupDAOTest
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
-                    // groupRead
-                    expectGroup.groupRead = otherGroup;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-                    
-                    expectGroup.groupRead = null;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-
-                    // groupWrite
-                    expectGroup.groupWrite = otherGroup;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-                    
-                    expectGroup.groupWrite = null;
-                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-
                     // userMembers
                     expectGroup.getUserMembers().add(daoTestUser2);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
@@ -196,8 +179,6 @@ public class LdapGroupDAOTest
                     
                     // delete the group
                     expectGroup.description = "Happy testing";
-                    expectGroup.groupRead = otherGroup;
-                    expectGroup.groupWrite = otherGroup;
                     expectGroup.getUserMembers().add(daoTestUser2);
                     expectGroup.getGroupMembers().add(otherGroup);
                     
@@ -398,9 +379,9 @@ public class LdapGroupDAOTest
                 {                    
                     getGroupDAO().addGroup(new Group("foo", unknownUser));
                     fail("addGroup with unknown user should throw " + 
-                         "UserNotFoundException");
+                         "AccessControlException");
                 }
-                catch (UserNotFoundException ignore) {}
+                catch (AccessControlException ignore) {}
                 
                 Group group = getGroupDAO().addGroup(new Group(getGroupID(), 
                                                      daoTestUser1));
@@ -651,9 +632,6 @@ public class LdapGroupDAOTest
         {
             assertTrue(gr2.getUserMembers().contains(user));
         }
-        assertEquals(gr1.groupRead, gr2.groupRead);
-        assertEquals(gr1.groupWrite, gr2.groupWrite);
-        assertEquals(gr1.groupWrite, gr2.groupWrite);
         assertEquals(gr1.getProperties(), gr2.getProperties());
         for (GroupProperty prop : gr1.getProperties())
         {
