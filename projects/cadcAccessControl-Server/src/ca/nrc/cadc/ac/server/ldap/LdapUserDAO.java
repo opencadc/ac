@@ -417,9 +417,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
                                  searchField, new String[] {"entrydn"});
         
-        searchRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-                            getSubjectDN().toNormalizedString()));
+//        searchRequest.addControl(
+//                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+//                            getSubjectDN().toNormalizedString()));
 
         SearchResultEntry searchResult = 
                 getConnection().searchForEntry(searchRequest);
