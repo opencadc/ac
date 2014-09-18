@@ -102,20 +102,11 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.util.logging.Level;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
     private static final Logger logger = Logger.getLogger(LdapGroupDAO.class);
-    
-    private static final String ACTUAL_GROUP_TOKEN = "<ACTUAL_GROUP>";
-    private static final String GROUP_READ_ACI = "(targetattr = \"*\") " + 
-            "(version 3.0;acl \"Group Read\";allow (read,compare,search)" + 
-            "(groupdn = \"ldap:///<ACTUAL_GROUP>\");)";
-    private static final String GROUP_WRITE_ACI = "(targetattr = \"*\") " + 
-            "(version 3.0;acl \"Group Write\";allow " + 
-            "(read,compare,search,selfwrite,write,add)" + 
-            "(groupdn = \"ldap:///<ACTUAL_GROUP>\");)";
+
     
     private LdapUserDAO<T> userPersist;
 
@@ -282,7 +273,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             User<X500Principal> user;
                             try
                             {
-                                user = userPersist.getMember(memberDN, false);
+                                user = userPersist.getMember(memberDN);
                             }
                             catch (UserNotFoundException e)
                             {

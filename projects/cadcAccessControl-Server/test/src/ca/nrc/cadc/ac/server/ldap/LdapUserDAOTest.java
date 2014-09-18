@@ -68,21 +68,32 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.util.Log4jInit;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+
+import com.unboundid.ldap.sdk.DN;
 
 /**
  *
@@ -102,7 +113,9 @@ public class LdapUserDAOTest
 //    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
 //    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
-    static final String testUserDN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
+    static final String testUserX509DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
+    static final String testUserDN = "uid=cadcdaotest1," + usersDN;
+    
     
     static User<X500Principal> testUser;
     static LdapConfig config;
@@ -113,9 +126,12 @@ public class LdapUserDAOTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
         
-        testUser = new User<X500Principal>(new X500Principal(testUserDN));
+        testUser = new User<X500Principal>(new X500Principal(testUserX509DN));
     
         config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
+        
+        testUser.details.add(new PersonalDetails("CADC", "DAOTest1"));
+        testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));        
     }
 
     LdapUserDAO<X500Principal> getUserDAO()
@@ -139,8 +155,8 @@ public class LdapUserDAOTest
             {
                 try
                 {
-                    User actual = getUserDAO().getUser(testUser.getUserID());
-                    assertEquals(testUser, actual);
+                    User<X500Principal> actual = getUserDAO().getUser(testUser.getUserID());
+                    check(testUser, actual);
                     
                     return null;
                 }
@@ -150,6 +166,7 @@ public class LdapUserDAOTest
                 }
             }
         });
+
     }
 
     /**
@@ -215,6 +232,92 @@ public class LdapUserDAOTest
                 }
             }
         });
+    }
+    
+    
+    /**
+     * Test of getMember.
+     */
+    @Test
+    public void testGetMember() throws Exception
+    {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(testUser.getUserID());
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {   
+                    User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
+                    check(testUser, actual);
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+        
+        
+        // should also work as a different user
+        subject = new Subject();
+        subject.getPrincipals().add(new HttpPrincipal("CadcDaoTest2"));
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {   
+                    User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
+                    check(testUser, actual);
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+    
+    
+    private static void check(final User<? extends Principal> user1, final User<? extends Principal> user2)
+    {
+        assertEquals(user1, user2);
+        assertEquals(user1.details, user2.details);
+        assertEquals(user1.details.size(), user2.details.size());
+        assertEquals(user1.getIdentities(), user2.getIdentities());
+        for(UserDetails d1 : user1.details)
+        {
+            assertTrue(user2.details.contains(d1));
+            if(d1 instanceof PersonalDetails)
+            {
+                PersonalDetails pd1 = (PersonalDetails)d1;
+                boolean found = false;
+                for(UserDetails d2 : user2.details)
+                {
+                    if(d2 instanceof PersonalDetails)
+                    {
+                        PersonalDetails pd2 = (PersonalDetails)d2;
+                        assertEquals(pd1, pd2); // already done in contains above but just in case
+                        assertEquals(pd1.address, pd2.address);
+                        assertEquals(pd1.city, pd2.city);
+                        assertEquals(pd1.country, pd2.country);
+                        assertEquals(pd1.email, pd2.email);
+                        assertEquals(pd1.institute, pd2.institute);
+                        found = true;
+                    }
+                    assertTrue(found);
+                }
+            }
+        }
+        
     }
     
 }

@@ -68,12 +68,25 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
+
 import com.unboundid.ldap.sdk.CompareRequest;
 import com.unboundid.ldap.sdk.CompareResult;
 import com.unboundid.ldap.sdk.DN;
@@ -82,30 +95,39 @@ import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.SearchRequest;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
-import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV1RequestControl;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import javax.security.auth.x500.X500Principal;
-import org.apache.log4j.Logger;
 
 public class LdapUserDAO<T extends Principal> extends LdapDAO
 {
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
     // Map of identity type to LDAP attribute
-    private Map<Class<?>, String> attribType = new HashMap<Class<?>, String>();
+    private Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
+    
+    // User attributes returned to the GMS
+    private static final String LDAP_FNAME = "givenname";
+    private static final String LDAP_LNAME = "sn";
+    //TODO to add the rest
+    private String[] userAttribs = new String[]{LDAP_FNAME, LDAP_LNAME};
+    private String[] memberAttribs = new String[]{LDAP_FNAME, LDAP_LNAME};
 
     public LdapUserDAO(LdapConfig config)
     {
         super(config);
-        this.attribType.put(HttpPrincipal.class, "cn");
-        this.attribType.put(X500Principal.class, "distinguishedname");
-        this.attribType.put(NumericPrincipal.class, "entryid");
+        this.userLdapAttrib.put(HttpPrincipal.class, "uid");
+        this.userLdapAttrib.put(X500Principal.class, "distinguishedname");
+        
+        // add the id attributes to user and member attributes
+        String[] princs = userLdapAttrib.values().toArray(new String[userLdapAttrib.values().size()]);
+        String[] tmp = new String[userAttribs.length + princs.length];
+        System.arraycopy(princs, 0, tmp, 0, princs.length);
+        System.arraycopy(userAttribs, 0, tmp, princs.length, userAttribs.length);
+        userAttribs = tmp;
+        
+        tmp = new String[memberAttribs.length + princs.length];
+        System.arraycopy(princs, 0, tmp, 0, princs.length);
+        System.arraycopy(memberAttribs, 0, tmp, princs.length, memberAttribs.length);
+        memberAttribs = tmp;
     }
 
     /**
@@ -122,7 +144,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        String searchField = (String) attribType.get(userID.getClass());
+        String searchField = (String) userLdapAttrib.get(userID.getClass());
         if (searchField == null)
         {
             throw new IllegalArgumentException(
@@ -135,8 +157,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             SearchRequest searchRequest = new SearchRequest(config.getUsersDN(), 
-                    SearchScope.SUB, searchField, 
-                    new String[] {"cn", "entryid", "entrydn", "dn"});
+                    SearchScope.SUB, searchField, userAttribs);
  
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
@@ -157,12 +178,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         User<T> user = new User<T>(userID);
         user.getIdentities().add(
-                new HttpPrincipal(searchResult.getAttributeValue("cn")));
-
-        user.getIdentities().add(
-                new NumericPrincipal(
-                        searchResult.getAttributeValueAsInteger("entryid")));
-
+                new HttpPrincipal(searchResult.getAttributeValue(userLdapAttrib
+                        .get(HttpPrincipal.class))));
+        
+        String fname = searchResult.getAttributeValue(LDAP_FNAME);
+        String lname = searchResult.getAttributeValue(LDAP_LNAME);
+        user.details.add(new PersonalDetails(fname, lname));
+        //TODO populate user with the other returned personal or posix attributes
         return user;
     }   
 
@@ -182,14 +204,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            String searchField = (String) attribType.get(userID.getClass());
+            String searchField = (String) userLdapAttrib.get(userID.getClass());
             if (searchField == null)
             {
                 throw new IllegalArgumentException(
                         "Unsupported principal type " + userID.getClass());
             }
 
-            User user = getUser(userID);
+            User<T> user = getUser(userID);
             Filter filter = Filter.createANDFilter(
                         Filter.createEqualityFilter(searchField, 
                                                     user.getUserID().getName()),
@@ -256,14 +278,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            String searchField = (String) attribType.get(userID.getClass());
+            String searchField = (String) userLdapAttrib.get(userID.getClass());
             if (searchField == null)
             {
                 throw new IllegalArgumentException(
                         "Unsupported principal type " + userID.getClass());
             }
 
-            User user = getUser(userID);
+            User<T> user = getUser(userID);
             Filter filter = Filter.createANDFilter(
                         Filter.createEqualityFilter(searchField, 
                                                     user.getUserID().getName()),
@@ -301,14 +323,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            String searchField = (String) attribType.get(userID.getClass());
+            String searchField = (String) userLdapAttrib.get(userID.getClass());
             if (searchField == null)
             {
                 throw new IllegalArgumentException(
                         "Unsupported principal type " + userID.getClass());
             }
 
-            User user = getUser(userID);
+            User<T> user = getUser(userID);
             DN userDN = getUserDN(user);
 
             CompareRequest compareRequest = 
@@ -333,53 +355,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
     
     /**
-     * Returns a member user identified by the X500Principal only.
-     * @param userDN
-     * @param bindAsSubject - true if Ldap commands executed as subject 
-     * (proxy authorization) or false if they are executed as the user
-     * in the connection.
-     * @return
-     * @throws UserNotFoundException
-     * @throws LDAPException
-     */
-    User<X500Principal> getMember(DN userDN, boolean bindAsSubject)
-        throws UserNotFoundException, LDAPException
-    {
-        Filter filter = 
-            Filter.createEqualityFilter("entrydn", 
-                                        userDN.toNormalizedString());
-        
-        SearchRequest searchRequest = 
-                new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
-                                  filter, 
-                                  (String[]) this.attribType.values().toArray(
-                                  new String[this.attribType.values().size()]));
-        
-        if (bindAsSubject)
-        {
-        	searchRequest.addControl(
-        				new ProxiedAuthorizationV2RequestControl("dn:" + 
-        						getSubjectDN().toNormalizedString()));
-        }
-        
-        SearchResultEntry searchResult = 
-                getConnection().searchForEntry(searchRequest);
-
-        if (searchResult == null)
-        {
-            String msg = "User not found " + userDN;
-            logger.debug(msg);
-            throw new UserNotFoundException(msg);
-        }
-        User<X500Principal> user = new User<X500Principal>(
-                new X500Principal(searchResult.getAttributeValue(
-                        (String) attribType.get(X500Principal.class))));
-
-        return user;
-    }
-    
-    /**
-     * Returns a member user identified by the X500Principal only.
+     * Returns a member user identified by the X500Principal only. The
+     * returned object has the fields required by the GMS.
+     * Note that this method binds as a proxy user and not as the 
+     * subject.
      * @param userDN
      * @return
      * @throws UserNotFoundException
@@ -388,13 +367,43 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     User<X500Principal> getMember(DN userDN)
         throws UserNotFoundException, LDAPException
     {
-        return getMember(userDN, true);
+        Filter filter = 
+            Filter.createEqualityFilter("entrydn", 
+                                        userDN.toNormalizedString());
+        
+        SearchRequest searchRequest = 
+                new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
+                                  filter, memberAttribs);
+        
+        SearchResultEntry searchResult = 
+                getConnection().searchForEntry(searchRequest);
+
+        if (searchResult == null)
+        {
+            String msg = "Member not found " + userDN;
+            logger.debug(msg);
+            throw new UserNotFoundException(msg);
+        }
+        User<X500Principal> user = new User<X500Principal>(
+                new X500Principal(searchResult.getAttributeValue(
+                        (String) userLdapAttrib.get(X500Principal.class))));
+        String princ = searchResult.getAttributeValue(
+                (String) userLdapAttrib.get(HttpPrincipal.class));
+        if (princ != null)
+        {
+            user.getIdentities().add(new HttpPrincipal(princ));
+        }
+        String fname = searchResult.getAttributeValue(LDAP_FNAME);
+        String lname = searchResult.getAttributeValue(LDAP_LNAME);
+        user.details.add(new PersonalDetails(fname, lname));
+        return user;
     }
+    
 
     DN getUserDN(User<? extends Principal> user)
         throws LDAPException, UserNotFoundException
     {
-        String searchField = (String) attribType.get(user.getUserID().getClass());
+        String searchField = (String) userLdapAttrib.get(user.getUserID().getClass());
         if (searchField == null)
         {
             throw new IllegalArgumentException(
