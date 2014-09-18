@@ -235,7 +235,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest =  new SearchRequest(
                     config.getGroupsDN(), SearchScope.SUB, 
                     filter, new String[] {"entrydn", "cn", "description", 
-                                          "owner", "uniquemember", "aci", 
+                                          "owner", "uniquemember", 
                                           "modifytimestamp"});
 
             searchRequest.addControl(
@@ -882,8 +882,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         attributes.add(ownerAttribute);
         attributes.add(new Attribute("objectClass", "groupofuniquenames"));
         attributes.add(new Attribute("cn", group.getID()));
-        attributes.add(new Attribute("memberRead", 
-                                     String.valueOf(group.memberRead)));
         
         if (group.description != null)
         {
