@@ -457,15 +457,6 @@ public class LdapGroupDAOTest
             public Object run() throws Exception
             {
                 getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
-                
-//                try
-//                {
-//                    getGroupDAO().modifyGroup(new Group(groupID, unknownUser));
-//                    fail("modifyGroup with unknown user should throw " + 
-//                         "UserNotFoundException");
-//                }
-//                catch (UserNotFoundException ignore) {}
-                
                 try
                 {
                     getGroupDAO().modifyGroup(new Group("foo", daoTestUser1));
