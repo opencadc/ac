@@ -76,7 +76,7 @@ public enum Role
 {
     OWNER("owner"),
     MEMBER("member"),
-    RW("rw");
+    ADMIN("admin");
     
     private final String value;
 

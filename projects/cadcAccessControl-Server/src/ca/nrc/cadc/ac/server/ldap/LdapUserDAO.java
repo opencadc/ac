@@ -317,7 +317,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
     }
     
-    public boolean isMember(T userID, String groupID)
+    public boolean isMember(T userID, String groupDN)
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
@@ -335,7 +335,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             CompareRequest compareRequest = 
                     new CompareRequest(userDN.toNormalizedString(), 
-                                      "memberOf", groupID);
+                                      "memberOf", groupDN);
             
             compareRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
