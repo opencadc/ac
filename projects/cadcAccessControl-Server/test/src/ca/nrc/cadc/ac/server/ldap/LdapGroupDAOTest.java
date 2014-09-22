@@ -89,7 +89,8 @@ public class LdapGroupDAOTest
     static User<X500Principal> unknownUser;
     static User<X500Principal> adminUser;
     
-    static Subject authSubject;
+    static Subject authSubject1;
+    static Subject authSubject2;
     static Subject anonSubject;
     
     static LdapConfig config;
@@ -110,8 +111,11 @@ public class LdapGroupDAOTest
         unknownUser = new User<X500Principal>(unknownPrincipal);
         adminUser = new User<X500Principal>(adminPrincipal);
         
-        authSubject = new Subject();
-        authSubject.getPrincipals().add(daoTestUser1.getUserID());
+        authSubject1 = new Subject();
+        authSubject1.getPrincipals().add(daoTestUser1.getUserID());
+        
+        authSubject2 = new Subject();
+        authSubject2.getPrincipals().add(daoTestUser2.getUserID());
         
         anonSubject = new Subject();
         anonSubject.getPrincipals().add(unknownUser.getUserID());
@@ -134,7 +138,7 @@ public class LdapGroupDAOTest
     public void testOneGroup() throws Exception
     {
         // do everything as owner
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -218,7 +222,7 @@ public class LdapGroupDAOTest
     public void testSearchOwnerGroups() throws Exception
     {
         // do everything as owner
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -263,7 +267,7 @@ public class LdapGroupDAOTest
     public void testSearchMemberGroups() throws Exception
     {
         // do everything as owner
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -310,7 +314,7 @@ public class LdapGroupDAOTest
     public void testSearchRWGroups() throws Exception
     {
         // do everything as owner
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -371,7 +375,7 @@ public class LdapGroupDAOTest
             }
         });
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -405,7 +409,7 @@ public class LdapGroupDAOTest
     {
         final String groupID = getGroupID();
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -437,7 +441,7 @@ public class LdapGroupDAOTest
             }
         });
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {   
@@ -452,7 +456,7 @@ public class LdapGroupDAOTest
     {        
         final String groupID = getGroupID();
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -484,7 +488,7 @@ public class LdapGroupDAOTest
             }
         });
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {               
@@ -499,7 +503,7 @@ public class LdapGroupDAOTest
     {
         final String groupID = getGroupID();
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -531,7 +535,7 @@ public class LdapGroupDAOTest
             }
         });
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {                
@@ -546,7 +550,7 @@ public class LdapGroupDAOTest
     {        
         final String groupID = getGroupID();
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -589,11 +593,38 @@ public class LdapGroupDAOTest
             }
         });
         
-        Subject.doAs(authSubject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(authSubject1, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {               
                 getGroupDAO().deleteGroup(groupID);
+                return null;
+            }
+        });
+        
+        
+        // change the user
+        
+        Subject.doAs(authSubject2, new PrivilegedExceptionAction<Object>()
+        {
+            
+            public Object run() throws Exception
+            {
+
+                
+                try
+                {
+                    Group group = getGroupDAO().getGroup(groupID);
+                    assertTrue(group == null);
+                    
+                    fail("searchGroups with unknown user should throw " + 
+                         "GroupNotFoundException");
+                }
+                catch (GroupNotFoundException ignore) 
+                {
+
+                }
+
                 return null;
             }
         });

@@ -84,7 +84,6 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 import com.unboundid.ldap.sdk.CompareRequest;
@@ -167,7 +166,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            e.printStackTrace();
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
         }
 
         if (searchResult == null)
@@ -202,6 +201,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public Collection<Group> getUserGroups(T userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
+        Collection<Group> groups = new HashSet<Group>();
         try
         {
             String searchField = (String) userLdapAttrib.get(userID.getClass());
@@ -227,8 +227,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             SearchResultEntry searchResult = 
                     getConnection().searchForEntry(searchRequest);
-            
-            Collection<Group> groups = new HashSet<Group>();
+                       
             if (searchResult != null)
             {
                 String[] members = 
@@ -248,16 +247,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         catch (IllegalArgumentException ignore) { }
                     }
                 }
-            }
-            return groups;
+            }           
         }
         catch (LDAPException e)
         {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting user groups", e);
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
         }
+        return groups;
     }
     
     /**
@@ -310,11 +306,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting the user", e1);
+            LdapDAO.checkLdapResult(e1.getResultCode(), e1.getDiagnosticMessage());
         }
+        return false;
     }
     
     public boolean isMember(T userID, String groupID)
@@ -347,11 +341,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting the user", e);
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
         }
+        return false;
     }
     
     /**
@@ -401,7 +393,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     
 
     DN getUserDN(User<? extends Principal> user)
-        throws LDAPException, UserNotFoundException
+        throws UserNotFoundException, TransientException
     {
         String searchField = (String) userLdapAttrib.get(user.getUserID().getClass());
         if (searchField == null)
@@ -413,16 +405,21 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         searchField = "(" + searchField + "=" + 
                       user.getUserID().getName() + ")";
 
-        SearchRequest searchRequest = 
-                new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
-                                 searchField, new String[] {"entrydn"});
+        SearchResultEntry searchResult = null;
+        try
+        {
+            SearchRequest searchRequest = new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
+                             searchField, new String[] {"entrydn"});
         
-//        searchRequest.addControl(
-//                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-//                            getSubjectDN().toNormalizedString()));
 
-        SearchResultEntry searchResult = 
+            searchResult = 
                 getConnection().searchForEntry(searchRequest);
+
+        } catch (LDAPException e)
+        {
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+        }
+        
 
         if (searchResult == null)
         {

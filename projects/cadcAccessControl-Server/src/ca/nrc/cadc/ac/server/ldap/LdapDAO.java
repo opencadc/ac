@@ -68,22 +68,26 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import com.unboundid.ldap.sdk.DN;
-import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.SearchResult;
-import com.unboundid.ldap.sdk.SearchResultEntry;
-import com.unboundid.ldap.sdk.SearchScope;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
-import java.util.List;
 import java.util.Set;
+
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.net.TransientException;
+
+import com.unboundid.ldap.sdk.DN;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchScope;
 
 public abstract class LdapDAO
 {
@@ -116,7 +120,15 @@ public abstract class LdapDAO
         {
             conn = new LDAPConnection(config.getServer(), config.getPort());
             conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
+        }
 
+        return conn;
+    }
+
+    protected DN getSubjectDN() throws LDAPException
+    {
+        if (subjDN == null)
+        {
             Subject callerSubject = 
                     Subject.getSubject(AccessController.getContext());
             if (callerSubject == null)
@@ -161,7 +173,7 @@ public abstract class LdapDAO
             }
 
             SearchResult searchResult = 
-                    conn.search(config.getUsersDN(), SearchScope.ONE, 
+                    getConnection().search(config.getUsersDN(), SearchScope.ONE, 
                                 ldapField, new String[] {"entrydn"});
 
             if (searchResult.getEntryCount() < 1)
@@ -173,17 +185,50 @@ public abstract class LdapDAO
             subjDN = ((SearchResultEntry) searchResult.getSearchEntries()
                     .get(0)).getAttributeValueAsDN("entrydn");
         }
-
-        return conn;
-    }
-
-    protected DN getSubjectDN() throws LDAPException
-    {
-        if (subjDN == null)
-        {
-            getConnection();
-        }
         return subjDN;
+    }
+    
+    /**
+     * Checks the Ldap result code, and if the result is not SUCCESS,
+     * throws an appropriate exception. This is the place to decide on 
+     * mapping between ldap errors and exception types
+     * @param code
+     * @param errorMsg
+     * @throws TransientException 
+     */
+    protected static void checkLdapResult(ResultCode code, String errorMsg) 
+            throws TransientException
+    {
+        String msg = "";
+        if (errorMsg != null)
+        {
+            msg = "(" + errorMsg + ")";
+        }
+        if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
+        {
+            throw new AccessControlException("Not authorized " + msg);
+        }
+        else if (code == ResultCode.INVALID_CREDENTIALS)
+        {
+            throw new AccessControlException("Invalid credentials " + msg);
+        }
+        else if (code == ResultCode.SUCCESS)
+        {
+            // all good. nothing to do
+        }
+        else if (code == ResultCode.PARAM_ERROR)
+        {
+            throw new IllegalArgumentException("Error in Ldap parameters " + msg);
+        }
+        else if (code == ResultCode.BUSY ||
+                 code == ResultCode.CONNECT_ERROR )
+        {
+            throw new TransientException("Connection problems " + msg );
+        }
+        else
+        {
+            throw new RuntimeException("Ldap error" + msg);
+        }
     }
 
 }
