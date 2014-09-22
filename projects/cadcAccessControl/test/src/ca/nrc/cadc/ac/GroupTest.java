@@ -115,17 +115,15 @@ public class GroupTest
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
         
+        group4.getUserAdmins().add(user);
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
+        
+        group3.getGroupAdmins().add(group4);
+        assertEquals(group3.hashCode(), group4.hashCode());
+        assertEquals(group3,group4);
+        
         group3.description = "Test group";
-        assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
-        
-        // group read and write equality tests     
-        group3.groupRead = group4;
-        assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
-        
-        // group write equality tests
-        group3.groupWrite = group4;
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
         

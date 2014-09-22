@@ -72,8 +72,8 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 
@@ -102,20 +102,11 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.util.logging.Level;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
     private static final Logger logger = Logger.getLogger(LdapGroupDAO.class);
-    
-    private static final String ACTUAL_GROUP_TOKEN = "<ACTUAL_GROUP>";
-    private static final String GROUP_READ_ACI = "(targetattr = \"*\") " + 
-            "(version 3.0;acl \"Group Read\";allow (read,compare,search)" + 
-            "(groupdn = \"ldap:///<ACTUAL_GROUP>\");)";
-    private static final String GROUP_WRITE_ACI = "(targetattr = \"*\") " + 
-            "(version 3.0;acl \"Group Write\";allow " + 
-            "(read,compare,search,selfwrite,write,add)" + 
-            "(groupdn = \"ldap:///<ACTUAL_GROUP>\");)";
+
     
     private LdapUserDAO<T> userPersist;
 
@@ -151,22 +142,11 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throw new IllegalArgumentException("Group owner must be specified");
         }
         
-        try
+        if (!isCreatorOwner(group.getOwner()))
         {
-            User<X500Principal> subjectUser = 
-                    userPersist.getMember(getSubjectDN());
-            if (!subjectUser.equals(group.getOwner()))
-            {
-                throw new AccessControlException("Group owner must be group " + 
-                                                 " creator");
-            }
+            throw new AccessControlException("Group owner must be creator");
         }
-        catch (LDAPException e)
-        {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-        
+
         try
         {
             getGroup(group.getID());
@@ -175,127 +155,39 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         catch (GroupNotFoundException ex)
         {
             try
-            {             
-                try
-                {
-                    Group inactiveGroup = getInactiveGroup(group.getID());
-
-                    // Check requestor owns the group.
-                    DN ownerDN = userPersist.getUserDN(group.getOwner());
-                    if (!ownerDN.equals(getSubjectDN()))
-                    {
-                       throw new AccessControlException(
-                           "Unable to activate group " + group.getID() + 
-                           " because " + getSubjectDN().toString()
-                           + " is not the owner"); 
-                    }
-                    
-                    List<Modification> mods = new ArrayList<Modification>();
-                    Modification mod = 
-                        new Modification(ModificationType.DELETE, 
-                                         "nsaccountlock");
-                    mods.add(mod);
-                    
-                    Group modifiedGroup = modifyGroup(group, inactiveGroup, 
-                                                      mods);
-                    Group activatedGroup = 
-                            new ActivatedGroup(modifiedGroup.getID(),
-                                               modifiedGroup.getOwner());
-                    activatedGroup.description = modifiedGroup.description;
-                    activatedGroup.groupRead = modifiedGroup.groupRead;
-                    activatedGroup.groupWrite = modifiedGroup.groupWrite;
-                    activatedGroup.getProperties()
-                            .addAll(modifiedGroup.getProperties());
-                    activatedGroup.getGroupMembers()
-                            .addAll(modifiedGroup.getGroupMembers());
-                    activatedGroup.getUserMembers()
-                            .addAll(modifiedGroup.getUserMembers());
-                    return activatedGroup;
-                }
-                catch (GroupNotFoundException ignore) {}
-                
+            {        
                 if (!group.getProperties().isEmpty())
                 {
                     throw new UnsupportedOperationException(
                             "Support for groups properties not available");
                 }
-
+                
+                try
+                {
+                    getInactiveGroup(group);
+                    return reactivateGroup(group);
+                }
+                catch (GroupNotFoundException e)
+                {
+                    // ignore
+                }
+                
                 DN ownerDN = userPersist.getUserDN(group.getOwner());
-                String groupWriteAci = null;
-                String groupReadAci = null;
-                if (group.groupWrite != null)
-                {
-                    DN groupWrite = getGroupDN(group.groupWrite.getID());
-                    groupWriteAci = GROUP_WRITE_ACI.replace(
-                            ACTUAL_GROUP_TOKEN, 
-                            groupWrite.toNormalizedString());
-                }
-
-                if (group.groupRead != null)
-                {
-                    DN groupRead = getGroupDN(group.groupRead.getID());
-                    groupReadAci = GROUP_READ_ACI.replace(
-                            ACTUAL_GROUP_TOKEN, 
-                            groupRead.toNormalizedString());
-                }
-
-                // add new group
-                List<Attribute> attributes = new ArrayList<Attribute>();
-                attributes.add(new Attribute("objectClass", 
-                                             "groupofuniquenames"));
-
-                attributes.add(new Attribute("cn", group.getID()));
-                if (group.description != null)
-                {
-                    attributes.add(new Attribute("description", 
-                                                 group.description));
-                }
-
-                attributes.add(new Attribute("owner", 
-                                             ownerDN.toNormalizedString()));
-
-                // acis
-                List<String> acis = new ArrayList<String>();
-                if (groupWriteAci != null)
-                {
-                    acis.add(groupWriteAci);
-                }
-                if (groupReadAci != null)
-                {
-                    acis.add(groupReadAci);
-                }
-
-                if (!acis.isEmpty())
-                {
-                    attributes.add(new Attribute("aci", 
-                            (String[]) acis.toArray(new String[acis.size()])));
-                }
-
-                List<String> members = new ArrayList<String>();
-                for (User<?> member : group.getUserMembers())
-                {
-                    DN memberDN = this.userPersist.getUserDN(member);
-                    members.add(memberDN.toNormalizedString());
-                }
-                for (Group gr : group.getGroupMembers())
-                {
-                    DN grDN = getGroupDN(gr.getID());
-                    members.add(grDN.toNormalizedString());
-                }
-                if (!members.isEmpty())
-                {
-                    attributes.add(new Attribute("uniquemember", 
-                        (String[]) members.toArray(new String[members.size()])));
-                }
-
-                AddRequest addRequest = 
-                        new AddRequest(getGroupDN(group.getID()), attributes);
-
-                addRequest.addControl(
-                        new ProxiedAuthorizationV2RequestControl(
-                                "dn:" + getSubjectDN().toNormalizedString()));
-
-                LDAPResult result = getConnection().add(addRequest);
+                
+                // add group to groups tree
+                LDAPResult result = addGroup(getGroupDN(group.getID()), 
+                                             group.getID(), ownerDN, 
+                                             group.description, 
+                                             group.getUserMembers(), 
+                                             group.getGroupMembers());
+                
+                // add group to admin groups tree
+                result = addGroup(getAdminGroupDN(group.getID()), 
+                                  group.getID(), ownerDN, 
+                                  group.description, 
+                                  group.getUserMembers(), 
+                                  group.getGroupMembers());
+                
                 try
                 {
                     return getGroup(group.getID());
@@ -309,9 +201,142 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             {
                 e.printStackTrace();
                 throw new RuntimeException(e);
-            }
+            } 
         }
     }
+    
+    private LDAPResult addGroup(final DN groupDN, final String groupID,
+                                final DN ownerDN, final String description, 
+                                final Set<User<? extends Principal>> users, 
+                                final Set<Group> groups)
+        throws UserNotFoundException, LDAPException
+    {
+        // add new group
+        List<Attribute> attributes = new ArrayList<Attribute>();
+        Attribute ownerAttribute = 
+                        new Attribute("owner", ownerDN.toNormalizedString());
+        attributes.add(ownerAttribute);
+        attributes.add(new Attribute("objectClass", "groupofuniquenames"));
+        attributes.add(new Attribute("cn", groupID));
+        
+        if (description != null)
+        {
+            attributes.add(new Attribute("description", description));
+        }
+
+        List<String> members = new ArrayList<String>();
+        for (User<? extends Principal> userMember : users)
+        {
+            DN memberDN = this.userPersist.getUserDN(userMember);
+            members.add(memberDN.toNormalizedString());
+        }
+        for (Group groupMember : groups)
+        {
+            DN memberDN = getGroupDN(groupMember.getID());
+            members.add(memberDN.toNormalizedString());
+        }
+        if (!members.isEmpty())
+        {
+            attributes.add(new Attribute("uniquemember", 
+                (String[]) members.toArray(new String[members.size()])));
+        }
+
+        AddRequest addRequest = new AddRequest(groupDN, attributes);
+
+        addRequest.addControl(
+                new ProxiedAuthorizationV2RequestControl(
+                        "dn:" + getSubjectDN().toNormalizedString()));
+
+        return getConnection().add(addRequest);
+    }
+    
+    private Group getInactiveGroup(final Group group)
+        throws AccessControlException, UserNotFoundException,
+        GroupNotFoundException
+    {
+        Group inactiveGroup;
+        try
+        {
+            inactiveGroup = getInactiveGroup(getGroupDN(group.getID())
+                    .toNormalizedString(), group.getID());
+
+            if (inactiveGroup == null)
+            {
+                return null;
+            }
+
+            if (!group.getOwner().equals(inactiveGroup.getOwner()))
+            {
+                throw new AccessControlException(
+                        "Inactive group not owned be requestor");
+            }
+
+            Group inactiveAdminGroup = getInactiveGroup(
+                    getAdminGroupDN(group.getID()).toNormalizedString(),
+                    group.getID());
+
+            if (inactiveAdminGroup == null)
+            {
+                throw new RuntimeException(
+                        "BUG: adminGroup not found for group " + group.getID());
+            }
+
+            if (!group.getOwner().equals(inactiveAdminGroup.getOwner()))
+            {
+                throw new RuntimeException(
+                        "Bug: adminGroup owner doesn't match "
+                                + "group owner for group " + group.getID());
+            }
+            return inactiveGroup;
+        } 
+        catch (LDAPException e)
+        {
+            // TODO Auto-generated catch block
+            throw new RuntimeException("BUG: LDAP Exception: ", e);
+        }
+        
+        
+    }
+    
+    private Group getInactiveGroup(final String groupDN, final String groupID)
+        throws UserNotFoundException, LDAPException, GroupNotFoundException
+    {
+        Filter filter = Filter.createANDFilter(
+                Filter.createEqualityFilter("cn", groupID),
+                Filter.createEqualityFilter("nsaccountlock", "true"));
+
+        SearchRequest searchRequest = 
+                new SearchRequest(groupDN, SearchScope.SUB, filter, 
+                                  new String[] {"cn", "owner"});
+
+        searchRequest.addControl(
+                new ProxiedAuthorizationV2RequestControl("dn:" + 
+                        getSubjectDN().toNormalizedString()));
+
+        SearchResultEntry searchResult = 
+                getConnection().searchForEntry(searchRequest);
+        
+        if (searchResult == null)
+        {
+            String msg = "Inactive Group not found " + groupID;
+            logger.debug(msg);
+            throw new GroupNotFoundException(msg);
+        }
+
+        String groupCN = searchResult.getAttributeValue("cn");
+        DN groupOwner = searchResult.getAttributeValueAsDN("owner");
+
+        User<X500Principal> owner = userPersist.getMember(groupOwner);
+
+        return new Group(groupCN, owner);
+    }
+    
+    private Group reactivateGroup(final Group group)
+        throws UserNotFoundException, LDAPException, TransientException, AccessControlException, GroupNotFoundException
+    {
+        return modifyGroup(group, true);
+    }
+
 
     /**
      * Get the group with the given Group ID.
@@ -323,14 +348,50 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException  If an temporary, unexpected problem occurred.
      */
-    public Group getGroup(String groupID)
+    public Group getGroup(final String groupID)
         throws GroupNotFoundException, TransientException,
                AccessControlException
     {
         return getGroup(groupID, true);
     }
+    
+    public Group getGroup(final String groupID, final boolean withMembers)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
+    {
+        Group group = getGroup(getGroupDN(groupID), groupID, true);
+        
+        Group adminGroup = getAdminGroup(getAdminGroupDN(groupID), groupID, 
+                                         true);
+        
+        group.getGroupAdmins().addAll(adminGroup.getGroupMembers());
+        group.getUserAdmins().addAll(adminGroup.getUserMembers());
+        return group;
+    }
+    
+    private Group getGroup(final DN groupDN, final String groupID, 
+                           final boolean withMembers)
+        throws GroupNotFoundException, TransientException, 
+               AccessControlException
+    {
+        String [] attributes = new String[] {"entrydn", "cn", "description", 
+                                             "owner", "uniquemember", 
+                                             "modifytimestamp"};
+        return getGroup(groupDN, groupID, withMembers, attributes);
+    }
+    
+    private Group getAdminGroup(final DN groupDN, final String groupID, 
+                           final boolean withMembers)
+        throws GroupNotFoundException, TransientException, 
+               AccessControlException
+    {
+        String [] attributes = new String[] {"entrydn", "cn", "owner",
+                                             "uniquemember"};
+        return getGroup(groupDN, groupID, withMembers, attributes);
+    }
 
-    private Group getGroup(String groupID, boolean withMembers)
+    private Group getGroup(final DN groupDN, final String groupID, 
+                           final boolean withMembers, String[] attributes)
         throws GroupNotFoundException, TransientException, 
                AccessControlException
     {
@@ -341,28 +402,26 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     Filter.createNOTFilter(
                         Filter.createEqualityFilter("nsaccountlock", "TRUE")));
             
-            SearchRequest searchRequest =  new SearchRequest(
-                    config.getGroupsDN(), SearchScope.SUB, 
-                    filter, new String[] {"entrydn", "cn", "description", 
-                                          "owner", "uniquemember", "aci", 
-                                          "modifytimestamp"});
+            SearchRequest searchRequest = 
+                    new SearchRequest(groupDN.toNormalizedString(), 
+                                      SearchScope.SUB, filter, attributes);
 
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
                             getSubjectDN().toNormalizedString()));
 
-            SearchResultEntry group = 
+            SearchResultEntry searchResult = 
                     getConnection().searchForEntry(searchRequest);
-            if (group == null)
+            
+            if (searchResult == null)
             {
                 String msg = "Group not found " + groupID;
                 logger.debug(msg);
                 throw new GroupNotFoundException(groupID);
             }
-            String groupCN = group.getAttributeValue("cn");
-            DN groupOwner = group.getAttributeValueAsDN("owner");
-            Date lastModified = 
-                group.getAttributeValueAsDate("modifytimestamp");
+            
+            String groupCN = searchResult.getAttributeValue("cn");
+            DN groupOwner = searchResult.getAttributeValueAsDN("owner");
             
             User<X500Principal> owner;
             try
@@ -375,14 +434,22 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
             
             Group ldapGroup = new Group(groupCN, owner);
-            ldapGroup.description = group.getAttributeValue("description");
-            ldapGroup.lastModified = lastModified;
+            if (searchResult.hasAttribute("description"))
+            {
+                ldapGroup.description = 
+                        searchResult.getAttributeValue("description");
+            }
+            if (searchResult.hasAttribute("modifytimestamp"))
+            {
+                ldapGroup.lastModified = 
+                        searchResult.getAttributeValueAsDate("modifytimestamp");
+            }
 
             if (withMembers)
             {
-                if (group.getAttributeValues("uniquemember") != null)
+                if (searchResult.getAttributeValues("uniquemember") != null)
                 {
-                    for (String member : group
+                    for (String member : searchResult
                             .getAttributeValues("uniquemember"))
                     {
                         DN memberDN = new DN(member);
@@ -391,7 +458,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             User<X500Principal> user;
                             try
                             {
-                                user = userPersist.getMember(memberDN, false);
+                                user = userPersist.getMember(memberDN);
                             }
                             catch (UserNotFoundException e)
                             {
@@ -412,36 +479,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         }
                     }
                 }
-
-                // TODO not sure this is going to fly...
-                if (group.getAttributeValues("aci") != null)
-                {
-                    for (String aci : group.getAttributeValues("aci"))
-                    {
-                        if (aci.contains("Group Read"))
-                        {
-                            // TODO it's gotta be a better way to do this.
-                            String grRead = aci.substring(
-                                    aci.indexOf("ldap:///"));
-                            grRead = grRead.substring(grRead.indexOf("cn=") + 3,
-                                                      grRead.indexOf(','));
-
-                            Group groupRead = new Group(grRead.trim());
-                            ldapGroup.groupRead = groupRead;
-                        }
-                        else if (aci.contains("Group Write"))
-                        {
-                            // TODO it's gotta be a better way to do this.
-                            String grWrite = aci.substring(
-                                    aci.indexOf("ldap:///"));
-                            grWrite = grWrite.substring(grWrite.indexOf("cn=") + 3, 
-                                                    grWrite.indexOf(','));
-
-                            Group groupWrite = getGroup(grWrite.trim());
-                            ldapGroup.groupWrite = groupWrite;
-                        }
-                    }
-                }
             }
             
             return ldapGroup;
@@ -458,7 +495,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     /**
      * Modify the given group.
      *
-     * @param group The group to update.
+     * @param group The group to update. It must be an existing group
      * 
      * @return The newly updated group.
      * 
@@ -471,141 +508,108 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException
     {
-        // check if group exists
-        Group oldGroup = getGroup(group.getID());
-        
-        return modifyGroup(group, oldGroup, null);
+        return modifyGroup(group, false); 
     }
     
-    private Group modifyGroup(Group newGroup, Group oldGroup,
-                             List<Modification> modifications)
+    private Group modifyGroup(final Group group,
+                              boolean withActivate)
         throws UserNotFoundException, TransientException,
-               AccessControlException
+               AccessControlException, GroupNotFoundException
     {
-        if (!newGroup.getProperties().isEmpty())
+        if (!group.getProperties().isEmpty())
         {
             throw new UnsupportedOperationException(
                     "Support for groups properties not available");
         }
-
-        List<Modification> modifs = new ArrayList<Modification>();
-        if (modifications != null)
+        
+        // check if group exists
+        if (withActivate)
         {
-            modifs.addAll(modifications);
+            getInactiveGroup(group);
+        }
+        else
+        {
+            getGroup(group.getID());
         }
 
-        if (newGroup.description == null && oldGroup.description != null)
+        List<Modification> mods = new ArrayList<Modification>();
+        List<Modification> adminMods = new ArrayList<Modification>();
+        if (withActivate)
         {
-            modifs.add(new Modification(ModificationType.DELETE, 
-                                        "description"));
-        }
-        else if (newGroup.description != null && oldGroup.description == null)
-        {
-            modifs.add(new Modification(ModificationType.ADD, "description", 
-                                        newGroup.description));
-        }
-        else if (newGroup.description != null && oldGroup.description != null)
-        {
-            modifs.add(new Modification(ModificationType.REPLACE, "description", 
-                                        newGroup.description));
+            mods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
+            adminMods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
         }
 
-        List<String> acis = new ArrayList<String>();
-        if (newGroup.groupRead != null)
+        if (group.description == null)
         {
-            if (newGroup.groupRead.equals(newGroup))
-            {
-                throw new IllegalArgumentException(
-                        "cyclical reference from groupRead to group");
-            }
-
-            DN readGrDN = getGroupDN(newGroup.groupRead.getID());
-            acis.add(GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            readGrDN.toNormalizedString()));
+            mods.add(new Modification(ModificationType.REPLACE, "description"));
         }
-
-        if (newGroup.groupWrite != null)
+        else
         {
-            if (newGroup.groupWrite.equals(newGroup))
-            {
-                throw new IllegalArgumentException(
-                        "cyclical reference from groupWrite to group");
-            }
-
-            DN writeGrDN = getGroupDN(newGroup.groupWrite.getID());
-            acis.add(GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                             writeGrDN.toNormalizedString()));
+            mods.add(new Modification(ModificationType.REPLACE, "description", group.description));
         }
-
-        modifs.add(new Modification(ModificationType.REPLACE, "aci", (String[]) 
-                                    acis.toArray(new String[acis.size()])));
 
         List<String> newMembers = new ArrayList<String>();
-        for (User<?> member : newGroup.getUserMembers())
-        {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
-                DN memberDN;
-                try
-                {
-                    memberDN = userPersist.getUserDN(member);
-                }
-                catch (LDAPException e)
-                {
-                    throw new UserNotFoundException(
-                            "User not found " + member.getUserID());
-                }
-                newMembers.add(memberDN.toNormalizedString());
-            }
-        }
-        for (Group gr : newGroup.getGroupMembers())
-        {
-            if (gr.equals(newGroup))
-            {
-                throw new IllegalArgumentException(
-                        "cyclical reference from group member to group");
-            }
-
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                DN grDN = getGroupDN(gr.getID());
-                newMembers.add(grDN.toNormalizedString());
-            }
-        }
-        if (!newMembers.isEmpty())
-        {
-            modifs.add(new Modification(ModificationType.ADD, "uniquemember", 
-                (String[]) newMembers.toArray(new String[newMembers.size()])));
-        }
-
-        List<String> delMembers = new ArrayList<String>();
-        for (User<?> member : oldGroup.getUserMembers())
+        for (User<?> member : group.getUserMembers())
         {
             DN memberDN;
             try
             {
-                memberDN = this.userPersist.getUserDN(member);
+                memberDN = userPersist.getUserDN(member);
+            } 
+            catch (LDAPException e)
+            {
+                throw new UserNotFoundException("User not found "
+                        + member.getUserID());
+            }
+            newMembers.add(memberDN.toNormalizedString());
+        }
+        for (Group gr : group.getGroupMembers())
+        {
+                DN grDN = getGroupDN(gr.getID());
+                newMembers.add(grDN.toNormalizedString());
+        }
+        List<String> newAdmins = new ArrayList<String>();
+        for (User<?> member : group.getUserAdmins())
+        {
+            DN memberDN;
+            try
+            {
+                memberDN = userPersist.getUserDN(member);
             }
             catch (LDAPException e)
             {
                 throw new UserNotFoundException(
                         "User not found " + member.getUserID());
             }
-            delMembers.add(memberDN.toNormalizedString());
+            newAdmins.add(memberDN.toNormalizedString());
         }
-        for (Group gr : oldGroup.getGroupMembers())
+        for (Group gr : group.getGroupAdmins())
         {
             DN grDN = getGroupDN(gr.getID());
-            delMembers.add(grDN.toNormalizedString());
-        }
-        if (!delMembers.isEmpty())
-        {
-            modifs.add(new Modification(ModificationType.DELETE, "uniquemember",
-                (String[]) delMembers.toArray(new String[delMembers.size()])));
+            newMembers.add(grDN.toNormalizedString());
         }
 
-        ModifyRequest modifyRequest = 
-                new ModifyRequest(getGroupDN(newGroup.getID()), modifs);
+        mods.add(new Modification(ModificationType.REPLACE, "uniquemember", 
+                (String[]) newMembers.toArray(new String[newMembers.size()])));
+        adminMods.add(new Modification(ModificationType.REPLACE, "uniquemember", 
+                (String[]) newAdmins.toArray(new String[newAdmins.size()])));
+        
+        // modify admin group first
+        ModifyRequest modifyRequest = new ModifyRequest(getAdminGroupDN(group.getID()), adminMods);
+        try
+        {
+            modifyRequest.addControl(
+                    new ProxiedAuthorizationV2RequestControl(
+                            "dn:" + getSubjectDN().toNormalizedString()));
+            LDAPResult result = getConnection().modify(modifyRequest);
+        }
+        catch (LDAPException e1)
+        {
+            throw new RuntimeException("LDAP problem", e1);
+        }
+        // modify the group itself now
+        modifyRequest = new ModifyRequest(getGroupDN(group.getID()), mods);
         try
         {
             modifyRequest.addControl(
@@ -619,11 +623,19 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         try
         {
-            return getGroup(newGroup.getID());
+            if (withActivate)
+            {
+                return new ActivatedGroup(getGroup(group.getID()));
+            }
+            else
+            {
+                return getGroup(group.getID());
+            }
         }
         catch (GroupNotFoundException e)
         {
-            throw new RuntimeException("BUG: modified group not found");
+            throw new RuntimeException(
+                    "BUG: modified group not found (" + group.getID() + ")");
         }
     }
 
@@ -639,29 +651,37 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         throws GroupNotFoundException, TransientException,
                AccessControlException
     {
-        Group group = getGroup(groupID);
+        deleteGroup(getGroupDN(groupID), groupID, false);
+        deleteGroup(getAdminGroupDN(groupID), groupID, true);
+    }
+    
+    private void deleteGroup(final DN groupDN, final String groupID, 
+                             final boolean isAdmin)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
+    {
+        Group group = getGroup(groupDN, groupID, false);
         List<Modification> modifs = new ArrayList<Modification>();
         modifs.add(new Modification(ModificationType.ADD, "nsaccountlock", "true"));
         
-        if (group.description != null)
+        if (isAdmin)
         {
-            modifs.add(new Modification(ModificationType.DELETE, "description"));
+            if (!group.getGroupAdmins().isEmpty() || 
+                !group.getUserAdmins().isEmpty())
+            {
+                modifs.add(new Modification(ModificationType.DELETE, "uniquemember"));
+            }
         }
-        
-        if (group.groupRead != null || 
-            group.groupWrite != null)
+        else
         {
-            modifs.add(new Modification(ModificationType.DELETE, "aci"));
-        }
-        
-        if (!group.getGroupMembers().isEmpty() || 
-            !group.getUserMembers().isEmpty())
-        {
-            modifs.add(new Modification(ModificationType.DELETE, "uniquemember"));
+            if (!group.getGroupMembers().isEmpty() || 
+                !group.getUserMembers().isEmpty())
+            {
+                modifs.add(new Modification(ModificationType.DELETE, "uniquemember"));
+            }
         }
 
-        ModifyRequest modifyRequest = 
-                new ModifyRequest(getGroupDN(group.getID()), modifs);
+        ModifyRequest modifyRequest = new ModifyRequest(groupDN, modifs);
         try
         {
             modifyRequest.addControl(
@@ -726,7 +746,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         else if (role == Role.RW)
         {
-            return getRWGroups(user, userDN, groupID);
+            return getAdminGroups(user, userDN, groupID);
         }
         throw new IllegalArgumentException("Unknown role " + role);
     }
@@ -793,17 +813,45 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             Collection<Group> groups = new ArrayList<Group>();
             if (userPersist.isMember(user.getUserID(), groupID))
             {
-                groups.add(getGroup(groupID));
+                groups.add(getGroup(groupID, false));
             }
             return groups;
         }
         else
         {
-            return userPersist.getUserGroups(user.getUserID());
+            try
+            {
+                Collection<Group> groups = 
+                        userPersist.getUserGroups(user.getUserID());
+
+                List<Filter> filters = new ArrayList<Filter>();
+                for (Group group : groups)
+                {
+                    filters.add(Filter.createEqualityFilter("cn", 
+                                                            group.getID()));
+                }
+
+                Filter filter = Filter.createORFilter(filters);
+                SearchRequest searchRequest =  new SearchRequest(
+                            config.getAdminGroupsDN(), SearchScope.SUB, filter, 
+                            "cn");
+            
+                SearchResult results = getConnection().search(searchRequest);
+                for (SearchResultEntry result : results.getSearchEntries())
+                {
+                    String groupName = result.getAttributeValue("cn");
+  
+                }
+                return groups;
+            }
+            catch (LDAPException e)
+            {
+                throw new TransientException(e.getDiagnosticMessage());
+            }
         }
     }
     
-    protected Collection<Group> getRWGroups(User<T> user, DN userDN,
+    protected Collection<Group> getAdminGroups(User<T> user, DN userDN,
                                             String groupID)
         throws TransientException, AccessControlException,
                GroupNotFoundException, UserNotFoundException
@@ -829,25 +877,25 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             List<Filter> filters = new ArrayList<Filter>();
             for (Group member : queryGroups)
             {
-                // Require both groupRead and groupWrite
-                if (member.groupRead != null && member.groupWrite != null)
-                {
-                    DN groupRead = getGroupDN(member.groupRead.getID());
-                    String groupReadAci = 
-                        GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                           groupRead.toNormalizedString());
-                    DN groupWrite = getGroupDN(member.groupRead.getID());
-                    String groupWriteAci = 
-                        GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            groupWrite.toNormalizedString());
-                    System.out.println(groupReadAci);
-                    System.out.println(groupWriteAci);
-
-                    Filter filter = Filter.createANDFilter(
-                            Filter.createEqualityFilter("aci", groupReadAci),
-                            Filter.createEqualityFilter("aci", groupWriteAci));
-                    filters.add(filter);
-                }
+//                // Require both groupRead and groupWrite
+//                if (member.groupRead != null && member.groupWrite != null)
+//                {
+//                    DN groupRead = getGroupDN(member.groupRead.getID());
+//                    String groupReadAci = 
+//                        GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                           groupRead.toNormalizedString());
+//                    DN groupWrite = getGroupDN(member.groupRead.getID());
+//                    String groupWriteAci = 
+//                        GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                            groupWrite.toNormalizedString());
+//                    System.out.println(groupReadAci);
+//                    System.out.println(groupWriteAci);
+//
+//                    Filter filter = Filter.createANDFilter(
+//                            Filter.createEqualityFilter("aci", groupReadAci),
+//                            Filter.createEqualityFilter("aci", groupWriteAci));
+//                    filters.add(filter);
+//                }
             }
 
             Collection<Group> groups = new ArrayList<Group>();
@@ -895,119 +943,86 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
     }
     
-    protected Collection<Group> getRWGroups2(User<T> user, DN userDN, 
-                                             String groupID)
-        throws TransientException, AccessControlException,
-               GroupNotFoundException, UserNotFoundException
-    {
-        try
-        {
-            Collection<Group> groups = new ArrayList<Group>();
-            
-            Collection<Group> queryGroups =  new ArrayList<Group>();
-            if (groupID != null)
-            {
-                queryGroups.add(new Group(groupID, user));
-            }
-            else
-            {
-                // List of Groups the user belongs to.
-                queryGroups.addAll(getMemberGroups(user, userDN, groupID));
-            
-                // List of Groups the user owns;
-                queryGroups.addAll(getOwnerGroups(user, userDN, groupID));
-            }
-            
-            for (Group member : queryGroups)
-            {
-                // Require both groupRead and groupWrite
-                if (member.groupRead != null && member.groupWrite != null)
-                {
-                    DN groupRead = getGroupDN(member.groupRead.getID());
-                    String groupReadAci = 
-                            GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            groupRead.toNormalizedString());
-                    DN groupWrite = getGroupDN(member.groupWrite.getID());
-                    String groupWriteAci = 
-                            GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
-                                            groupWrite.toNormalizedString());
-
-                    Filter filter = Filter.createANDFilter(
-                            Filter.createEqualityFilter("aci", groupReadAci),
-                            Filter.createEqualityFilter("aci", groupWriteAci));
-
-                    SearchRequest searchRequest = new SearchRequest(
-                            config.getGroupsDN(), SearchScope.SUB, filter, 
-                            new String[] {"cn", "owner", "description", 
-                                          "modifytimestamp"});
-
-                    searchRequest.addControl(
-                            new ProxiedAuthorizationV2RequestControl("dn:" + 
-                                    getSubjectDN().toNormalizedString()));
-
-                    SearchResult results = getConnection().search(searchRequest);
-                    for (SearchResultEntry result : results.getSearchEntries())
-                    {
-                        String groupName = result.getAttributeValue("cn");
-                        DN ownerDN = result.getAttributeValueAsDN("owner");
-                        User<X500Principal> owner = userPersist.getMember(ownerDN);
-
-                        // Ignore existing illegal group names.
-                        try
-                        {
-                            Group group = new Group(groupName, owner);
-                            group.description = result.getAttributeValue("description");
-                            group.lastModified = 
-                                    result.getAttributeValueAsDate("modifytimestamp");
-                            groups.add(group);
-                        }
-                        catch (IllegalArgumentException ignore) { } 
-                    }
-                }
-            }
-            return groups;
-        }
-        catch (LDAPException e1)
-        {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting groups", e1);
-        }
-    }
-    
-    private Group getInactiveGroup(String groupID)
-        throws UserNotFoundException, GroupNotFoundException, LDAPException
-    {
-        Filter filter = Filter.createANDFilter(
-                Filter.createEqualityFilter("cn", groupID),
-                Filter.createEqualityFilter("nsaccountlock", "true"));
-
-        SearchRequest searchRequest =  new SearchRequest(
-                config.getGroupsDN(), SearchScope.SUB, 
-                filter, new String[] {"cn", "owner"});
-
-        searchRequest.addControl(
-                new ProxiedAuthorizationV2RequestControl("dn:" + 
-                        getSubjectDN().toNormalizedString()));
-
-        SearchResultEntry searchResult = 
-                getConnection().searchForEntry(searchRequest);
-        
-        if (searchResult == null)
-        {
-            String msg = "Inactive Group not found " + groupID;
-            logger.debug(msg);
-            throw new GroupNotFoundException(msg);
-        }
-
-        String groupCN = searchResult.getAttributeValue("cn");
-        DN groupOwner = searchResult.getAttributeValueAsDN("owner");
-
-        User<X500Principal> owner = userPersist.getMember(groupOwner);
-
-        return new Group(groupCN, owner);
-    }
+//    protected Collection<Group> getRWGroups2(User<T> user, DN userDN, 
+//                                             String groupID)
+//        throws TransientException, AccessControlException,
+//               GroupNotFoundException, UserNotFoundException
+//    {
+//        try
+//        {
+//            Collection<Group> groups = new ArrayList<Group>();
+//            
+//            Collection<Group> queryGroups =  new ArrayList<Group>();
+//            if (groupID != null)
+//            {
+//                queryGroups.add(new Group(groupID, user));
+//            }
+//            else
+//            {
+//                // List of Groups the user belongs to.
+//                queryGroups.addAll(getMemberGroups(user, userDN, groupID));
+//            
+//                // List of Groups the user owns;
+//                queryGroups.addAll(getOwnerGroups(user, userDN, groupID));
+//            }
+//            
+//            for (Group member : queryGroups)
+//            {
+//                // Require both groupRead and groupWrite
+//                if (member.groupRead != null && member.groupWrite != null)
+//                {
+//                    DN groupRead = getGroupDN(member.groupRead.getID());
+//                    String groupReadAci = 
+//                            GROUP_READ_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                            groupRead.toNormalizedString());
+//                    DN groupWrite = getGroupDN(member.groupWrite.getID());
+//                    String groupWriteAci = 
+//                            GROUP_WRITE_ACI.replace(ACTUAL_GROUP_TOKEN, 
+//                                            groupWrite.toNormalizedString());
+//
+//                    Filter filter = Filter.createANDFilter(
+//                            Filter.createEqualityFilter("aci", groupReadAci),
+//                            Filter.createEqualityFilter("aci", groupWriteAci));
+//
+//                    SearchRequest searchRequest = new SearchRequest(
+//                            config.getGroupsDN(), SearchScope.SUB, filter, 
+//                            new String[] {"cn", "owner", "description", 
+//                                          "modifytimestamp"});
+//
+//                    searchRequest.addControl(
+//                            new ProxiedAuthorizationV2RequestControl("dn:" + 
+//                                    getSubjectDN().toNormalizedString()));
+//
+//                    SearchResult results = getConnection().search(searchRequest);
+//                    for (SearchResultEntry result : results.getSearchEntries())
+//                    {
+//                        String groupName = result.getAttributeValue("cn");
+//                        DN ownerDN = result.getAttributeValueAsDN("owner");
+//                        User<X500Principal> owner = userPersist.getMember(ownerDN);
+//
+//                        // Ignore existing illegal group names.
+//                        try
+//                        {
+//                            Group group = new Group(groupName, owner);
+//                            group.description = result.getAttributeValue("description");
+//                            group.lastModified = 
+//                                    result.getAttributeValueAsDate("modifytimestamp");
+//                            groups.add(group);
+//                        }
+//                        catch (IllegalArgumentException ignore) { } 
+//                    }
+//                }
+//            }
+//            return groups;
+//        }
+//        catch (LDAPException e)
+//        {
+//            // TODO check which LDAP exceptions are transient and which
+//            // ones are
+//            // access control
+//            throw new TransientException("Error getting groups", e);
+//        }
+//    }
 
     /**
      * Returns a group based on its LDAP DN. The returned group is bare
@@ -1019,26 +1034,31 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws ca.nrc.cadc.ac.GroupNotFoundException
      * @throws ca.nrc.cadc.ac.UserNotFoundException
      */
-    protected Group getGroup(DN groupDN)
-        throws LDAPException, GroupNotFoundException, UserNotFoundException
-    {
-        SearchResultEntry searchResult = 
-                getConnection().getEntry(groupDN.toNormalizedString(),
-                                new String[] {"cn", "description"});
+//    protected Group getGroup(DN groupDN)
+//        throws LDAPException, GroupNotFoundException, UserNotFoundException
+//    {
+//        SearchResultEntry searchResult = 
+//                getConnection().getEntry(groupDN.toNormalizedString(),
+//                                new String[] {"cn", "description"});
+//
+//        if (searchResult == null)
+//        {
+//            String msg = "Group not found " + groupDN;
+//            logger.debug(msg);
+//            throw new GroupNotFoundException(groupDN.toNormalizedString());
+//        }
+//
+//        Group group = new Group(searchResult.getAttributeValue("cn"));
+//        group.description = searchResult.getAttributeValue("description");
+//        return group;
+//    }
 
-        if (searchResult == null)
-        {
-            String msg = "Group not found " + groupDN;
-            logger.debug(msg);
-            throw new GroupNotFoundException(groupDN.toNormalizedString());
-        }
-
-        Group group = new Group(searchResult.getAttributeValue("cn"));
-        group.description = searchResult.getAttributeValue("description");
-        return group;
-    }
-
-    protected DN getGroupDN(String groupID)
+    /**
+     * 
+     * @param groupID
+     * @return 
+     */
+    protected DN getGroupDN(final String groupID)
     {
         try
         {
@@ -1048,6 +1068,48 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
         }
         throw new IllegalArgumentException(groupID + " not a valid group ID");
+    }
+    
+    /**
+     * 
+     * @param groupID
+     * @return 
+     */
+    protected DN getAdminGroupDN(final String groupID)
+    {
+        try
+        {
+            return new DN("cn=" + groupID + "," + config.getAdminGroupsDN());
+        }
+        catch (LDAPException e)
+        {
+        }
+        throw new IllegalArgumentException(groupID + " not a valid group ID");
+    }
+    
+    /**
+     * 
+     * @param owner
+     * @return
+     * @throws UserNotFoundException 
+     */
+    protected boolean isCreatorOwner(final User<? extends Principal> owner)
+        throws UserNotFoundException
+    {
+        try
+        {
+            User<X500Principal> subjectUser = 
+                    userPersist.getMember(getSubjectDN());
+            if (subjectUser.equals(owner))
+            {
+                return true;
+            }
+            return false;
+        }
+        catch (LDAPException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -263,30 +263,6 @@ public class GroupReader
 
         }
 
-        // groupRead
-        Element groupReadElement = groupElement.getChild("groupRead");
-        if (groupReadElement != null)
-        {
-            Element groupReadGroupElement = groupReadElement.getChild("group");
-            if (groupReadGroupElement != null)
-            {
-                group.groupRead = parseGroup(groupReadGroupElement);
-            }
-
-        }
-
-        // groupWrite
-        Element groupWriteElement = groupElement.getChild("groupWrite");
-        if (groupWriteElement != null)
-        {
-            Element groupWriteGroupElement = groupWriteElement.getChild("group");
-            if (groupWriteGroupElement != null)
-            {
-                group.groupWrite = parseGroup(groupWriteGroupElement);
-            }
-
-        }
-
         // userMembers
         Element userMembersElement = groupElement.getChild("userMembers");
         if (userMembersElement != null)
@@ -295,6 +271,29 @@ public class GroupReader
             for (Element userMember : userElements)
             {
                 group.getUserMembers().add(UserReader.parseUser(userMember));
+            }
+        }
+        
+        // groupAdmins
+        Element groupAdminsElement = groupElement.getChild("groupAdmins");
+        if (groupAdminsElement != null)
+        {
+            List<Element> groupElements = groupAdminsElement.getChildren("group");
+            for (Element groupMember : groupElements)
+            {
+                group.getGroupAdmins().add(parseGroup(groupMember));
+            }
+
+        }
+
+        // userAdmins
+        Element userAdminsElement = groupElement.getChild("userAdmins");
+        if (userAdminsElement != null)
+        {
+            List<Element> userElements = userAdminsElement.getChildren("user");
+            for (Element userMember : userElements)
+            {
+                group.getUserAdmins().add(UserReader.parseUser(userMember));
             }
         }
 

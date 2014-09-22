@@ -88,21 +88,14 @@ public class Group
     // group's group members
     private Set<Group> groupMembers = new HashSet<Group>();
     
+    // group's user admins
+    private Set<User<? extends Principal>> userAdmins = new HashSet<User<? extends Principal>>();
+    
+    // group's group admins
+    private Set<Group> groupAdmins = new HashSet<Group>();
+    
     public String description;
     public Date lastModified;
-    
-    // Access Control properties
-    /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupRead;
-    
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
     
     /**
      * Ctor.
@@ -185,6 +178,24 @@ public class Group
     public Set<Group> getGroupMembers()
     {
         return groupMembers;
+    }
+    
+    /**
+     * 
+     * @return individual user admins of this group
+     */
+    public Set<User<? extends Principal>> getUserAdmins()
+    {
+        return userAdmins;
+    }
+
+    /**
+     * 
+     * @return group admins of this group
+     */
+    public Set<Group> getGroupAdmins()
+    {
+        return groupAdmins;
     }
 
     /* (non-Javadoc)

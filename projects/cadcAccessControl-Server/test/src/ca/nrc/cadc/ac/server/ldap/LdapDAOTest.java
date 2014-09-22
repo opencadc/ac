@@ -89,10 +89,11 @@ public class LdapDAOTest
     static int port = 389;
     static String adminDN = "uid=webproxy,ou=WebProxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
-    static String userBaseDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
     
-    LdapConfig config = new LdapConfig(server, port, adminDN, adminPW, userBaseDN, groupBaseDN);
+    LdapConfig config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
     
     @Test
     public void testLdapBindConnection() throws Exception

@@ -213,22 +213,6 @@ public class GroupWriter
                 groupElement.addContent(groupMembersElement);
             }
 
-            // Group groupRead.
-            if (group.groupRead != null)
-            {
-                Element groupReadElement = new Element("groupRead");
-                groupReadElement.addContent(getGroupElement(group.groupRead, false));
-                groupElement.addContent(groupReadElement);
-            }
-
-            // Group groupWrite.
-            if (group.groupWrite != null)
-            {
-                Element groupWriteElement = new Element("groupWrite");
-                groupWriteElement.addContent(getGroupElement(group.groupWrite, false));
-                groupElement.addContent(groupWriteElement);
-            }
-
             // Group userMembers
             if ((group.getUserMembers() != null) && (!group.getUserMembers().isEmpty()))
             {
@@ -238,6 +222,28 @@ public class GroupWriter
                     userMembersElement.addContent(UserWriter.getUserElement(userMember));
                 }
                 groupElement.addContent(userMembersElement);
+            }
+            
+            // Group groupAdmins.
+            if ((group.getGroupAdmins() != null) && (!group.getGroupAdmins().isEmpty()))
+            {
+                Element groupAdminsElement = new Element("groupAdmins");
+                for (Group groupMember : group.getGroupAdmins())
+                {
+                    groupAdminsElement.addContent(getGroupElement(groupMember, false));
+                }
+                groupElement.addContent(groupAdminsElement);
+            }
+
+            // Group userAdmins
+            if ((group.getUserAdmins() != null) && (!group.getUserAdmins().isEmpty()))
+            {
+                Element userAdminsElement = new Element("userAdmins");
+                for (User<? extends Principal> userMember : group.getUserAdmins())
+                {
+                    userAdminsElement.addContent(UserWriter.getUserElement(userMember));
+                }
+                groupElement.addContent(userAdminsElement);
             }
         }
 
