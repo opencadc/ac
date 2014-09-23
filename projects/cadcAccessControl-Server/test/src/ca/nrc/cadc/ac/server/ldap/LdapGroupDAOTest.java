@@ -70,11 +70,11 @@ public class LdapGroupDAOTest
     static int port = 389;
     static String adminDN = "uid=webproxy,ou=webproxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
-//    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-//    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
     static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
-    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+//    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
+//    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
     static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
     static String daoTestDN2 = "cn=cadcdaotest2,ou=cadc,o=hia,c=ca";
@@ -223,7 +223,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testSearchOwnerGroups() throws Exception
     {
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
@@ -275,7 +275,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testSearchMemberGroups() throws Exception
     {
         final String groupID = getGroupID();
