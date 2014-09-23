@@ -197,7 +197,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             LdapDAO.checkLdapResult(e.getResultCode(), 
                     e.getDiagnosticMessage());
-            return null; //TODO
+            throw new RuntimeException("Unexpected LDAP exception", e);
         } 
     }
     
@@ -303,8 +303,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         catch (LDAPException e)
         {
             LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            throw new RuntimeException("Unexpected LDAP exception", e);
         }
-        return null;
     }
 
 
@@ -788,8 +788,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 for (SearchResultEntry result : results.getSearchEntries())
                 {
                     String groupName = result.getAttributeValue("cn");
+                    groups.add(new Group(groupName, null));
                 }
-
             } 
             catch (LDAPException e)
             {

@@ -342,8 +342,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         catch (LDAPException e)
         {
             LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            throw new RuntimeException("Unexpected LDAP exception", e);
         }
-        return false;
     }
     
     /**
