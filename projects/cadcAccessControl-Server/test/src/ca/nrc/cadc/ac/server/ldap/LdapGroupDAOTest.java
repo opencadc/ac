@@ -41,7 +41,6 @@ import static org.junit.Assert.fail;
 import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
-import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -140,7 +139,7 @@ public class LdapGroupDAOTest
         return "CadcDaoTestGroup-" + System.currentTimeMillis();
     }
 
-//    @Test
+    @Test
     public void testOneGroup() throws Exception
     {
         // do everything as owner
@@ -244,10 +243,6 @@ public class LdapGroupDAOTest
                     boolean found = false;
                     for (Group group : groups)
                     {
-                        if (!group.getOwner().equals(daoTestUser1))
-                        {
-                            fail("returned group with wrong owner");
-                        }
                         if (group.getID().equals(group.getID()))
                         {
                             found = true;
@@ -275,12 +270,12 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testSearchMemberGroups() throws Exception
     {
         final String groupID = getGroupID();
-        final String testGroup1ID = groupID + "-1";
-        final String testGroup2ID = groupID + "-2";
+        final String testGroup1ID = groupID + ".1";
+        final String testGroup2ID = groupID + ".2";
         
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {
@@ -375,7 +370,7 @@ public class LdapGroupDAOTest
         });
     }
 
-//    @Test
+    @Test
     public void testSearchAdminGroups() throws Exception
     {
         final String groupID = getGroupID();
@@ -436,11 +431,11 @@ public class LdapGroupDAOTest
                     }
                     if (!found1)
                     {
-                        fail("Test group 1 not found");
+                        fail("Admin group " + testGroup1ID + " not found");
                     }
                     if (!found2)
                     {
-                        fail("Test group 2 not found");
+                        fail("Admin group " + testGroup2ID + " not found");
                     }
                     
                     groups = getGroupDAO().getGroups(daoTestUser2.getUserID(), 
@@ -475,7 +470,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testAddGroupExceptions() throws Exception
     {
         Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
@@ -522,7 +517,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testGetGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -569,7 +564,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testModifyGroupExceptions() throws Exception
     {        
         final String groupID = getGroupID();
@@ -616,7 +611,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testDeleteGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -663,7 +658,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testSearchGroupsExceptions() throws Exception
     {        
         final String groupID = getGroupID();

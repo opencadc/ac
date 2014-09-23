@@ -709,6 +709,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             for (DN groupDN : groupDNs)
             {
+                if (role == Role.ADMIN)
+                {
+                    groupDN = new DN(groupDN.getRDNString() + "," + config.getGroupsDN());
+                }
                 groups.add(getGroup(groupDN));
             }
         }
@@ -804,9 +808,19 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     protected Group getGroup(final DN groupDN)
         throws LDAPException, GroupNotFoundException
     {
+        Filter filter = Filter.createEqualityFilter("entrydn", 
+                                                    groupDN.toNormalizedString());
+        
+        SearchRequest searchRequest =  new SearchRequest(
+                    config.getGroupsDN(), SearchScope.SUB, filter, 
+                    new String[] {"cn", "description"});
+            
+        searchRequest.addControl(
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
+            
         SearchResultEntry searchResult = 
-                getConnection().getEntry(groupDN.toNormalizedString(),
-                                new String[] {"cn", "description"});
+                getConnection().searchForEntry(searchRequest);
 
         if (searchResult == null)
         {
