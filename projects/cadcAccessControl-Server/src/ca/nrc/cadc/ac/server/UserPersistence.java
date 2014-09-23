@@ -68,10 +68,10 @@
  */
 package ca.nrc.cadc.ac.server;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
@@ -90,21 +90,25 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      */
     public abstract User<T> getUser(T userID)
-        throws UserNotFoundException, TransientException, AccessControlException;
-
+        throws UserNotFoundException, TransientException, 
+               AccessControlException;
+    
     /**
      * Get all groups the user specified by userID belongs to.
      * 
      * @param userID The userID.
+     * @param isAdmin return only admin Groups when true, else return non-admin
+     *                Groups.
      * 
-     * @return Collection of Group instances.
+     * @return Collection of group DN.
      * 
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Collection<Group> getUserGroups(T userID)
-        throws UserNotFoundException, TransientException, AccessControlException;
+    public abstract Collection<DN> getUserGroups(T userID, boolean isAdmin)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
     
     /**
      * Check whether the user is a member of the group.

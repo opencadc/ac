@@ -68,19 +68,18 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
 
 public class ActivatedGroup extends Group
 {
-
-    public ActivatedGroup(String groupID)
+    public ActivatedGroup(Group group)
     {
-        super(groupID);
+        super(group.getID(), group.getOwner());
+        this.description = group.description;
+        this.properties = group.getProperties();
+        this.lastModified = group.lastModified;
+        this.getUserMembers().addAll(group.getUserMembers());
+        this.getGroupMembers().addAll(group.getGroupMembers());
+        this.getUserAdmins().addAll(group.getUserAdmins());
+        this.getGroupAdmins().addAll(group.getGroupAdmins());
     }
-    
-    public ActivatedGroup(String groupID, User<? extends Principal> owner)
-    {
-        super(groupID, owner);
-    }
-
 }

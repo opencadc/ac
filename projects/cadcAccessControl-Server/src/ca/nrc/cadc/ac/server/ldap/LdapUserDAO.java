@@ -192,6 +192,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * Get all groups the user specified by userID belongs to.
      * 
      * @param userID The userID.
+     * @param isAdmin
      * 
      * @return Collection of Group instances.
      * 
@@ -199,7 +200,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<Group> getUserGroups(T userID)
+    public Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         try
@@ -211,7 +212,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         "Unsupported principal type " + userID.getClass());
             }
 
-            User<T> user = getUser(userID);
+            User<T> user = getUser(userID);            
             Filter filter = Filter.createANDFilter(
                         Filter.createEqualityFilter(searchField, 
                                                     user.getUserID().getName()),
@@ -219,7 +220,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             SearchRequest searchRequest = 
                     new SearchRequest(config.getUsersDN(), SearchScope.SUB, 
-                                      filter, new String[] {"memberOf"});
+                                      filter, "memberOf");
 
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
@@ -228,31 +229,37 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchResultEntry searchResult = 
                     getConnection().searchForEntry(searchRequest);
             
-            Collection<Group> groups = new HashSet<Group>();
+            DN parentDN;
+            if (isAdmin)
+            {
+                parentDN = new DN(config.getAdminGroupsDN());
+            }
+            else
+            {
+                parentDN = new DN(config.getGroupsDN());
+            }
+            
+            Collection<DN> groupDNs = new HashSet<DN>();
             if (searchResult != null)
             {
-                String[] members = 
-                        searchResult.getAttributeValues("memberOf");
+                String[] members = searchResult.getAttributeValues("memberOf");
                 if (members != null)
                 {
                     for (String member : members)
                     {
-                        String groupCN = DN.getRDNString(member);
-                        int index = groupCN.indexOf("=");
-                        String groupName = groupCN.substring(index + 1);
-                        // Ignore existing illegal group names.
-                        try
+                        DN groupDN = new DN(member);
+                        if (groupDN.isDescendantOf(parentDN, false))
                         {
-                            groups.add(new Group(groupName, user));
+                            groupDNs.add(groupDN);
                         }
-                        catch (IllegalArgumentException ignore) { }
                     }
                 }
             }
-            return groups;
+            return groupDNs;
         }
         catch (LDAPException e)
         {
+            e.printStackTrace();
             // TODO check which LDAP exceptions are transient and which
             // ones are
             // access control
@@ -272,7 +279,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public boolean isMemberX(T userID, String groupID)
+    public boolean isMember(T userID, String groupID)
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
@@ -314,43 +321,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             // ones are
             // access control
             throw new TransientException("Error getting the user", e1);
-        }
-    }
-    
-    public boolean isMember(T userID, String groupDN)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
-    {
-        try
-        {
-            String searchField = (String) userLdapAttrib.get(userID.getClass());
-            if (searchField == null)
-            {
-                throw new IllegalArgumentException(
-                        "Unsupported principal type " + userID.getClass());
-            }
-
-            User<T> user = getUser(userID);
-            DN userDN = getUserDN(user);
-
-            CompareRequest compareRequest = 
-                    new CompareRequest(userDN.toNormalizedString(), 
-                                      "memberOf", groupDN);
-            
-            compareRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-                            getSubjectDN().toNormalizedString()));
-            
-            CompareResult compareResult = 
-                    getConnection().compare(compareRequest);
-            return compareResult.compareMatched();
-        }
-        catch (LDAPException e)
-        {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting the user", e);
         }
     }
     

@@ -172,7 +172,7 @@ public class LdapUserDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testGetUserGroups() throws Exception
     {
         Subject subject = new Subject();
@@ -185,11 +185,17 @@ public class LdapUserDAOTest
             {
                 try
                 {            
-                    Collection<Group> groups = getUserDAO().getUserGroups(testUser.getUserID());
+                    Collection<DN> groups = getUserDAO().getUserGroups(testUser.getUserID(), false);
                     assertNotNull(groups);
                     assertTrue(!groups.isEmpty());
-                    for (Group group : groups)
-                        log.debug(group);
+                    for (DN groupDN : groups)
+                        log.debug(groupDN);
+                    
+                    groups = getUserDAO().getUserGroups(testUser.getUserID(), true);
+                    assertNotNull(groups);
+                    assertTrue(!groups.isEmpty());
+                    for (DN groupDN : groups)
+                        log.debug(groupDN);
                     
                     return null;
                 }
@@ -204,7 +210,7 @@ public class LdapUserDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testIsMember() throws Exception
     {
         Subject subject = new Subject();
@@ -220,8 +226,8 @@ public class LdapUserDAOTest
                     boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
                     assertFalse(isMember);
                     
-                    String groupID = "cn=cadcdaotestgroup,cn=groups,ou=ds,dc=canfartest,dc=net";
-                    isMember = getUserDAO().isMember(testUser.getUserID(), groupID);
+                    String groupDN = "cn=cadcdaotestgroup1,ou=groups,ou=ds,dc=canfartest,dc=net";
+                    isMember = getUserDAO().isMember(testUser.getUserID(), groupDN);
                     assertTrue(isMember);
                     
                     return null;
@@ -233,7 +239,6 @@ public class LdapUserDAOTest
             }
         });
     }
-    
     
     /**
      * Test of getMember.
@@ -262,7 +267,6 @@ public class LdapUserDAOTest
             }
         });
         
-        
         // should also work as a different user
         subject = new Subject();
         subject.getPrincipals().add(new HttpPrincipal("CadcDaoTest2"));
@@ -285,7 +289,6 @@ public class LdapUserDAOTest
             }
         });
     }
-    
     
     private static void check(final User<? extends Principal> user1, final User<? extends Principal> user2)
     {

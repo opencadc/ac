@@ -68,11 +68,11 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
+import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
@@ -130,21 +130,23 @@ public class LdapUserPersistence<T extends Principal>
      * Get all groups the user specified by userID belongs to.
      * 
      * @param userID The userID.
+     * @param isAdmin return only admin Groups when true, else return non-admin
+     *                Groups.
      * 
-     * @return Collection of Group instances.
+     * @return Collection of Group DN.
      * 
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<Group> getUserGroups(T userID)
+    public Collection<DN> getUserGroups(T userID, boolean isAdmin)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            Collection<Group> ret = userDAO.getUserGroups(userID);
+            Collection<DN> ret = userDAO.getUserGroups(userID, isAdmin);
             return ret;
         }
         finally

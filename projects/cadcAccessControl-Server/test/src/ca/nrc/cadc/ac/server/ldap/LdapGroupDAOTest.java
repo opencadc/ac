@@ -70,11 +70,11 @@ public class LdapGroupDAOTest
     static int port = 389;
     static String adminDN = "uid=webproxy,ou=webproxy,ou=topologymanagement,o=netscaperoot";
     static String adminPW = "go4it";
-    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
+//    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+//    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
     static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
-    //static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-    //static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
     static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
     static String daoTestDN2 = "cn=cadcdaotest2,ou=cadc,o=hia,c=ca";
@@ -275,15 +275,13 @@ public class LdapGroupDAOTest
         });
     }
     
-    // TODO: add test passing in groupID
     @Test
     public void testSearchMemberGroups() throws Exception
     {
-        final String testGroup1ID = getGroupID();
+        final String groupID = getGroupID();
+        final String testGroup1ID = groupID + "-1";
+        final String testGroup2ID = groupID + "-2";
         
-        final String testGroup2ID = getGroupID();
-        
-                    
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
@@ -293,11 +291,12 @@ public class LdapGroupDAOTest
                     Group testGroup1 = new Group(testGroup1ID, daoTestUser1);
                     testGroup1.getUserMembers().add(daoTestUser2);
                     testGroup1 = getGroupDAO().addGroup(testGroup1);
+                    log.debug("add group: " + testGroup1ID);
                     
                     Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
                     testGroup2.getUserMembers().add(daoTestUser2);
                     testGroup2 = getGroupDAO().addGroup(testGroup2);
-                    
+                    log.debug("add group: " + testGroup2ID);
                 }
                 catch (Exception e)
                 {
@@ -325,6 +324,7 @@ public class LdapGroupDAOTest
                     boolean found2 = false;
                     for (Group group : groups)
                     {
+                        log.debug("member group: " + group.getID());
                         if (group.getID().equals(testGroup1ID))
                         {
                             found1 = true;
@@ -342,6 +342,12 @@ public class LdapGroupDAOTest
                     {
                         fail("Test group 2 not found");
                     }
+                    
+                    groups = getGroupDAO().getGroups(daoTestUser2.getUserID(), 
+                                                     Role.MEMBER, testGroup1ID);
+                    assertNotNull(groups);
+                    assertTrue(groups.size() == 1);
+                    assertTrue(groups.iterator().next().getID().equals(testGroup1ID));
                 }
                 catch (Exception e)
                 {
@@ -368,45 +374,97 @@ public class LdapGroupDAOTest
             }
         });
     }
-    
-    // TODO: add test passing in groupID
+
 //    @Test
     public void testSearchAdminGroups() throws Exception
     {
-        // do everything as owner
+        final String groupID = getGroupID();
+        final String testGroup1ID = groupID + ".1";
+        final String testGroup2ID = groupID + ".2";
+        
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
                 try
-                {             
-                    Group expectedGroup = new Group("CadcDaoTestGroup1");
+                {   
+                    Group testGroup1 = new Group(testGroup1ID, daoTestUser1);
+                    testGroup1.getUserAdmins().add(daoTestUser2);
+                    testGroup1 = getGroupDAO().addGroup(testGroup1);
+                    log.debug("add group: " + testGroup1ID);
                     
+                    Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
+                    testGroup2.getUserAdmins().add(daoTestUser2);
+                    testGroup2 = getGroupDAO().addGroup(testGroup2);
+                    log.debug("add group: " + testGroup2ID);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+                return null;
+            }
+        });
+        
+        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {   
                     Collection<Group> groups = 
-                        getGroupDAO().getGroups(daoTestUser2.getUserID(), 
-                                                Role.ADMIN, null);
-                    System.out.println("# groups found: " + groups.size());
+                            getGroupDAO().getGroups(daoTestUser2.getUserID(), 
+                                                    Role.ADMIN, null);
                     
-                    boolean found = false;
+                    log.debug("# groups found: " + groups.size());
+                    assertNotNull(groups);
+                    assertTrue(groups.size() >= 2);
+                    
+                    boolean found1 = false;
+                    boolean found2 = false;
                     for (Group group : groups)
                     {
-                        System.out.println("found group: " + group.getID());
-                        // get the group to get the owner 
-                        // (not returned for RW groups)
-                        group = getGroupDAO().getGroup(group.getID());
-                        if (!group.getOwner().equals(daoTestUser2))
+                        log.debug("admin group: " + group.getID());
+                        if (group.getID().equals(testGroup1ID))
                         {
-                            fail("returned group with wrong owner");
+                            found1 = true;
                         }
-                        if (group.equals(expectedGroup))
+                        if (group.getID().equals(testGroup2ID))
                         {
-                            found = true;
+                            found2 = true;
                         }
                     }
-                    if (!found)
+                    if (!found1)
                     {
-                        fail("");
+                        fail("Test group 1 not found");
                     }
+                    if (!found2)
+                    {
+                        fail("Test group 2 not found");
+                    }
+                    
+                    groups = getGroupDAO().getGroups(daoTestUser2.getUserID(), 
+                                                     Role.ADMIN, testGroup1ID);
+                    assertNotNull(groups);
+                    assertTrue(groups.size() == 1);
+                    assertTrue(groups.iterator().next().getID().equals(testGroup1ID));
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+                return null;
+            }
+        });
+        
+        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {   
+                    getGroupDAO().deleteGroup(testGroup1ID);
+                    getGroupDAO().deleteGroup(testGroup2ID);                    
                 }
                 catch (Exception e)
                 {
@@ -521,15 +579,6 @@ public class LdapGroupDAOTest
             public Object run() throws Exception
             {
                 getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
-                
-//                try
-//                {
-//                    getGroupDAO().modifyGroup(new Group(groupID, unknownUser));
-//                    fail("modifyGroup with unknown user should throw " + 
-//                         "UserNotFoundException");
-//                }
-//                catch (UserNotFoundException ignore) {}
-                
                 try
                 {
                     getGroupDAO().modifyGroup(new Group("foo", daoTestUser1));

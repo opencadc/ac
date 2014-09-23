@@ -161,5 +161,5 @@ public abstract interface GroupPersistence<T extends Principal>
                                                 String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
-
+    
 }
