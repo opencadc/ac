@@ -719,6 +719,32 @@ public class LdapGroupDAOTest
                 return null;
             }
         });
+        
+        
+        // change the user
+        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+        {
+            
+            public Object run() throws Exception
+            {
+
+                
+                try
+                {
+                    Group group = getGroupDAO().getGroup(groupID);
+                    assertTrue(group == null);
+                    
+                    fail("searchGroups with unknown user should throw " + 
+                         "GroupNotFoundException");
+                }
+                catch (GroupNotFoundException ignore) 
+                {
+
+                }
+
+                return null;
+            }
+        });
     }
 
     private void assertGroupsEqual(Group gr1, Group gr2)

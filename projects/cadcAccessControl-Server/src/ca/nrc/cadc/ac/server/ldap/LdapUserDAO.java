@@ -84,7 +84,6 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 import com.unboundid.ldap.sdk.CompareRequest;
@@ -167,7 +166,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            e.printStackTrace();
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
         }
 
         if (searchResult == null)
@@ -203,6 +202,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
         throws UserNotFoundException, TransientException, AccessControlException
     {
+        Collection<DN> groupDNs = new HashSet<DN>();
         try
         {
             String searchField = (String) userLdapAttrib.get(userID.getClass());
@@ -239,7 +239,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 parentDN = new DN(config.getGroupsDN());
             }
             
-            Collection<DN> groupDNs = new HashSet<DN>();
             if (searchResult != null)
             {
                 String[] members = searchResult.getAttributeValues("memberOf");
@@ -254,17 +253,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         }
                     }
                 }
-            }
-            return groupDNs;
+            } 
         }
         catch (LDAPException e)
         {
-            e.printStackTrace();
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting user groups", e);
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
         }
+        return groupDNs;
     }
     
     /**
@@ -315,14 +310,47 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             }
             return true;
         }
-        catch (LDAPException e1)
+        catch (LDAPException e)
         {
-            // TODO check which LDAP exceptions are transient and which
-            // ones are
-            // access control
-            throw new TransientException("Error getting the user", e1);
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
         }
+        return false;
     }
+    
+//    public boolean isMember(T userID, String groupID)
+//        throws UserNotFoundException, TransientException,
+//               AccessControlException
+//    {
+//        try
+//        {
+//            String searchField = (String) userLdapAttrib.get(userID.getClass());
+//            if (searchField == null)
+//            {
+//                throw new IllegalArgumentException(
+//                        "Unsupported principal type " + userID.getClass());
+//            }
+//
+//            User<T> user = getUser(userID);
+//            DN userDN = getUserDN(user);
+//
+//            CompareRequest compareRequest = 
+//                    new CompareRequest(userDN.toNormalizedString(), 
+//                                      "memberOf", groupID);
+//            
+//            compareRequest.addControl(
+//                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+//                            getSubjectDN().toNormalizedString()));
+//            
+//            CompareResult compareResult = 
+//                    getConnection().compare(compareRequest);
+//            return compareResult.compareMatched();
+//        }
+//        catch (LDAPException e)
+//        {
+//            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+//            throw new RuntimeException("Unexpected LDAP exception", e);
+//        }
+//    }
     
     /**
      * Returns a member user identified by the X500Principal only. The
@@ -371,7 +399,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     
 
     DN getUserDN(User<? extends Principal> user)
-        throws LDAPException, UserNotFoundException
+        throws UserNotFoundException, TransientException
     {
         String searchField = (String) userLdapAttrib.get(user.getUserID().getClass());
         if (searchField == null)
@@ -383,16 +411,21 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         searchField = "(" + searchField + "=" + 
                       user.getUserID().getName() + ")";
 
-        SearchRequest searchRequest = 
-                new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
-                                 searchField, new String[] {"entrydn"});
+        SearchResultEntry searchResult = null;
+        try
+        {
+            SearchRequest searchRequest = new SearchRequest(this.config.getUsersDN(), SearchScope.SUB, 
+                             searchField, new String[] {"entrydn"});
         
-//        searchRequest.addControl(
-//                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-//                            getSubjectDN().toNormalizedString()));
 
-        SearchResultEntry searchResult = 
+            searchResult = 
                 getConnection().searchForEntry(searchRequest);
+
+        } catch (LDAPException e)
+        {
+            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+        }
+        
 
         if (searchResult == null)
         {

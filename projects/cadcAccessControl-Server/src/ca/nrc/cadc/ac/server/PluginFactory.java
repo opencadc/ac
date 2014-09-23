@@ -125,8 +125,8 @@ public class PluginFactory
         {
             try
             {
-                Class c = Class.forName(cname);
-                ret = (GroupPersistence) c.newInstance();
+                Class<?> c = Class.forName(cname);
+                ret = (GroupPersistence<T>) c.newInstance();
             }
             catch (Exception ex)
             {
@@ -149,8 +149,8 @@ public class PluginFactory
         {
             try
             {
-                Class c = Class.forName(cname);
-                ret = (UserPersistence) c.newInstance();
+                Class<?> c = Class.forName(cname);
+                ret = (UserPersistence<T>) c.newInstance();
             }
             catch (Exception ex)
             {

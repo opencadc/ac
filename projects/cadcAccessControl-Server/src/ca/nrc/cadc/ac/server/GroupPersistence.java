@@ -68,16 +68,16 @@
  */
 package ca.nrc.cadc.ac.server;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.IdentityType;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
 
 public abstract interface GroupPersistence<T extends Principal>
 {
