@@ -72,6 +72,7 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -104,7 +105,6 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.util.HashSet;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {

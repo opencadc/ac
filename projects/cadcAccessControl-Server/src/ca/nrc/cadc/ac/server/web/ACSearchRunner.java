@@ -68,38 +68,30 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupsWriter;
-import ca.nrc.cadc.ac.IdentityType;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.RequestValidator;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.uws.ErrorSummary;
-import ca.nrc.cadc.uws.ErrorType;
-import ca.nrc.cadc.uws.ExecutionPhase;
-import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.server.JobNotFoundException;
-import ca.nrc.cadc.uws.server.JobPersistenceException;
-import ca.nrc.cadc.uws.server.JobRunner;
-import ca.nrc.cadc.uws.server.JobUpdater;
-import ca.nrc.cadc.uws.server.SyncOutput;
-import ca.nrc.cadc.uws.util.JobLogInfo;
-import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Date;
-import javax.security.auth.x500.X500Principal;
+
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupsWriter;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.RequestValidator;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.uws.ExecutionPhase;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.server.JobRunner;
+import ca.nrc.cadc.uws.server.JobUpdater;
+import ca.nrc.cadc.uws.server.SyncOutput;
+import ca.nrc.cadc.uws.util.JobLogInfo;
 
 public class ACSearchRunner
     implements JobRunner
@@ -151,6 +143,15 @@ public class ACSearchRunner
     
     private void search()
     {
+        
+        // Note: This search runner is customized to run with
+        // InMemoryJobPersistence, and synchronous POST requests are
+        // dealt with immediately, rather than returning results via
+        // a redirect.
+        // Jobs in this runner are never updated after execution begins
+        // in case the in-memory job has gone away.  Error reporting
+        // is done directly through the response on both POST and GET
+        
         try
         {
             ExecutionPhase ep = 
@@ -158,11 +159,7 @@ public class ACSearchRunner
                                     ExecutionPhase.EXECUTING, new Date());
             if ( !ExecutionPhase.EXECUTING.equals(ep) )
             {
-                String message = job.getID() + 
-                                 ": QUEUED -> EXECUTING [FAILED] -- DONE";
-                logInfo.setSuccess(false);
-                logInfo.setMessage(message);
-                return;
+                throw new IllegalStateException("QUEUED -> EXECUTING [FAILED]");
             }
             log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
 
@@ -181,29 +178,29 @@ public class ACSearchRunner
             GroupsWriter.write(groups, syncOut.getOutputStream());
             
             // Mark the Job as completed.
-            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, 
-                                ExecutionPhase.COMPLETED, new Date());
+//            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, 
+//                                ExecutionPhase.COMPLETED, new Date());
         }
         catch (TransientException t)
         {
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
-            log.debug("FAIL", t);
+            log.error("FAIL", t);
             
-            syncOut.setResponseCode(400);
+            syncOut.setResponseCode(503);
             
-            ErrorSummary errorSummary =
-                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-            try
-            {
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-                                    ExecutionPhase.ERROR, errorSummary, 
-                                    new Date());
-            }
-            catch(Throwable oops)
-            {
-                log.debug("failed to set final error status after " + t, oops);
-            }
+//            ErrorSummary errorSummary =
+//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+//            try
+//            {
+//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+//                                    ExecutionPhase.ERROR, errorSummary, 
+//                                    new Date());
+//            }
+//            catch(Throwable oops)
+//            {
+//                log.debug("failed to set final error status after " + t, oops);
+//            }
         }
         catch (UserNotFoundException t)
         {
@@ -213,18 +210,18 @@ public class ACSearchRunner
             
             syncOut.setResponseCode(404);
             
-            ErrorSummary errorSummary =
-                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-            try
-            {
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-                                    ExecutionPhase.ERROR, errorSummary,
-                                    new Date());
-            }
-            catch(Throwable oops)
-            {
-                log.debug("failed to set final error status after " + t, oops);
-            }
+//            ErrorSummary errorSummary =
+//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+//            try
+//            {
+//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+//                                    ExecutionPhase.ERROR, errorSummary,
+//                                    new Date());
+//            }
+//            catch(Throwable oops)
+//            {
+//                log.debug("failed to set final error status after " + t, oops);
+//            }
         }
         catch (GroupNotFoundException t)
         {
@@ -234,18 +231,18 @@ public class ACSearchRunner
             
             syncOut.setResponseCode(404);
             
-            ErrorSummary errorSummary =
-                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-            try
-            {
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-                                    ExecutionPhase.ERROR, errorSummary,
-                                    new Date());
-            }
-            catch(Throwable oops)
-            {
-                log.debug("failed to set final error status after " + t, oops);
-            }
+//            ErrorSummary errorSummary =
+//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+//            try
+//            {
+//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+//                                    ExecutionPhase.ERROR, errorSummary,
+//                                    new Date());
+//            }
+//            catch(Throwable oops)
+//            {
+//                log.debug("failed to set final error status after " + t, oops);
+//            }
         }
         catch (AccessControlException t)
         {
@@ -255,39 +252,39 @@ public class ACSearchRunner
             
             syncOut.setResponseCode(401);
             
-            ErrorSummary errorSummary =
-                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-            try
-            {
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-                                    ExecutionPhase.ERROR, errorSummary,
-                                    new Date());
-            }
-            catch(Throwable oops)
-            {
-                log.debug("failed to set final error status after " + t, oops);
-            }
+//            ErrorSummary errorSummary =
+//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+//            try
+//            {
+//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+//                                    ExecutionPhase.ERROR, errorSummary,
+//                                    new Date());
+//            }
+//            catch(Throwable oops)
+//            {
+//                log.debug("failed to set final error status after " + t, oops);
+//            }
         }
         catch (Throwable t)
         {
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
-            log.debug("FAIL", t);
+            log.error("FAIL", t);
             
-            syncOut.setResponseCode(400);
+            syncOut.setResponseCode(500);
             
-            ErrorSummary errorSummary =
-                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-            try
-            {
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-                                    ExecutionPhase.ERROR, errorSummary,
-                                    new Date());
-            }
-            catch(Throwable oops)
-            {
-                log.debug("failed to set final error status after " + t, oops);
-            }
+//            ErrorSummary errorSummary =
+//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
+//            try
+//            {
+//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
+//                                    ExecutionPhase.ERROR, errorSummary,
+//                                    new Date());
+//            }
+//            catch(Throwable oops)
+//            {
+//                log.debug("failed to set final error status after " + t, oops);
+//            }
         }
     }
     
