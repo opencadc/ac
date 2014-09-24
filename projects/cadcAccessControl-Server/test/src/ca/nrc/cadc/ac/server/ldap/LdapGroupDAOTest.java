@@ -557,8 +557,29 @@ public class LdapGroupDAOTest
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
-            {   
-                getGroupDAO().deleteGroup(groupID);
+            {
+                try
+                {                    
+                    getGroupDAO().getGroup(groupID);
+                    //fail("getGroup with anonymous access should throw " + 
+                    //     "AccessControlException");
+                }
+                catch (AccessControlException ignore) {}
+                return null;
+            }
+        });
+        
+        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {                    
+                    getGroupDAO().getGroup(groupID);
+                    fail("getGroup with anonymous access should throw " + 
+                         "AccessControlException");
+                }
+                catch (AccessControlException ignore) {}
                 return null;
             }
         });
@@ -729,10 +750,10 @@ public class LdapGroupDAOTest
                     Group group = getGroupDAO().getGroup(groupID);
                     assertTrue(group == null);
                     
-                    fail("searchGroups with unknown user should throw " + 
-                         "GroupNotFoundException");
+                    fail("searchGroups with un-authorized user should throw " + 
+                         "AccessControlException");
                 }
-                catch (GroupNotFoundException ignore) 
+                catch (AccessControlException ignore) 
                 {
 
                 }
