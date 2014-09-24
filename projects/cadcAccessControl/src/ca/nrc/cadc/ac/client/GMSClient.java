@@ -688,7 +688,7 @@ public class GMSClient
         searchGroupURL.append("/search?");
         
         searchGroupURL.append("ID=" + URLEncoder.encode(id, "UTF-8"));
-        searchGroupURL.append("&TYPE=" + URLEncoder.encode(idType, "UTF-8"));
+        searchGroupURL.append("&IDTYPE=" + URLEncoder.encode(idType, "UTF-8"));
         searchGroupURL.append("&ROLE=" + URLEncoder.encode(roleString, "UTF-8"));
         
         log.debug("getMemberships request to " + searchGroupURL.toString());
@@ -801,7 +801,7 @@ public class GMSClient
         searchGroupURL.append("/search?");
         
         searchGroupURL.append("ID=" + URLEncoder.encode(id, "UTF-8"));
-        searchGroupURL.append("&TYPE=" + URLEncoder.encode(idType, "UTF-8"));
+        searchGroupURL.append("&IDTYPE=" + URLEncoder.encode(idType, "UTF-8"));
         searchGroupURL.append("&ROLE=" + URLEncoder.encode(roleString, "UTF-8"));
         searchGroupURL.append("&GROUPID=" + URLEncoder.encode(groupName, "UTF-8"));
         
