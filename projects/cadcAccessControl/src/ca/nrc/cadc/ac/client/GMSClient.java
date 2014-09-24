@@ -86,6 +86,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 
@@ -380,14 +381,24 @@ public class GMSClient
             ((HttpsURLConnection) conn)
                     .setSSLSocketFactory(getSSLSocketFactory());
         }
-        int responseCode = conn.getResponseCode();
+        int responseCode = -1;
+        try
+        {
+            responseCode = conn.getResponseCode();
+        }
+        catch(SSLHandshakeException e)
+        {
+            throw new AccessControlException(e.getMessage());
+        }
+        
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
             log.debug("deleteGroup response " + responseCode + ": " + 
                       errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403))
+            if ((responseCode == 401) || (responseCode == 403) || 
+                    (responseCode == -1))
             {
                 throw new AccessControlException(errMessage);
             }
