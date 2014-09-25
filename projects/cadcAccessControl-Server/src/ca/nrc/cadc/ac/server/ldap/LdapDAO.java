@@ -196,21 +196,16 @@ public abstract class LdapDAO
      * @param errorMsg
      * @throws TransientException 
      */
-    protected static void checkLdapResult(ResultCode code, String errorMsg) 
+    protected static void checkLdapResult(ResultCode code) 
             throws TransientException
     {
-        String msg = "";
-        if (errorMsg != null)
-        {
-            msg = "(" + errorMsg + ")";
-        }
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
         {
-            throw new AccessControlException("Not authorized " + msg);
+            throw new AccessControlException("Not authorized ");
         }
         else if (code == ResultCode.INVALID_CREDENTIALS)
         {
-            throw new AccessControlException("Invalid credentials " + msg);
+            throw new AccessControlException("Invalid credentials ");
         }
         else if ((code == ResultCode.SUCCESS) || (code == ResultCode.NO_SUCH_OBJECT) )
         {
@@ -218,16 +213,16 @@ public abstract class LdapDAO
         }
         else if (code == ResultCode.PARAM_ERROR)
         {
-            throw new IllegalArgumentException("Error in Ldap parameters " + msg);
+            throw new IllegalArgumentException("Error in Ldap parameters ");
         }
         else if (code == ResultCode.BUSY ||
                  code == ResultCode.CONNECT_ERROR )
         {
-            throw new TransientException("Connection problems " + msg );
+            throw new TransientException("Connection problems ");
         }
         else
         {
-            throw new RuntimeException("Ldap error" + msg);
+            throw new RuntimeException("Ldap error (" + code.getName() + ")");
         }
     }
 

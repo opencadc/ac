@@ -68,11 +68,13 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.util.StringUtil;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.StringUtil;
 
 public class LdapConfig
 {

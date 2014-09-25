@@ -173,7 +173,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                              group.description, 
                                              group.getUserMembers(), 
                                              group.getGroupMembers());
-                LdapDAO.checkLdapResult(result.getResultCode(), null);
+                LdapDAO.checkLdapResult(result.getResultCode());
                 
                 // add group to admin groups tree
                 result = addGroup(getAdminGroupDN(group.getID()), 
@@ -181,7 +181,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                   group.description, 
                                   group.getUserAdmins(), 
                                   group.getGroupAdmins());
-                LdapDAO.checkLdapResult(result.getResultCode(), null);
+                LdapDAO.checkLdapResult(result.getResultCode());
                 
                 try
                 {
@@ -195,8 +195,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), 
-                    e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         } 
     }
@@ -302,7 +301,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         } 
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -391,13 +390,13 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 }
                 else
                 {
-                    LdapDAO.checkLdapResult(e.getResultCode(), e.getMessage());
+                    LdapDAO.checkLdapResult(e.getResultCode());
                 }
             }
             
             if (searchResult.getEntryCount() == 0)
             {
-                LdapDAO.checkLdapResult(searchResult.getResultCode(), null);
+                LdapDAO.checkLdapResult(searchResult.getResultCode());
                 //access denied
                 String msg = "Not authorized to access " + groupID;
                 logger.debug(msg);
@@ -485,7 +484,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
-            LdapDAO.checkLdapResult(e1.getResultCode(), e1.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e1.getResultCode());
             throw new GroupNotFoundException("Not found " + groupID);
         }
     }
@@ -573,7 +572,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl(
                             "dn:" + getSubjectDN().toNormalizedString()));
             LdapDAO.checkLdapResult(getConnection().
-                    modify(modifyRequest).getResultCode(), null);
+                    modify(modifyRequest).getResultCode());
             
             // modify the group itself now
             modifyRequest = new ModifyRequest(getGroupDN(group.getID()), mods);
@@ -582,11 +581,11 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl(
                             "dn:" + getSubjectDN().toNormalizedString()));
             LdapDAO.checkLdapResult(getConnection().
-                    modify(modifyRequest).getResultCode(), null);
+                    modify(modifyRequest).getResultCode());
         }
         catch (LDAPException e1)
         {
-            LdapDAO.checkLdapResult(e1.getResultCode(), e1.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e1.getResultCode());
         }
         try
         {
@@ -655,11 +654,11 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl(
                             "dn:" + getSubjectDN().toNormalizedString()));
             LDAPResult result = getConnection().modify(modifyRequest);
-            LdapDAO.checkLdapResult(result.getResultCode(), null);
+            LdapDAO.checkLdapResult(result.getResultCode());
         }
         catch (LDAPException e1)
         {
-            LdapDAO.checkLdapResult(e1.getResultCode(), e1.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e1.getResultCode());
         }
         
         try
@@ -761,7 +760,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
-            LdapDAO.checkLdapResult(e1.getResultCode(), e1.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e1.getResultCode());
         }
         return groupDNs; 
     }
@@ -851,7 +850,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
         }
         throw new IllegalArgumentException(groupID + " not a valid group ID");
     }
@@ -869,7 +868,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
         }
         throw new IllegalArgumentException(groupID + " not a valid group ID");
     }
