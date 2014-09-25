@@ -94,6 +94,7 @@ public class AddUserMemberAction extends GroupsAction
         this.userIDType = userIDType;
     }
 
+    @SuppressWarnings("unchecked")
     public Object run()
         throws Exception
     {

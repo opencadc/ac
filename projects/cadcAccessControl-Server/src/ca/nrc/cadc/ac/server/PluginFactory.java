@@ -112,6 +112,7 @@ public class PluginFactory
         }
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Principal> GroupPersistence<T> getGroupPersistence()
     {
         GroupPersistence<T> ret = null;
@@ -136,6 +137,7 @@ public class PluginFactory
         return ret;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Principal> UserPersistence<T> getUserPersistence()
     {
         UserPersistence<T> ret = null;

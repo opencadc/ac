@@ -92,6 +92,7 @@ public class RemoveUserMemberAction extends GroupsAction
         this.userIDType = userIDType;
     }
 
+    @SuppressWarnings("unchecked")
     public Object run()
         throws Exception
     {

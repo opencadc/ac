@@ -101,8 +101,7 @@ import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
-public class ACSearchRunner
-    implements JobRunner
+public class ACSearchRunner implements JobRunner
 {
     private static Logger log = Logger.getLogger(ACSearchRunner.class);
     
@@ -149,6 +148,7 @@ public class ACSearchRunner
         log.info(endMessage);
     }
     
+    @SuppressWarnings("unchecked")
     private void search()
     {
         try
