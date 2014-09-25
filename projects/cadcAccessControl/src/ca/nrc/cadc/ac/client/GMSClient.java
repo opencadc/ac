@@ -410,7 +410,7 @@ public class GMSClient
             {
                 throw new GroupNotFoundException(errMessage);
             }
-            throw new IOException(errMessage);
+            throw new IOException("HttpResponse (" + responseCode + ") - " + errMessage);
         }
     }
 
