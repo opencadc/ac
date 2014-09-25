@@ -68,13 +68,11 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.util.ArrayList;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 public class DeleteGroupAction extends GroupsAction
 {
@@ -94,7 +92,7 @@ public class DeleteGroupAction extends GroupsAction
         groupPersistence.deleteGroup(this.groupName);
         if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))
         {
-            this.logInfo.addedMembers = new ArrayList<String>();
+            this.logInfo.deletedMembers = new ArrayList<String>();
             for (Group gr : deletedGroup.getGroupMembers())
             {
                 this.logInfo.deletedMembers.add(gr.getID());
