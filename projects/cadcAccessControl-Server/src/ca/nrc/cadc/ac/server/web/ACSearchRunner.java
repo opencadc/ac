@@ -166,14 +166,10 @@ public class ACSearchRunner implements JobRunner
             RequestValidator rv = new RequestValidator();
             rv.validate(job.getParameterList());
             
-            Principal userID = 
-                AuthenticationUtil.createPrincipal(rv.getUserID(), 
-                                                   rv.getIDType().getValue());
-            
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.getGroupPersistence();
             Collection<Group> groups = 
-                dao.getGroups(userID, rv.getRole(), rv.getGroupID());
+                dao.getGroups(rv.getPrincipal(), rv.getRole(), rv.getGroupID());
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
             GroupsWriter.write(groups, syncOut.getOutputStream());
             

@@ -68,14 +68,15 @@
  */
 package ca.nrc.cadc.ac.server;
 
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
+
+import java.security.Principal;
+import java.util.List;
+import org.apache.log4j.Logger;
 
 /**
  * Request Validator. This class extracts and validates the ID, TYPE, ROLE
@@ -86,8 +87,7 @@ public class RequestValidator
 {
     private static final Logger log = Logger.getLogger(RequestValidator.class);
     
-    private String userID;
-    private IdentityType idType;
+    private Principal principal;
     private Role role;
     private String groupID;
     
@@ -95,8 +95,7 @@ public class RequestValidator
 
     private void clear()
     {
-        this.userID = null;
-        this.idType = null;
+        this.principal = null;
         this.role = null;
         this.groupID = null;
     }
@@ -107,7 +106,7 @@ public class RequestValidator
         if (paramList == null || paramList.isEmpty())
         {
             throw new IllegalArgumentException(
-                    "Missing required parameters: ID and IDTYPE");
+                    "Missing required parameters: ID and TYPE");
         }
 
         // ID
@@ -117,18 +116,21 @@ public class RequestValidator
             throw new IllegalArgumentException(
                     "ID parameter required but not found");
         }
-        this.userID = param.trim();
+        String userID = param.trim();
         log.debug("ID: " + userID);
 
-        // IDTYPE
+        // TYPE
         param = ParameterUtil.findParameterValue("IDTYPE", paramList);
         if (param == null || param.trim().isEmpty())
         {
             throw new IllegalArgumentException(
                     "IDTYPE parameter required but not found");
         }
-        this.idType = IdentityType.toValue(param);
-        log.debug("TYPE: " + idType);
+        
+        principal = 
+            AuthenticationUtil.createPrincipal(userID, 
+                                               param.trim());
+        log.debug("TYPE: " + param.trim());
         
         // ROLE
         param = ParameterUtil.findParameterValue("ROLE", paramList);
@@ -151,15 +153,10 @@ public class RequestValidator
         }
         log.debug("GROUPID: " + groupID);
     }
-
-    public String getUserID()
-    {
-        return userID;
-    }
     
-    public IdentityType getIDType()
+    public Principal getPrincipal()
     {
-        return idType;
+        return principal;
     }
 
     public Role getRole()
