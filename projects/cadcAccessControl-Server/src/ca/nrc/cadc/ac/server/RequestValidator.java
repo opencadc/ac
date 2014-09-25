@@ -68,12 +68,14 @@
  */
 package ca.nrc.cadc.ac.server;
 
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
-import java.util.List;
-import org.apache.log4j.Logger;
 
 /**
  * Request Validator. This class extracts and validates the ID, TYPE, ROLE
@@ -105,7 +107,7 @@ public class RequestValidator
         if (paramList == null || paramList.isEmpty())
         {
             throw new IllegalArgumentException(
-                    "Missing required parameters: ID and TYPE");
+                    "Missing required parameters: ID and IDTYPE");
         }
 
         // ID
@@ -118,12 +120,12 @@ public class RequestValidator
         this.userID = param.trim();
         log.debug("ID: " + userID);
 
-        // TYPE
-        param = ParameterUtil.findParameterValue("TYPE", paramList);
+        // IDTYPE
+        param = ParameterUtil.findParameterValue("IDTYPE", paramList);
         if (param == null || param.trim().isEmpty())
         {
             throw new IllegalArgumentException(
-                    "TYPE parameter required but not found");
+                    "IDTYPE parameter required but not found");
         }
         this.idType = IdentityType.toValue(param);
         log.debug("TYPE: " + idType);

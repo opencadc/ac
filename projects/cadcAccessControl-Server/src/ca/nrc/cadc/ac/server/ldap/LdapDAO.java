@@ -212,7 +212,7 @@ public abstract class LdapDAO
         {
             throw new AccessControlException("Invalid credentials " + msg);
         }
-        else if (code == ResultCode.SUCCESS)
+        else if ((code == ResultCode.SUCCESS) || (code == ResultCode.NO_SUCH_OBJECT) )
         {
             // all good. nothing to do
         }

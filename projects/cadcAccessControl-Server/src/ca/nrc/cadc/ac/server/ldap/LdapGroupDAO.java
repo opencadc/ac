@@ -72,6 +72,7 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -104,7 +105,6 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.util.HashSet;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -345,7 +345,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         String [] attributes = new String[] {"entrydn", "cn", "description", 
                                              "owner", "uniquemember", 
-                                             "modifytimestamp"};
+                                             "modifytimestamp", "nsaccountlock"};
         return getGroup(groupDN, groupID, withMembers, attributes);
     }
     
@@ -366,10 +366,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            Filter filter = Filter.createANDFilter(
-                    Filter.createEqualityFilter("cn", groupID),
-                    Filter.createNOTFilter(
-                        Filter.createEqualityFilter("nsaccountlock", "TRUE")));
+            Filter filter = Filter.createEqualityFilter("cn", groupID);
             
             SearchRequest searchRequest = 
                     new SearchRequest(groupDN.toNormalizedString(), 
@@ -386,11 +383,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
             catch (LDAPSearchException e)
             {
-                if (e.getResultCode() == ResultCode.AUTHORIZATION_DENIED)
-                {
-                    throw new AccessControlException("Unauthorized to access group " + groupID);
-                }
-                else if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
                 {
                     String msg = "Group not found " + groupID;
                     logger.debug(msg);
@@ -398,23 +391,34 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 }
                 else
                 {
-                    throw new RuntimeException("Unknown LDAP exception: " + e.getResultCode());
+                    LdapDAO.checkLdapResult(e.getResultCode(), e.getMessage());
                 }
             }
             
             if (searchResult.getEntryCount() == 0)
             {
-                // deleted groups?
-                String msg = "Group not found " + groupID;
+                LdapDAO.checkLdapResult(searchResult.getResultCode(), null);
+                //access denied
+                String msg = "Not authorized to access " + groupID;
                 logger.debug(msg);
-                throw new GroupNotFoundException(groupID);
+                throw new AccessControlException(groupID);
             }
             
             if (searchResult.getEntryCount() >1)
             {
                 throw new RuntimeException("BUG: multiple results when retrieving group " + groupID);
             }
+            
             SearchResultEntry searchEntry = searchResult.getSearchEntries().get(0);
+            
+            if (searchEntry.getAttribute("nsaccountlock") != null)
+            {
+                // deleted group
+                String msg = "Group not found " + groupID;
+                logger.debug(msg);
+                throw new GroupNotFoundException(groupID);
+            }
+            
             String groupCN = searchEntry.getAttributeValue("cn");
             DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
             
