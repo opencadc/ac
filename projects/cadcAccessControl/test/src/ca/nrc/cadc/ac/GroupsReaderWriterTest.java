@@ -68,19 +68,89 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import org.junit.Test;
+
 /**
- * Thrown when there is a member conflict.
  *
+ * @author jburke
  */
-public class MemberAlreadyExistsException extends Exception
+public class GroupsReaderWriterTest
 {
-    public MemberAlreadyExistsException()
+    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
+
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        super();
+        try
+        {
+            String s = null;
+            List<Group> g = GroupsReader.read(s);
+            fail("null String should throw IllegalArgumentException");
+        }
+        catch (IllegalArgumentException e) {}
+        
+        try
+        {
+            InputStream in = null;
+            List<Group> g = GroupsReader.read(in);
+            fail("null InputStream should throw IOException");
+        }
+        catch (IOException e) {}
+        
+        try
+        {
+            Reader r = null;
+            List<Group> g = GroupsReader.read(r);
+            fail("null element should throw ReaderException");
+        }
+        catch (IllegalArgumentException e) {}
     }
-    
-    public MemberAlreadyExistsException(String message)
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        super(message);
+        try
+        {
+            GroupsWriter.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
+        }
+        catch (WriterException e) {}
     }
+     
+    @Test
+    public void testMinimalReadWrite()
+        throws Exception
+    {        
+        List<Group> expected = new ArrayList<Group>();
+        expected.add(new Group("group1", null));
+        expected.add(new Group("group2", null));
+        
+        StringBuilder xml = new StringBuilder();
+        GroupsWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        List<Group> actual = GroupsReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected.size(), actual.size());
+        assertEquals(expected.get(0), actual.get(0));
+        assertEquals(expected.get(1), actual.get(1));
+    }
+
 }

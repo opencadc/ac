@@ -66,21 +66,108 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.util.Log4jInit;
+import java.security.Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * Thrown when there is a member conflict.
  *
+ * @author jburke
  */
-public class MemberAlreadyExistsException extends Exception
+public class AddGroupMemberActionTest
 {
-    public MemberAlreadyExistsException()
+    private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
+    
+    @BeforeClass
+    public static void setUpClass()
     {
-        super();
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
+    @Test
+    public void testExceptions()
+    {
+        try
+        {
+            Group group = new Group("group", null);
+            Group member = new Group("member", null);
+            group.getGroupMembers().add(member);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
+            EasyMock.replay(groupPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
+            {
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+            };
+            
+            try
+            {
+                action.run();
+                fail("duplicate group member should throw GroupAlreadyExistsException");
+            }
+            catch (GroupAlreadyExistsException ignore) {}
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
     
-    public MemberAlreadyExistsException(String message)
+    @Test
+    public void testRun() throws Exception
     {
-        super(message);
+        try
+        {
+            Group group = new Group("group", null);
+            Group member = new Group("member", null);
+            Group modified = new Group("group", null);
+            modified.getGroupMembers().add(member);
+            
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
+            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
+            EasyMock.replay(groupPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
+            {
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+            };
+
+            action.run();
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
+    
 }

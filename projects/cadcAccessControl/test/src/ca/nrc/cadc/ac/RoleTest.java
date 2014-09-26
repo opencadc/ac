@@ -68,19 +68,86 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 /**
- * Thrown when there is a member conflict.
  *
+ * @author jburke
  */
-public class MemberAlreadyExistsException extends Exception
+public class RoleTest
 {
-    public MemberAlreadyExistsException()
+    private final static Logger log = Logger.getLogger(RoleTest.class);
+    
+    @BeforeClass
+    public static void setUpClass()
     {
-        super();
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+    /**
+     * Test of values method, of class Role.
+     */
+    @Test
+    public void testValues()
+    {
+        Role[] expResult = new Role[] { Role.OWNER, Role.MEMBER, Role.ADMIN };
+        Role[] result = Role.values();
+        assertArrayEquals(expResult, result);
+    }
+
+    /**
+     * Test of valueOf method, of class Role.
+     */
+    @Test
+    public void testValueOf()
+    {
+        assertEquals(Role.OWNER, Role.valueOf("OWNER"));
+        assertEquals(Role.MEMBER, Role.valueOf("MEMBER"));
+        assertEquals(Role.ADMIN, Role.valueOf("ADMIN"));
+    }
+
+    /**
+     * Test of toValue method, of class Role.
+     */
+    @Test
+    public void testToValue()
+    {
+        try
+        {
+            Role.toValue("foo");
+            fail("invalid value should throw IllegalArgumentException");
+        }
+        catch (IllegalArgumentException ignore) {}
+        
+        assertEquals(Role.OWNER, Role.toValue("owner"));
+        assertEquals(Role.MEMBER, Role.toValue("member"));
+        assertEquals(Role.ADMIN, Role.toValue("admin"));
+    }
+
+    /**
+     * Test of getValue method, of class Role.
+     */
+    @Test
+    public void testGetValue()
+    {
+        assertEquals("owner", Role.OWNER.getValue());
+        assertEquals("member", Role.MEMBER.getValue());
+        assertEquals("admin", Role.ADMIN.getValue());
+    }
+
+    /**
+     * Test of checksum method, of class Role.
+     */
+    @Test
+    public void testChecksum()
+    {
+        assertEquals("owner".hashCode(), Role.OWNER.checksum());
+        assertEquals("member".hashCode(), Role.MEMBER.checksum());
+        assertEquals("admin".hashCode(), Role.ADMIN.checksum());
     }
     
-    public MemberAlreadyExistsException(String message)
-    {
-        super(message);
-    }
 }

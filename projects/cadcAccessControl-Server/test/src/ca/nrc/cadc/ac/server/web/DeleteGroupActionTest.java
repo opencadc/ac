@@ -66,21 +66,71 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.util.Log4jInit;
+import java.security.Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * Thrown when there is a member conflict.
  *
+ * @author jburke
  */
-public class MemberAlreadyExistsException extends Exception
+public class DeleteGroupActionTest
 {
-    public MemberAlreadyExistsException()
+   private final static Logger log = Logger.getLogger(DeleteGroupActionTest.class);
+    
+    @BeforeClass
+    public static void setUpClass()
     {
-        super();
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
+    @Test
+    public void testRun()
+    {
+        try
+        {   
+            Group group = new Group("group", null);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            groupPersistence.deleteGroup("group");
+            EasyMock.expectLastCall().once();
+            EasyMock.replay(groupPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            DeleteGroupAction action = new DeleteGroupAction(logInfo, "group")
+            {
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+            };
+
+            action.run();
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
     
-    public MemberAlreadyExistsException(String message)
-    {
-        super(message);
-    }
 }
