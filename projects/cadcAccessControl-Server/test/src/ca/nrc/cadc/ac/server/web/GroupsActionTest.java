@@ -103,8 +103,8 @@ public class GroupsActionTest
     @Test
     public void testDoActionAccessControlException() throws Exception
     {
-        String message = "Unauthorized";
-        int responseCode = 401;
+        String message = "Permission Denied";
+        int responseCode = 403;
         Exception e = new AccessControlException("");
         testDoAction(message, responseCode, e);
     }
