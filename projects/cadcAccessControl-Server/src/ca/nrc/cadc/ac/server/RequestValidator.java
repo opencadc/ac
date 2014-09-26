@@ -106,7 +106,7 @@ public class RequestValidator
         if (paramList == null || paramList.isEmpty())
         {
             throw new IllegalArgumentException(
-                    "Missing required parameters: ID and TYPE");
+                    "Missing required parameters: ID, IDTYPE, ROLE");
         }
 
         // ID

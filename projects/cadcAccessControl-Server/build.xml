@@ -130,11 +130,11 @@
         </copy>
     </target>
     
-    <target name="test" depends="compile-test,resources">
-        <echo message="Running test" />
+<!--    <target name="test" depends="compile-test,resources">
+        <echo message="Running test" />-->
 
-         Run the junit test suite 
-        <echo message="Running test suite..." />
+        <!-- Run the junit test suite -->
+<!--        <echo message="Running test suite..." />
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
                 <pathelement path="${build}/class"/>
@@ -145,8 +145,9 @@
             <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
             <test name="ca.nrc.cadc.ac.server.web.GroupActionFactoryTest" />
             <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
+            <test name="ca.nrc.cadc.ac.server.RequestValidatorTest" />
             <formatter type="plain" usefile="false" />
         </junit>
-    </target>
+    </target>-->
 
 </project>
