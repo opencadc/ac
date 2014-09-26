@@ -809,14 +809,14 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws ca.nrc.cadc.ac.GroupNotFoundException
      */
     protected Group getGroup(final DN groupDN)
-        throws LDAPException, GroupNotFoundException
+        throws LDAPException, GroupNotFoundException, UserNotFoundException
     {
         Filter filter = Filter.createEqualityFilter("entrydn", 
                                                     groupDN.toNormalizedString());
         
         SearchRequest searchRequest =  new SearchRequest(
                     config.getGroupsDN(), SearchScope.SUB, filter, 
-                    new String[] {"cn", "description"});
+                    "cn", "description", "owner");
             
         searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
@@ -832,7 +832,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throw new GroupNotFoundException(groupDN.toNormalizedString());
         }
 
-        Group group = new Group(searchResult.getAttributeValue("cn"));
+        Group group = new Group(searchResult.getAttributeValue("cn"),
+                                userPersist.getMember(
+                                        new DN(searchResult.getAttributeValue(
+                                                "owner"))));
         group.description = searchResult.getAttributeValue("description");
         return group;
     }
