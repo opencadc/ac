@@ -67,9 +67,7 @@
  ************************************************************************
  */package ca.nrc.cadc.ac;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import javax.security.auth.x500.X500Principal;
 
@@ -199,5 +197,20 @@ public class UserTest
             thrown = true;
         }
         assertTrue(thrown);
+    }
+
+    @Test
+    public void getDetails() throws Exception
+    {
+        final User<HttpPrincipal> testSubject =
+                new User<HttpPrincipal>(new HttpPrincipal("test"));
+
+        testSubject.details.add(new PersonalDetails("First", "Last"));
+
+        assertTrue("Should be empty.",
+                   testSubject.getDetails(PosixDetails.class).isEmpty());
+
+        assertEquals("Should be 1.", 1,
+                     testSubject.getDetails(PersonalDetails.class).size());
     }
 }
