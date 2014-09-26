@@ -110,7 +110,8 @@ public class GMSClientTest
             subject.getPrincipals().add(userID);
             
             RegistryClient regClient = new RegistryClient();
-            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI));
+            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
+                                                  "https");
             GMSClient client = new GMSClient(baseURL.toString());
 
             Assert.assertFalse(client.userIsSubject(null, null));
@@ -148,7 +149,8 @@ public class GMSClientTest
                     public Object run() throws Exception
                     {
                         RegistryClient regClient = new RegistryClient();
-                        URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI));
+                        URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
+                                                              "https");
                         GMSClient client = new GMSClient(baseURL.toString());
 
                         List<Group> initial = client.getCachedGroups(userID, Role.MEMBER);
@@ -180,7 +182,8 @@ public class GMSClientTest
 
             // do the same without a subject
             RegistryClient regClient = new RegistryClient();
-            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI));
+            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
+                                                  "https");
             GMSClient client = new GMSClient(baseURL.toString());
 
             List<Group> initial = client.getCachedGroups(userID, Role.MEMBER);

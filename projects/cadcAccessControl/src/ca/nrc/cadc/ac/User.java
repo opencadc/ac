@@ -143,4 +143,22 @@ public class User<T extends Principal>
         return getClass().getSimpleName() + "[" + userID.getName() + "]";
     }
 
+    public <S extends UserDetails> Set<S> getDetails(
+            final Class<S> userDetailsClass)
+    {
+        final Set<S> matchedDetails = new HashSet<S>();
+
+        for (final UserDetails ud : details)
+        {
+            if (ud.getClass() == userDetailsClass)
+            {
+                // This casting shouldn't happen, but it's the only way to
+                // do this without a lot of work.
+                // jenkinsd 2014.09.26
+                matchedDetails.add((S) ud);
+            }
+        }
+
+        return matchedDetails;
+    }
 }
