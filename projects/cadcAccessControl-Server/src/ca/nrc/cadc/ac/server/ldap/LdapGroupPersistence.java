@@ -68,18 +68,19 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collection;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.net.TransientException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
-import org.apache.log4j.Logger;
 
 public class LdapGroupPersistence<T extends Principal>
     implements GroupPersistence<T>
@@ -98,9 +99,11 @@ public class LdapGroupPersistence<T extends Principal>
                AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
             Group ret = groupDAO.getGroup(groupName);
             return ret;
         }
@@ -110,6 +113,10 @@ public class LdapGroupPersistence<T extends Principal>
             {
                 groupDAO.close();
             }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
         }
     }
 
@@ -118,9 +125,11 @@ public class LdapGroupPersistence<T extends Principal>
                AccessControlException, UserNotFoundException
     {
         LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
             Group ret = groupDAO.addGroup(group);
             return ret;
         }
@@ -130,6 +139,10 @@ public class LdapGroupPersistence<T extends Principal>
             {
                 groupDAO.close();
             }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
         }
     }
 
@@ -138,9 +151,11 @@ public class LdapGroupPersistence<T extends Principal>
                AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
             groupDAO.deleteGroup(groupName);
         }
         finally
@@ -148,6 +163,10 @@ public class LdapGroupPersistence<T extends Principal>
             if (groupDAO != null)
             {
                 groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
             }
         }
     }
@@ -157,9 +176,11 @@ public class LdapGroupPersistence<T extends Principal>
                AccessControlException, UserNotFoundException
     {
         LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
             Group ret = groupDAO.modifyGroup(group);
             return ret;
         }
@@ -169,6 +190,10 @@ public class LdapGroupPersistence<T extends Principal>
             {
                 groupDAO.close();
             }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
         }
     }
 
@@ -177,9 +202,11 @@ public class LdapGroupPersistence<T extends Principal>
                TransientException, AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
         try
         {
-            groupDAO = new LdapGroupDAO<T>(config, new LdapUserDAO<T>(config));
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
             Collection<Group> ret = groupDAO.getGroups(userID, role, groupID);
             return ret;
         }
@@ -188,6 +215,10 @@ public class LdapGroupPersistence<T extends Principal>
             if (groupDAO != null)
             {
                 groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
             }
         }
     }

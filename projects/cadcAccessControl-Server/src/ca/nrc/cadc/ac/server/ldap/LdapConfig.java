@@ -68,11 +68,13 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.util.StringUtil;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.StringUtil;
 
 public class LdapConfig
 {
@@ -87,6 +89,9 @@ public class LdapConfig
     public static final String LDAP_USERS_DN = "usersDn";
     public static final String LDAP_GROUPS_DN = "groupsDn";
     public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDn";
+    
+    public static final String LDAP_AVAIL_TEST_GROUP  = "availabilityTestGroup";
+    public static final String LDAP_AVAIL_TEST_CALLING_USER_DN  = "availabilityTestCallingUserDN";
 
     private String usersDN;
     private String groupsDN;
@@ -95,6 +100,9 @@ public class LdapConfig
     private int port;
     private String adminUserDN;
     private String adminPasswd;
+    
+    private String availabilityTestGroup;
+    private String availabilityTestCallingUserDN;
 
     public static LdapConfig getLdapConfig()
     {
@@ -165,15 +173,36 @@ public class LdapConfig
             throw new RuntimeException("failed to read property " + 
                                        LDAP_ADMIN_GROUPS_DN);
         }
+        
+        String availGroup = config.getProperty(LDAP_AVAIL_TEST_GROUP);
+        if (!StringUtil.hasText(availGroup))
+        {
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_AVAIL_TEST_GROUP);
+        }
+        
+        String availUser = config.getProperty(LDAP_AVAIL_TEST_CALLING_USER_DN);
+        if (!StringUtil.hasText(availUser))
+        {
+            throw new RuntimeException("failed to read property " + 
+                                       LDAP_AVAIL_TEST_CALLING_USER_DN);
+        }
 
         return new LdapConfig(server, Integer.valueOf(port), ldapAdmin, 
                               ldapPasswd, ldapUsersDn, ldapGroupsDn,
-                              ldapAdminGroupsDn);
+                              ldapAdminGroupsDn, availGroup, availUser);
+    }
+    
+    public LdapConfig(String server, int port, String adminUserDN, 
+            String adminPasswd, String usersDN, String groupsDN,
+            String adminGroupsDN)
+    {
+        this(server, port, adminUserDN, adminPasswd, usersDN, groupsDN, adminGroupsDN, null, null);
     }
 
     public LdapConfig(String server, int port, String adminUserDN, 
                       String adminPasswd, String usersDN, String groupsDN,
-                      String adminGroupsDN)
+                      String adminGroupsDN, String availGroup, String availUser)
     {
         if (!StringUtil.hasText(server))
         {
@@ -204,6 +233,7 @@ public class LdapConfig
         {
             throw new IllegalArgumentException("Illegal admin groups LDAP DN");
         }
+        
 
         this.server = server;
         this.port = port;
@@ -212,6 +242,8 @@ public class LdapConfig
         this.usersDN = usersDN;
         this.groupsDN = groupsDN;
         this.adminGroupsDN = adminGroupsDN;
+        this.availabilityTestGroup = availGroup;
+        this.availabilityTestCallingUserDN = availUser;
     }
 
     public String getUsersDN()
@@ -247,6 +279,16 @@ public class LdapConfig
     public String getAdminPasswd()
     {
         return this.adminPasswd;
+    }
+    
+    public String getAvailabilityTestGroup()
+    {
+        return this.availabilityTestGroup;
+    }
+    
+    public String getAvailabilityTestCallingUserDN()
+    {
+        return this.availabilityTestCallingUserDN;
     }
 
 }

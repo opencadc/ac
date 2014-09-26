@@ -166,7 +166,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
         }
 
         if (searchResult == null)
@@ -196,7 +196,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @return Collection of Group instances.
      * 
      * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws TransientException If an temporary, unexpected problem occurred., e.getMessage(
      * @throws AccessControlException If the operation is not permitted.
      */
     public Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
@@ -257,7 +257,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
         }
         return groupDNs;
     }
@@ -312,7 +312,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
         }
         return false;
     }
@@ -347,7 +347,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 //        }
 //        catch (LDAPException e)
 //        {
-//            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+//            LdapDAO.checkLdapResult(e.getResultCode());
 //            throw new RuntimeException("Unexpected LDAP exception", e);
 //        }
 //    }
@@ -423,7 +423,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         } catch (LDAPException e)
         {
-            LdapDAO.checkLdapResult(e.getResultCode(), e.getDiagnosticMessage());
+            LdapDAO.checkLdapResult(e.getResultCode());
         }
         
 

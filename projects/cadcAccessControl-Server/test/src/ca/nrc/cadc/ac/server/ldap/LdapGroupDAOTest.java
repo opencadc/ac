@@ -292,6 +292,7 @@ public class LdapGroupDAOTest
                     testGroup2.getUserMembers().add(daoTestUser2);
                     testGroup2 = getGroupDAO().addGroup(testGroup2);
                     log.debug("add group: " + testGroup2ID);
+                    Thread.sleep(1000); //sleep to let memberof plugin in LDAP do its work 
                 }
                 catch (Exception e)
                 {
@@ -392,6 +393,7 @@ public class LdapGroupDAOTest
                     testGroup2.getUserAdmins().add(daoTestUser2);
                     testGroup2 = getGroupDAO().addGroup(testGroup2);
                     log.debug("add group: " + testGroup2ID);
+                    Thread.sleep(1000); // sleep to let memberof plugin do its work
                 }
                 catch (Exception e)
                 {
@@ -406,7 +408,7 @@ public class LdapGroupDAOTest
             public Object run() throws Exception
             {
                 try
-                {   
+                {                       
                     Collection<Group> groups = 
                             getGroupDAO().getGroups(daoTestUser2.getUserID(), 
                                                     Role.ADMIN, null);
