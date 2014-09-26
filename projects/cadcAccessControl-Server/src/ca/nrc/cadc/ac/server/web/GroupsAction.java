@@ -68,6 +68,18 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.List;
+
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
@@ -77,16 +89,6 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.List;
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.log4j.Logger;
 
 public abstract class GroupsAction
     implements PrivilegedExceptionAction<Object>
@@ -131,9 +133,9 @@ public abstract class GroupsAction
         catch (AccessControlException e)
         {
             log.debug(e);
-            String message = "Unauthorized";
+            String message = "Permission Denied";
             this.logInfo.setMessage(message);
-            sendError(401, message);
+            sendError(403, message);
         }
         catch (IllegalArgumentException e)
         {

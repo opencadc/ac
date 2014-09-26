@@ -68,11 +68,14 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.security.AccessControlContext;
 import java.security.AccessControlException;
+import java.security.AccessController;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Date;
 
+import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
@@ -84,7 +87,6 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.RequestValidator;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
@@ -154,6 +156,8 @@ public class ACSearchRunner
         
         try
         {
+
+            
             ExecutionPhase ep = 
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, 
                                     ExecutionPhase.EXECUTING, new Date());
@@ -165,6 +169,23 @@ public class ACSearchRunner
 
             RequestValidator rv = new RequestValidator();
             rv.validate(job.getParameterList());
+            
+            // only allow users to search themselves...
+            Principal userBeingSearched = rv.getPrincipal();
+            if (userBeingSearched != null)
+            {
+                AccessControlContext acContext = AccessController.getContext();
+                Subject subject = Subject.getSubject(acContext);
+                boolean idMatch = false;
+                for (Principal p : subject.getPrincipals())
+                {
+                    if (p.equals(userBeingSearched))
+                        idMatch = true;
+                }
+                if (!idMatch)
+                    throw new AccessControlException("Can only search oneself.");
+            }
+
             
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.getGroupPersistence();
@@ -246,7 +267,7 @@ public class ACSearchRunner
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
             
-            syncOut.setResponseCode(401);
+            syncOut.setResponseCode(403);
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
@@ -283,37 +304,5 @@ public class ACSearchRunner
 //            }
         }
     }
-    
-//    private Principal getUserPrincipal(String userID, IdentityType type)
-//    {
-//        if (type == IdentityType.OPENID)
-//        {
-//            return new OpenIdPrincipal(userID);
-//        }
-//        if (type == IdentityType.UID)
-//        {
-//            try
-//            {
-//                Long numericId = Long.valueOf(userID);
-//                return new NumericPrincipal(numericId);
-//            }
-//            catch (NumberFormatException e)
-//            {
-//                throw new IllegalArgumentException("Illegal UID userID " +
-//                                                   userID + " because " +
-//                                                   e.getMessage());
-//            }
-//        }
-//        if (type == IdentityType.USERNAME)
-//        {
-//            return new HttpPrincipal(userID);
-//        }
-//        if (type == IdentityType.X500)
-//        {
-//            return new X500Principal(userID);
-//        }
-//        throw new IllegalArgumentException("Unknown user type " + 
-//                                           type.getValue());
-//    }
     
 }
