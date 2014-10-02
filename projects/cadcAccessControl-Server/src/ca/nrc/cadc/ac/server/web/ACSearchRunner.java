@@ -74,8 +74,11 @@ import java.security.AccessController;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.Set;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
@@ -87,6 +90,8 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.RequestValidator;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
@@ -125,15 +130,31 @@ public class ACSearchRunner implements JobRunner
     @Override
     public void run()
     {
-        log.debug("RUN ACSearchRunner: " + job.ownerSubject);
+        AccessControlContext acContext = AccessController.getContext();
+        Subject subject = Subject.getSubject(acContext);
+        
+        log.debug("RUN ACSearchRunner: " + subject);
+        if (log.isDebugEnabled())
+        {
+            Set<Principal> principals = subject.getPrincipals();
+            Iterator<Principal> i = principals.iterator();
+            while (i.hasNext())
+            {
+                Principal next = i.next();
+                log.debug("Principal " +
+                        next.getClass().getSimpleName()
+                        + ": " + next.getName());
+            }
+        }
         
         logInfo = new JobLogInfo(job);
+        logInfo.setSubject(subject);
 
         String startMessage = logInfo.start();
         log.info(startMessage);
 
         long t1 = System.currentTimeMillis();
-        search();
+        search(subject);
         long t2 = System.currentTimeMillis();
 
         logInfo.setElapsedTime(t2 - t1);
@@ -143,7 +164,7 @@ public class ACSearchRunner implements JobRunner
     }
     
     @SuppressWarnings("unchecked")
-    private void search()
+    private void search(Subject subject)
     {
         
         // Note: This search runner is customized to run with
@@ -156,8 +177,6 @@ public class ACSearchRunner implements JobRunner
         
         try
         {
-
-            
             ExecutionPhase ep = 
                 jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, 
                                     ExecutionPhase.EXECUTING, new Date());
@@ -172,21 +191,37 @@ public class ACSearchRunner implements JobRunner
             
             // only allow users to search themselves...
             Principal userBeingSearched = rv.getPrincipal();
-            if (userBeingSearched != null)
+            
+            boolean idMatch = false;
+            if (userBeingSearched instanceof X500Principal)
             {
-                AccessControlContext acContext = AccessController.getContext();
-                Subject subject = Subject.getSubject(acContext);
-                boolean idMatch = false;
-                for (Principal p : subject.getPrincipals())
+                Set<X500Principal> x500Principals = subject.getPrincipals(X500Principal.class);
+                Iterator<X500Principal> i = x500Principals.iterator();
+                while (i.hasNext())
                 {
-                    if (p.equals(userBeingSearched))
+                    X500Principal next = i.next();
+                    log.debug(String.format("Comparing x500: [%s][%s]",
+                            next.getName(), userBeingSearched.getName()));
+                    if (AuthenticationUtil.equals(next, userBeingSearched))
                         idMatch = true;
                 }
-                if (!idMatch)
-                    throw new AccessControlException("Can only search oneself.");
             }
+            else if (userBeingSearched instanceof HttpPrincipal)
+            {
+                Set<HttpPrincipal> httpPrincipals = subject.getPrincipals(HttpPrincipal.class);
+                Iterator<HttpPrincipal> i = httpPrincipals.iterator();
+                while (i.hasNext())
+                {
+                    HttpPrincipal next = i.next();
+                    log.debug(String.format("Comparing http: [%s][%s]",
+                            next.getName(), userBeingSearched.getName()));
+                    if (next.equals(userBeingSearched))
+                        idMatch = true;
+                }
+            }
+            if (!idMatch)
+                throw new AccessControlException("Can only search oneself.");
 
-            
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.getGroupPersistence();
             Collection<Group> groups = 

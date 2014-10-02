@@ -79,15 +79,13 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
-import com.unboundid.ldap.sdk.CompareRequest;
-import com.unboundid.ldap.sdk.CompareResult;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPException;
@@ -128,6 +126,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         System.arraycopy(memberAttribs, 0, tmp, princs.length, memberAttribs.length);
         memberAttribs = tmp;
     }
+    
+
 
     /**
      * Get the user specified by userID.
@@ -407,9 +407,11 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new IllegalArgumentException(
                 "Unsupported principal type " + user.getUserID().getClass());
         }
+        
+        String name = getUserName(searchField, user);
 
         searchField = "(" + searchField + "=" + 
-                      user.getUserID().getName() + ")";
+                name + ")";
 
         SearchResultEntry searchResult = null;
         try
@@ -425,15 +427,35 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             LdapDAO.checkLdapResult(e.getResultCode());
         }
-        
 
         if (searchResult == null)
         {
-            String msg = "User not found " + user.getUserID().toString();
+            String msg = "User not found " + name;
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
         return searchResult.getAttributeValueAsDN("entrydn");
+    }
+    
+    /**
+     * If the principal is of type x500, canonize the name for the
+     * search.
+     * 
+     * @param searchField
+     * @param user
+     * @return
+     */
+    private String getUserName(String searchField, User<? extends Principal> user)
+    {
+        if (searchField != null)
+        {
+            if (searchField.equals("distinguishedname"))
+            {
+                return AuthenticationUtil.canonizeDistinguishedName(user.getUserID().getName());
+            }
+            return user.getUserID().getName();
+        }
+        return null;
     }
 
 }
