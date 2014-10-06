@@ -79,15 +79,13 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
-import com.unboundid.ldap.sdk.CompareRequest;
-import com.unboundid.ldap.sdk.CompareResult;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPException;
@@ -128,6 +126,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         System.arraycopy(memberAttribs, 0, tmp, princs.length, memberAttribs.length);
         memberAttribs = tmp;
     }
+    
+
 
     /**
      * Get the user specified by userID.
@@ -409,7 +409,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
 
         searchField = "(" + searchField + "=" + 
-                      user.getUserID().getName() + ")";
+                user.getUserID().getName() + ")";
 
         SearchResultEntry searchResult = null;
         try
@@ -425,11 +425,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             LdapDAO.checkLdapResult(e.getResultCode());
         }
-        
 
         if (searchResult == null)
         {
-            String msg = "User not found " + user.getUserID().toString();
+            String msg = "User not found " + user.getUserID().getName();
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
