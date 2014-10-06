@@ -407,11 +407,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new IllegalArgumentException(
                 "Unsupported principal type " + user.getUserID().getClass());
         }
-        
-        String name = getUserName(searchField, user);
 
         searchField = "(" + searchField + "=" + 
-                name + ")";
+                user.getUserID().getName() + ")";
 
         SearchResultEntry searchResult = null;
         try
@@ -430,32 +428,11 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         if (searchResult == null)
         {
-            String msg = "User not found " + name;
+            String msg = "User not found " + user.getUserID().getName();
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
         return searchResult.getAttributeValueAsDN("entrydn");
-    }
-    
-    /**
-     * If the principal is of type x500, canonize the name for the
-     * search.
-     * 
-     * @param searchField
-     * @param user
-     * @return
-     */
-    private String getUserName(String searchField, User<? extends Principal> user)
-    {
-        if (searchField != null)
-        {
-            if (searchField.equals("distinguishedname"))
-            {
-                return AuthenticationUtil.canonizeDistinguishedName(user.getUserID().getName());
-            }
-            return user.getUserID().getName();
-        }
-        return null;
     }
 
 }
