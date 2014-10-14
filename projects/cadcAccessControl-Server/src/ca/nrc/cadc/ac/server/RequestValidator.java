@@ -68,15 +68,15 @@
  */
 package ca.nrc.cadc.ac.server;
 
-import ca.nrc.cadc.ac.IdentityType;
+import java.security.Principal;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.ParameterUtil;
-
-import java.security.Principal;
-import java.util.List;
-import org.apache.log4j.Logger;
 
 /**
  * Request Validator. This class extracts and validates the ID, TYPE, ROLE
