@@ -66,99 +66,107 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server;
+
+import ca.nrc.cadc.ac.IdentityType;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.ParameterUtil;
 
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import org.apache.log4j.Logger;
 
-public class User<T extends Principal>
+/**
+ * Request Validator. This class extracts and validates the ID, TYPE, ROLE
+ * and GURI parameters.
+ *
+ */
+public class RequestValidator
 {
-    private T userID;
+    private static final Logger log = Logger.getLogger(RequestValidator.class);
     
-    private Set<Principal> identities = new HashSet<Principal>();
+    private Principal principal;
+    private Role role;
+    private String groupID;
+    
+    public RequestValidator() { }
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    private void clear()
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
+        this.principal = null;
+        this.role = null;
+        this.groupID = null;
     }
-
-    public Set<Principal> getIdentities()
+    
+    public void validate(List<Parameter> paramList)
     {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        clear();
+        if (paramList == null || paramList.isEmpty())
         {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
+            throw new IllegalArgumentException(
+                    "Missing required parameters: ID, IDTYPE, ROLE");
         }
 
-        return matchedDetails;
+        // ID
+        String param = ParameterUtil.findParameterValue("ID", paramList);
+        if (param == null || param.trim().isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "ID parameter required but not found");
+        }
+        String userID = param.trim();
+        log.debug("ID: " + userID);
+
+        // TYPE
+        param = ParameterUtil.findParameterValue("IDTYPE", paramList);
+        if (param == null || param.trim().isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "IDTYPE parameter required but not found");
+        }
+        
+        principal = 
+            AuthenticationUtil.createPrincipal(userID, 
+                                               param.trim());
+        log.debug("TYPE: " + param.trim());
+        
+        // ROLE
+        param = ParameterUtil.findParameterValue("ROLE", paramList);
+        if (param == null || param.trim().isEmpty())
+        {
+            throw new IllegalArgumentException(
+                    "ROLE parameter required but not found");
+        }
+        this.role = Role.toValue(param);
+        log.debug("ROLE: " + role);
+        
+        // GROUPID
+        param = ParameterUtil.findParameterValue("GROUPID", paramList);
+        if (param != null)
+        {
+            if (param.isEmpty())
+                throw new IllegalArgumentException(
+                        "GROUPID parameter specified without a value");
+            this.groupID = param.trim();
+        }
+        log.debug("GROUPID: " + groupID);
     }
+    
+    public Principal getPrincipal()
+    {
+        return principal;
+    }
+
+    public Role getRole()
+    {
+        return role;
+    }
+    
+    public String getGroupID()
+    {
+        return groupID;
+    }
+
 }

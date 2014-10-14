@@ -68,97 +68,125 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import javax.management.remote.JMXPrincipal;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class User<T extends Principal>
+/**
+ *
+ * @author jburke
+ */
+public class IdentityReaderWriterTest
 {
-    private T userID;
+    private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
+
+    @Test
+    public void testReaderExceptions()
+        throws Exception
+    {
+        Element element = null;
+        try
+        {
+            Principal p = IdentityReader.read(element);
+            fail("null element should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+         
+        element = new Element("foo");
+        try
+        {
+            Principal p = IdentityReader.read(element);
+            fail("element not named 'identity' should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+         
+        element = new Element("identity");
+        try
+        {
+            Principal p = IdentityReader.read(element);
+            fail("element without 'type' attribute should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+         
+        element.setAttribute("type", "foo");
+        try
+        {
+            Principal p = IdentityReader.read(element);
+            fail("element with unknown 'type' attribute should throw ReaderException");
+        }
+        catch (ReaderException e) {}
+    }
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            Element element = IdentityWriter.write(null);
+            fail("null Identity should throw WriterException");
+        }
+        catch (WriterException e) {}
+         
+        Principal p = new JMXPrincipal("foo");
+        try
+        {
+            Element element = IdentityWriter.write(p);
+            fail("Unsupported Principal type should throw IllegalArgumentException");
+        }
+        catch (IllegalArgumentException e) {}
+    }
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        // X500
+        Principal expected = new X500Principal("cn=foo,o=bar");
+        Element element = IdentityWriter.write(expected);
+        assertNotNull(element);
+         
+        Principal actual = IdentityReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+         
+        // UID
+        expected = new NumericPrincipal(123l);
+        element = IdentityWriter.write(expected);
+        assertNotNull(element);
+         
+        actual = IdentityReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+        
+        // OpenID
+        expected = new OpenIdPrincipal("bar");
+        element = IdentityWriter.write(expected);
+        assertNotNull(element);
+         
+        actual = IdentityReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+        
+        // HTTP
+        expected = new HttpPrincipal("baz");
+        element = IdentityWriter.write(expected);
+        assertNotNull(element);
+         
+        actual = IdentityReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+    }
     
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
-    {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
 }
