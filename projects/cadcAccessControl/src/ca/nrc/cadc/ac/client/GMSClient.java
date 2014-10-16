@@ -301,11 +301,12 @@ public class GMSClient
      * @return The group after update.
      * @throws IllegalArgumentException If cyclical membership is detected.
      * @throws GroupNotFoundException If the group was not found.
+     * @throws GroupNotFoundException If a member was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
     public Group updateGroup(Group group)
-        throws IllegalArgumentException, GroupNotFoundException,
+        throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
                AccessControlException, IOException
     {
         URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
@@ -345,7 +346,10 @@ public class GMSClient
             }
             if (transfer.getResponseCode() == 404)
             {
-                throw new GroupNotFoundException(error.getMessage());
+                if (error.getMessage() != null && error.getMessage().toLowerCase().contains("user"))
+                    throw new UserNotFoundException(error.getMessage());
+                else
+                    throw new GroupNotFoundException(error.getMessage());
             }
             throw new IOException(error);
         }
