@@ -626,7 +626,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         throws GroupNotFoundException, TransientException,
                AccessControlException
     {
-        Group group = getGroup(groupDN, groupID, false);
+        Group group = getGroup(groupDN, groupID, true);
         List<Modification> modifs = new ArrayList<Modification>();
         modifs.add(new Modification(ModificationType.ADD, "nsaccountlock", "true"));
         
@@ -707,6 +707,14 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             groupDNs.addAll(getMemberGroups(user, userDN, groupID, true));
         }
         
+        if (logger.isDebugEnabled())
+        {
+            for (DN dn : groupDNs)
+            {
+                logger.debug("Search adding DN: " + dn);
+            }
+        }
+        
         Collection<Group> groups = new HashSet<Group>();
         try
         {
@@ -716,7 +724,17 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 {
                     groupDN = new DN(groupDN.getRDNString() + "," + config.getGroupsDN());
                 }
-                groups.add(getGroup(groupDN));
+                try
+                {
+                    groups.add(getGroup(groupDN));
+                    logger.debug("Search adding group: " + groupDN);
+                }
+                catch (GroupNotFoundException e)
+                {
+                    throw new IllegalStateException(
+                        "BUG: group " + groupDN + " not found but " +
+                        "membership exists (" + userID + ")");
+                }
             }
         }
         catch (LDAPException e)
@@ -745,7 +763,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
             
             SearchRequest searchRequest =  new SearchRequest(
-                    config.getGroupsDN(), SearchScope.SUB, filter, "entrydn");
+                    config.getGroupsDN(), SearchScope.SUB, filter, "entrydn", "nsaccountlock");
             
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
@@ -755,7 +773,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             for (SearchResultEntry result : results.getSearchEntries())
             {
                 String entryDN = result.getAttributeValue("entrydn");
-                groupDNs.add(new DN(entryDN));
+                // make sure the group isn't deleted
+                if (result.getAttribute("nsaccountlock") == null)
+                {
+                    groupDNs.add(new DN(entryDN));
+                }
+                
             }
         }
         catch (LDAPException e1)
@@ -816,7 +839,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         
         SearchRequest searchRequest =  new SearchRequest(
                     config.getGroupsDN(), SearchScope.SUB, filter, 
-                    "cn", "description", "owner");
+                    "cn", "description", "owner", "nsaccountlock");
             
         searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
@@ -827,6 +850,14 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
         if (searchResult == null)
         {
+            String msg = "Group not found " + groupDN;
+            logger.debug(msg);
+            throw new GroupNotFoundException(groupDN.toNormalizedString());
+        }
+        
+        if (searchResult.getAttribute("nsaccountlock") != null)
+        {
+            // deleted group
             String msg = "Group not found " + groupDN;
             logger.debug(msg);
             throw new GroupNotFoundException(groupDN.toNormalizedString());

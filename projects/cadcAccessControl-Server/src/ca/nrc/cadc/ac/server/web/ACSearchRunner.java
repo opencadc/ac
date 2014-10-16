@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.io.IOException;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -240,6 +241,15 @@ public class ACSearchRunner implements JobRunner
             log.error("FAIL", t);
             
             syncOut.setResponseCode(503);
+            syncOut.setHeader("Content-Type", "text/plan");
+            try
+            {
+                syncOut.getOutputStream().write(t.getMessage().getBytes());
+            }
+            catch (IOException e)
+            {
+                log.warn("Could not write response to output stream", e);
+            }
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
@@ -261,6 +271,15 @@ public class ACSearchRunner implements JobRunner
             log.debug("FAIL", t);
             
             syncOut.setResponseCode(404);
+            syncOut.setHeader("Content-Type", "text/plan");
+            try
+            {
+                syncOut.getOutputStream().write(t.getMessage().getBytes());
+            }
+            catch (IOException e)
+            {
+                log.warn("Could not write response to output stream", e);
+            }
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
@@ -282,6 +301,15 @@ public class ACSearchRunner implements JobRunner
             log.debug("FAIL", t);
             
             syncOut.setResponseCode(404);
+            syncOut.setHeader("Content-Type", "text/plan");
+            try
+            {
+                syncOut.getOutputStream().write(t.getMessage().getBytes());
+            }
+            catch (IOException e)
+            {
+                log.warn("Could not write response to output stream", e);
+            }
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
@@ -303,6 +331,15 @@ public class ACSearchRunner implements JobRunner
             log.debug("FAIL", t);
             
             syncOut.setResponseCode(403);
+            syncOut.setHeader("Content-Type", "text/plan");
+            try
+            {
+                syncOut.getOutputStream().write(t.getMessage().getBytes());
+            }
+            catch (IOException e)
+            {
+                log.warn("Could not write response to output stream", e);
+            }
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
@@ -324,6 +361,15 @@ public class ACSearchRunner implements JobRunner
             log.error("FAIL", t);
             
             syncOut.setResponseCode(500);
+            syncOut.setHeader("Content-Type", "text/plan");
+            try
+            {
+                syncOut.getOutputStream().write(t.getMessage().getBytes());
+            }
+            catch (IOException e)
+            {
+                log.warn("Could not write response to output stream", e);
+            }
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
