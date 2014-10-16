@@ -494,11 +494,12 @@ public class GMSClient
      * @param targetGroupName The group in which to add the group member.
      * @param userID The user to add.
      * @throws GroupNotFoundException If the group was not found.
+     * @throws GroupNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void addUserMember(String targetGroupName, Principal userID)
-        throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
@@ -548,7 +549,10 @@ public class GMSClient
             }
             if (responseCode == 404)
             {
-                throw new GroupNotFoundException(errMessage);
+                if (errMessage != null && errMessage.toLowerCase().contains("user"))
+                    throw new UserNotFoundException(errMessage);
+                else
+                    throw new GroupNotFoundException(errMessage);
             }
             throw new IOException(errMessage);
         }
@@ -625,11 +629,12 @@ public class GMSClient
      * @param targetGroupName The group from which to remove the group member.
      * @param userID The user to remove.
      * @throws GroupNotFoundException If the group was not found.
+     * @throws UserNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void removeUserMember(String targetGroupName, Principal userID)
-        throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
@@ -681,7 +686,10 @@ public class GMSClient
             }
             if (responseCode == 404)
             {
-                throw new GroupNotFoundException(errMessage);
+                if (errMessage != null && errMessage.toLowerCase().contains("user"))
+                    throw new UserNotFoundException(errMessage);
+                else
+                    throw new GroupNotFoundException(errMessage);
             }
             throw new IOException(errMessage);
         }
