@@ -68,9 +68,12 @@
  */
 package ca.nrc.cadc.ac.client;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -79,6 +82,7 @@ import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -105,6 +109,8 @@ import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.NetUtil;
+
+import com.csvreader.CsvReader;
 
 /**
  * Client class for performing group searching and group actions
@@ -286,6 +292,78 @@ public class GMSClient
             String groupXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getGroup returned: " + groupXML);
             return GroupReader.read(groupXML);
+        }
+        catch (Exception bug)
+        {
+            log.error("Unexpected exception", bug);
+            throw new RuntimeException(bug);
+        }
+    }
+    
+    /**
+     * Get the all group names.
+     *
+     * @return The list of names.
+     * @throws AccessControlException If unauthorized to perform this operation.
+     * @throws java.io.IOException
+     */
+    public List<String> getGroupNames()
+        throws AccessControlException, IOException
+    {
+        URL getGroupNamesURL = new URL(this.baseURL + "/groups");
+        log.debug("getGroupNames request to " + getGroupNamesURL.toString());
+        
+        HttpURLConnection conn = 
+                (HttpURLConnection) getGroupNamesURL.openConnection();
+        conn.setRequestMethod("GET");
+
+        SSLSocketFactory sf = getSSLSocketFactory();
+        if ((sf != null) && ((conn instanceof HttpsURLConnection)))
+        {
+            ((HttpsURLConnection) conn)
+                    .setSSLSocketFactory(sf);
+        }
+        int responseCode = -1;
+        try
+        {
+            responseCode = conn.getResponseCode();
+        }
+        catch(Exception e)
+        {
+            throw new AccessControlException(e.getMessage());
+        }
+        
+        if (responseCode != 200)
+        {
+            String errMessage = NetUtil.getErrorBody(conn);
+            log.debug("deleteGroup response " + responseCode + ": " + 
+                      errMessage);
+
+            if ((responseCode == 401) || (responseCode == 403) || 
+                    (responseCode == -1))
+            {
+                throw new AccessControlException(errMessage);
+            }
+            if (responseCode == 400)
+            {
+                throw new IllegalArgumentException(errMessage);
+            }
+            throw new IOException("HttpResponse (" + responseCode + ") - " + errMessage);
+        }
+
+        try
+        {
+            List<String> groupNames = new ArrayList<String>();
+            Reader ioReader = new InputStreamReader(conn.getInputStream());
+            BufferedReader br = new BufferedReader(ioReader);
+            CsvReader reader = new CsvReader(br);
+            
+            for (int i=0; i<reader.getColumnCount(); i++)
+            {
+                groupNames.add(reader.get(i));
+            }
+            
+            return groupNames;
         }
         catch (Exception bug)
         {
@@ -948,6 +1026,7 @@ public class GMSClient
     public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
     {
         this.sslSocketFactory = sslSocketFactory;
+        clearCache();
     }
     
     /**

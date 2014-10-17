@@ -68,11 +68,14 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.util.StringUtil;
 import java.io.IOException;
 import java.net.URLDecoder;
+
 import javax.servlet.http.HttpServletRequest;
+
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.util.StringUtil;
 
 public class GroupsActionFactory
 {
@@ -109,7 +112,7 @@ public class GroupsActionFactory
         {
             if (method.equals("GET"))
             {
-                action = new ListGroupsAction(logInfo);
+                action = new GetGroupNamesAction(logInfo);
             }
             else if (method.equals("PUT"))
             {
