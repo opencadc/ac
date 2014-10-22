@@ -141,11 +141,11 @@ public class GMSClient
         try
         {
             URL testURL = new URL(baseURL);
-            if (!testURL.getProtocol().equals("https"))
-            {
-                throw new IllegalArgumentException(
-                        "URL must have HTTPS protocol");
-            }
+//            if (!testURL.getProtocol().equals("https"))
+//            {
+//                throw new IllegalArgumentException(
+//                        "URL must have HTTPS protocol");
+//            }
         }
         catch (MalformedURLException e)
         {
@@ -584,7 +584,7 @@ public class GMSClient
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
+        String encodedUserID = URLEncoder.encode(userID.getName(), "UTF-8");
         URL addUserMemberURL = new URL(this.baseURL + "/groups/" + 
                                        targetGroupName + "/userMembers/" + 
                                        encodedUserID + "?idType=" + userIDType);
