@@ -93,14 +93,15 @@
     <property name="cadcRegistry"        value="${lib}/cadcRegistryClient.jar" />
     <property name="cadcUtil"            value="${lib}/cadcUtil.jar" />
     <property name="cadcUWS"             value="${lib}/cadcUWS.jar" />
-    
+
+    <property name="javacsv"             value="${ext.lib}/javacsv.jar" />
     <property name="jdom2"               value="${ext.lib}/jdom2.jar" />
     <property name="log4j"               value="${ext.lib}/log4j.jar" />
     <property name="servlet"             value="${ext.lib}/servlet-api.jar" />
     <property name="unboundid"           value="${ext.lib}/unboundid-ldapsdk-se.jar" />
     <property name="xerces"              value="${ext.lib}/xerces.jar" />
 
-    <property name="jars" value="${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${jdom2}:${log4j}:${servlet}:${unboundid}:${xerces}" />
+    <property name="jars" value="${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${javacsv}:${jdom2}:${log4j}:${servlet}:${unboundid}:${xerces}" />
 
     <target name="build" depends="compile">
         <jar jarfile="${build}/lib/${project}.jar"
@@ -130,7 +131,7 @@
         </copy>
     </target>
     
-<!--    <target name="test" depends="compile-test,resources">
+    <target name="test" depends="compile-test,resources">
         <echo message="Running test suite..." />
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
@@ -138,9 +139,9 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTest" />
+            <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
             <formatter type="plain" usefile="false" />
         </junit>
-    </target>-->
+    </target>
 
 </project>

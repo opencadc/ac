@@ -94,8 +94,8 @@ public class LdapGroupPersistence<T extends Principal>
         config = LdapConfig.getLdapConfig();
     }
     
-    public Collection<String> getGroupNames() throws TransientException,
-        AccessControlException
+    public Collection<String> getGroupNames()
+        throws TransientException, AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;

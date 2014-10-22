@@ -315,7 +315,7 @@ public class LdapGroupDAOTest
                     assertNotNull(groups);
                     assertTrue(groups.size() >= 2);
                     
-                    log.debug("# groups found: " + groups.size());
+                    log.debug("testSearchMemberGroups groups found: " + groups.size());
                     boolean found1 = false;
                     boolean found2 = false;
                     for (Group group : groups)
@@ -413,7 +413,7 @@ public class LdapGroupDAOTest
                             getGroupDAO().getGroups(daoTestUser2.getUserID(), 
                                                     Role.ADMIN, null);
                     
-                    log.debug("# groups found: " + groups.size());
+                    log.debug("testSearchAdminGroups groups found: " + groups.size());
                     assertNotNull(groups);
                     assertTrue(groups.size() >= 2);
                     
@@ -462,6 +462,97 @@ public class LdapGroupDAOTest
                 {   
                     getGroupDAO().deleteGroup(testGroup1ID);
                     getGroupDAO().deleteGroup(testGroup2ID);                    
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void testGetGroupNames() throws Exception
+    {
+        final String groupID = getGroupID();
+        final String testGroup1ID = groupID + ".1";
+        final String testGroup2ID = groupID + ".2";
+
+        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    Group testGroup1 = new Group(testGroup1ID, daoTestUser1);
+                    testGroup1 = getGroupDAO().addGroup(testGroup1);
+                    log.debug("add group: " + testGroup1ID);
+
+                    Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
+                    testGroup2 = getGroupDAO().addGroup(testGroup2);
+                    log.debug("add group: " + testGroup2ID);
+                    Thread.sleep(1000); // sleep to let memberof plugin do its work
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+                return null;
+            }
+        });
+
+        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    Collection<String> groups = getGroupDAO().getGroupNames();
+
+                    log.debug("testGetGroupNames groups found: " + groups.size());
+                    assertNotNull(groups);
+                    assertTrue(groups.size() >= 2);
+
+                    boolean found1 = false;
+                    boolean found2 = false;
+                    for (String name : groups)
+                    {
+                        log.debug("group: " + name);
+                        if (name.equals(testGroup1ID))
+                        {
+                            found1 = true;
+                        }
+                        if (name.equals(testGroup2ID))
+                        {
+                            found2 = true;
+                        }
+                    }
+                    if (!found1)
+                    {
+                        fail("Admin group " + testGroup1ID + " not found");
+                    }
+                    if (!found2)
+                    {
+                        fail("Admin group " + testGroup2ID + " not found");
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+                return null;
+            }
+        });
+
+        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    getGroupDAO().deleteGroup(testGroup1ID);
+                    getGroupDAO().deleteGroup(testGroup2ID);
                 }
                 catch (Exception e)
                 {

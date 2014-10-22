@@ -314,12 +314,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * 
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Collection<String> getGroupNames() throws TransientException,
-               AccessControlException
+    public Collection<String> getGroupNames()
+        throws TransientException, AccessControlException
     {
         try
         {
-            Filter filter = null;
+            Filter filter = Filter.createPresenceFilter("entrydn");
             String [] attributes = new String[] {"cn", "nsaccountlock"};
             
             SearchRequest searchRequest = 
