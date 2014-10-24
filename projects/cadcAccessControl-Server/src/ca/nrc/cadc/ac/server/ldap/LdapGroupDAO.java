@@ -88,6 +88,7 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.StringUtil;
 
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
@@ -214,7 +215,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         attributes.add(new Attribute("objectClass", "groupofuniquenames"));
         attributes.add(new Attribute("cn", groupID));
         
-        if (description != null)
+        if (StringUtil.hasText(description))
         {
             attributes.add(new Attribute("description", description));
         }
