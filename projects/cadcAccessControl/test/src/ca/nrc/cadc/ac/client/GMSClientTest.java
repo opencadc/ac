@@ -140,20 +140,21 @@ public class GMSClientTest
         try
         {
             Subject subject = new Subject();
-            final HttpPrincipal userID = new HttpPrincipal("test");
-            subject.getPrincipals().add(userID);
+            final HttpPrincipal test1UserID = new HttpPrincipal("test");
+            subject.getPrincipals().add(test1UserID);
+            
+            RegistryClient regClient = new RegistryClient();
+            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
+                    "https");
+            final GMSClient client = new GMSClient(baseURL.toString());
 
             Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
                 {
                     @Override
                     public Object run() throws Exception
                     {
-                        RegistryClient regClient = new RegistryClient();
-                        URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
-                                                              "https");
-                        GMSClient client = new GMSClient(baseURL.toString());
 
-                        List<Group> initial = client.getCachedGroups(userID, Role.MEMBER);
+                        List<Group> initial = client.getCachedGroups(test1UserID, Role.MEMBER);
                         Assert.assertNull("Cache should be null", initial);
 
                         List<Group> expected = new ArrayList<Group>();
@@ -162,31 +163,65 @@ public class GMSClientTest
                         expected.add(group1);
                         expected.add(group2);
 
-                        client.setCachedGroups(userID, expected, Role.MEMBER);
+                        client.setCachedGroups(test1UserID, expected, Role.MEMBER);
 
-                        List<Group> actual = client.getCachedGroups(userID, Role.MEMBER);
+                        List<Group> actual = client.getCachedGroups(test1UserID, Role.MEMBER);
                         Assert.assertEquals("Wrong cached groups", expected, actual);
                         
                         // check against another role
-                        actual = client.getCachedGroups(userID, Role.OWNER);
+                        actual = client.getCachedGroups(test1UserID, Role.OWNER);
                         Assert.assertNull("Cache should be null", actual);
                         
                         // check against another userid
-                        final HttpPrincipal userID2 = new HttpPrincipal("test2");
-                        actual = client.getCachedGroups(userID2, Role.MEMBER);
+                        final HttpPrincipal anotherUserID = new HttpPrincipal("anotheruser");
+                        actual = client.getCachedGroups(anotherUserID, Role.MEMBER);
                         Assert.assertNull("Cache should be null", actual);
 
                         return null;
                     }
                 });
+            
+            subject = new Subject();
+            final HttpPrincipal test2UserID = new HttpPrincipal("test2");
+            subject.getPrincipals().add(test2UserID);
+            
+            // do the same but as a different user
+            Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+                    {
+                        @Override
+                        public Object run() throws Exception
+                        {
+
+                            List<Group> initial = client.getCachedGroups(test2UserID, Role.MEMBER);
+                            Assert.assertNull("Cache should be null", initial);
+
+                            List<Group> expected = new ArrayList<Group>();
+                            Group group1 = new Group("1");
+                            Group group2 = new Group("2");
+                            expected.add(group1);
+                            expected.add(group2);
+
+                            client.setCachedGroups(test2UserID, expected, Role.MEMBER);
+
+                            List<Group> actual = client.getCachedGroups(test2UserID, Role.MEMBER);
+                            Assert.assertEquals("Wrong cached groups", expected, actual);
+                            
+                            // check against another role
+                            actual = client.getCachedGroups(test2UserID, Role.OWNER);
+                            Assert.assertNull("Cache should be null", actual);
+                            
+                            // check against another userid
+                            final HttpPrincipal anotherUserID = new HttpPrincipal("anotheruser");
+                            actual = client.getCachedGroups(anotherUserID, Role.MEMBER);
+                            Assert.assertNull("Cache should be null", actual);
+
+                            return null;
+                        }
+                    });
 
             // do the same without a subject
-            RegistryClient regClient = new RegistryClient();
-            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
-                                                  "https");
-            GMSClient client = new GMSClient(baseURL.toString());
 
-            List<Group> initial = client.getCachedGroups(userID, Role.MEMBER);
+            List<Group> initial = client.getCachedGroups(test1UserID, Role.MEMBER);
             Assert.assertNull("Cache should be null", initial);
 
             List<Group> newgroups = new ArrayList<Group>();
@@ -195,9 +230,9 @@ public class GMSClientTest
             newgroups.add(group1);
             newgroups.add(group2);
 
-            client.setCachedGroups(userID, newgroups, Role.MEMBER);
+            client.setCachedGroups(test1UserID, newgroups, Role.MEMBER);
 
-            List<Group> actual = client.getCachedGroups(userID, Role.MEMBER);
+            List<Group> actual = client.getCachedGroups(test1UserID, Role.MEMBER);
             Assert.assertNull("Cache should still be null", actual);
         }
         catch (Throwable t)
