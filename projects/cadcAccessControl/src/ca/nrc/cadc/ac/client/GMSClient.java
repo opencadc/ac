@@ -86,7 +86,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 
@@ -185,6 +184,9 @@ public class GMSClient
     {
         URL createGroupURL = new URL(this.baseURL + "/groups");
         log.debug("createGroupURL request to " + createGroupURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
 
         StringBuilder groupXML = new StringBuilder();
         GroupWriter.write(group, groupXML);
@@ -299,15 +301,19 @@ public class GMSClient
      * @return The group after update.
      * @throws IllegalArgumentException If cyclical membership is detected.
      * @throws GroupNotFoundException If the group was not found.
+     * @throws GroupNotFoundException If a member was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
     public Group updateGroup(Group group)
-        throws IllegalArgumentException, GroupNotFoundException,
+        throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
                AccessControlException, IOException
     {
         URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
         log.debug("updateGroup request to " + updateGroupURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
 
         StringBuilder groupXML = new StringBuilder();
         GroupWriter.write(group, groupXML);
@@ -340,7 +346,10 @@ public class GMSClient
             }
             if (transfer.getResponseCode() == 404)
             {
-                throw new GroupNotFoundException(error.getMessage());
+                if (error.getMessage() != null && error.getMessage().toLowerCase().contains("user"))
+                    throw new UserNotFoundException(error.getMessage());
+                else
+                    throw new GroupNotFoundException(error.getMessage());
             }
             throw new IOException(error);
         }
@@ -371,6 +380,10 @@ public class GMSClient
     {
         URL deleteGroupURL = new URL(this.baseURL + "/groups/" + groupName);
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
+        
         HttpURLConnection conn = 
                 (HttpURLConnection) deleteGroupURL.openConnection();
         conn.setRequestMethod("DELETE");
@@ -379,14 +392,14 @@ public class GMSClient
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
             ((HttpsURLConnection) conn)
-                    .setSSLSocketFactory(getSSLSocketFactory());
+                    .setSSLSocketFactory(sf);
         }
         int responseCode = -1;
         try
         {
             responseCode = conn.getResponseCode();
         }
-        catch(SSLHandshakeException e)
+        catch(Exception e)
         {
             throw new AccessControlException(e.getMessage());
         }
@@ -432,6 +445,9 @@ public class GMSClient
                                         targetGroupName + "/groupMembers/" + 
                                         groupMemberName);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
 
         HttpURLConnection conn = 
                 (HttpURLConnection) addGroupMemberURL.openConnection();
@@ -482,11 +498,12 @@ public class GMSClient
      * @param targetGroupName The group in which to add the group member.
      * @param userID The user to add.
      * @throws GroupNotFoundException If the group was not found.
+     * @throws GroupNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void addUserMember(String targetGroupName, Principal userID)
-        throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
@@ -495,6 +512,9 @@ public class GMSClient
                                        encodedUserID + "?idType=" + userIDType);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
 
         HttpURLConnection conn = 
                 (HttpURLConnection) addUserMemberURL.openConnection();
@@ -533,7 +553,10 @@ public class GMSClient
             }
             if (responseCode == 404)
             {
-                throw new GroupNotFoundException(errMessage);
+                if (errMessage != null && errMessage.toLowerCase().contains("user"))
+                    throw new UserNotFoundException(errMessage);
+                else
+                    throw new GroupNotFoundException(errMessage);
             }
             throw new IOException(errMessage);
         }
@@ -557,6 +580,9 @@ public class GMSClient
                                            groupMemberName);
         log.debug("removeGroupMember request to " + 
                   removeGroupMemberURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
 
         HttpURLConnection conn = 
                 (HttpURLConnection) removeGroupMemberURL.openConnection();
@@ -607,11 +633,12 @@ public class GMSClient
      * @param targetGroupName The group from which to remove the group member.
      * @param userID The user to remove.
      * @throws GroupNotFoundException If the group was not found.
+     * @throws UserNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void removeUserMember(String targetGroupName, Principal userID)
-        throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
@@ -622,6 +649,9 @@ public class GMSClient
 
         log.debug("removeUserMember request to " + 
                   removeUserMemberURL.toString());
+        
+        // reset the state of the cache
+        clearCache();
 
         HttpURLConnection conn = 
                 (HttpURLConnection) removeUserMemberURL.openConnection();
@@ -660,7 +690,10 @@ public class GMSClient
             }
             if (responseCode == 404)
             {
-                throw new GroupNotFoundException(errMessage);
+                if (errMessage != null && errMessage.toLowerCase().contains("user"))
+                    throw new UserNotFoundException(errMessage);
+                else
+                    throw new GroupNotFoundException(errMessage);
             }
             throw new IOException(errMessage);
         }
@@ -928,8 +961,21 @@ public class GMSClient
             AccessControlContext ac = AccessController.getContext();
             Subject s = Subject.getSubject(ac);
             this.sslSocketFactory = SSLUtil.getSocketFactory(s);
+            log.debug("Socket Factory: " + this.sslSocketFactory);
         }
         return this.sslSocketFactory;
+    }
+    
+    protected void clearCache()
+    {
+        AccessControlContext acContext = AccessController.getContext();
+        Subject subject = Subject.getSubject(acContext);
+        
+        if (subject != null)
+        {
+            log.debug("Clearing cache");
+            subject.getPrivateCredentials().clear();
+        }
     }
 
     protected List<Group> getCachedGroups(Principal userID, Role role)
@@ -940,7 +986,6 @@ public class GMSClient
         // only consult cache if the userID is of the calling subject
         if (userIsSubject(userID, subject))
         {
-            
             Set groupCredentialSet = subject.getPrivateCredentials(GroupMemberships.class);
             if ((groupCredentialSet != null) && 
                 (groupCredentialSet.size() == 1))
@@ -961,6 +1006,8 @@ public class GMSClient
         // only save to cache if the userID is of the calling subject
         if (userIsSubject(userID, subject))
         {
+            log.debug("Caching groups for " + userID + ", role " + role);
+            
             GroupMemberships groupCredentials = null;
             Set groupCredentialSet = subject.getPrivateCredentials(GroupMemberships.class);
             if ((groupCredentialSet != null) && 
