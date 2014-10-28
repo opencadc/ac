@@ -139,7 +139,7 @@ public class LdapGroupDAOTest
         return "CadcDaoTestGroup-" + System.currentTimeMillis();
     }
 
-//    @Test
+    @Test
     public void testOneGroup() throws Exception
     {
         // do everything as owner
@@ -222,7 +222,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testSearchOwnerGroups() throws Exception
     {
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
@@ -270,7 +270,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testSearchMemberGroups() throws Exception
     {
         final String groupID = getGroupID();
@@ -371,7 +371,7 @@ public class LdapGroupDAOTest
         });
     }
 
-//    @Test
+    @Test
     public void testSearchAdminGroups() throws Exception
     {
         final String groupID = getGroupID();
@@ -492,7 +492,7 @@ public class LdapGroupDAOTest
                     Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
                     testGroup2 = getGroupDAO().addGroup(testGroup2);
                     log.debug("add group: " + testGroup2ID);
-                    Thread.sleep(1000); // sleep to let memberof plugin do its work
+                    //Thread.sleep(1000); // sleep to let memberof plugin do its work
                 }
                 catch (Exception e)
                 {
@@ -563,7 +563,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testAddGroupExceptions() throws Exception
     {
         Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
@@ -610,7 +610,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testGetGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -661,24 +661,25 @@ public class LdapGroupDAOTest
                 return null;
             }
         });
-        
-        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {                    
-                    getGroupDAO().getGroup(groupID);
-                    fail("getGroup with anonymous access should throw " + 
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
+
+        // All access ACI's will allow anonymous access
+//        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+//        {
+//            public Object run() throws Exception
+//            {
+//                try
+//                {
+//                    getGroupDAO().getGroup(groupID);
+//                    fail("getGroup with anonymous access should throw " +
+//                         "AccessControlException");
+//                }
+//                catch (AccessControlException ignore) {}
+//                return null;
+//            }
+//        });
     }
-    
-//    @Test
+
+    @Test
     public void testModifyGroupExceptions() throws Exception
     {        
         final String groupID = getGroupID();
@@ -725,7 +726,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testDeleteGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -772,7 +773,7 @@ public class LdapGroupDAOTest
         });
     }
     
-//    @Test
+    @Test
     public void testSearchGroupsExceptions() throws Exception
     {        
         final String groupID = getGroupID();
@@ -819,38 +820,35 @@ public class LdapGroupDAOTest
                 return null;
             }
         });
-        
+
+        //
+        // change the user
+//        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+//        {
+//            public Object run() throws Exception
+//            {
+//                try
+//                {
+//                    Group group = getGroupDAO().getGroup(groupID);
+//                    assertTrue(group == null);
+//
+//                    fail("searchGroups with un-authorized user should throw " +
+//                         "AccessControlException");
+//                }
+//                catch (AccessControlException ignore)
+//                {
+//
+//                }
+//
+//                return null;
+//            }
+//        });
+
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
-            {               
-                getGroupDAO().deleteGroup(groupID);
-                return null;
-            }
-        });
-        
-        
-        // change the user
-        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
-        {
-            
-            public Object run() throws Exception
             {
-
-                
-                try
-                {
-                    Group group = getGroupDAO().getGroup(groupID);
-                    assertTrue(group == null);
-                    
-                    fail("searchGroups with un-authorized user should throw " + 
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) 
-                {
-
-                }
-
+                getGroupDAO().deleteGroup(groupID);
                 return null;
             }
         });
