@@ -319,16 +319,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            Filter filter = Filter.createPresenceFilter("entrydn");
+            Filter filter = Filter.createEqualityFilter("cn", "*");
             String [] attributes = new String[] {"cn", "nsaccountlock"};
             
             SearchRequest searchRequest = 
                     new SearchRequest(config.getGroupsDN(), 
                                       SearchScope.SUB, filter, attributes);
-    
-            searchRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-                            getSubjectDN().toNormalizedString()));
     
             SearchResult searchResult = null;
             try

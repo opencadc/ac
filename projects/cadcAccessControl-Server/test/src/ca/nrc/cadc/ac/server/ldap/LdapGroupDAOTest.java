@@ -139,7 +139,7 @@ public class LdapGroupDAOTest
         return "CadcDaoTestGroup-" + System.currentTimeMillis();
     }
 
-    @Test
+//    @Test
     public void testOneGroup() throws Exception
     {
         // do everything as owner
@@ -222,7 +222,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testSearchOwnerGroups() throws Exception
     {
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
@@ -270,7 +270,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testSearchMemberGroups() throws Exception
     {
         final String groupID = getGroupID();
@@ -371,7 +371,7 @@ public class LdapGroupDAOTest
         });
     }
 
-    @Test
+//    @Test
     public void testSearchAdminGroups() throws Exception
     {
         final String groupID = getGroupID();
@@ -563,7 +563,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testAddGroupExceptions() throws Exception
     {
         Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
@@ -610,7 +610,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testGetGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -678,7 +678,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testModifyGroupExceptions() throws Exception
     {        
         final String groupID = getGroupID();
@@ -725,7 +725,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testDeleteGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -772,7 +772,7 @@ public class LdapGroupDAOTest
         });
     }
     
-    @Test
+//    @Test
     public void testSearchGroupsExceptions() throws Exception
     {        
         final String groupID = getGroupID();
