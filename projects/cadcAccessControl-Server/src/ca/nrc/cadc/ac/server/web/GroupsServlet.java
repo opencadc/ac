@@ -66,99 +66,96 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.IOException;
 
-public class User<T extends Principal>
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.auth.AuthenticationUtil;
+
+public class GroupsServlet extends HttpServlet
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private static final Logger log = Logger.getLogger(GroupsServlet.class);
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
-    {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
+    /**
+     * Create a GroupAction and run the action safely.
      */
+    private void doAction(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        long start = System.currentTimeMillis();
+        GroupLogInfo logInfo = new GroupLogInfo(request);
+        try
+        {
+            log.info(logInfo.start());
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
+            action.doAction(subject, response);
+        }
+        catch (IllegalArgumentException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            logInfo.setSuccess(false);
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
+        }
+        catch (Throwable t)
+        {
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.getWriter().write(message);
+            response.setStatus(500);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
+        }
+    }
+
     @Override
-    public int hashCode()
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        doAction(request, response);
     }
 
     @Override
-    public String toString()
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
+        doAction(request, response);
     }
 
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
+        doAction(request, response);
     }
+
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doHead(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
 }

@@ -68,97 +68,121 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import ca.nrc.cadc.xml.XmlUtil;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
-public class User<T extends Principal>
+public class GroupsReader
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
-    {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
+    /**
+     * Construct a list of Group's from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return Groups List of Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    @Override
-    public int hashCode()
+    public static List<Group> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
     {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
+        if (xml == null)
+        {
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
+    /**
+     * Construct a list of Group's from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return Groups List of Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    @Override
-    public boolean equals(Object obj)
+    public static List<Group> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
-        if (this == obj)
+        if (in == null)
         {
-            return true;
+            throw new IOException("stream closed");
         }
-        if (obj == null)
+        InputStreamReader reader;
+        try
         {
-            return false;
+            reader = new InputStreamReader(in, "UTF-8");
         }
-        if (getClass() != obj.getClass())
+        catch (UnsupportedEncodingException e)
         {
-            return false;
+            throw new RuntimeException("UTF-8 encoding not supported");
         }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        return read(reader);
     }
 
-    @Override
-    public String toString()
+    /**
+     * Construct a List of Group's from a Reader.
+     * 
+     * @param reader Reader.
+     * @return Groups List of Group.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public static List<Group> read(Reader reader)
+        throws ReaderException, IOException, URISyntaxException
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
+        if (reader == null)
         {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
+            throw new IllegalArgumentException("reader must not be null");
         }
 
-        return matchedDetails;
+        Document document;
+        try
+        {
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        Element root = document.getRootElement();
+
+        String groupElemName = root.getName();
+
+        if (!groupElemName.equalsIgnoreCase("groups"))
+        {
+            String error = "Expected groups element, found " + groupElemName;
+            throw new ReaderException(error);
+        }
+
+        return parseGroups(root);
+    }
+
+    protected static List<Group> parseGroups(Element groupsElement)
+            throws URISyntaxException, ReaderException
+    {
+        List<Group> groups = new ArrayList<Group>();
+
+        List<Element> groupElements = groupsElement.getChildren("group");
+        for (Element groupElement : groupElements)
+        {
+            groups.add(GroupReader.parseGroup(groupElement));
+        }
+
+        return groups;
     }
 }

@@ -66,99 +66,100 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server;
 
+import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import java.net.URL;
 import java.security.Principal;
-import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
+import org.apache.log4j.Logger;
 
-public class User<T extends Principal>
+public class PluginFactory
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private static final Logger log = Logger.getLogger(PluginFactory.class);
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
+    private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
+    private Properties config;
 
-    public User(final T userID)
+    public PluginFactory()
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        init();
     }
 
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
+        return getClass().getName() + "[" + config.entrySet().size() + "]";
     }
 
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
+    private void init()
     {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
+        config = new Properties();
+        URL url = null;
+        try
         {
-            if (ud.getClass() == userDetailsClass)
+            url = PluginFactory.class.getClassLoader().getResource(CONFIG);
+            if (url != null)
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                config.load(url.openStream());
             }
         }
-
-        return matchedDetails;
+        catch (Exception ex)
+        {
+            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
+        }
     }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Principal> GroupPersistence<T> getGroupPersistence()
+    {
+        GroupPersistence<T> ret = null;
+        String name = GroupPersistence.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null)
+        {
+            ret = new LdapGroupPersistence<T>();
+        }
+        else
+        {
+            try
+            {
+                Class<?> c = Class.forName(cname);
+                ret = (GroupPersistence<T>) c.newInstance();
+            }
+            catch (Exception ex)
+            {
+                throw new RuntimeException("config error: failed to create GroupPersistence " + cname, ex);
+            }
+        }
+        return ret;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Principal> UserPersistence<T> getUserPersistence()
+    {
+        UserPersistence<T> ret = null;
+        String name = UserPersistence.class.getName();
+        String cname = config.getProperty(name);
+        if (cname == null)
+        {
+            ret = new LdapUserPersistence<T>();
+        }
+        else
+        {
+            try
+            {
+                Class<?> c = Class.forName(cname);
+                ret = (UserPersistence<T>) c.newInstance();
+            }
+            catch (Exception ex)
+            {
+                throw new RuntimeException("config error: failed to create UserPersistence " + cname, ex);
+            }
+        }
+        return ret;
+    }
+
 }

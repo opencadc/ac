@@ -68,97 +68,136 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.util.StringBuilderWriter;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.security.Principal;
-import java.util.HashSet;
 import java.util.Set;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
-public class User<T extends Principal>
+public class UserWriter
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
-    {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
+    /**
+     * Write a User to a StringBuilder.
+     * 
+     * @param user User to write.
+     * @param builder StringBuilder to write to.
+     * @throws java.io.IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
      */
-    @Override
-    public int hashCode()
+    public static void write(User<? extends Principal> user, StringBuilder builder)
+        throws IOException, WriterException
     {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
+        write(user, new StringBuilderWriter(builder));
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
+    /**
+     * Write a User to an OutputStream.
+     *
+     * @param user User to write.
+     * @param out OutputStream to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
      */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+    public static void write(User<? extends Principal> user, OutputStream out)
+        throws IOException, WriterException
+    {                
+        OutputStreamWriter outWriter;
+        try
         {
-            return true;
+            outWriter = new OutputStreamWriter(out, "UTF-8");
         }
-        if (obj == null)
+        catch (UnsupportedEncodingException e)
         {
-            return false;
+            throw new RuntimeException("UTF-8 encoding not supported", e);
         }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        write(user, new BufferedWriter(outWriter));
     }
 
-    @Override
-    public String toString()
+    /**
+     * Write a User to a Writer.
+     *
+     * @param user User to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
+    public static void write(User<? extends Principal> user, Writer writer)
+        throws IOException, WriterException
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
+        if (user == null)
+        {
+            throw new WriterException("null User");
+        }
+        
+        write(getUserElement(user), writer);
     }
 
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
+    /**
+     * Build the member Element of a User.
+     *
+     * @param user User.
+     * @return member Element.
+     * @throws ca.nrc.cadc.ac.WriterException
+     */
+    public static Element getUserElement(User<? extends Principal> user)
+        throws WriterException
     {
-        final Set<S> matchedDetails = new HashSet<S>();
+        // Create the user Element.
+        Element userElement = new Element("user");
 
-        for (final UserDetails ud : details)
+        // userID element
+        Element userIDElement = new Element("userID");
+        userIDElement.addContent(IdentityWriter.write(user.getUserID()));
+        userElement.addContent(userIDElement);
+
+        // identities
+        Set<Principal> identities = user.getIdentities();
+        if (!identities.isEmpty())
         {
-            if (ud.getClass() == userDetailsClass)
+            Element identitiesElement = new Element("identities");
+            for (Principal identity : identities)
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                identitiesElement.addContent(IdentityWriter.write(identity));
             }
+            userElement.addContent(identitiesElement);
         }
 
-        return matchedDetails;
+        // details
+        if (!user.details.isEmpty())
+        {
+            Element detailsElement = new Element("details");
+            Set<UserDetails> userDetails = user.details;
+            for (UserDetails userDetail : userDetails)
+            {
+                detailsElement.addContent(UserDetailsWriter.write(userDetail));
+            }
+            userElement.addContent(detailsElement);
+        }
+
+        return userElement;
     }
+
+    /**
+     * Write to root Element to a writer.
+     *
+     * @param root Root Element to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     */
+    private static void write(Element root, Writer writer)
+        throws IOException
+    {
+        XMLOutputter outputter = new XMLOutputter();
+        outputter.setFormat(Format.getPrettyFormat());
+        outputter.output(new Document(root), writer);
+    }
+
 }

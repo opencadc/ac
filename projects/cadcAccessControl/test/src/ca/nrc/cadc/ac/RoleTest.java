@@ -68,97 +68,86 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class User<T extends Principal>
+/**
+ *
+ * @author jburke
+ */
+public class RoleTest
 {
-    private T userID;
+    private final static Logger log = Logger.getLogger(RoleTest.class);
     
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    @BeforeClass
+    public static void setUpClass()
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
+    /**
+     * Test of values method, of class Role.
      */
-    @Override
-    public int hashCode()
+    @Test
+    public void testValues()
     {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
+        Role[] expResult = new Role[] { Role.OWNER, Role.MEMBER, Role.ADMIN };
+        Role[] result = Role.values();
+        assertArrayEquals(expResult, result);
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
+    /**
+     * Test of valueOf method, of class Role.
      */
-    @Override
-    public boolean equals(Object obj)
+    @Test
+    public void testValueOf()
     {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        assertEquals(Role.OWNER, Role.valueOf("OWNER"));
+        assertEquals(Role.MEMBER, Role.valueOf("MEMBER"));
+        assertEquals(Role.ADMIN, Role.valueOf("ADMIN"));
     }
 
-    @Override
-    public String toString()
+    /**
+     * Test of toValue method, of class Role.
+     */
+    @Test
+    public void testToValue()
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
+        try
         {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
+            Role.toValue("foo");
+            fail("invalid value should throw IllegalArgumentException");
         }
-
-        return matchedDetails;
+        catch (IllegalArgumentException ignore) {}
+        
+        assertEquals(Role.OWNER, Role.toValue("owner"));
+        assertEquals(Role.MEMBER, Role.toValue("member"));
+        assertEquals(Role.ADMIN, Role.toValue("admin"));
     }
+
+    /**
+     * Test of getValue method, of class Role.
+     */
+    @Test
+    public void testGetValue()
+    {
+        assertEquals("owner", Role.OWNER.getValue());
+        assertEquals("member", Role.MEMBER.getValue());
+        assertEquals("admin", Role.ADMIN.getValue());
+    }
+
+    /**
+     * Test of checksum method, of class Role.
+     */
+    @Test
+    public void testChecksum()
+    {
+        assertEquals("owner".hashCode(), Role.OWNER.checksum());
+        assertEquals("member".hashCode(), Role.MEMBER.checksum());
+        assertEquals("admin".hashCode(), Role.ADMIN.checksum());
+    }
+    
 }
