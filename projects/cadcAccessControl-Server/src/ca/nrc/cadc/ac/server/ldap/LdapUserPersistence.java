@@ -66,99 +66,128 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.net.TransientException;
+import com.unboundid.ldap.sdk.DN;
+import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collection;
+import org.apache.log4j.Logger;
 
-public class User<T extends Principal>
+public class LdapUserPersistence<T extends Principal>
+    implements UserPersistence<T>
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
+    private LdapConfig config;
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    public LdapUserPersistence()
     {
-        if (userID == null)
+        try
         {
-            throw new IllegalArgumentException("null userID");
+            this.config = LdapConfig.getLdapConfig();
         }
-        this.userID = userID;
+        catch (RuntimeException e)
+        {
+            logger.error("test/config/LdapConfig.properties file required.", e);
+        }
     }
 
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
      */
-    @Override
-    public int hashCode()
+    public User<T> getUser(T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
     {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        LdapUserDAO<T> userDAO = null;
+        try
         {
-            return true;
+            userDAO = new LdapUserDAO<T>(this.config);
+            User<T> ret = userDAO.getUser(userID);
+            return ret;
         }
-        if (obj == null)
+        finally
         {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
+            if (userDAO != null)
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                userDAO.close();
             }
         }
-
-        return matchedDetails;
     }
+    
+    /**
+     * Get all groups the user specified by userID belongs to.
+     * 
+     * @param userID The userID.
+     * @param isAdmin return only admin Groups when true, else return non-admin
+     *                Groups.
+     * 
+     * @return Collection of Group DN.
+     * 
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<DN> getUserGroups(T userID, boolean isAdmin)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            Collection<DN> ret = userDAO.getUserGroups(userID, isAdmin);
+            return ret;
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+    
+    /**
+     * Check whether the user is a member of the group.
+     *
+     * @param userID The userID.
+     * @param groupID The groupID.
+     *
+     * @return true or false
+     *
+     * @throws UserNotFoundException If the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public boolean isMember(T userID, String groupID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            boolean ret = userDAO.isMember(userID, groupID);
+            return ret;
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
 }

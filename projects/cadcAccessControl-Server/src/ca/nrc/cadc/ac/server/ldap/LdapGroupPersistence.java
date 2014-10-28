@@ -66,99 +66,161 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.ldap;
 
+import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collection;
 
-public class User<T extends Principal>
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.net.TransientException;
+
+public class LdapGroupPersistence<T extends Principal>
+    implements GroupPersistence<T>
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private static final Logger log = 
+            Logger.getLogger(LdapGroupPersistence.class);
+    private final LdapConfig config;
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    public LdapGroupPersistence()
     {
-        if (userID == null)
+        config = LdapConfig.getLdapConfig();
+    }
+
+    public Group getGroup(String groupName)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
+    {
+        LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
+        try
         {
-            throw new IllegalArgumentException("null userID");
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            Group ret = groupDAO.getGroup(groupName);
+            return ret;
         }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        finally
         {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
+            if (groupDAO != null)
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
             }
         }
-
-        return matchedDetails;
     }
+
+    public Group addGroup(Group group)
+        throws GroupAlreadyExistsException, TransientException, 
+               AccessControlException, UserNotFoundException
+    {
+        LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            Group ret = groupDAO.addGroup(group);
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    public void deleteGroup(String groupName)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException
+    {
+        LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            groupDAO.deleteGroup(groupName);
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    public Group modifyGroup(Group group)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException, UserNotFoundException
+    {
+        LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            Group ret = groupDAO.modifyGroup(group);
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    public Collection<Group> getGroups(T userID, Role role, String groupID)
+        throws UserNotFoundException, GroupNotFoundException,
+               TransientException, AccessControlException
+    {
+        LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            Collection<Group> ret = groupDAO.getGroups(userID, role, groupID);
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+    
 }

@@ -65,100 +65,66 @@
  *  $Revision: 4 $
  *
  ************************************************************************
+ */package ca.nrc.cadc.ac;
+
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+/**
+ *
+ * @author jburke
  */
-package ca.nrc.cadc.ac;
-
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-
-public class User<T extends Principal>
+public class PersonalDetailsTest
 {
-    private T userID;
+    private static Logger log = Logger.getLogger(PersonalDetailsTest.class);
     
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    @Test
+    public void simplePersonalDetailsTest() throws Exception
     {
-        if (userID == null)
+        PersonalDetails pd1 = new PersonalDetails("firstname", "lastname");
+        
+        assertEquals("firstname", pd1.getFirstName());
+        assertEquals("lastname", pd1.getLastName());
+
+        PersonalDetails pd2 = pd1;
+        assertEquals(pd1.hashCode(), pd2.hashCode());
+        assertEquals(pd1, pd2);
+        assertTrue(pd1 == pd2);
+        
+        // test toString
+        System.out.println(pd1);
+    }
+    
+    @Test
+    public void exceptionTests()
+    {
+        boolean thrown = false;
+        try
         {
-            throw new IllegalArgumentException("null userID");
+            new PersonalDetails(null, "lastname");
         }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch(IllegalArgumentException e)
         {
-            return true;
+            thrown = true;
         }
-        if (obj == null)
+        assertTrue(thrown);
+        
+        
+        thrown = false;
+        try
         {
-            return false;
+            new PersonalDetails("firstname", null);
         }
-        if (getClass() != obj.getClass())
+        catch(IllegalArgumentException e)
         {
-            return false;
+            thrown = true;
         }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
+        assertTrue(thrown);
+    }    
+    
 }

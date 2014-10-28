@@ -66,99 +66,112 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import ca.nrc.cadc.util.StringUtil;
+import java.io.IOException;
+import java.net.URLDecoder;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.log4j.Logger;
 
-public class User<T extends Principal>
+public class GroupsActionFactory
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    static GroupsAction getGroupsAction(HttpServletRequest request, GroupLogInfo logInfo)
+        throws IOException
     {
-        if (userID == null)
+        GroupsAction action = null;
+        String method = request.getMethod();
+        String path = request.getPathInfo();
+        log.debug("method: " + method);
+        log.debug("path: " + path);
+
+        if (path == null)
         {
-            throw new IllegalArgumentException("null userID");
+            path = new String();
         }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        if (path.startsWith("/"))
         {
-            return true;
+            path = path.substring(1);
         }
-        if (obj == null)
+        if (path.endsWith("/"))
         {
-            return false;
+            path = path.substring(0, path.length() - 1);
         }
-        if (getClass() != obj.getClass())
+        String[] segments = new String[0];
+        if (StringUtil.hasText(path))
         {
-            return false;
+            segments = path.split("/");
         }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
+
+        if (segments.length == 0)
         {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
+            if (method.equals("GET"))
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                action = new ListGroupsAction(logInfo);
+            }
+            else if (method.equals("PUT"))
+            {
+                action = new CreateGroupAction(logInfo, request.getInputStream());
+            }
+
+        }
+        else if (segments.length == 1)
+        {
+            String groupName = segments[0];
+            if (method.equals("GET"))
+            {
+                action = new GetGroupAction(logInfo, groupName);
+            }
+            else if (method.equals("DELETE"))
+            {
+                action = new DeleteGroupAction(logInfo, groupName);
+            }
+            else if (method.equals("POST"))
+            {
+                action = new ModifyGroupAction(logInfo, groupName, request.getRequestURI(), request.getInputStream());
+            }
+        }
+        else if (segments.length == 3)
+        {
+            String groupName = segments[0];
+            String memberCategory = segments[1];
+            if (method.equals("PUT"))
+            {
+                if (memberCategory.equals("groupMembers"))
+                {
+                    String groupMemberName = segments[2];
+                    action = new AddGroupMemberAction(logInfo, groupName, groupMemberName);
+                }
+                else if (memberCategory.equals("userMembers"))
+                {
+                    String userMemberID = URLDecoder.decode(segments[2], "UTF-8");
+                    String userMemberIDType = request.getParameter("idType");
+                    action = new AddUserMemberAction(logInfo, groupName, userMemberID, userMemberIDType);
+                }
+            }
+            else if (method.equals("DELETE"))
+            {
+                if (memberCategory.equals("groupMembers"))
+                {
+                    String groupMemberName = segments[2];
+                    action = new RemoveGroupMemberAction(logInfo, groupName, groupMemberName);
+                }
+                else if (memberCategory.equals("userMembers"))
+                {
+                    String memberUserID = URLDecoder.decode(segments[2], "UTF-8");
+                    String memberUserIDType = request.getParameter("idType");
+                    action = new RemoveUserMemberAction(logInfo, groupName, memberUserID, memberUserIDType);
+                }
             }
         }
 
-        return matchedDetails;
+        if (action != null)
+        {
+            return action;
+        }
+        throw new IllegalArgumentException("Bad groups request: " + method + " on " + path);
     }
+
 }
