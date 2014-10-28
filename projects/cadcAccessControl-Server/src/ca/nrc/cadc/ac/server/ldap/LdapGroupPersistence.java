@@ -93,7 +93,32 @@ public class LdapGroupPersistence<T extends Principal>
     {
         config = LdapConfig.getLdapConfig();
     }
-
+    
+    public Collection<String> getGroupNames()
+        throws TransientException, AccessControlException
+    {
+        LdapGroupDAO<T> groupDAO = null;
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            Collection<String> ret = groupDAO.getGroupNames();
+            return ret;
+        }
+        finally
+        {
+            if (groupDAO != null)
+            {
+                groupDAO.close();
+            }
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+    
     public Group getGroup(String groupName)
         throws GroupNotFoundException, TransientException,
                AccessControlException

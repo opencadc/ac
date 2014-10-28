@@ -88,6 +88,7 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.StringUtil;
 
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
@@ -214,7 +215,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         attributes.add(new Attribute("objectClass", "groupofuniquenames"));
         attributes.add(new Attribute("cn", groupID));
         
-        if (description != null)
+        if (StringUtil.hasText(description))
         {
             attributes.add(new Attribute("description", description));
         }
@@ -304,6 +305,57 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
+    }
+    
+    
+    /**
+     * Get all group names.
+     * 
+     * @return A collection of strings
+     * 
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     */
+    public Collection<String> getGroupNames()
+        throws TransientException, AccessControlException
+    {
+        try
+        {
+            Filter filter = Filter.createEqualityFilter("cn", "*");
+            String [] attributes = new String[] {"cn", "nsaccountlock"};
+            
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getGroupsDN(), 
+                                      SearchScope.SUB, filter, attributes);
+    
+            SearchResult searchResult = null;
+            try
+            {
+                searchResult = getConnection().search(searchRequest);
+            }
+            catch (LDAPSearchException e)
+            {
+                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+                {
+                    logger.debug("Count not find groups root", e);
+                    throw new IllegalStateException("Count not find groups root");
+                }
+            }
+            
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            List<String> groupNames = new ArrayList<String>();
+            for (SearchResultEntry next : searchResult.getSearchEntries())
+            {
+                groupNames.add(next.getAttributeValue("cn"));
+            }
+            
+            return groupNames;
+        }
+        catch (LDAPException e1)
+        {
+            LdapDAO.checkLdapResult(e1.getResultCode());
+            throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
+        }
+        
     }
 
     /**

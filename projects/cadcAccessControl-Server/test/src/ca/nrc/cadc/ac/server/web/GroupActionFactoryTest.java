@@ -189,7 +189,7 @@ public class GroupActionFactoryTest
     }
 
     @Test
-    public void testCreateListGroupsAction()
+    public void testCreateGetGroupNamesAction()
     {
         try
         {
@@ -199,7 +199,7 @@ public class GroupActionFactoryTest
             EasyMock.replay(request);
             GroupsAction action = GroupsActionFactory.getGroupsAction(request, null);
             EasyMock.verify(request);
-            Assert.assertTrue("Wrong action", action instanceof ListGroupsAction);
+            Assert.assertTrue("Wrong action", action instanceof GetGroupNamesAction);
         }
         catch (Throwable t)
         {
