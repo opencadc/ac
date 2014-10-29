@@ -235,7 +235,7 @@ public class GMSClient
         String retXML = transfer.getResponseBody();
         try
         {
-            log.debug("createGroup returned: " + groupXML);
+            log.debug("createGroup returned: " + retXML);
             return GroupReader.read(retXML);
         }
         catch (Exception bug)
@@ -435,7 +435,7 @@ public class GMSClient
         String retXML = transfer.getResponseBody();
         try
         {
-            log.debug("updateGroup returned: " + groupXML);
+            log.debug("updateGroup returned: " + retXML);
             return GroupReader.read(retXML);
         }
         catch (Exception bug)

@@ -177,12 +177,24 @@ public class LdapGroupDAOTest
                     expectGroup.getGroupMembers().remove(otherGroup);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
-                    
-                    // delete the group
+
                     expectGroup.description = "Happy testing";
                     expectGroup.getUserMembers().add(daoTestUser2);
                     expectGroup.getGroupMembers().add(otherGroup);
-                    
+
+                    // userAdmins
+                    expectGroup.getUserAdmins().add(daoTestUser3);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // groupAdmins
+                    Group adminGroup = new Group(getGroupID(), daoTestUser1);
+                    adminGroup = getGroupDAO().addGroup(adminGroup);
+                    expectGroup.getGroupAdmins().add(adminGroup);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    // delete the group
                     getGroupDAO().deleteGroup(expectGroup.getID());
                     try
                     {
@@ -494,7 +506,7 @@ public class LdapGroupDAOTest
             }
         });
 
-        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -856,12 +868,14 @@ public class LdapGroupDAOTest
         assertEquals(gr1.getID(), gr2.getID());
         assertEquals(gr1.description, gr2.description);
         assertEquals(gr1.getOwner(), gr2.getOwner());
+
         assertEquals(gr1.getGroupMembers(), gr2.getGroupMembers());
         assertEquals(gr1.getGroupMembers().size(), gr2.getGroupMembers().size());
         for (Group gr : gr1.getGroupMembers())
         {
             assertTrue(gr2.getGroupMembers().contains(gr));
         }
+
         assertEquals(gr1.getUserMembers(), gr2.getUserMembers());
         assertEquals(gr1.getUserMembers().size(), gr2.getUserMembers()
                 .size());
@@ -869,6 +883,22 @@ public class LdapGroupDAOTest
         {
             assertTrue(gr2.getUserMembers().contains(user));
         }
+
+        assertEquals(gr1.getGroupAdmins(), gr2.getGroupAdmins());
+        assertEquals(gr1.getGroupAdmins().size(), gr2.getGroupAdmins().size());
+        for (Group gr : gr1.getGroupAdmins())
+        {
+            assertTrue(gr2.getGroupAdmins().contains(gr));
+        }
+
+        assertEquals(gr1.getUserAdmins(), gr2.getUserAdmins());
+        assertEquals(gr1.getUserAdmins().size(), gr2.getUserAdmins()
+                .size());
+        for (User<?> user : gr1.getUserAdmins())
+        {
+            assertTrue(gr2.getUserAdmins().contains(user));
+        }
+
         assertEquals(gr1.getProperties(), gr2.getProperties());
         for (GroupProperty prop : gr1.getProperties())
         {
