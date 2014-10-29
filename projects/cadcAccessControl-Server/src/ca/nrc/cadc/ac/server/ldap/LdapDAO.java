@@ -119,7 +119,7 @@ public abstract class LdapDAO
         if (conn == null)
         {
             conn = new LDAPConnection(config.getServer(), config.getPort());
-            conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
+            conn.bind(config.getProxyUserDN(), config.getProxyPasswd());
         }
 
         return conn;
