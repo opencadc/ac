@@ -68,31 +68,28 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.security.AccessControlException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.util.Set;
-
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.util.Set;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
+import com.unboundid.ldap.sdk.*;
+import com.unboundid.util.ssl.*;
+
+import ca.nrc.cadc.auth.*;
 import ca.nrc.cadc.net.TransientException;
 
-import com.unboundid.ldap.sdk.DN;
-import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.ResultCode;
-import com.unboundid.ldap.sdk.SearchResult;
-import com.unboundid.ldap.sdk.SearchResultEntry;
-import com.unboundid.ldap.sdk.SearchScope;
 
 public abstract class LdapDAO
 {
     private LDAPConnection conn;
-    
+
     LdapConfig config;
     DN subjDN = null;
 
@@ -114,34 +111,64 @@ public abstract class LdapDAO
     }
 
     protected LDAPConnection getConnection()
-        throws LDAPException, AccessControlException
+            throws LDAPException, AccessControlException
     {
         if (conn == null)
         {
-            conn = new LDAPConnection(config.getServer(), config.getPort());
+            conn = new LDAPConnection(getSocketFactory(), config.getServer(),
+                                      config.getPort());
             conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
         }
 
         return conn;
     }
 
+    private SocketFactory getSocketFactory()
+    {
+        final SocketFactory socketFactory;
+
+        if (config.isSecure())
+        {
+            socketFactory = createSSLSocketFactory();
+        }
+        else
+        {
+            socketFactory = SocketFactory.getDefault();
+        }
+
+        return socketFactory;
+    }
+
+    private SSLSocketFactory createSSLSocketFactory()
+    {
+        try
+        {
+            return new com.unboundid.util.ssl.SSLUtil().
+                    createSSLSocketFactory();
+        }
+        catch (GeneralSecurityException e)
+        {
+            throw new RuntimeException("Unexpected error.", e);
+        }
+    }
+
     protected DN getSubjectDN() throws LDAPException
     {
         if (subjDN == null)
         {
-            Subject callerSubject = 
+            Subject callerSubject =
                     Subject.getSubject(AccessController.getContext());
             if (callerSubject == null)
             {
                 throw new AccessControlException("Caller not authenticated.");
             }
-            
+
             Set<Principal> principals = callerSubject.getPrincipals();
             if (principals.isEmpty())
             {
                 throw new AccessControlException("Caller not authenticated.");
             }
-            
+
             String ldapField = null;
             for (Principal p : principals)
             {
@@ -172,31 +199,31 @@ public abstract class LdapDAO
                 throw new AccessControlException("Identity of caller unknown.");
             }
 
-            SearchResult searchResult = 
-                    getConnection().search(config.getUsersDN(), SearchScope.ONE, 
-                                ldapField, new String[] {"entrydn"});
+            SearchResult searchResult =
+                    getConnection().search(config.getUsersDN(), SearchScope.ONE,
+                                           ldapField, "entrydn");
 
             if (searchResult.getEntryCount() < 1)
             {
                 throw new AccessControlException(
                         "No LDAP account when search with rule " + ldapField);
             }
-            
-            subjDN = ((SearchResultEntry) searchResult.getSearchEntries()
-                    .get(0)).getAttributeValueAsDN("entrydn");
+
+            subjDN = (searchResult.getSearchEntries().get(0))
+                    .getAttributeValueAsDN("entrydn");
         }
         return subjDN;
     }
-    
+
     /**
      * Checks the Ldap result code, and if the result is not SUCCESS,
-     * throws an appropriate exception. This is the place to decide on 
+     * throws an appropriate exception. This is the place to decide on
      * mapping between ldap errors and exception types
-     * @param code
-     * @param errorMsg
-     * @throws TransientException 
+     *
+     * @param code          The code returned from an LDAP request.
+     * @throws TransientException
      */
-    protected static void checkLdapResult(ResultCode code) 
+    protected static void checkLdapResult(ResultCode code)
             throws TransientException
     {
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
@@ -207,7 +234,8 @@ public abstract class LdapDAO
         {
             throw new AccessControlException("Invalid credentials ");
         }
-        else if ((code == ResultCode.SUCCESS) || (code == ResultCode.NO_SUCH_OBJECT) )
+        else if ((code == ResultCode.SUCCESS) || (code
+                                                  == ResultCode.NO_SUCH_OBJECT))
         {
             // all good. nothing to do
         }
@@ -216,7 +244,7 @@ public abstract class LdapDAO
             throw new IllegalArgumentException("Error in Ldap parameters ");
         }
         else if (code == ResultCode.BUSY ||
-                 code == ResultCode.CONNECT_ERROR )
+                 code == ResultCode.CONNECT_ERROR)
         {
             throw new TransientException("Connection problems ");
         }
