@@ -100,6 +100,8 @@ public class LdapConfig
     public static final String LDAP_GROUPS_DN = "groupsDn";
     public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDn";
 
+    private final static int SECURE_PORT = 636;
+
     private String usersDN;
     private String groupsDN;
     private String adminGroupsDN;
@@ -284,6 +286,11 @@ public class LdapConfig
     public int getPort()
     {
         return this.port;
+    }
+
+    public boolean isSecure()
+    {
+        return getPort() == SECURE_PORT;
     }
 
     public String getAdminUserDN()
