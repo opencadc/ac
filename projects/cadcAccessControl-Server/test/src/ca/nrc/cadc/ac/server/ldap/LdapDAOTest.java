@@ -68,38 +68,32 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import static ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest.config;
-import static org.junit.Assert.assertTrue;
-
 import java.security.PrivilegedExceptionAction;
 
+import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
-import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 
 import com.unboundid.ldap.sdk.LDAPConnection;
 
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+
 public class LdapDAOTest
 {
-    static String server = "mach275.cadc.dao.nrc.ca";
-    static int port = 389;
-    static String adminDN = "uid=webproxy,ou=WebProxy,ou=topologymanagement,o=netscaperoot";
-    static String adminPW = "go4it";
-    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
-    
-    LdapConfig config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
+    final LdapConfig config = new TestLDAPConfig();
     
     @Test
     public void testLdapBindConnection() throws Exception
     {
         //TODO use a test user to test with. To be done when addUser available.
         //LdapUserDAO<X500Principal> userDAO = new LdapUserDAO<X500Principal>();
+        final X500Principal subjPrincipal = new X500Principal(
+                "cn=cadcdaotest1,ou=cadc,o=hia,c=ca");
 
         // User authenticated with HttpPrincipal
         HttpPrincipal httpPrincipal = new HttpPrincipal("CadcDaoTest1");
@@ -115,8 +109,7 @@ public class LdapDAOTest
             {
                 try
                 {
-                    LDAPConnection ldapCon = ldapDao.getConnection();
-                    assertTrue(ldapCon.isConnected());
+                    testConnection(ldapDao.getConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -126,9 +119,7 @@ public class LdapDAOTest
             }
         });
                
-        
-        X500Principal subjPrincipal = new X500Principal(
-                "cn=cadcdaotest1,ou=cadc,o=hia,c=ca");
+
         subject = new Subject();
         subject.getPrincipals().add(subjPrincipal);
         
@@ -138,8 +129,7 @@ public class LdapDAOTest
             {
                 try
                 {
-                    LDAPConnection ldapCon = ldapDao.getConnection();
-                    assertTrue(ldapCon.isConnected());
+                    testConnection(ldapDao.getConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -160,8 +150,7 @@ public class LdapDAOTest
                 try
                 {
 
-                    LDAPConnection ldapCon = ldapDao.getConnection();
-                    assertTrue(ldapCon.isConnected());
+                    testConnection(ldapDao.getConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -171,5 +160,12 @@ public class LdapDAOTest
             }
         });
 
+    }
+
+    private void testConnection(final LDAPConnection ldapCon)
+    {
+        assertTrue("Not connected but should be.", ldapCon.isConnected());
+        assertFalse("Should be SSLSocketFactory.",
+                   (ldapCon.getSocketFactory() instanceof SSLSocketFactory));
     }
 }

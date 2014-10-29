@@ -65,13 +65,7 @@ public class LdapGroupDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
     
-    static String server = "mach275.cadc.dao.nrc.ca";
-    static int port = 389;
-    static String adminDN = "uid=webproxy,ou=webproxy,ou=topologymanagement,o=netscaperoot";
-    static String adminPW = "go4it";
-    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
+    static String adminDN = "uid=webproxy,ou=SpecialUsers,dc=canfar,dc=net";
 //    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
 //    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
@@ -95,8 +89,8 @@ public class LdapGroupDAOTest
     static Subject daoTestUser1Subject;
     static Subject daoTestUser2Subject;
     static Subject anonSubject;
-    
-    static LdapConfig config;
+
+    final LdapConfig config = new TestLDAPConfig();
     
     @BeforeClass
     public static void setUpBeforeClass()
@@ -124,8 +118,6 @@ public class LdapGroupDAOTest
         
         anonSubject = new Subject();
         anonSubject.getPrincipals().add(unknownUser.getUserID());
-    
-        config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
     }
 
     LdapGroupDAO<X500Principal> getGroupDAO()

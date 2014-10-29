@@ -66,7 +66,6 @@
  */
 
 
-
 package ca.nrc.cadc.ac.server.ldap;
 
 import java.security.AccessControlException;
@@ -74,16 +73,17 @@ import java.security.AccessControlException;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 
+
 public class LdapDAOTestImpl extends LdapDAO
 {
     public LdapDAOTestImpl(LdapConfig config)
     {
         super(config);
     }
-    
+
     @Override
     public LDAPConnection getConnection() throws LDAPException,
-    AccessControlException
+                                                 AccessControlException
     {
         return super.getConnection();
     }

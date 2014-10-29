@@ -93,6 +93,8 @@ public class LdapConfig
     public static final String LDAP_AVAIL_TEST_GROUP  = "availabilityTestGroup";
     public static final String LDAP_AVAIL_TEST_CALLING_USER_DN  = "availabilityTestCallingUserDN";
 
+    private final static int SECURE_PORT = 636;
+
     private String usersDN;
     private String groupsDN;
     private String adminGroupsDN;
@@ -269,6 +271,11 @@ public class LdapConfig
     public int getPort()
     {
         return this.port;
+    }
+
+    public boolean isSecure()
+    {
+        return getPort() == SECURE_PORT;
     }
 
     public String getAdminUserDN()
