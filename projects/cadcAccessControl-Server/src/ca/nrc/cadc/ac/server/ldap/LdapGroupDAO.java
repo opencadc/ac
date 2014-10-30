@@ -473,7 +473,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 throw new GroupNotFoundException(groupID);
             }
             
-            String groupCN = searchEntry.getAttributeValue("cn");
+            if (searchEntry.getAttributeValueAsDN("owner") == null)
+            {
+                //TODO assume user not allowed to read group
+                throw new AccessControlException(groupID);
+            }
+            
             DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
             
             User<X500Principal> owner;
@@ -486,7 +491,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 throw new RuntimeException("BUG: group owner not found");
             }
             
-            Group ldapGroup = new Group(groupCN, owner);
+            Group ldapGroup = new Group(groupID, owner);
             if (searchEntry.hasAttribute("description"))
             {
                 ldapGroup.description = 
