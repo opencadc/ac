@@ -320,7 +320,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            Filter filter = Filter.createEqualityFilter("cn", "*");
+            Filter filter = Filter.createPresenceFilter("cn");
             String [] attributes = new String[] {"cn", "nsaccountlock"};
             
             SearchRequest searchRequest = 
@@ -336,8 +336,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             {
                 if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
                 {
-                    logger.debug("Count not find groups root", e);
-                    throw new IllegalStateException("Count not find groups root");
+                    logger.debug("Could not find groups root", e);
+                    throw new IllegalStateException("Could not find groups root");
                 }
             }
             
@@ -345,7 +345,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             List<String> groupNames = new ArrayList<String>();
             for (SearchResultEntry next : searchResult.getSearchEntries())
             {
-                groupNames.add(next.getAttributeValue("cn"));
+                if (!next.hasAttribute("nsaccountlock"))
+                {
+                    groupNames.add(next.getAttributeValue("cn"));
+                }
             }
             
             return groupNames;
@@ -608,7 +611,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         for (Group gr : group.getGroupAdmins())
         {
             DN grDN = getGroupDN(gr.getID());
-            newMembers.add(grDN.toNormalizedString());
+            newAdmins.add(grDN.toNormalizedString());
         }
 
         mods.add(new Modification(ModificationType.REPLACE, "uniquemember", 
@@ -783,9 +786,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 }
                 catch (GroupNotFoundException e)
                 {
-                    throw new IllegalStateException(
-                        "BUG: group " + groupDN + " not found but " +
-                        "membership exists (" + userID + ")");
+                    final String message = "BUG: group " + groupDN + " not found but " +
+                                           "membership exists (" + userID + ")";
+                    logger.error(message);
+                    //throw new IllegalStateException(message);
                 }
             }
         }
