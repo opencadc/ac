@@ -85,12 +85,10 @@ import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.DN;
@@ -103,10 +101,6 @@ public class LdapUserDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
     
-    static String server = "mach275.cadc.dao.nrc.ca";
-    static int port = 389;
-    static String adminDN = "uid=webproxy,ou=Webproxy,ou=topologymanagement,o=netscaperoot";
-    static String adminPW = "go4it";
     static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
     static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
     static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
@@ -128,7 +122,16 @@ public class LdapUserDAOTest
         
         testUser = new User<X500Principal>(new X500Principal(testUserX509DN));
     
-        config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
+
+        // get the configuration of the development server from and config files...
+        LdapConfig devServerConfig = LdapConfig.getLdapConfig();
+            
+        // ... but use the test tree
+        config = new LdapConfig(devServerConfig.getServer(),
+                 devServerConfig.getPort(), devServerConfig.getProxyUserDN(),
+                 devServerConfig.getProxyPasswd(), usersDN, groupsDN,
+                 adminGroupsDN);
+
         
         testUser.details.add(new PersonalDetails("CADC", "DAOTest1"));
         testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));        

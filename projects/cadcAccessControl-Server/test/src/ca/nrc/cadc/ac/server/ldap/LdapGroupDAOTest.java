@@ -64,10 +64,10 @@ import static org.junit.Assert.assertNotNull;
 public class LdapGroupDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
-    
-    static String adminDN = "uid=webproxy,ou=SpecialUsers,dc=canfar,dc=net";
-//    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-//    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+
+    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
     
     static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
     static String daoTestDN2 = "cn=cadcdaotest2,ou=cadc,o=hia,c=ca";
@@ -78,19 +78,19 @@ public class LdapGroupDAOTest
     static X500Principal daoTestPrincipal2;
     static X500Principal daoTestPrincipal3;
     static X500Principal unknownPrincipal;
-    static X500Principal adminPrincipal;
+
     
     static User<X500Principal> daoTestUser1;
     static User<X500Principal> daoTestUser2;
     static User<X500Principal> daoTestUser3;
     static User<X500Principal> unknownUser;
-    static User<X500Principal> adminUser;
+
     
     static Subject daoTestUser1Subject;
     static Subject daoTestUser2Subject;
     static Subject anonSubject;
 
-    final LdapConfig config = new TestLDAPConfig();
+    static LdapConfig config;
     
     @BeforeClass
     public static void setUpBeforeClass()
@@ -98,17 +98,24 @@ public class LdapGroupDAOTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
         
+        // get the configuration of the development server from and config files...
+        LdapConfig devServerConfig = LdapConfig.getLdapConfig();
+            
+        // ... but use the test tree
+        config = new LdapConfig(devServerConfig.getServer(),
+                 devServerConfig.getPort(), devServerConfig.getProxyUserDN(),
+                 devServerConfig.getProxyPasswd(), usersDN, groupsDN,
+                 adminGroupsDN);
+        
         daoTestPrincipal1 = new X500Principal(daoTestDN1);
         daoTestPrincipal2 = new X500Principal(daoTestDN2);
         daoTestPrincipal3 = new X500Principal(daoTestDN3);
         unknownPrincipal = new X500Principal(unknownDN);
-        adminPrincipal = new X500Principal(adminDN);
 
         daoTestUser1 = new User<X500Principal>(daoTestPrincipal1);
         daoTestUser2 = new User<X500Principal>(daoTestPrincipal2);
         daoTestUser3 = new User<X500Principal>(daoTestPrincipal3);
         unknownUser = new User<X500Principal>(unknownPrincipal);
-        adminUser = new User<X500Principal>(adminPrincipal);
         
         daoTestUser1Subject = new Subject();
         daoTestUser1Subject.getPrincipals().add(daoTestUser1.getUserID());
