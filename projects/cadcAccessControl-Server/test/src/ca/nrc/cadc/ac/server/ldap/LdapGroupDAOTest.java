@@ -65,8 +65,8 @@ public class LdapGroupDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
 
-    static String usersDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
+    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
     static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
     
     static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
