@@ -258,8 +258,6 @@ public class LdapConfig
         this.usersDN = usersDN;
         this.groupsDN = groupsDN;
         this.adminGroupsDN = adminGroupsDN;
-        logger.debug(proxyPasswd);
-        logger.debug(proxyUserDN);
         logger.debug(toString());
     }
 
