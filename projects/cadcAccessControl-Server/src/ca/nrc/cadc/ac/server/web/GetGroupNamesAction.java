@@ -67,6 +67,8 @@
  ************************************************************************
  */package ca.nrc.cadc.ac.server.web;
 
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Collection;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
@@ -88,21 +90,16 @@ public class GetGroupNamesAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Collection<String> groups = groupPersistence.getGroupNames();
-        getHttpServletResponse().setContentType("text/csv");
-        
-        CsvWriter writer = new CsvWriter(getHttpServletResponse().getWriter(), ',');
-        
-        for (String group : groups)
+        setContentType("text/csv");
+
+        final Writer writer = new OutputStreamWriter(getOutputStream());
+        final CsvWriter csvWriter = new CsvWriter(writer, ',');
+
+        for (final String group : groups)
         {
-            writer.write(group);
+            csvWriter.write(group);
         }
-        writer.endRecord();
+        csvWriter.endRecord();
         return null;
     }
-
-    protected HttpServletResponse getHttpServletResponse()
-    {
-        return this.response;
-    }
-
 }

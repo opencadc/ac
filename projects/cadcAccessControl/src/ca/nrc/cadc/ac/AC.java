@@ -85,7 +85,7 @@ public class AC
     // Denotes a group readable by public
     public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
     
-    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/gms";
+    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/canfargms";
     
     // Group URI attribute once the group name is appended
     public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";

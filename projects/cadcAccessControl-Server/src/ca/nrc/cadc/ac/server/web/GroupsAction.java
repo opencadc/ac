@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -76,6 +77,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
 import javax.security.auth.Subject;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
@@ -89,45 +91,54 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.uws.server.SyncOutput;
+
 
 public abstract class GroupsAction
     implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(GroupsAction.class);
     protected GroupLogInfo logInfo;
-    protected HttpServletResponse response;
+    private SyncOutput syncOutput;
 
     GroupsAction(GroupLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    public void doAction(Subject subject, HttpServletResponse response)
+    public void doAction(Subject subject, final HttpServletResponse response)
         throws IOException
     {
+        syncOutput = new SyncOutput()
+        {
+            @Override
+            public void setResponseCode(int code)
+            {
+                response.setStatus(code);
+            }
+
+            @Override
+            public void setHeader(String key, String value)
+            {
+                response.setHeader(key, value);
+            }
+
+            @Override
+            public OutputStream getOutputStream() throws IOException
+            {
+                return response.getOutputStream();
+            }
+        };
+
         try
         {
-            try
+            if (subject == null)
             {
-                this.response = response;
-
-                if (subject == null)
-                {
-                    run();
-                }
-                else
-                {
-                    Subject.doAs(subject, this);
-                }
+                run();
             }
-            catch (PrivilegedActionException e)
+            else
             {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                throw e;
+                runPrivileged(subject);
             }
         }
         catch (AccessControlException e)
@@ -203,27 +214,58 @@ public abstract class GroupsAction
         }
     }
 
+    private void runPrivileged(final Subject subject) throws Throwable
+    {
+        try
+        {
+            Subject.doAs(subject, this);
+        }
+        catch (PrivilegedActionException e)
+        {
+            final Throwable cause = e.getCause();
+            if (cause != null)
+            {
+                throw cause;
+            }
+            throw e;
+        }
+    }
+
+    protected final void setStatusCode(final int statusCode)
+    {
+        syncOutput.setResponseCode(statusCode);
+    }
+
+    protected final OutputStream getOutputStream() throws IOException
+    {
+        return syncOutput.getOutputStream();
+    }
+
+    protected final void setContentType(final String contentType)
+    {
+        syncOutput.setHeader("Content-Type", contentType);
+    }
+
+    protected final void setRedirectLocation(final String location)
+    {
+        syncOutput.setHeader("Location", location);
+    }
+
     private void sendError(int responseCode)
         throws IOException
     {
         sendError(responseCode, null);
     }
 
-    private void sendError(int responseCode, String message)
+    private void sendError(final int code, String message)
         throws IOException
     {
-        if (!this.response.isCommitted())
+        setContentType("text/plain");
+        setStatusCode(code);
+
+        if (message != null)
         {
-            this.response.setContentType("text/plain");
-            if (message != null)
-            {
-                this.response.getWriter().write(message);
-            }
-            this.response.setStatus(responseCode);
-        }
-        else
-        {
-            log.warn("Could not send error " + responseCode + " (" + message + ") because the response is already committed.");
+            getOutputStream().write(message.getBytes());
         }
     }
 

@@ -69,7 +69,7 @@
 
 
 <!DOCTYPE project>
-<project default="build" basedir=".">
+<project name="cadcAccessControl-Server" default="build" basedir=".">
     <property environment="env"/>
     <property file="local.build.properties" />
 

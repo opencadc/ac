@@ -96,8 +96,8 @@ public class CreateGroupAction extends GroupsAction
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = GroupReader.read(this.inputStream);
         Group newGroup = groupPersistence.addGroup(group);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(newGroup, this.response.getOutputStream());
+        setContentType("application/xml");
+        GroupWriter.write(newGroup, getOutputStream());
 
         List<String> addedMembers = null;
         if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))

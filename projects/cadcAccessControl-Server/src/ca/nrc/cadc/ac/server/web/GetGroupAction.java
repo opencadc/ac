@@ -87,8 +87,8 @@ public class GetGroupAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(group, this.response.getOutputStream());
+        setContentType("application/xml");
+        GroupWriter.write(group, getOutputStream());
         return null;
     }
 

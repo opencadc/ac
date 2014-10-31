@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupReader;
+import ca.nrc.cadc.ac.GroupWriter;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.io.InputStream;
@@ -85,7 +86,8 @@ public class ModifyGroupAction extends GroupsAction
     private final String request;
     private final InputStream inputStream;
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName, String request, InputStream inputStream)
+    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
+                      final String request, InputStream inputStream)
     {
         super(logInfo);
         this.groupName = groupName;
@@ -99,8 +101,8 @@ public class ModifyGroupAction extends GroupsAction
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = GroupReader.read(this.inputStream);
         Group oldGroup = groupPersistence.getGroup(this.groupName);
-        Group modifiedGroup = groupPersistence.modifyGroup(group);
-        
+        groupPersistence.modifyGroup(group);
+
         List<String> addedMembers = new ArrayList<String>();
         for (User member : group.getUserMembers())
         {
@@ -134,8 +136,10 @@ public class ModifyGroupAction extends GroupsAction
             deletedMembers = null;
         }
         logGroupInfo(group.getID(), deletedMembers, addedMembers);
-        
-        this.response.sendRedirect(request);
+
+        setStatusCode(303);
+        setRedirectLocation(request);
+
         return null;
     }
 
