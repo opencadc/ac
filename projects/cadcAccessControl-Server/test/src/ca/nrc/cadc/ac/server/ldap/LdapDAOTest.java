@@ -182,7 +182,7 @@ public class LdapDAOTest
     private void testConnection(final LDAPConnection ldapCon)
     {
         assertTrue("Not connected but should be.", ldapCon.isConnected());
-        assertFalse("Should be SSLSocketFactory.",
+        assertTrue("Should be SSLSocketFactory.",
                    (ldapCon.getSocketFactory() instanceof SSLSocketFactory));
     }
 }
