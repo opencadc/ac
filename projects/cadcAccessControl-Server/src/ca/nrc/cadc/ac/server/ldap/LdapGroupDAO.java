@@ -205,7 +205,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                 final DN ownerDN, final String description, 
                                 final Set<User<? extends Principal>> users, 
                                 final Set<Group> groups)
-        throws UserNotFoundException, LDAPException, TransientException
+        throws UserNotFoundException, LDAPException, TransientException, AccessControlException
     {
         // add new group
         List<Attribute> attributes = new ArrayList<Attribute>();
@@ -604,8 +604,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         for (Group gr : group.getGroupMembers())
         {
-                DN grDN = getGroupDN(gr.getID());
-                newMembers.add(grDN.toNormalizedString());
+            DN grDN = getGroupDN(gr.getID());
+            newMembers.add(grDN.toNormalizedString());
         }
         List<String> newAdmins = new ArrayList<String>();
         for (User<?> member : group.getUserAdmins())
@@ -751,7 +751,16 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                GroupNotFoundException, UserNotFoundException
     {
         User<T> user = new User<T>(userID);
-        DN userDN = userPersist.getUserDN(user);
+        DN userDN = null;
+        try
+        {
+            userDN = userPersist.getUserDN(user);
+        }
+        catch (UserNotFoundException e)
+        {
+            // no anonymous searches
+            throw new AccessControlException("Not authorized to search");
+        }
         
         Collection<DN> groupDNs = new HashSet<DN>();
         if (role == Role.OWNER)
