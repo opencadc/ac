@@ -122,7 +122,8 @@ public class GMSClient
     private static final Logger log = Logger.getLogger(GMSClient.class);
     
     // socket factory to use when connecting
-    public SSLSocketFactory sslSocketFactory;
+    private SSLSocketFactory sslSocketFactory;
+    private SSLSocketFactory mySocketFactory;
     
     private String baseURL;
 
@@ -1028,24 +1029,41 @@ public class GMSClient
      */
     public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
     {
+        if (mySocketFactory != null)
+            throw new IllegalStateException("Illegal use of GMSClient: "
+                    + "cannot set SSLSocketFactory after using one created from Subject");
         this.sslSocketFactory = sslSocketFactory;
         clearCache();
     }
     
-    /**
-     * @return the sslSocketFactory
-     */
+    private int subjectHashCode = 0;
     private SSLSocketFactory getSSLSocketFactory()
     {
-        if (this.sslSocketFactory == null)
+        AccessControlContext ac = AccessController.getContext();
+        Subject s = Subject.getSubject(ac);
+        
+        // no real Subject: can only use the one from setSSLSocketFactory
+        if (s == null || s.getPrincipals().isEmpty())
         {
-            log.debug("initHTTPS: lazy init");
-            AccessControlContext ac = AccessController.getContext();
-            Subject s = Subject.getSubject(ac);
-            this.sslSocketFactory = SSLUtil.getSocketFactory(s);
-            log.debug("Socket Factory: " + this.sslSocketFactory);
+            return sslSocketFactory;
         }
-        return this.sslSocketFactory;
+        
+        // lazy init
+        if (this.mySocketFactory == null)
+        {
+            log.debug("getSSLSocketFactory: " + s);
+            this.mySocketFactory = SSLUtil.getSocketFactory(s);
+            this.subjectHashCode = s.hashCode();
+        }
+        else
+        {
+            int c = s.hashCode();
+            if (c != subjectHashCode)
+                throw new IllegalStateException("Illegal use of " 
+                        + this.getClass().getSimpleName()
+                        + ": subject change not supported for internal SSLSocketFactory");
+        }
+        return this.mySocketFactory;
     }
     
     protected void clearCache()
