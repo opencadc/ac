@@ -118,10 +118,13 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserNotFoundException If owner or a member not valid user.
+     * @throws GroupNotFoundException if one of the groups in group members or
+     * group admins does not exist in the server.
      */
     public abstract Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException;
+               AccessControlException, UserNotFoundException, 
+               GroupNotFoundException;
 
     /**
      * Deletes the group.

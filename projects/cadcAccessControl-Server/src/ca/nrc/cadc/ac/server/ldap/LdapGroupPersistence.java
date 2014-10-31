@@ -147,7 +147,8 @@ public class LdapGroupPersistence<T extends Principal>
 
     public Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException, 
-               AccessControlException, UserNotFoundException
+               AccessControlException, UserNotFoundException, 
+               GroupNotFoundException
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;

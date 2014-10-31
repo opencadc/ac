@@ -101,9 +101,9 @@ public class LdapUserDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
     
-    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
+    static String usersDN = "ou=Users,ou=ds,dc=testcanfar";
+    static String groupsDN = "ou=Groups,ou=ds,dc=testcanfar";
+    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=testcanfar";
 //    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
 //    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
     
