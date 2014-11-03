@@ -137,7 +137,6 @@ public class GetGroupNamesActionTest
                     return mockPersistence;
                 };
 
-                @Override
                 protected HttpServletResponse getHttpServletResponse()
                 {
                     return mockResponse;

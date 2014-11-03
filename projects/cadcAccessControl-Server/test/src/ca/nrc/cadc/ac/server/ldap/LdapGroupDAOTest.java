@@ -802,7 +802,7 @@ public class LdapGroupDAOTest
                     fail("searchGroups with unknown user should throw " + 
                          "UserNotFoundException");
                 }
-                catch (UserNotFoundException ignore) {}
+                catch (AccessControlException ignore) {}
                 
                 try
                 {

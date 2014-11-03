@@ -229,7 +229,7 @@ public class LdapUserDAOTest
                     boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
                     assertFalse(isMember);
                     
-                    String groupDN = "cn=cadcdaotestgroup1,ou=groups,ou=ds,dc=canfartest,dc=net";
+                    String groupDN = "cn=cadcdaotestgroup1," + groupsDN;
                     isMember = getUserDAO().isMember(testUser.getUserID(), groupDN);
                     assertTrue(isMember);
                     
