@@ -231,11 +231,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         for (Group groupMember : groups)
         {
-            if (!checkGroupExists(groupID))
+            final String groupMemberID = groupMember.getID();
+            if (!checkGroupExists(groupMemberID))
             {
-                throw new GroupNotFoundException(groupID);
+                throw new GroupNotFoundException(groupMemberID);
             }
-            DN memberDN = getGroupDN(groupMember.getID());
+            DN memberDN = getGroupDN(groupMemberID);
             members.add(memberDN.toNormalizedString());
         }
         if (!members.isEmpty())
