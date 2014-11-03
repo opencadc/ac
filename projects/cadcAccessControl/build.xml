@@ -8,7 +8,7 @@
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -67,31 +67,37 @@
 ************************************************************************
 -->
 
-
 <!DOCTYPE project>
 <project default="build" basedir=".">
     <property environment="env"/>
     <property file="local.build.properties" />
-    
+
     <!-- site-specific build properties or overrides of values in opencadc.properties -->
     <property file="${env.CADC_PREFIX}/etc/local.properties" />
-    
+
     <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
     <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
 
     <!-- default properties and targets -->
     <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
     <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
-    
+
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
 
-    <property name="project" value="cadcAccessControl" />
+    <property name="project"    value="cadcAccessControl" />
 
-    <property name="cadcUtil" value="${lib}/cadcUtil.jar" />
+    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
+	<property name="cadcRegistryClient" value="${lib}/cadcRegistryClient.jar" />
+    
+    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
+    <property name="javacsv"      value="${ext.lib}/javacsv.jar" />
+    <property name="log4j"      value="${ext.lib}/log4j.jar" />
+    <property name="unboundid"  value="${ext.lib}/unboundid-ldapsdk-se.jar" />
 
-    <property name="jars" value="${cadcUtil}:${ext.lib}/log4j.jar" />
-  
+
+    <property name="jars" value="${jdom2}:${log4j}:${javacsv}:${unboundid}:${cadcUtil}:${cadcRegistryClient}" />
+    
     <target name="build" depends="compile">
         <jar jarfile="${build}/lib/${project}.jar"
                     basedir="${build}/class"
@@ -101,23 +107,13 @@
     </target>
 
     <!-- JAR files needed to run the test suite -->
-    <property name="testingJars" value="${build}/class:${jars}:${ext.lib}/junit.jar:${ext.lib}/xerces.jar:${ext.dev}/easymock.jar:${ext.dev}/cglib.jar:${ext.dev}/objenesis.jar:${ext.dev}/asm.jar" />
-
-    <target name="test" depends="compile-test">
-        <echo message="Running test" />
-
-        <!-- Run the junit test suite -->
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.UserTest" />
-            <test name="ca.nrc.cadc.ac.GroupTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
+    <property name="xerces"     value="${ext.lib}/xerces.jar" />
+    <property name="asm"        value="${ext.dev}/asm.jar" />
+    <property name="cglib"      value="${ext.dev}/cglib.jar" />
+    <property name="easymock"   value="${ext.dev}/easymock.jar" />
+    <property name="junit"      value="${ext.dev}/junit.jar" />
+    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
     
+    <property name="testingJars" value="${build}/class:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+
 </project>
