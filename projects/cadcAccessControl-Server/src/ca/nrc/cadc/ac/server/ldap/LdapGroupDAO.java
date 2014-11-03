@@ -480,13 +480,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 throw new GroupNotFoundException(groupID);
             }
             
-            if (searchEntry.getAttributeValueAsDN("owner") == null)
+            DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
+            if (groupOwner == null)
             {
                 //TODO assume user not allowed to read group
                 throw new AccessControlException(groupID);
             }
-            
-            DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
             
             User<X500Principal> owner;
             try

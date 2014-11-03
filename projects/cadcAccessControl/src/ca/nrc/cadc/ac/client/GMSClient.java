@@ -68,7 +68,10 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -101,7 +104,11 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.*;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
 
 import com.csvreader.CsvReader;
 
@@ -258,7 +265,7 @@ public class GMSClient
         Throwable error = transfer.getThrowable();
         if (error != null)
         {
-            log.debug("getGroup throwable", error);
+            log.debug("getGroup throwable (" + transfer.getResponseCode() + ")", error);
             // transfer returns a -1 code for anonymous access.
             if ((transfer.getResponseCode() == -1) || 
                 (transfer.getResponseCode() == 401) || 
