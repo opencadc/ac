@@ -78,6 +78,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -235,7 +236,7 @@ public class GMSClient
         String retXML = transfer.getResponseBody();
         try
         {
-            log.debug("createGroup returned: " + groupXML);
+            log.debug("createGroup returned: " + retXML);
             return GroupReader.read(retXML);
         }
         catch (Exception bug)
@@ -313,15 +314,13 @@ public class GMSClient
         URL getGroupNamesURL = new URL(this.baseURL + "/groups");
         log.debug("getGroupNames request to " + getGroupNamesURL.toString());
         
-        HttpURLConnection conn = 
-                (HttpURLConnection) getGroupNamesURL.openConnection();
+        HttpURLConnection conn = (HttpURLConnection) getGroupNamesURL.openConnection();
         conn.setRequestMethod("GET");
 
         SSLSocketFactory sf = getSSLSocketFactory();
         if ((sf != null) && ((conn instanceof HttpsURLConnection)))
         {
-            ((HttpsURLConnection) conn)
-                    .setSSLSocketFactory(sf);
+            ((HttpsURLConnection) conn).setSSLSocketFactory(sf);
         }
         int responseCode = -1;
         try
@@ -332,11 +331,12 @@ public class GMSClient
         {
             throw new AccessControlException(e.getMessage());
         }
+        log.debug("getGroupNames response " + responseCode);
         
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("deleteGroup response " + responseCode + ": " + 
+            log.debug("getGroupNames response " + responseCode + ": " +
                       errMessage);
 
             if ((responseCode == 401) || (responseCode == 403) || 
@@ -351,16 +351,19 @@ public class GMSClient
             throw new IOException("HttpResponse (" + responseCode + ") - " + errMessage);
         }
 
+        log.error("Content-Length: " + conn.getHeaderField("Content-Length"));
+        log.error("Content-Type: " + conn.getHeaderField("Content-Type"));
+
         try
         {
             List<String> groupNames = new ArrayList<String>();
-            Reader ioReader = new InputStreamReader(conn.getInputStream());
-            BufferedReader br = new BufferedReader(ioReader);
-            CsvReader reader = new CsvReader(br);
-            
-            for (int i=0; i<reader.getColumnCount(); i++)
+            CsvReader reader = new CsvReader(conn.getInputStream(), ',', Charset.forName("UTF-8"));
+            if (reader.readRecord())
             {
-                groupNames.add(reader.get(i));
+                for (int i = 0; i < reader.getColumnCount(); i++)
+                {
+                    groupNames.add(reader.get(i));
+                }
             }
             
             return groupNames;
@@ -435,7 +438,7 @@ public class GMSClient
         String retXML = transfer.getResponseBody();
         try
         {
-            log.debug("updateGroup returned: " + groupXML);
+            log.debug("updateGroup returned: " + retXML);
             return GroupReader.read(retXML);
         }
         catch (Exception bug)
