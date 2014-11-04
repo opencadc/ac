@@ -1,2 +1,2 @@
 #server	proxyuser proxyUserDN password driver serverURL
-<serverType in LdapConfig.properties: LDAP or DEVLDAP> <proxyUser in LdapConfig.properties> <proxyUserLdapDN> <password> N/A N/A 
+<server hostname> <proxyUser in LdapConfig.properties> <proxyUserLdapDN> <password> N/A N/A

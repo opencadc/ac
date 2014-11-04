@@ -93,24 +93,13 @@ import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.DN;
 
-/**
- *
- * @author jburke
- */
-public class LdapUserDAOTest
+public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
-    
-    static String usersDN = "ou=Users,ou=ds,dc=testcanfar";
-    static String groupsDN = "ou=Groups,ou=ds,dc=testcanfar";
-    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=testcanfar";
-//    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-//    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
-    
+
     static final String testUserX509DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
-    static final String testUserDN = "uid=cadcdaotest1," + usersDN;
-    
-    
+
+    static String testUserDN;
     static User<X500Principal> testUser;
     static LdapConfig config;
     
@@ -118,23 +107,16 @@ public class LdapUserDAOTest
     public static void setUpBeforeClass()
         throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
-        
-        testUser = new User<X500Principal>(new X500Principal(testUserX509DN));
-    
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
         // get the configuration of the development server from and config files...
-        LdapConfig devServerConfig = LdapConfig.getLdapConfig();
-            
-        // ... but use the test tree
-        config = new LdapConfig(devServerConfig.getServer(),
-                 devServerConfig.getPort(), devServerConfig.getProxyUserDN(),
-                 devServerConfig.getProxyPasswd(), usersDN, groupsDN,
-                 adminGroupsDN);
+        config = getLdapConfig();
 
-        
+        testUser = new User<X500Principal>(new X500Principal(testUserX509DN));
         testUser.details.add(new PersonalDetails("CADC", "DAOTest1"));
-        testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));        
+        testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
+
+        testUserDN = "uid=cadcdaotest1," + config.getUsersDN();
     }
 
     LdapUserDAO<X500Principal> getUserDAO()
@@ -229,7 +211,7 @@ public class LdapUserDAOTest
                     boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
                     assertFalse(isMember);
                     
-                    String groupDN = "cn=cadcdaotestgroup1," + groupsDN;
+                    String groupDN = "cn=cadcdaotestgroup1," + config.getGroupsDN();
                     isMember = getUserDAO().isMember(testUser.getUserID(), groupDN);
                     assertTrue(isMember);
                     

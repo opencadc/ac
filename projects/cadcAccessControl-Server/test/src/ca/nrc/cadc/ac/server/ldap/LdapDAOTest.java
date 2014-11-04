@@ -84,25 +84,15 @@ import org.junit.BeforeClass;
 import static org.junit.Assert.*;
 
 
-public class LdapDAOTest
+public class LdapDAOTest extends AbstractLdapDAOTest
 {
-    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
-    
     static LdapConfig config;
     
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
         // get the configuration of the development server from and config files...
-        LdapConfig devServerConfig = LdapConfig.getLdapConfig();
-        
-        // ... but use the test tree
-        config = new LdapConfig(devServerConfig.getServer(),
-                devServerConfig.getPort(), devServerConfig.getProxyUserDN(),
-                devServerConfig.getProxyPasswd(), usersDN, groupsDN,
-                adminGroupsDN);
+        config = getLdapConfig();
     }
     @Test
     public void testLdapBindConnection() throws Exception
@@ -182,7 +172,6 @@ public class LdapDAOTest
     private void testConnection(final LDAPConnection ldapCon)
     {
         assertTrue("Not connected but should be.", ldapCon.isConnected());
-        assertTrue("Should be SSLSocketFactory.",
-                   (ldapCon.getSocketFactory() instanceof SSLSocketFactory));
     }
+
 }

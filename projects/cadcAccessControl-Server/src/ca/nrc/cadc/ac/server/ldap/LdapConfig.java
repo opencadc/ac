@@ -94,7 +94,6 @@ public class LdapConfig
                                         ".properties";
     public static final String LDAP_SERVER = "server";
     public static final String LDAP_PORT = "port";
-    public static final String LDAP_SERVER_TYPE = "serverType";
     public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
     public static final String LDAP_USERS_DN = "usersDn";
     public static final String LDAP_GROUPS_DN = "groupsDn";
@@ -122,7 +121,12 @@ public class LdapConfig
 
     public static LdapConfig getLdapConfig()
     {
-        PropertiesReader pr = new PropertiesReader(CONFIG);
+        return getLdapConfig(CONFIG);
+    }
+
+    public static LdapConfig getLdapConfig(final String ldapProperties)
+    {
+        PropertiesReader pr = new PropertiesReader(ldapProperties);
         
         MultiValuedProperties config = pr.getAllProperties();
         
@@ -145,20 +149,6 @@ public class LdapConfig
             throw new RuntimeException("failed to read property " + LDAP_PORT);
         }
         int port = Integer.valueOf(prop.get(0));
-
-        prop = config.getProperty(LDAP_SERVER_TYPE);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + 
-                    LDAP_SERVER_TYPE);
-        }
-        String serverType = prop.get(0);
-        if (!"LDAP".equalsIgnoreCase(serverType) &&
-            !"DEVLDAP".equalsIgnoreCase(serverType))
-        {
-            throw new RuntimeException("Unknow server type: " + serverType + 
-                    " (valid: LDAP and DEVLDAP)"); 
-        }
         
         prop = config.getProperty(LDAP_SERVER_PROXY_USER);
         if ((prop == null) || (prop.size() != 1))
@@ -205,7 +195,7 @@ public class LdapConfig
         {
             throw new RuntimeException("failed to read .dbrc file ");
         }
-        ConnectionConfig cc = dbConfig.getConnectionConfig(serverType, ldapProxy);
+        ConnectionConfig cc = dbConfig.getConnectionConfig(server, ldapProxy);
         if ( (cc == null) || (cc.getUsername() == null) || (cc.getPassword() == null))
         {
             throw new RuntimeException("failed to find connection info in ~/.dbrc");

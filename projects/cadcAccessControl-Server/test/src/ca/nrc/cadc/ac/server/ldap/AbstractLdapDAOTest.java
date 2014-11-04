@@ -1,4 +1,4 @@
-/*
+/**
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -62,96 +62,21 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
- *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-
-import static org.junit.Assert.fail;
+package ca.nrc.cadc.ac.server.ldap;
 
 /**
- *
- * @author jburke
+ * Created by jburke on 2014-11-03.
  */
-public class GetGroupNamesActionTest
+public class AbstractLdapDAOTest
 {
-    private final static Logger log = Logger.getLogger(GetGroupNamesActionTest.class);
+    static final String CONFIG = LdapConfig.class.getSimpleName() + ".test.properties";
 
-    @BeforeClass
-    public static void setUpClass()
+    static protected LdapConfig getLdapConfig()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-    }
-
-    @Test
-    @Ignore
-    public void testRun() throws Exception
-    {
-        try
-        {
-            Collection<String> groupNames = new ArrayList<String>();
-            groupNames.add("foo");
-            groupNames.add("bar");
-
-            final GroupPersistence mockPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(mockPersistence.getGroupNames()).andReturn(groupNames).once();
-
-            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
-            mockWriter.write("foo", 0, 3);
-            EasyMock.expectLastCall();
-            mockWriter.write(44);
-            EasyMock.expectLastCall();
-            mockWriter.write("bar", 0, 3);
-            EasyMock.expectLastCall();
-            mockWriter.write("\n");
-            EasyMock.expectLastCall();
-
-            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
-            mockResponse.setContentType("text/csv");
-            EasyMock.expectLastCall();
-            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
-
-            GroupLogInfo mockLog = EasyMock.createMock(GroupLogInfo.class);
-
-            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
-
-            GetGroupNamesAction action = new GetGroupNamesAction(mockLog)
-            {
-//                @Override
-//                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-//                {
-//                    return mockPersistence;
-//                };
-//
-//                protected HttpServletResponse getHttpServletResponse()
-//                {
-//                    return mockResponse;
-//                }
-            };
-
-            action.run();
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        return LdapConfig.getLdapConfig(CONFIG);
     }
 
 }
