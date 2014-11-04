@@ -106,7 +106,6 @@ public class GroupsActionTest
     }
 
     @Test
-    @Ignore
     public void testDoActionAccessControlException() throws Exception
     {
         String message = "Permission Denied";
@@ -116,7 +115,6 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionIllegalArgumentException() throws Exception
     {
         String message = "message";
@@ -126,7 +124,6 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionMemberNotFoundException() throws Exception
     {
         String message = "Member not found: foo";
@@ -136,7 +133,6 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionGroupNotFoundException() throws Exception
     {
         String message = "Group not found: foo";
@@ -146,7 +142,6 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionUserNotFoundException() throws Exception
     {
         String message = "User not found: foo";
@@ -156,7 +151,6 @@ public class GroupsActionTest
     }
 
     @Test
-    @Ignore
     public void testDoActionMemberAlreadyExistsException() throws Exception
     {
         String message = "Member already exists: foo";
@@ -166,7 +160,6 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionGroupAlreadyExistsException() throws Exception
     {
         String message = "Group already exists: foo";
@@ -176,7 +169,6 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionUnsupportedOperationException() throws Exception
     {
         String message = "Not yet implemented.";
@@ -186,31 +178,27 @@ public class GroupsActionTest
     }
     
     @Test
-    @Ignore
     public void testDoActionTransientException() throws Exception
     {
         try
         {
-            ServletOutputStream out = EasyMock.createMock(ServletOutputStream.class);
-
             HttpServletResponse response = EasyMock.createMock(HttpServletResponse.class);
             EasyMock.expect(response.isCommitted()).andReturn(Boolean.FALSE);
-            response.setHeader("Content-Type", "text/plain");
+            response.setContentType("text/plain");
             EasyMock.expectLastCall().once();
-            EasyMock.expect(response.getOutputStream()).andReturn(out);
             EasyMock.expect(response.getWriter()).andReturn(new PrintWriter(new StringWriter()));
             EasyMock.expectLastCall().once();
             response.setStatus(503);
             EasyMock.expectLastCall().once();
-            
+            EasyMock.replay(response);
+
             GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
             logInfo.setSuccess(false);
             EasyMock.expectLastCall().once();
             logInfo.setMessage("Internal Transient Error: foo");
             EasyMock.expectLastCall().once();
+            EasyMock.replay(logInfo);
 
-            EasyMock.replay(out, response, logInfo);
-            
             GroupsActionImpl action = new GroupsActionImpl(logInfo);
             action.setException(new TransientException("foo"));
             action.doAction(null, response);
@@ -222,28 +210,26 @@ public class GroupsActionTest
         }
     }
     
-    private void testDoAction(final String message, final int responseCode, final Exception e)
+    private void testDoAction(String message, int responseCode, Exception e)
         throws Exception
     {
         try
         {
-            ServletOutputStream out = EasyMock.createMock(ServletOutputStream.class);
-            out.write(message.getBytes());
-            EasyMock.expectLastCall().once();
-
             HttpServletResponse response = EasyMock.createMock(HttpServletResponse.class);
-            response.setHeader("Content-Type", "text/plain");
+            EasyMock.expect(response.isCommitted()).andReturn(Boolean.FALSE);
+            response.setContentType("text/plain");
+            EasyMock.expectLastCall().once();
+            EasyMock.expect(response.getWriter()).andReturn(new PrintWriter(new StringWriter()));
             EasyMock.expectLastCall().once();
             response.setStatus(responseCode);
             EasyMock.expectLastCall().once();
-            EasyMock.expect(response.getOutputStream()).andReturn(out);
+            EasyMock.replay(response);
 
             GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
             logInfo.setMessage(message);
             EasyMock.expectLastCall().once();
+            EasyMock.replay(logInfo);
 
-            EasyMock.replay(out, response, logInfo);
-            
             GroupsActionImpl action = new GroupsActionImpl(logInfo);
             action.setException(e);
             action.doAction(null, response);
