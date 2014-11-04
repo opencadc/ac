@@ -66,99 +66,44 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
-import java.security.Principal;
-import java.util.HashSet;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
-public class User<T extends Principal>
+public class AddGroupMemberAction extends GroupsAction
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private final String groupName;
+    private final String groupMemberName;
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    AddGroupMemberAction(GroupLogInfo logInfo, String groupName,
+                         String groupMemberName)
     {
-        if (userID == null)
+        super(logInfo);
+        this.groupName = groupName;
+        this.groupMemberName = groupMemberName;
+    }
+
+    public Object run()
+        throws Exception
+    {
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group group = groupPersistence.getGroup(this.groupName);
+        Group toAdd = groupPersistence.getGroup(this.groupMemberName);
+        if (!group.getGroupMembers().add(toAdd))
         {
-            throw new IllegalArgumentException("null userID");
+            throw new GroupAlreadyExistsException(this.groupMemberName);
         }
-        this.userID = userID;
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        addedMembers.add(toAdd.getID());
+        logGroupInfo(group.getID(), null, addedMembers);
+        return null;
     }
 
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
 }
