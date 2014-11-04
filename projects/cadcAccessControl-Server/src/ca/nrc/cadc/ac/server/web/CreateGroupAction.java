@@ -68,17 +68,15 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupReader;
 import ca.nrc.cadc.ac.GroupWriter;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import javax.servlet.http.HttpServletResponse;
 
 public class CreateGroupAction extends GroupsAction
 {
@@ -96,8 +94,8 @@ public class CreateGroupAction extends GroupsAction
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = GroupReader.read(this.inputStream);
         Group newGroup = groupPersistence.addGroup(group);
-        setContentType("application/xml");
-        GroupWriter.write(newGroup, getOutputStream());
+        this.response.setContentType("application/xml");
+        GroupWriter.write(newGroup, this.response.getOutputStream());
 
         List<String> addedMembers = null;
         if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))

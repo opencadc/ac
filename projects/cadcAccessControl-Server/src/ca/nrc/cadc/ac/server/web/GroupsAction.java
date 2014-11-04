@@ -69,7 +69,6 @@
 package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -90,108 +89,99 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.uws.server.SyncOutput;
-
 
 public abstract class GroupsAction
     implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(GroupsAction.class);
     protected GroupLogInfo logInfo;
-    private SyncOutput syncOutput;
+    protected HttpServletResponse response;
 
     GroupsAction(GroupLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    public void doAction(Subject subject, final HttpServletResponse response)
+    public void doAction(Subject subject, HttpServletResponse response)
         throws IOException
     {
-        syncOutput = new SyncOutput()
-        {
-            @Override
-            public void setResponseCode(int code)
-            {
-                response.setStatus(code);
-            }
-
-            @Override
-            public void setHeader(String key, String value)
-            {
-                response.setHeader(key, value);
-            }
-
-            @Override
-            public OutputStream getOutputStream() throws IOException
-            {
-                return response.getOutputStream();
-            }
-        };
-
         try
         {
-            if (subject == null)
+            try
             {
-                run();
+                this.response = response;
+
+                if (subject == null)
+                {
+                    run();
+                }
+                else
+                {
+                    Subject.doAs(subject, this);
+                }
             }
-            else
+            catch (PrivilegedActionException e)
             {
-                runPrivileged(subject);
+                Throwable cause = e.getCause();
+                if (cause != null)
+                {
+                    throw cause;
+                }
+                throw e;
             }
         }
         catch (AccessControlException e)
         {
-            log.debug("Permission denied", e);
+            log.debug(e);
             String message = "Permission Denied";
             this.logInfo.setMessage(message);
             sendError(403, message);
         }
         catch (IllegalArgumentException e)
         {
-            log.debug("Illegal argument", e);
+            log.debug(e);
             String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(400, message);
         }
         catch (MemberNotFoundException e)
         {
-            log.debug("Member Not Found", e);
+            log.debug(e);
             String message = "Member not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
         }
         catch (GroupNotFoundException e)
         {
-            log.debug("Group not found", e);
+            log.debug(e);
             String message = "Group not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
         }
         catch (UserNotFoundException e)
         {
-            log.debug("User Not Found", e);
+            log.debug(e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
         }
         catch (MemberAlreadyExistsException e)
         {
-            log.debug("Member Already Exists", e);
+            log.debug(e);
             String message = "Member already exists: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
         }
         catch (GroupAlreadyExistsException e)
         {
-            log.debug("Group Already Exists", e);
+            log.debug(e);
             String message = "Group already exists: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
         }
         catch (UnsupportedOperationException e)
         {
-            log.debug("Unsupported Operation", e);
+            log.debug(e);
             this.logInfo.setMessage("Not yet implemented.");
             sendError(501);
         }
@@ -213,58 +203,27 @@ public abstract class GroupsAction
         }
     }
 
-    private void runPrivileged(final Subject subject) throws Throwable
-    {
-        try
-        {
-            Subject.doAs(subject, this);
-        }
-        catch (PrivilegedActionException e)
-        {
-            final Throwable cause = e.getCause();
-            if (cause != null)
-            {
-                throw cause;
-            }
-            throw e;
-        }
-    }
-
-    protected final void setStatusCode(final int statusCode)
-    {
-        syncOutput.setResponseCode(statusCode);
-    }
-
-    protected final OutputStream getOutputStream() throws IOException
-    {
-        return syncOutput.getOutputStream();
-    }
-
-    protected final void setContentType(final String contentType)
-    {
-        syncOutput.setHeader("Content-Type", contentType);
-    }
-
-    protected final void setRedirectLocation(final String location)
-    {
-        syncOutput.setHeader("Location", location);
-    }
-
     private void sendError(int responseCode)
         throws IOException
     {
         sendError(responseCode, null);
     }
 
-    private void sendError(final int code, String message)
+    private void sendError(int responseCode, String message)
         throws IOException
     {
-        setContentType("text/plain");
-        setStatusCode(code);
-
-        if (message != null)
+        if (!this.response.isCommitted())
         {
-            getOutputStream().write(message.getBytes());
+            this.response.setContentType("text/plain");
+            if (message != null)
+            {
+                this.response.getWriter().write(message);
+            }
+            this.response.setStatus(responseCode);
+        }
+        else
+        {
+            log.warn("Could not send error " + responseCode + " (" + message + ") because the response is already committed.");
         }
     }
 

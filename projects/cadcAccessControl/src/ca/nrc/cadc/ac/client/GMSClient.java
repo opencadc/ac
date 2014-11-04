@@ -68,15 +68,16 @@
  */
 package ca.nrc.cadc.ac.client;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -109,8 +110,6 @@ import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.NetUtil;
-
-import com.csvreader.CsvReader;
 
 
 /**
@@ -319,15 +318,11 @@ public class GMSClient
             {
                 try
                 {
-                    final CsvReader reader =
-                            new CsvReader(inputStream, ',',
-                                          Charset.forName("UTF-8"));
-                    if (reader.readRecord())
-                    {
-                        for (int i = 0; i < reader.getColumnCount(); i++)
-                        {
-                            groupNames.add(reader.get(i));
-                        }
+                    InputStreamReader inReader = new InputStreamReader(inputStream);
+                    BufferedReader reader = new BufferedReader(inReader);
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        groupNames.add(line);
                     }
                 }
                 catch (Exception bug)
@@ -363,8 +358,8 @@ public class GMSClient
             throw new IOException("HttpResponse (" + responseCode + ") - " + errMessage);
         }
 
-        log.error("Content-Length: " + httpDownload.getContentLength());
-        log.error("Content-Type: " + httpDownload.getContentType());
+        log.debug("Content-Length: " + httpDownload.getContentLength());
+        log.debug("Content-Type: " + httpDownload.getContentType());
 
         return groupNames;
     }

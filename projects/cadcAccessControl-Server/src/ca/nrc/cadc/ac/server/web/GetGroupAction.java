@@ -70,7 +70,6 @@
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupWriter;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import javax.servlet.http.HttpServletResponse;
 
 public class GetGroupAction extends GroupsAction
 {
@@ -87,8 +86,8 @@ public class GetGroupAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        setContentType("application/xml");
-        GroupWriter.write(group, getOutputStream());
+        this.response.setContentType("application/xml");
+        GroupWriter.write(group, this.response.getOutputStream());
         return null;
     }
 

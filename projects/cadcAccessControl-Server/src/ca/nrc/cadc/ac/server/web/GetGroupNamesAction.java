@@ -65,20 +65,21 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac.server.web;
+ */
 
-import java.io.OutputStreamWriter;
+package ca.nrc.cadc.ac.server.web;
+
 import java.io.Writer;
 import java.util.Collection;
 
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.server.GroupPersistence;
-
-import com.csvreader.CsvWriter;
-
-import javax.servlet.http.HttpServletResponse;
 
 public class GetGroupNamesAction extends GroupsAction
 {
+    
+    private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
 
     GetGroupNamesAction(GroupLogInfo logInfo)
     {
@@ -90,16 +91,21 @@ public class GetGroupNamesAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Collection<String> groups = groupPersistence.getGroupNames();
-        setContentType("text/csv");
-
-        final Writer writer = new OutputStreamWriter(getOutputStream());
-        final CsvWriter csvWriter = new CsvWriter(writer, ',');
-
+        log.debug("Found " + groups.size() + " group names");
+        response.setContentType("text/plain");
+        log.debug("Set content-type to text/plain");
+        Writer writer = response.getWriter();
+        boolean start = true;
         for (final String group : groups)
         {
-            csvWriter.write(group);
+            if (!start)
+            {
+                writer.write("\r\n");
+            }
+            writer.write(group);
+            start = false;
         }
-        csvWriter.endRecord();
+        
         return null;
     }
 }

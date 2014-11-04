@@ -185,6 +185,7 @@ public class GroupsActionFactory
 
         if (action != null)
         {
+            log.debug("Returning action: " + action.getClass());
             return action;
         }
         throw new IllegalArgumentException("Bad groups request: " + method + " on " + path);
