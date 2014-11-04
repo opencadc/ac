@@ -231,11 +231,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         for (Group groupMember : groups)
         {
-            if (!checkGroupExists(groupID))
+            final String groupMemberID = groupMember.getID();
+            if (!checkGroupExists(groupMemberID))
             {
-                throw new GroupNotFoundException(groupID);
+                throw new GroupNotFoundException(groupMemberID);
             }
-            DN memberDN = getGroupDN(groupMember.getID());
+            DN memberDN = getGroupDN(groupMemberID);
             members.add(memberDN.toNormalizedString());
         }
         if (!members.isEmpty())
@@ -480,13 +481,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 throw new GroupNotFoundException(groupID);
             }
             
-            if (searchEntry.getAttributeValueAsDN("owner") == null)
+            DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
+            if (groupOwner == null)
             {
                 //TODO assume user not allowed to read group
                 throw new AccessControlException(groupID);
             }
-            
-            DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
             
             User<X500Principal> owner;
             try

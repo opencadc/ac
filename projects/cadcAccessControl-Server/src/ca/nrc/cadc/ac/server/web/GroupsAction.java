@@ -77,7 +77,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
 import javax.security.auth.Subject;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
@@ -143,56 +142,56 @@ public abstract class GroupsAction
         }
         catch (AccessControlException e)
         {
-            log.debug(e);
+            log.debug("Permission denied", e);
             String message = "Permission Denied";
             this.logInfo.setMessage(message);
             sendError(403, message);
         }
         catch (IllegalArgumentException e)
         {
-            log.debug(e);
+            log.debug("Illegal argument", e);
             String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(400, message);
         }
         catch (MemberNotFoundException e)
         {
-            log.debug(e);
+            log.debug("Member Not Found", e);
             String message = "Member not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
         }
         catch (GroupNotFoundException e)
         {
-            log.debug(e);
+            log.debug("Group not found", e);
             String message = "Group not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
         }
         catch (UserNotFoundException e)
         {
-            log.debug(e);
+            log.debug("User Not Found", e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
         }
         catch (MemberAlreadyExistsException e)
         {
-            log.debug(e);
+            log.debug("Member Already Exists", e);
             String message = "Member already exists: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
         }
         catch (GroupAlreadyExistsException e)
         {
-            log.debug(e);
+            log.debug("Group Already Exists", e);
             String message = "Group already exists: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
         }
         catch (UnsupportedOperationException e)
         {
-            log.debug(e);
+            log.debug("Unsupported Operation", e);
             this.logInfo.setMessage("Not yet implemented.");
             sendError(501);
         }

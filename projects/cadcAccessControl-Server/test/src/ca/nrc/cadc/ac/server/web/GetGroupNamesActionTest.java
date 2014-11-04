@@ -70,6 +70,8 @@ package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.server.SyncOutput;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -122,6 +124,11 @@ public class GetGroupNamesActionTest
             mockWriter.write("\n");
             EasyMock.expectLastCall();
 
+            final SyncOutput mockSyncOutput =
+                    EasyMock.createMock(SyncOutput.class);
+
+            mockSyncOutput.setHeader("Content-Type", "text/csv");
+
             final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
             mockResponse.setContentType("text/csv");
             EasyMock.expectLastCall();
@@ -133,16 +140,11 @@ public class GetGroupNamesActionTest
 
             GetGroupNamesAction action = new GetGroupNamesAction(mockLog)
             {
-//                @Override
-//                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-//                {
-//                    return mockPersistence;
-//                };
-//
-//                protected HttpServletResponse getHttpServletResponse()
-//                {
-//                    return mockResponse;
-//                }
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return mockPersistence;
+                };
             };
 
             action.run();
