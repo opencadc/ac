@@ -80,13 +80,20 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import com.unboundid.ldap.sdk.LDAPConnection;
 
 import org.junit.Test;
+import org.junit.BeforeClass;
 import static org.junit.Assert.*;
 
 
-public class LdapDAOTest
+public class LdapDAOTest extends AbstractLdapDAOTest
 {
-    final LdapConfig config = new TestLDAPConfig();
+    static LdapConfig config;
     
+    @BeforeClass
+    public static void setUpBeforeClass() throws Exception
+    {
+        // get the configuration of the development server from and config files...
+        config = getLdapConfig();
+    }
     @Test
     public void testLdapBindConnection() throws Exception
     {
@@ -165,7 +172,6 @@ public class LdapDAOTest
     private void testConnection(final LDAPConnection ldapCon)
     {
         assertTrue("Not connected but should be.", ldapCon.isConnected());
-        assertFalse("Should be SSLSocketFactory.",
-                   (ldapCon.getSocketFactory() instanceof SSLSocketFactory));
     }
+
 }

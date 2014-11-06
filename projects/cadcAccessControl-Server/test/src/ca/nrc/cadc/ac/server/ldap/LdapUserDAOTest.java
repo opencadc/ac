@@ -85,38 +85,21 @@ import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.DN;
 
-/**
- *
- * @author jburke
- */
-public class LdapUserDAOTest
+public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
-    
-    static String server = "mach275.cadc.dao.nrc.ca";
-    static int port = 389;
-    static String adminDN = "uid=webproxy,ou=Webproxy,ou=topologymanagement,o=netscaperoot";
-    static String adminPW = "go4it";
-    static String usersDN = "ou=Users,ou=ds,dc=canfartest,dc=net";
-    static String groupsDN = "ou=Groups,ou=ds,dc=canfartest,dc=net";
-    static String adminGroupsDN = "ou=adminGroups,ou=ds,dc=canfartest,dc=net";
-//    static String userBaseDN = "ou=Users,ou=ds,dc=canfar,dc=net";
-//    static String groupBaseDN = "ou=Groups,ou=ds,dc=canfar,dc=net";
-    
+
     static final String testUserX509DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
-    static final String testUserDN = "uid=cadcdaotest1," + usersDN;
-    
-    
+
+    static String testUserDN;
     static User<X500Principal> testUser;
     static LdapConfig config;
     
@@ -124,14 +107,16 @@ public class LdapUserDAOTest
     public static void setUpBeforeClass()
         throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
-        
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+
+        // get the configuration of the development server from and config files...
+        config = getLdapConfig();
+
         testUser = new User<X500Principal>(new X500Principal(testUserX509DN));
-    
-        config = new LdapConfig(server, port, adminDN, adminPW, usersDN, groupsDN, adminGroupsDN);
-        
         testUser.details.add(new PersonalDetails("CADC", "DAOTest1"));
-        testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));        
+        testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
+
+        testUserDN = "uid=cadcdaotest1," + config.getUsersDN();
     }
 
     LdapUserDAO<X500Principal> getUserDAO()
@@ -226,7 +211,7 @@ public class LdapUserDAOTest
                     boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
                     assertFalse(isMember);
                     
-                    String groupDN = "cn=cadcdaotestgroup1,ou=groups,ou=ds,dc=canfartest,dc=net";
+                    String groupDN = "cn=cadcdaotestgroup1," + config.getGroupsDN();
                     isMember = getUserDAO().isMember(testUser.getUserID(), groupDN);
                     assertTrue(isMember);
                     

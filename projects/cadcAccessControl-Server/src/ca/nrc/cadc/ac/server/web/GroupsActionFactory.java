@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -92,16 +93,19 @@ public class GroupsActionFactory
 
         if (path == null)
         {
-            path = new String();
+            path = "";
         }
+
         if (path.startsWith("/"))
         {
             path = path.substring(1);
         }
+
         if (path.endsWith("/"))
         {
             path = path.substring(0, path.length() - 1);
         }
+
         String[] segments = new String[0];
         if (StringUtil.hasText(path))
         {
@@ -133,7 +137,16 @@ public class GroupsActionFactory
             }
             else if (method.equals("POST"))
             {
-                action = new ModifyGroupAction(logInfo, groupName, request.getRequestURI(), request.getInputStream());
+                final URL requestURL =
+                        new URL(request.getRequestURL().toString());
+                final String redirectURI = requestURL.getProtocol() + "://"
+                                           + requestURL.getHost() + ":"
+                                           + requestURL.getPort()
+                                           + request.getContextPath()
+                                           + request.getServletPath()
+                                           + "/" + path;
+                action = new ModifyGroupAction(logInfo, groupName, redirectURI,
+                                               request.getInputStream());
             }
         }
         else if (segments.length == 3)
@@ -172,6 +185,7 @@ public class GroupsActionFactory
 
         if (action != null)
         {
+            log.debug("Returning action: " + action.getClass());
             return action;
         }
         throw new IllegalArgumentException("Bad groups request: " + method + " on " + path);

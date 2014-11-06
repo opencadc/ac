@@ -135,10 +135,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      *                                     exists.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws UserNotFoundException If owner or a member not valid user.
+     * @throws GroupNotFoundException 
      */
     public Group addGroup(final Group group)
         throws GroupAlreadyExistsException, TransientException,
-               UserNotFoundException, AccessControlException
+               UserNotFoundException, AccessControlException, 
+               GroupNotFoundException
     {
         if (group.getOwner() == null)
         {
@@ -205,7 +207,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                 final DN ownerDN, final String description, 
                                 final Set<User<? extends Principal>> users, 
                                 final Set<Group> groups)
-        throws UserNotFoundException, LDAPException, TransientException
+        throws UserNotFoundException, LDAPException, TransientException, 
+        AccessControlException, GroupNotFoundException
     {
         // add new group
         List<Attribute> attributes = new ArrayList<Attribute>();
@@ -228,7 +231,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         for (Group groupMember : groups)
         {
-            DN memberDN = getGroupDN(groupMember.getID());
+            final String groupMemberID = groupMember.getID();
+            if (!checkGroupExists(groupMemberID))
+            {
+                throw new GroupNotFoundException(groupMemberID);
+            }
+            DN memberDN = getGroupDN(groupMemberID);
             members.add(memberDN.toNormalizedString());
         }
         if (!members.isEmpty())
@@ -316,7 +324,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
     public Collection<String> getGroupNames()
-        throws TransientException, AccessControlException
+        throws TransientException
     {
         try
         {
@@ -473,8 +481,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 throw new GroupNotFoundException(groupID);
             }
             
-            String groupCN = searchEntry.getAttributeValue("cn");
             DN groupOwner = searchEntry.getAttributeValueAsDN("owner");
+            if (groupOwner == null)
+            {
+                //TODO assume user not allowed to read group
+                throw new AccessControlException(groupID);
+            }
             
             User<X500Principal> owner;
             try
@@ -486,7 +498,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 throw new RuntimeException("BUG: group owner not found");
             }
             
-            Group ldapGroup = new Group(groupCN, owner);
+            Group ldapGroup = new Group(groupID, owner);
             if (searchEntry.hasAttribute("description"))
             {
                 ldapGroup.description = 
@@ -599,8 +611,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         for (Group gr : group.getGroupMembers())
         {
-                DN grDN = getGroupDN(gr.getID());
-                newMembers.add(grDN.toNormalizedString());
+            if (!checkGroupExists(gr.getID()))
+            {
+                throw new GroupNotFoundException(gr.getID());
+            }
+            DN grDN = getGroupDN(gr.getID());
+            newMembers.add(grDN.toNormalizedString());
         }
         List<String> newAdmins = new ArrayList<String>();
         for (User<?> member : group.getUserAdmins())
@@ -610,6 +626,10 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         for (Group gr : group.getGroupAdmins())
         {
+            if (!checkGroupExists(gr.getID()))
+            {
+                throw new GroupNotFoundException(gr.getID());
+            }
             DN grDN = getGroupDN(gr.getID());
             newAdmins.add(grDN.toNormalizedString());
         }
@@ -746,7 +766,16 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                GroupNotFoundException, UserNotFoundException
     {
         User<T> user = new User<T>(userID);
-        DN userDN = userPersist.getUserDN(user);
+        DN userDN = null;
+        try
+        {
+            userDN = userPersist.getUserDN(user);
+        }
+        catch (UserNotFoundException e)
+        {
+            // no anonymous searches
+            throw new AccessControlException("Not authorized to search");
+        }
         
         Collection<DN> groupDNs = new HashSet<DN>();
         if (role == Role.OWNER)
@@ -986,6 +1015,19 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             throw new RuntimeException(e);
         }
+    }
+    
+    private boolean checkGroupExists(String groupID) 
+            throws TransientException
+    {
+        for (String groupName : getGroupNames())
+        {
+            if (groupName.equalsIgnoreCase(groupID))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

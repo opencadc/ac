@@ -77,6 +77,8 @@ import org.junit.Test;
 
 import ca.nrc.cadc.util.Log4jInit;
 
+import java.net.URL;
+
 public class GroupActionFactoryTest
 {
     private final static Logger log = Logger.getLogger(GroupActionFactoryTest.class);
@@ -213,10 +215,15 @@ public class GroupActionFactoryTest
     {
         try
         {
+            StringBuffer sb = new StringBuffer();
+            sb.append("http://localhost:80/ac/groups/foo");
+
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("groupName");
             EasyMock.expect(request.getMethod()).andReturn("POST");
-            EasyMock.expect(request.getRequestURI()).andReturn(null);
+            EasyMock.expect(request.getRequestURL()).andReturn(sb);
+            EasyMock.expect(request.getContextPath()).andReturn("");
+            EasyMock.expect(request.getServletPath()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
             GroupsAction action = GroupsActionFactory.getGroupsAction(request, null);
