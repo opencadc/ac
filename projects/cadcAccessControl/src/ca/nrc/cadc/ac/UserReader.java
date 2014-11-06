@@ -68,97 +68,150 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.xml.XmlUtil;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
-public class User<T extends Principal>
+public class UserReader
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
-    {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
+    /**
+     * Construct a User from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return User User.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    @Override
-    public int hashCode()
+    public static User<? extends Principal> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
     {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
+        if (xml == null)
+        {
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
+    /**
+     * Construct a User from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return User User.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    @Override
-    public boolean equals(Object obj)
+    public static User<? extends Principal> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
-        if (this == obj)
+        if (in == null)
         {
-            return true;
+            throw new IOException("stream closed");
         }
-        if (obj == null)
+        InputStreamReader reader;
+        try
         {
-            return false;
+            reader = new InputStreamReader(in, "UTF-8");
         }
-        if (getClass() != obj.getClass())
+        catch (UnsupportedEncodingException e)
         {
-            return false;
+            throw new RuntimeException("UTF-8 encoding not supported");
         }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        return read(reader);
     }
 
-    @Override
-    public String toString()
+    /**
+     * Construct a User from a Reader.
+     * 
+     * @param reader Reader.
+     * @return User User.
+     * @throws ca.nrc.cadc.ac.ReaderException
+     * @throws java.io.IOException
+     */
+    public static User<? extends Principal> read(Reader reader)
+        throws ReaderException, IOException
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        // Create a JDOM Document from the XML
+        Document document;
+        try
+        {
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        // Root element and namespace of the Document
+        Element root = document.getRootElement();
+
+        return parseUser(root);
     }
 
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
+    protected static User<? extends Principal> parseUser(Element userElement)
+        throws ReaderException
     {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
+        // userID element of the User element
+        Element userIDElement = userElement.getChild("userID");
+        if (userIDElement == null)
         {
-            if (ud.getClass() == userDetailsClass)
+            String error = "userID element not found in user element";
+            throw new ReaderException(error);
+        }
+
+        // identity element of the userID element
+        Element userIDIdentityElement = userIDElement.getChild("identity");
+        if (userIDIdentityElement == null)
+        {
+            String error = "identity element not found in userID element";
+            throw new ReaderException(error);
+        }
+
+        Principal userID = IdentityReader.read(userIDIdentityElement);
+
+        User<Principal> user = new User<Principal>(userID);
+
+        // identities
+        Element identitiesElement = userElement.getChild("identities");
+        if (identitiesElement != null)
+        {
+            List<Element> identityElements = identitiesElement.getChildren("identity");
+            for (Element identityElement : identityElements)
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                user.getIdentities().add(IdentityReader.read(identityElement));
+            }
+
+        }
+
+        // details
+        Element detailsElement = userElement.getChild("details");
+        if (detailsElement != null)
+        {
+            List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
+            for (Element userDetailsElement : userDetailsElements)
+            {
+                user.details.add(UserDetailsReader.read(userDetailsElement));
             }
         }
 
-        return matchedDetails;
+        return user;
     }
+
 }

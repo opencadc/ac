@@ -66,99 +66,43 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
 
-public class User<T extends Principal>
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+
+public class DeleteGroupAction extends GroupsAction
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private final String groupName;
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    DeleteGroupAction(GroupLogInfo logInfo, String groupName)
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
+        super(logInfo);
+        this.groupName = groupName;
     }
 
-    public Set<Principal> getIdentities()
+    public Object run()
+        throws Exception
     {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group deletedGroup = groupPersistence.getGroup(this.groupName);
+        groupPersistence.deleteGroup(this.groupName);
+        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))
         {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
+            this.logInfo.deletedMembers = new ArrayList<String>();
+            for (Group gr : deletedGroup.getGroupMembers())
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                this.logInfo.deletedMembers.add(gr.getID());
+            }
+            for (User usr : deletedGroup.getUserMembers())
+            {
+                this.logInfo.deletedMembers.add(usr.getUserID().getName());
             }
         }
-
-        return matchedDetails;
+        return null;
     }
+
 }

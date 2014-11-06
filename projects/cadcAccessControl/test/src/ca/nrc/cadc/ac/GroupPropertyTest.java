@@ -68,97 +68,61 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class User<T extends Principal>
+/**
+ *
+ * @author jburke
+ */
+public class GroupPropertyTest
 {
-    private T userID;
+    private static Logger log = Logger.getLogger(GroupPropertyTest.class);
     
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    @Test
+    public void simpleGroupPropertyTest() throws Exception
     {
-        if (userID == null)
+        GroupProperty gp1 = new GroupProperty("key", "value", false);
+        
+        assertEquals("key", gp1.getKey());
+        assertEquals("value", gp1.getValue());
+        assertEquals(false, gp1.isReadOnly());
+        
+        GroupProperty gp2 = gp1;
+        assertEquals(gp1.hashCode(), gp2.hashCode());
+        assertEquals(gp1, gp2);
+        assertTrue(gp1 == gp2);
+        
+        // test toString
+        System.out.println(gp1);
+    }
+    
+    @Test
+    public void exceptionTests()
+    {
+        boolean thrown = false;
+        try
         {
-            throw new IllegalArgumentException("null userID");
+            new GroupProperty(null, "value", true);
         }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch(IllegalArgumentException e)
         {
-            return true;
+            thrown = true;
         }
-        if (obj == null)
+        assertTrue(thrown);
+        
+        
+        thrown = false;
+        try
         {
-            return false;
+            new GroupProperty("key", null, true);
         }
-        if (getClass() != obj.getClass())
+        catch(IllegalArgumentException e)
         {
-            return false;
+            thrown = true;
         }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        assertTrue(thrown);
     }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
+    
 }

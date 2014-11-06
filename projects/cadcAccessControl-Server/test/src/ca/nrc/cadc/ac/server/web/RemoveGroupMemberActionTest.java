@@ -66,99 +66,111 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.util.Log4jInit;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class User<T extends Principal>
+/**
+ *
+ * @author jburke
+ */
+public class RemoveGroupMemberActionTest
 {
-    private T userID;
+    private final static Logger log = Logger.getLogger(RemoveGroupMemberActionTest.class);
     
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    @BeforeClass
+    public static void setUpClass()
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    public Set<Principal> getIdentities()
+    @Test
+    public void testExceptions()
     {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        try
         {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
+            Group group = new Group("group", null);
+            Group member = new Group("member", null);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
+            EasyMock.replay(groupPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction(logInfo, "group", "member")
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+            };
+            
+            try
+            {
+                action.run();
+                fail("unknown group member should throw GroupNotFoundException");
             }
+            catch (GroupNotFoundException ignore) {}
         }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
+    }
+    
+    @Test
+    public void testRun() throws Exception
+    {
+        try
+        {
+            Group member = new Group("member", null);
+            Group group = new Group("group", null);
+            group.getGroupMembers().add(member);
+            
+            Group modified = new Group("group", null);
+            modified.getGroupMembers().add(member);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
+            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
+            EasyMock.replay(groupPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction(logInfo, "group", "member")
+            {
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+            };
 
-        return matchedDetails;
+            action.run();
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
 }

@@ -68,97 +68,89 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import org.junit.Test;
 
-public class User<T extends Principal>
+/**
+ *
+ * @author jburke
+ */
+public class GroupsReaderWriterTest
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        if (userID == null)
+        try
         {
-            throw new IllegalArgumentException("null userID");
+            String s = null;
+            List<Group> g = GroupsReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch (IllegalArgumentException e) {}
+        
+        try
         {
-            return true;
+            InputStream in = null;
+            List<Group> g = GroupsReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        if (obj == null)
+        catch (IOException e) {}
+        
+        try
         {
-            return false;
+            Reader r = null;
+            List<Group> g = GroupsReader.read(r);
+            fail("null element should throw ReaderException");
         }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        catch (IllegalArgumentException e) {}
     }
-
-    @Override
-    public String toString()
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
+        try
         {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
+            GroupsWriter.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
         }
-
-        return matchedDetails;
+        catch (WriterException e) {}
     }
+     
+    @Test
+    public void testMinimalReadWrite()
+        throws Exception
+    {        
+        List<Group> expected = new ArrayList<Group>();
+        expected.add(new Group("group1", null));
+        expected.add(new Group("group2", null));
+        
+        StringBuilder xml = new StringBuilder();
+        GroupsWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        List<Group> actual = GroupsReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected.size(), actual.size());
+        assertEquals(expected.get(0), actual.get(0));
+        assertEquals(expected.get(1), actual.get(1));
+    }
+
 }

@@ -66,99 +66,100 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server;
 
+import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collection;
 
-public class User<T extends Principal>
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+
+public abstract interface GroupPersistence<T extends Principal>
 {
-    private T userID;
+    /**
+     * Get the group with the given Group ID.
+     *
+     * @param groupID The Group ID.
+     * 
+     * @return A Group instance
+     *
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract Group getGroup(String groupID)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException;
+
+    /**
+     * Creates the group.
+     *
+     * @param group The group to create
+     * 
+     * @return created group
+     *
+     * @throws GroupAlreadyExistsException If a group with the same ID already
+     *                                     exists.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     * @throws UserNotFoundException If owner or a member not valid user.
+     */
+    public abstract Group addGroup(Group group)
+        throws GroupAlreadyExistsException, TransientException,
+               AccessControlException, UserNotFoundException;
+
+    /**
+     * Deletes the group.
+     *
+     * @param groupID The Group ID.
+     *
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract void deleteGroup(String groupID)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException;
+
+    /**
+     * Modify the given group.
+     *
+     * @param group The group to update.
+     * 
+     * @return The newly updated group.
+     * 
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     * @throws UserNotFoundException If owner or group members not valid users.
+     */
+    public abstract Group modifyGroup(Group group)
+        throws GroupNotFoundException, TransientException,
+               AccessControlException, UserNotFoundException;
+
+    /**
+     * Obtain a Collection of Groups that fit the given query.
+     *
+     * @param userID The userID.
+     * @param role Role of the user, either owner, member, or read/write.
+     * @param groupID The Group ID.
+     * 
+     * @return Collection of Groups matching the query, or empty Collection.
+     *         Never null.
+     *
+     * @throws UserNotFoundException If owner or group members not valid users.
+     * @throws ca.nrc.cadc.ac.GroupNotFoundException
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract Collection<Group> getGroups(T userID, Role role, 
+                                                String groupID)
+        throws UserNotFoundException, GroupNotFoundException,
+               TransientException, AccessControlException;
     
-    private Set<Principal> identities = new HashSet<Principal>();
-
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
-    {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-    }
-
-    public Set<Principal> getIdentities()
-    {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
 }

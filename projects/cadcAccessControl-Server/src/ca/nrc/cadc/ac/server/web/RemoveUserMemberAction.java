@@ -66,99 +66,51 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
-public class User<T extends Principal>
+public class RemoveUserMemberAction extends GroupsAction
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private final String groupName;
+    private final String userID;
+    private final String userIDType;
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-
-    public User(final T userID)
+    RemoveUserMemberAction(GroupLogInfo logInfo, String groupName, String userID, String userIDType)
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
+        super(logInfo);
+        this.groupName = groupName;
         this.userID = userID;
+        this.userIDType = userIDType;
     }
 
-    public Set<Principal> getIdentities()
+    @SuppressWarnings("unchecked")
+    public Object run()
+        throws Exception
     {
-        return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        GroupPersistence groupPersistence = getGroupPersistence();
+        UserPersistence userPersistence = getUserPersistence();
+        Group group = groupPersistence.getGroup(this.groupName);
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
+        User toRemove = userPersistence.getUser(userPrincipal);
+        if (!group.getUserMembers().remove(toRemove))
         {
-            return true;
+            throw new MemberNotFoundException();
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        groupPersistence.modifyGroup(group);
+
+        List<String> deletedMembers = new ArrayList<String>();
+        deletedMembers.add(toRemove.getUserID().getName());
+        logGroupInfo(group.getID(), deletedMembers, null);
+        return null;
     }
 
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
 }

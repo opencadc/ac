@@ -1,104 +1,136 @@
 /*
  ************************************************************************
- ****  C A N A D I A N   A S T R O N O M Y   D A T A   C E N T R E  *****
+ *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+ **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- * (c) 2014.                            (c) 2014.
- * National Research Council            Conseil national de recherches
- * Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
- * All rights reserved                  Tous droits reserves
+ *  (c) 2014.                            (c) 2014.
+ *  Government of Canada                 Gouvernement du Canada
+ *  National Research Council            Conseil national de recherches
+ *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+ *  All rights reserved                  Tous droits réservés
  *
- * NRC disclaims any warranties         Le CNRC denie toute garantie
- * expressed, implied, or statu-        enoncee, implicite ou legale,
- * tory, of any kind with respect       de quelque nature que se soit,
- * to the software, including           concernant le logiciel, y com-
- * without limitation any war-          pris sans restriction toute
- * ranty of merchantability or          garantie de valeur marchande
- * fitness for a particular pur-        ou de pertinence pour un usage
- * pose.  NRC shall not be liable       particulier.  Le CNRC ne
- * in any event for any damages,        pourra en aucun cas etre tenu
- * whether direct or indirect,          responsable de tout dommage,
- * special or general, consequen-       direct ou indirect, particul-
- * tial or incidental, arising          ier ou general, accessoire ou
- * from the use of the software.        fortuit, resultant de l'utili-
- *                                      sation du logiciel.
+ *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
+ *  expressed, implied, or               énoncée, implicite ou légale,
+ *  statutory, of any kind with          de quelque nature que ce
+ *  respect to the software,             soit, concernant le logiciel,
+ *  including without limitation         y compris sans restriction
+ *  any warranty of merchantability      toute garantie de valeur
+ *  or fitness for a particular          marchande ou de pertinence
+ *  purpose. NRC shall not be            pour un usage particulier.
+ *  liable in any event for any          Le CNRC ne pourra en aucun cas
+ *  damages, whether direct or           être tenu responsable de tout
+ *  indirect, special or general,        dommage, direct ou indirect,
+ *  consequential or incidental,         particulier ou général,
+ *  arising from the use of the          accessoire ou fortuit, résultant
+ *  software.  Neither the name          de l'utilisation du logiciel. Ni
+ *  of the National Research             le nom du Conseil National de
+ *  Council of Canada nor the            Recherches du Canada ni les noms
+ *  names of its contributors may        de ses  participants ne peuvent
+ *  be used to endorse or promote        être utilisés pour approuver ou
+ *  products derived from this           promouvoir les produits dérivés
+ *  software without specific prior      de ce logiciel sans autorisation
+ *  written permission.                  préalable et particulière
+ *                                       par écrit.
  *
+ *  This file is part of the             Ce fichier fait partie du projet
+ *  OpenCADC project.                    OpenCADC.
  *
- * @author adriand
- * 
- * @version $Revision: $
- * 
- * 
- ****  C A N A D I A N   A S T R O N O M Y   D A T A   C E N T R E  *****
+ *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
+ *  you can redistribute it and/or       vous pouvez le redistribuer ou le
+ *  modify it under the terms of         modifier suivant les termes de
+ *  the GNU Affero General Public        la “GNU Affero General Public
+ *  License as published by the          License” telle que publiée
+ *  Free Software Foundation,            par la Free Software Foundation
+ *  either version 3 of the              : soit la version 3 de cette
+ *  License, or (at your option)         licence, soit (à votre gré)
+ *  any later version.                   toute version ultérieure.
+ *
+ *  OpenCADC is distributed in the       OpenCADC est distribué
+ *  hope that it will be useful,         dans l’espoir qu’il vous
+ *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+ *  without even the implied             GARANTIE : sans même la garantie
+ *  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+ *  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+ *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+ *  General Public License for           Générale Publique GNU Affero
+ *  more details.                        pour plus de détails.
+ *
+ *  You should have received             Vous devriez avoir reçu une
+ *  a copy of the GNU Affero             copie de la Licence Générale
+ *  General Public License along         Publique GNU Affero avec
+ *  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+ *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+ *                                       <http://www.gnu.org/licenses/>.
+ *
+ *  $Revision: 4 $
+ *
  ************************************************************************
  */
-
 package ca.nrc.cadc.ac;
 
 import java.security.Principal;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 public class Group
 {
     private String groupID;
-
+    
     private User<? extends Principal> owner;
-
+    
     // group's properties
     protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
 
     // group's user members
-    private Set<User<? extends Principal>> userMembers = 
-            new HashSet<User<? extends Principal>>();
+    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
+
     // group's group members
     private Set<Group> groupMembers = new HashSet<Group>();
-
-    public String description;
     
-    // Access Control properties
+    // group's user admins
+    private Set<User<? extends Principal>> userAdmins = new HashSet<User<? extends Principal>>();
+    
+    // group's group admins
+    private Set<Group> groupAdmins = new HashSet<Group>();
+    
+    public String description;
+    public Date lastModified;
+    
     /**
-     * group that can read details of this group
-     * Note: this class does not enforce any access control rules
+     * Ctor.
+     * 
+     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
+     *                  component, so it's restricted to alphanumeric 
+     *                  and "-", ".","_","~" characters.
      */
-    public Group groupRead;
-    /**
-     * group that can read and write details of this group
-     * Note: this class does not enforce any access control rules
-     */
-    public Group groupWrite;
-    /**
-     * flag that show whether the details of this group are publicly readable
-     * Note: this class does not enforce any access control rules
-     */
-    public boolean publicRead = false;
+    public Group(String groupID)
+    {
+        this(groupID, null);
+    }
 
     /**
      * Ctor.
      * 
-     * @param groupID
-     *            Unique ID for the group. Must be a valid URI fragment component,
-     *            so it's restricted to alphanumeric and "-", ".","_","~" characters.
-     * @param owner
-     *            Owner/Creator of the group.
+     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
+     *                  component, so it's restricted to alphanumeric 
+     *                  and "-", ".","_","~" characters.
+     * @param owner     Owner/Creator of the group.
      */
-    public Group(final String groupID,
-            final User<? extends Principal> owner)
+    public Group(String groupID, User<? extends Principal> owner)
     {
-        if(groupID == null)
+        if (groupID == null)
         {
             throw new IllegalArgumentException("Null groupID");
         }
-        
-        // check for invalid path characters in groupID
-        if(!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
-            throw new IllegalArgumentException("Invalid group ID " + groupID
-                    + ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+
+        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        {
+            throw new IllegalArgumentException("Invalid group ID " + groupID +
+                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+        }
 
         this.groupID = groupID;
-        if(owner == null)
-        {
-            throw new IllegalArgumentException("Null owner");
-        }
         this.owner = owner;
     }
 
@@ -147,7 +179,24 @@ public class Group
     {
         return groupMembers;
     }
+    
+    /**
+     * 
+     * @return individual user admins of this group
+     */
+    public Set<User<? extends Principal>> getUserAdmins()
+    {
+        return userAdmins;
+    }
 
+    /**
+     * 
+     * @return group admins of this group
+     */
+    public Set<Group> getGroupAdmins()
+    {
+        return groupAdmins;
+    }
 
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
@@ -155,7 +204,7 @@ public class Group
     @Override
     public int hashCode()
     {
-        return 31  + groupID.hashCode();
+        return 31 + groupID.toLowerCase().hashCode();
     }
 
     /* (non-Javadoc)
@@ -177,17 +226,16 @@ public class Group
             return false;
         }
         Group other = (Group) obj;
-        if (!groupID.equals(other.groupID))
+        if (!groupID.equalsIgnoreCase(other.groupID))
         {
             return false;
         }
         return true;
     }
-    
+
     @Override
     public String toString()
     {
         return getClass().getSimpleName() + "[" + groupID + "]";
     }
-
 }
