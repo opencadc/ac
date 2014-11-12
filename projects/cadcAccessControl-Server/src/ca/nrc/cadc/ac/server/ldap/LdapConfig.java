@@ -126,11 +126,12 @@ public class LdapConfig
 
     public static LdapConfig getLdapConfig(final String ldapProperties)
     {
+        logger.debug("Reading LDAP properties from: " + ldapProperties);
         PropertiesReader pr = new PropertiesReader(ldapProperties);
         
         MultiValuedProperties config = pr.getAllProperties();
         
-        if (config.keySet() == null)
+        if (config == null || config.keySet() == null)
         {
             throw new RuntimeException("failed to read any LDAP property ");
         }
