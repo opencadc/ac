@@ -1,4 +1,4 @@
-/*
+/**
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -62,56 +62,21 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
- *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupReader;
-import ca.nrc.cadc.ac.GroupWriter;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-
-public class CreateGroupAction extends GroupsAction
+/**
+ * Created by jburke on 2014-11-03.
+ */
+public class AbstractLdapDAOTest
 {
-    private final InputStream inputStream;
+    static final String CONFIG = LdapConfig.class.getSimpleName() + ".test.properties";
 
-    CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
+    static protected LdapConfig getLdapConfig()
     {
-        super(logInfo);
-        this.inputStream = inputStream;
-    }
-
-    public Object run()
-        throws Exception
-    {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group newGroup = groupPersistence.addGroup(group);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(newGroup, this.response.getOutputStream());
-
-        List<String> addedMembers = null;
-        if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
-        {
-            addedMembers = new ArrayList<String>();
-            for (Group gr : newGroup.getGroupMembers())
-            {
-                addedMembers.add(gr.getID());
-            }
-            for (User usr : newGroup.getUserMembers())
-            {
-                addedMembers.add(usr.getUserID().getName());
-            }
-        }
-        logGroupInfo(newGroup.getID(), null, addedMembers);
-        return null;
+        return LdapConfig.getLdapConfig(CONFIG);
     }
 
 }

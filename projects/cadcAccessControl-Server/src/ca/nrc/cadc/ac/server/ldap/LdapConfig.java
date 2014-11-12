@@ -68,14 +68,24 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
-import java.util.Properties;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.db.ConnectionConfig;
+import ca.nrc.cadc.db.DBConfig;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
 
+/**
+ * Reads and stores the LDAP configuration information. The information 
+ * 
+ * @author adriand
+ *
+ */
 public class LdapConfig
 {
     private static final Logger logger = Logger.getLogger(LdapConfig.class);
@@ -84,125 +94,122 @@ public class LdapConfig
                                         ".properties";
     public static final String LDAP_SERVER = "server";
     public static final String LDAP_PORT = "port";
-    public static final String LDAP_ADMIN = "admin";
-    public static final String LDAP_PASSWD = "passwd";
+    public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
     public static final String LDAP_USERS_DN = "usersDn";
     public static final String LDAP_GROUPS_DN = "groupsDn";
     public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDn";
-    
-    public static final String LDAP_AVAIL_TEST_GROUP  = "availabilityTestGroup";
-    public static final String LDAP_AVAIL_TEST_CALLING_USER_DN  = "availabilityTestCallingUserDN";
+
+    private final static int SECURE_PORT = 636;
 
     private String usersDN;
     private String groupsDN;
     private String adminGroupsDN;
     private String server;
     private int port;
-    private String adminUserDN;
-    private String adminPasswd;
+    private String proxyUserDN;
+    private String proxyPasswd;
     
-    private String availabilityTestGroup;
-    private String availabilityTestCallingUserDN;
+    public String getProxyUserDN()
+    {
+        return proxyUserDN;
+    }
+
+    public String getProxyPasswd()
+    {
+        return proxyPasswd;
+    }
 
     public static LdapConfig getLdapConfig()
     {
-        Properties config = new Properties();
-        URL url = null;
-        try
-        {
-            url = LdapConfig.class.getClassLoader().getResource(CONFIG);
-            logger.debug("Using config from: " + url);
-            if (url != null)
-            {
-                config.load(url.openStream());
-            }
-            else
-            {
-                throw new IOException("File not found");
-            }
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException("failed to read " + CONFIG + 
-                                       " from " + url, ex);
-        }
+        return getLdapConfig(CONFIG);
+    }
 
-        String server = config.getProperty(LDAP_SERVER);
-        if (!StringUtil.hasText(server))
+    public static LdapConfig getLdapConfig(final String ldapProperties)
+    {
+        PropertiesReader pr = new PropertiesReader(ldapProperties);
+        
+        MultiValuedProperties config = pr.getAllProperties();
+        
+        if (config.keySet() == null)
+        {
+            throw new RuntimeException("failed to read any LDAP property ");
+        }
+        
+        List<String> prop = config.getProperty(LDAP_SERVER);
+        if ((prop == null) || (prop.size() != 1))
         {
             throw new RuntimeException("failed to read property " + 
                                        LDAP_SERVER);
         }
+        String server = prop.get(0);
 
-        String port = config.getProperty(LDAP_PORT);
-        if (!StringUtil.hasText(port))
+        prop = config.getProperty(LDAP_PORT);
+        if ((prop == null) || (prop.size() != 1))
         {
             throw new RuntimeException("failed to read property " + LDAP_PORT);
         }
-
-        String ldapAdmin = config.getProperty(LDAP_ADMIN);
-        if (!StringUtil.hasText(ldapAdmin))
-        {
-            throw new RuntimeException("failed to read property " + LDAP_ADMIN);
-        }
-
-        String ldapPasswd = config.getProperty(LDAP_PASSWD);
-        if (!StringUtil.hasText(ldapPasswd))
+        int port = Integer.valueOf(prop.get(0));
+        
+        prop = config.getProperty(LDAP_SERVER_PROXY_USER);
+        if ((prop == null) || (prop.size() != 1))
         {
             throw new RuntimeException("failed to read property " + 
-                                       LDAP_PASSWD);
+                    LDAP_SERVER_PROXY_USER);
         }
-
-        String ldapUsersDn = config.getProperty(LDAP_USERS_DN);
-        if (!StringUtil.hasText(ldapUsersDn))
+        String ldapProxy = prop.get(0);
+        
+        prop = config.getProperty(LDAP_USERS_DN);
+        if ((prop == null) || (prop.size() != 1))
         {
             throw new RuntimeException("failed to read property " + 
                                        LDAP_USERS_DN);
         }
+        String ldapUsersDn = prop.get(0);
 
-        String ldapGroupsDn = config.getProperty(LDAP_GROUPS_DN);
-        if (!StringUtil.hasText(ldapGroupsDn))
+        prop = config.getProperty(LDAP_GROUPS_DN);
+        if ((prop == null) || (prop.size() != 1))
         {
             throw new RuntimeException("failed to read property " + 
                                        LDAP_GROUPS_DN);
         }
+        String ldapGroupsDn = prop.get(0);
         
-        String ldapAdminGroupsDn = config.getProperty(LDAP_ADMIN_GROUPS_DN);
-        if (!StringUtil.hasText(ldapAdminGroupsDn))
+        prop = config.getProperty(LDAP_ADMIN_GROUPS_DN);
+        if ((prop == null) || (prop.size() != 1))
         {
             throw new RuntimeException("failed to read property " + 
                                        LDAP_ADMIN_GROUPS_DN);
         }
+        String ldapAdminGroupsDn = prop.get(0);
         
-        String availGroup = config.getProperty(LDAP_AVAIL_TEST_GROUP);
-        if (!StringUtil.hasText(availGroup))
+        DBConfig dbConfig;
+        try
         {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_AVAIL_TEST_GROUP);
+            dbConfig = new DBConfig();
+        } 
+        catch (FileNotFoundException e)
+        {
+            throw new RuntimeException("failed to find .dbrc file ");
+        } 
+        catch (IOException e)
+        {
+            throw new RuntimeException("failed to read .dbrc file ");
+        }
+        ConnectionConfig cc = dbConfig.getConnectionConfig(server, ldapProxy);
+        if ( (cc == null) || (cc.getUsername() == null) || (cc.getPassword() == null))
+        {
+            throw new RuntimeException("failed to find connection info in ~/.dbrc");
         }
         
-        String availUser = config.getProperty(LDAP_AVAIL_TEST_CALLING_USER_DN);
-        if (!StringUtil.hasText(availUser))
-        {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_AVAIL_TEST_CALLING_USER_DN);
-        }
-
-        return new LdapConfig(server, Integer.valueOf(port), ldapAdmin, 
-                              ldapPasswd, ldapUsersDn, ldapGroupsDn,
-                              ldapAdminGroupsDn, availGroup, availUser);
+        return new LdapConfig(server, Integer.valueOf(port), cc.getUsername(), 
+                              cc.getPassword(), ldapUsersDn, ldapGroupsDn,
+                              ldapAdminGroupsDn);
     }
     
-    public LdapConfig(String server, int port, String adminUserDN, 
-            String adminPasswd, String usersDN, String groupsDN,
-            String adminGroupsDN)
-    {
-        this(server, port, adminUserDN, adminPasswd, usersDN, groupsDN, adminGroupsDN, null, null);
-    }
 
-    public LdapConfig(String server, int port, String adminUserDN, 
-                      String adminPasswd, String usersDN, String groupsDN,
-                      String adminGroupsDN, String availGroup, String availUser)
+    public LdapConfig(String server, int port, String proxyUserDN, 
+                      String proxyPasswd, String usersDN, String groupsDN,
+                      String adminGroupsDN)
     {
         if (!StringUtil.hasText(server))
         {
@@ -213,11 +220,11 @@ public class LdapConfig
             throw new IllegalArgumentException("Illegal LDAP server port: " + 
                                                port);
         }
-        if (!StringUtil.hasText(adminUserDN))
+        if (!StringUtil.hasText(proxyUserDN))
         {
             throw new IllegalArgumentException("Illegal Admin DN");
         }
-        if (!StringUtil.hasText(adminPasswd))
+        if (!StringUtil.hasText(proxyPasswd))
         {
             throw new IllegalArgumentException("Illegal Admin password");
         }
@@ -234,16 +241,14 @@ public class LdapConfig
             throw new IllegalArgumentException("Illegal admin groups LDAP DN");
         }
         
-
         this.server = server;
         this.port = port;
-        this.adminUserDN = adminUserDN;
-        this.adminPasswd = adminPasswd;
+        this.proxyUserDN = proxyUserDN;
+        this.proxyPasswd = proxyPasswd;
         this.usersDN = usersDN;
         this.groupsDN = groupsDN;
         this.adminGroupsDN = adminGroupsDN;
-        this.availabilityTestGroup = availGroup;
-        this.availabilityTestCallingUserDN = availUser;
+        logger.debug(toString());
     }
 
     public String getUsersDN()
@@ -271,24 +276,32 @@ public class LdapConfig
         return this.port;
     }
 
+    public boolean isSecure()
+    {
+        return getPort() == SECURE_PORT;
+    }
+
     public String getAdminUserDN()
     {
-        return this.adminUserDN;
+        return this.proxyUserDN;
     }
 
     public String getAdminPasswd()
     {
-        return this.adminPasswd;
-    }
-    
-    public String getAvailabilityTestGroup()
-    {
-        return this.availabilityTestGroup;
-    }
-    
-    public String getAvailabilityTestCallingUserDN()
-    {
-        return this.availabilityTestCallingUserDN;
+        return this.proxyPasswd;
     }
 
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("server = ");
+        sb.append(server);
+        sb.append(" port = ");
+        sb.append(port);
+        sb.append(" proxyUserDN = ");
+        sb.append(proxyUserDN);
+        sb.append(" proxyPasswd = ");
+        sb.append(proxyPasswd);
+        return sb.toString(); 
+    }
 }

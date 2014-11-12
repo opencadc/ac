@@ -68,50 +68,92 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupReader;
-import ca.nrc.cadc.ac.GroupWriter;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.server.SyncOutput;
 
-public class CreateGroupAction extends GroupsAction
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static org.junit.Assert.fail;
+
+/**
+ *
+ * @author jburke
+ */
+public class GetGroupNamesActionTest
 {
-    private final InputStream inputStream;
+    private final static Logger log = Logger.getLogger(GetGroupNamesActionTest.class);
 
-    CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
+    @BeforeClass
+    public static void setUpClass()
     {
-        super(logInfo);
-        this.inputStream = inputStream;
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    public Object run()
-        throws Exception
+    @Test
+    @Ignore
+    public void testRun() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group newGroup = groupPersistence.addGroup(group);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(newGroup, this.response.getOutputStream());
-
-        List<String> addedMembers = null;
-        if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
+        try
         {
-            addedMembers = new ArrayList<String>();
-            for (Group gr : newGroup.getGroupMembers())
+            Collection<String> groupNames = new ArrayList<String>();
+            groupNames.add("foo");
+            groupNames.add("bar");
+
+            final GroupPersistence mockPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(mockPersistence.getGroupNames()).andReturn(groupNames).once();
+
+            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
+            mockWriter.write("foo", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write(44);
+            EasyMock.expectLastCall();
+            mockWriter.write("bar", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write("\n");
+            EasyMock.expectLastCall();
+
+            final SyncOutput mockSyncOutput =
+                    EasyMock.createMock(SyncOutput.class);
+
+            mockSyncOutput.setHeader("Content-Type", "text/csv");
+
+            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
+            mockResponse.setContentType("text/csv");
+            EasyMock.expectLastCall();
+            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
+
+            GroupLogInfo mockLog = EasyMock.createMock(GroupLogInfo.class);
+
+            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
+
+            GetGroupNamesAction action = new GetGroupNamesAction(mockLog)
             {
-                addedMembers.add(gr.getID());
-            }
-            for (User usr : newGroup.getUserMembers())
-            {
-                addedMembers.add(usr.getUserID().getName());
-            }
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return mockPersistence;
+                };
+            };
+
+            action.run();
         }
-        logGroupInfo(newGroup.getID(), null, addedMembers);
-        return null;
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
 
 }

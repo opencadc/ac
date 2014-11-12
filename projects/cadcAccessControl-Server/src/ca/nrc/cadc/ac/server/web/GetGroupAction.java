@@ -70,7 +70,6 @@
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupWriter;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import javax.servlet.http.HttpServletResponse;
 
 public class GetGroupAction extends GroupsAction
 {

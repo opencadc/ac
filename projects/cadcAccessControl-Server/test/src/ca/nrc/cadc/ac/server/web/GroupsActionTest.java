@@ -75,14 +75,19 @@ import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.security.AccessControlException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -144,7 +149,7 @@ public class GroupsActionTest
         Exception e = new UserNotFoundException("foo");
         testDoAction(message, responseCode, e);
     }
-    
+
     @Test
     public void testDoActionMemberAlreadyExistsException() throws Exception
     {
@@ -186,14 +191,14 @@ public class GroupsActionTest
             response.setStatus(503);
             EasyMock.expectLastCall().once();
             EasyMock.replay(response);
-            
+
             GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
             logInfo.setSuccess(false);
             EasyMock.expectLastCall().once();
             logInfo.setMessage("Internal Transient Error: foo");
             EasyMock.expectLastCall().once();
             EasyMock.replay(logInfo);
-            
+
             GroupsActionImpl action = new GroupsActionImpl(logInfo);
             action.setException(new TransientException("foo"));
             action.doAction(null, response);
@@ -205,7 +210,8 @@ public class GroupsActionTest
         }
     }
     
-    private void testDoAction(String message, int responseCode, Exception e) throws Exception
+    private void testDoAction(String message, int responseCode, Exception e)
+        throws Exception
     {
         try
         {
@@ -218,12 +224,12 @@ public class GroupsActionTest
             response.setStatus(responseCode);
             EasyMock.expectLastCall().once();
             EasyMock.replay(response);
-            
+
             GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
             logInfo.setMessage(message);
             EasyMock.expectLastCall().once();
             EasyMock.replay(logInfo);
-            
+
             GroupsActionImpl action = new GroupsActionImpl(logInfo);
             action.setException(e);
             action.doAction(null, response);

@@ -82,6 +82,16 @@ import ca.nrc.cadc.net.TransientException;
 public abstract interface GroupPersistence<T extends Principal>
 {
     /**
+     * Get all group names.
+     * 
+     * @return A collection of strings.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<String> getGroupNames()
+            throws TransientException, AccessControlException;
+    
+    /**
      * Get the group with the given Group ID.
      *
      * @param groupID The Group ID.
@@ -108,10 +118,13 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserNotFoundException If owner or a member not valid user.
+     * @throws GroupNotFoundException if one of the groups in group members or
+     * group admins does not exist in the server.
      */
     public abstract Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException;
+               AccessControlException, UserNotFoundException, 
+               GroupNotFoundException;
 
     /**
      * Deletes the group.

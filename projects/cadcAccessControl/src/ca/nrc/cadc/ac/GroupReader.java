@@ -119,7 +119,7 @@ public class GroupReader
      * @throws java.net.URISyntaxException
      */
     public static Group read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException
     {
         if (in == null)
         {
@@ -147,7 +147,7 @@ public class GroupReader
      * @throws java.net.URISyntaxException
      */
     public static Group read(Reader reader)
-        throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException
     {
         if (reader == null)
         {
@@ -179,7 +179,7 @@ public class GroupReader
     }
 
     protected static Group parseGroup(Element groupElement)
-        throws URISyntaxException, ReaderException
+        throws ReaderException
     {
         String uri = groupElement.getAttributeValue("uri");
         if (uri == null)
