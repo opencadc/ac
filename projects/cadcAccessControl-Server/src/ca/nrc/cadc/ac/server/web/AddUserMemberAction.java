@@ -99,14 +99,14 @@ public class AddUserMemberAction extends GroupsAction
         throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        UserPersistence userPersistence = getUserPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User toAdd = userPersistence.getUser(userPrincipal);
+        User<Principal> toAdd = new User(userPrincipal);
         if (!group.getUserMembers().add(toAdd))
         {
             throw new MemberAlreadyExistsException();
         }
+        
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<String>();
