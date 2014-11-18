@@ -375,7 +375,7 @@ public class GMSClient
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
-    public void updateGroup(Group group)
+    public Group updateGroup(Group group)
         throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
                AccessControlException, IOException
     {
@@ -388,13 +388,12 @@ public class GMSClient
         StringBuilder groupXML = new StringBuilder();
         GroupWriter.write(group, groupXML);
         log.debug("updateGroup: " + groupXML);
-
+        
         HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(), 
-                                         "application/xml", false);
-
+                                         "application/xml", true);
         transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
-
+        
         Throwable error = transfer.getThrowable();
         if (error != null)
         {
@@ -417,6 +416,18 @@ public class GMSClient
                     throw new GroupNotFoundException(error.getMessage());
             }
             throw new IOException(error);
+        }
+        
+        try
+        {
+            String retXML = transfer.getResponseBody();
+            log.debug("getGroup returned: " + retXML);
+            return GroupReader.read(retXML);
+        }
+        catch (Exception bug)
+        {
+            log.error("Unexpected exception", bug);
+            throw new RuntimeException(bug);
         }
     }
 
