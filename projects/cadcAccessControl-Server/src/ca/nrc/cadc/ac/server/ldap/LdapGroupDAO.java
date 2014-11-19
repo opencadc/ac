@@ -535,8 +535,18 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         else if (memberDN.isDescendantOf(config.getGroupsDN(),
                                                          false))
                         {
-                            ldapGroup.getGroupMembers().add(new Group(
-                                memberDN.getRDNString().replace("cn=", "")));
+                            try
+                            {
+                                String memberGroupID = 
+                                        memberDN.getRDNString().replace("cn=", "");
+                                ldapGroup.getGroupMembers().
+                                    add(getGroup(memberGroupID));
+                            }
+                            catch(GroupNotFoundException e)
+                            {
+                                // ignore as we are not cleaning up
+                                // deleted groups from the group members
+                            }
                         }
                         else
                         {
