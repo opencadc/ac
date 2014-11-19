@@ -603,7 +603,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             mods.add(new Modification(ModificationType.REPLACE, "description", group.description));
         }
 
-        List<String> newMembers = new ArrayList<String>();
+        
+        Set<String> newMembers = new HashSet<String>();
         for (User<?> member : group.getUserMembers())
         {
             DN memberDN = userPersist.getUserDN(member);
@@ -618,7 +619,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             DN grDN = getGroupDN(gr.getID());
             newMembers.add(grDN.toNormalizedString());
         }
-        List<String> newAdmins = new ArrayList<String>();
+        Set<String> newAdmins = new HashSet<String>();
         for (User<?> member : group.getUserAdmins())
         {
             DN memberDN = userPersist.getUserDN(member);
