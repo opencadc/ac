@@ -537,15 +537,18 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         {
                             try
                             {
-                                String memberGroupID = 
-                                        memberDN.getRDNString().replace("cn=", "");
                                 ldapGroup.getGroupMembers().
-                                    add(getGroup(memberGroupID));
+                                    add(getGroup(memberDN));
                             }
                             catch(GroupNotFoundException e)
                             {
                                 // ignore as we are not cleaning up
                                 // deleted groups from the group members
+                            }
+                            catch (UserNotFoundException e)
+                            {
+                                throw new RuntimeException(
+                                    "BUG: group owner not found");
                             }
                         }
                         else
