@@ -538,17 +538,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             try
                             {
                                 ldapGroup.getGroupMembers().
-                                    add(getGroup(memberDN));
+                                    add(new Group(getGroupID(memberDN)));
                             }
                             catch(GroupNotFoundException e)
                             {
                                 // ignore as we are not cleaning up
                                 // deleted groups from the group members
-                            }
-                            catch (UserNotFoundException e)
-                            {
-                                throw new RuntimeException(
-                                    "BUG: group owner not found");
                             }
                         }
                         else
@@ -922,13 +917,14 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     }
     
     /**
-     * Returns a group based on its LDAP DN. The returned group is bare
-     * (contains only group ID, description, modifytimestamp).
+     * Returns a group based on its LDAP DN. The returned group does not contain
+     * members or admins
      * 
      * @param groupDN
      * @return
      * @throws com.unboundid.ldap.sdk.LDAPException
-     * @throws ca.nrc.cadc.ac.GroupNotFoundException
+     * @throws ca.nrc.cadc.ac.GroupNotFoundException - if group does not exist,
+     * it's deleted or caller has no access to it.
      */
     protected Group getGroup(final DN groupDN)
         throws LDAPException, GroupNotFoundException, UserNotFoundException
@@ -970,6 +966,53 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         return group;
     }
 
+    /**
+     * Returns a group ID corresponding to a DN. Although the groupID can be
+     * deduced from the group DN, this method checks if the group exists and
+     * it's active and throws an exception if any of those conditions are not
+     * met.
+     * 
+     * @param groupDN
+     * @return
+     * @throws com.unboundid.ldap.sdk.LDAPException
+     * @throws ca.nrc.cadc.ac.GroupNotFoundException - Group not found or not
+     * active
+     */
+    protected String getGroupID(final DN groupDN)
+        throws LDAPException, GroupNotFoundException
+    {
+        Filter filter = Filter.createEqualityFilter("entrydn", 
+                                                    groupDN.toNormalizedString());
+        
+        SearchRequest searchRequest =  new SearchRequest(
+                    config.getGroupsDN(), SearchScope.SUB, filter, 
+                    "cn", "nsaccountlock");
+            
+        searchRequest.addControl(
+                    new ProxiedAuthorizationV2RequestControl("dn:" + 
+                            getSubjectDN().toNormalizedString()));
+            
+        SearchResultEntry searchResult = 
+                getConnection().searchForEntry(searchRequest);
+
+        if (searchResult == null)
+        {
+            String msg = "Group not found " + groupDN;
+            logger.debug(msg);
+            throw new GroupNotFoundException(groupDN.toNormalizedString());
+        }
+        
+        if (searchResult.getAttribute("nsaccountlock") != null)
+        {
+            // deleted group
+            String msg = "Group not found " + groupDN;
+            logger.debug(msg);
+            throw new GroupNotFoundException(groupDN.toNormalizedString());
+        }
+
+        return searchResult.getAttributeValue("cn");
+    }
+    
     /**
      * 
      * @param groupID
