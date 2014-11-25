@@ -76,9 +76,11 @@ import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.LDAPConnection;
 
+import org.apache.log4j.Level;
 import org.junit.Test;
 import org.junit.BeforeClass;
 import static org.junit.Assert.*;
@@ -91,8 +93,9 @@ public class LdapDAOTest extends AbstractLdapDAOTest
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         // get the configuration of the development server from and config files...
-        config = getLdapConfig();
+        config = getLdapConfig();        
     }
     @Test
     public void testLdapBindConnection() throws Exception

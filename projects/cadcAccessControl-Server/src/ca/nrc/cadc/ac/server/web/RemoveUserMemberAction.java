@@ -97,10 +97,9 @@ public class RemoveUserMemberAction extends GroupsAction
         throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        UserPersistence userPersistence = getUserPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User toRemove = userPersistence.getUser(userPrincipal);
+        User<Principal> toRemove = new User(userPrincipal);
         if (!group.getUserMembers().remove(toRemove))
         {
             throw new MemberNotFoundException();
