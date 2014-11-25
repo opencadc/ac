@@ -73,7 +73,6 @@ import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class AddGroupMemberAction extends GroupsAction
 {
@@ -93,7 +92,7 @@ public class AddGroupMemberAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        Group toAdd = groupPersistence.getGroup(this.groupMemberName);
+        Group toAdd = new Group(this.groupMemberName);
         if (!group.getGroupMembers().add(toAdd))
         {
             throw new GroupAlreadyExistsException(this.groupMemberName);

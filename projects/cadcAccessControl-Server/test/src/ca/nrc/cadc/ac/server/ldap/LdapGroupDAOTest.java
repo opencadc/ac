@@ -68,6 +68,7 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -90,17 +91,20 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.util.Log4jInit;
-import static org.junit.Assert.assertNotNull;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
     
-    static String daoTestDN1 = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
-    static String daoTestDN2 = "cn=cadcdaotest2,ou=cadc,o=hia,c=ca";
-    static String daoTestDN3 = "cn=cadcdaotest3,ou=cadc,o=hia,c=ca";
+    static String daoTestUid1 = "cadcdaotest1";
+    static String daoTestUid2 = "cadcdaotest2";
+    static String daoTestUid3 = "cadcdaotest3";
+    
+    static String daoTestDN1 = "cn=" + daoTestUid1 + ",ou=cadc,o=hia,c=ca";
+    static String daoTestDN2 = "cn=" + daoTestUid2 + ",ou=cadc,o=hia,c=ca";
+    static String daoTestDN3 = "cn=" + daoTestUid3 + ",ou=cadc,o=hia,c=ca";
     static String unknownDN = "cn=foo,ou=cadc,o=hia,c=ca";
     
     static X500Principal daoTestPrincipal1;
@@ -192,6 +196,18 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     expectGroup.getUserMembers().add(daoTestUser2);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
+                    
+                    // test adding the same user but with two different
+                    // Principals. The duplicate should be ignored
+                    // the the returned result should contain only
+                    // one entry (the dn one)
+                    User<HttpPrincipal> duplicateIdentity = 
+                            new User<HttpPrincipal>(new HttpPrincipal(daoTestUid2));
+                    expectGroup.getUserMembers().add(daoTestUser2);
+                    expectGroup.getUserMembers().add(duplicateIdentity);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    expectGroup.getUserMembers().remove(duplicateIdentity);
+                    assertGroupsEqual(expectGroup, actualGroup);
 
                     expectGroup.getUserMembers().remove(daoTestUser2);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
@@ -222,6 +238,16 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
+                    // test adding the same user admin but with two different
+                    // Principals. The duplicate should be ignored
+                    // the the returned result should contain only
+                    // one entry (the dn one)
+                    expectGroup.getUserAdmins().add(daoTestUser2);
+                    expectGroup.getUserAdmins().add(duplicateIdentity);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    expectGroup.getUserAdmins().remove(duplicateIdentity);
+                    assertGroupsEqual(expectGroup, actualGroup);
+                    
                     // delete the group
                     getGroupDAO().deleteGroup(expectGroup.getID());
                     try
@@ -240,8 +266,24 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     actualGroup = getGroupDAO().getGroup(expectGroup.getID());
                     assertGroupsEqual(expectGroup, actualGroup);
                     
+                    // create another group and make expected group
+                    // member of that group. Delete expected group after
+                    Group expectGroup2 = new Group(getGroupID(), daoTestUser1);
+                    expectGroup2.getGroupAdmins().add(expectGroup);
+                    expectGroup2.getGroupMembers().add(expectGroup);
+                    Group actualGroup2 = getGroupDAO().addGroup(expectGroup2);
+                    log.debug("addGroup: " + expectGroup2.getID());
+                    assertGroupsEqual(expectGroup2, actualGroup2);
+                    
                     // delete the group
                     getGroupDAO().deleteGroup(expectGroup.getID());
+                    // now expectGroup should not be member of admin of 
+                    // expectGroup2
+                    expectGroup2.getGroupAdmins().remove(expectGroup);
+                    expectGroup2.getGroupMembers().remove(expectGroup);
+                    actualGroup2 = getGroupDAO().getGroup(expectGroup2.getID());
+                    log.debug("addGroup: " + expectGroup2.getID());
+                    assertGroupsEqual(expectGroup2, actualGroup2);
                     
                     return null;
                 }

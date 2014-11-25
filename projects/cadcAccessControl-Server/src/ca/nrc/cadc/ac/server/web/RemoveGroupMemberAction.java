@@ -92,7 +92,7 @@ public class RemoveGroupMemberAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        Group toRemove = groupPersistence.getGroup(this.groupMemberName);
+        Group toRemove = new Group(this.groupMemberName);
         if (!group.getGroupMembers().remove(toRemove))
         {
             throw new GroupNotFoundException(this.groupMemberName);
