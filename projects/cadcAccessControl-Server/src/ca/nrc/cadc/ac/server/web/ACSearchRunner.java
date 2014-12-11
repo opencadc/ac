@@ -100,6 +100,7 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.util.ArrayList;
 
 public class ACSearchRunner implements JobRunner
 {
@@ -225,8 +226,15 @@ public class ACSearchRunner implements JobRunner
 
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.getGroupPersistence();
-            Collection<Group> groups = 
-                dao.getGroups(rv.getPrincipal(), rv.getRole(), rv.getGroupID());
+            Collection<Group> groups;
+            try
+            {
+                groups = dao.getGroups(rv.getPrincipal(), rv.getRole(), rv.getGroupID());
+            }
+            catch(GroupNotFoundException ignore)
+            {
+                groups = new ArrayList<Group>();
+            }
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
             GroupsWriter.write(groups, syncOut.getOutputStream());
             
@@ -241,7 +249,7 @@ public class ACSearchRunner implements JobRunner
             log.error("FAIL", t);
             
             syncOut.setResponseCode(503);
-            syncOut.setHeader("Content-Type", "text/plan");
+            syncOut.setHeader("Content-Type", "text/plain");
             try
             {
                 syncOut.getOutputStream().write(t.getMessage().getBytes());
@@ -266,12 +274,12 @@ public class ACSearchRunner implements JobRunner
         }
         catch (UserNotFoundException t)
         {
-            logInfo.setSuccess(false);
+            logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
             
             syncOut.setResponseCode(404);
-            syncOut.setHeader("Content-Type", "text/plan");
+            syncOut.setHeader("Content-Type", "text/plain");
             try
             {
                 syncOut.getOutputStream().write(t.getMessage().getBytes());
@@ -294,14 +302,15 @@ public class ACSearchRunner implements JobRunner
 //                log.debug("failed to set final error status after " + t, oops);
 //            }
         }
+        /*
         catch (GroupNotFoundException t)
         {
-            logInfo.setSuccess(false);
+            logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
             
             syncOut.setResponseCode(404);
-            syncOut.setHeader("Content-Type", "text/plan");
+            syncOut.setHeader("Content-Type", "text/plain");
             try
             {
                 syncOut.getOutputStream().write(t.getMessage().getBytes());
@@ -324,14 +333,15 @@ public class ACSearchRunner implements JobRunner
 //                log.debug("failed to set final error status after " + t, oops);
 //            }
         }
+        */
         catch (AccessControlException t)
         {
-            logInfo.setSuccess(false);
+            logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
             
             syncOut.setResponseCode(403);
-            syncOut.setHeader("Content-Type", "text/plan");
+            syncOut.setHeader("Content-Type", "text/plain");
             try
             {
                 syncOut.getOutputStream().write(t.getMessage().getBytes());
@@ -361,7 +371,7 @@ public class ACSearchRunner implements JobRunner
             log.error("FAIL", t);
             
             syncOut.setResponseCode(500);
-            syncOut.setHeader("Content-Type", "text/plan");
+            syncOut.setHeader("Content-Type", "text/plain");
             try
             {
                 syncOut.getOutputStream().write(t.getMessage().getBytes());
