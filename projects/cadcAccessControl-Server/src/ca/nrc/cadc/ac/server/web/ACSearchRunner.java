@@ -100,6 +100,8 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.server.SyncOutput;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 
 public class ACSearchRunner implements JobRunner
@@ -370,16 +372,7 @@ public class ACSearchRunner implements JobRunner
             logInfo.setMessage(t.getMessage());
             log.error("FAIL", t);
             
-            syncOut.setResponseCode(500);
-            syncOut.setHeader("Content-Type", "text/plain");
-            try
-            {
-                syncOut.getOutputStream().write(t.getMessage().getBytes());
-            }
-            catch (IOException e)
-            {
-                log.warn("Could not write response to output stream", e);
-            }
+            writeError(syncOut, 500, t);
             
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
@@ -396,4 +389,23 @@ public class ACSearchRunner implements JobRunner
         }
     }
     
+    private void writeError(SyncOutput syncOutput, int code, Throwable t)
+    {
+        try
+        {
+            syncOutput.setResponseCode(code);
+            syncOut.setHeader("Content-Type", "text/plain");
+            OutputStream ostream = syncOut.getOutputStream();
+            if (ostream != null)
+            {
+                OutputStreamWriter w = new OutputStreamWriter(ostream);
+                w.write(t.toString());
+                w.flush();
+            }
+        }
+        catch (IOException e)
+        {
+            log.warn("Could not write response to output stream", e);
+        }
+    }
 }
