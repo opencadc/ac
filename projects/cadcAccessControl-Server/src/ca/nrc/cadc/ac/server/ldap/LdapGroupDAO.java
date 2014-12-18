@@ -185,7 +185,9 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                   group.getUserAdmins(), 
                                   group.getGroupAdmins());
                 LdapDAO.checkLdapResult(result.getResultCode());
-                
+                // AD: Search results sometimes come incomplete if
+                // connection is not reset - not sure why.
+                getConnection().reconnect();
                 try
                 {
                     return getGroup(group.getID());
