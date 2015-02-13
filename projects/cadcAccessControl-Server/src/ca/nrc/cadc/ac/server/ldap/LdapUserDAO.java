@@ -83,6 +83,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
@@ -407,7 +408,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
 
         searchField = "(" + searchField + "=" +
-                      user.getUserID().getName() + ")";
+                      AuthenticationUtil.canonizeDistinguishedName(
+                              user.getUserID().getName()) + ")";
 
         SearchResultEntry searchResult = null;
         try

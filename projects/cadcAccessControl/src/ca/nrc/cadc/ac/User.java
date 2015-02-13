@@ -72,6 +72,9 @@ import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
+
+
 public class User<T extends Principal>
 {
     private T userID;
@@ -130,11 +133,7 @@ public class User<T extends Principal>
             return false;
         }
         User other = (User) obj;
-        if (!userID.equals(other.userID))
-        {
-            return false;
-        }
-        return true;
+        return AuthenticationUtil.equals(userID, other.userID);
     }
 
     @Override
