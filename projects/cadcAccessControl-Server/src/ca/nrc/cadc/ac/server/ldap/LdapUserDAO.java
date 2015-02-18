@@ -407,9 +407,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                             .getClass());
         }
 
-        searchField = "(" + searchField + "=" +
-                      AuthenticationUtil.canonizeDistinguishedName(
-                              user.getUserID().getName()) + ")";
+        searchField = "(" + searchField + "=" + user.getUserID().getName()
+                      + ")";
 
         SearchResultEntry searchResult = null;
         try
