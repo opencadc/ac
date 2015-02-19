@@ -406,9 +406,21 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + user.getUserID()
                             .getClass());
         }
-
-        searchField = "(" + searchField + "=" + user.getUserID().getName()
-                      + ")";
+        
+        // change the DN to be in the 'java' format
+        if (user.getUserID() instanceof X500Principal)
+        {
+            X500Principal orderedPrincipal = AuthenticationUtil.getOrderedForm(
+                (X500Principal) user.getUserID());
+            searchField = "(" + searchField + "=" + orderedPrincipal.toString() + ")";
+        }
+        else
+        {
+            searchField = "(" + searchField + "=" + user.getUserID().getName()
+                    + ")";
+        }
+        
+        logger.debug("Search field is: " + searchField);
 
         SearchResultEntry searchResult = null;
         try
