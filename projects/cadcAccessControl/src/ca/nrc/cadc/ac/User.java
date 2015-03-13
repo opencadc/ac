@@ -74,6 +74,8 @@ import java.util.Set;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 
+import javax.security.auth.x500.X500Principal;
+
 
 public class User<T extends Principal>
 {
@@ -133,7 +135,18 @@ public class User<T extends Principal>
             return false;
         }
         User other = (User) obj;
-        return AuthenticationUtil.equals(userID, other.userID);
+        if (userID instanceof X500Principal)
+        {
+            return AuthenticationUtil.equals(userID, other.userID);
+        }
+        else
+        {
+            if (!userID.equals(other.userID))
+            {
+                return false;
+            }
+            return true;
+        }
     }
 
     @Override

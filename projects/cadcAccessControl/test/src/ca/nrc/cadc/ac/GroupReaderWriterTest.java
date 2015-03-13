@@ -174,8 +174,6 @@ public class GroupReaderWriterTest
         StringBuilder xml = new StringBuilder();
         GroupWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-
-        System.out.println(xml.toString());
         
         Group actual = GroupReader.read(xml.toString());
         assertNotNull(actual);
