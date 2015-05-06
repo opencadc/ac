@@ -200,6 +200,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
+        	logger.debug("addGroup Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         } 
@@ -295,14 +296,13 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
             if (searchResult.getAttributeValue("nsaccountlock") == null)
             {
-                throw new 
-                GroupAlreadyExistsException("Group already exists " + group.getID());
+                throw new GroupAlreadyExistsException("Group already exists " + group.getID());
             }
             
             // activate group            
             try
             {
-                return modifyGroup(group, true);
+                return modifyGroup(null, group, true);
             } 
             catch (GroupNotFoundException e)
             {
@@ -312,6 +312,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         } 
         catch (LDAPException e)
         {
+        	logger.debug("reactivateGroup Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
@@ -365,6 +366,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
+        	logger.debug("getGroupNames Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
             throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
         }
@@ -561,6 +563,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
+        	logger.debug("getGroup Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
             throw new GroupNotFoundException("Not found " + groupID);
         }
@@ -582,11 +585,11 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException
     {
-        getGroup(group.getID()); //group must exists first
-        return modifyGroup(group, false); 
+        Group existing = getGroup(group.getID()); //group must exists first
+        return modifyGroup(existing, group, false); 
     }
     
-    private Group modifyGroup(final Group group, boolean withActivate)
+    private Group modifyGroup(final Group existing, final Group group, boolean withActivate)
         throws UserNotFoundException, TransientException,
                AccessControlException, GroupNotFoundException
     {
@@ -595,6 +598,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throw new UnsupportedOperationException(
                     "Support for groups properties not available");
         }
+        
+        boolean adminChanges = false;
 
         List<Modification> mods = new ArrayList<Modification>();
         List<Modification> adminMods = new ArrayList<Modification>();
@@ -602,6 +607,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             mods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
             adminMods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
+            adminChanges = true;
         }
 
         if (group.description == null)
@@ -612,7 +618,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             mods.add(new Modification(ModificationType.REPLACE, "description", group.description));
         }
-
         
         Set<String> newMembers = new HashSet<String>();
         for (User<?> member : group.getUserMembers())
@@ -629,11 +634,27 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             DN grDN = getGroupDN(gr.getID());
             newMembers.add(grDN.toNormalizedString());
         }
+        
         Set<String> newAdmins = new HashSet<String>();
+        Set<User<? extends Principal>> existingUserAdmins = new HashSet<User<? extends Principal>>(0);
+        if (existing != null)
+        {
+        	existingUserAdmins = existing.getUserAdmins();
+        }
         for (User<?> member : group.getUserAdmins())
         {
-            DN memberDN = userPersist.getUserDN(member);
-            newAdmins.add(memberDN.toNormalizedString());
+        	DN memberDN = userPersist.getUserDN(member);
+        	newAdmins.add(memberDN.toNormalizedString());
+        	if (!existingUserAdmins.contains(member))
+            {
+            	adminChanges = true;
+            }
+        }
+        
+        Set<Group> existingGroupAdmins = new HashSet<Group>(0);
+        if (existing != null)
+        {
+        	existingGroupAdmins = existing.getGroupAdmins();
         }
         for (Group gr : group.getGroupAdmins())
         {
@@ -641,8 +662,13 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             {
                 throw new GroupNotFoundException(gr.getID());
             }
-            DN grDN = getGroupDN(gr.getID());
-            newAdmins.add(grDN.toNormalizedString());
+
+        	DN grDN = getGroupDN(gr.getID());
+        	newAdmins.add(grDN.toNormalizedString());
+        	if (!existingGroupAdmins.contains(gr))
+            {
+            	adminChanges = true;
+            }
         }
 
         mods.add(new Modification(ModificationType.REPLACE, "uniquemember", 
@@ -650,18 +676,22 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         adminMods.add(new Modification(ModificationType.REPLACE, "uniquemember", 
                 (String[]) newAdmins.toArray(new String[newAdmins.size()])));
         
-        // modify admin group first
-        ModifyRequest modifyRequest = new ModifyRequest(getAdminGroupDN(group.getID()), adminMods);
         try
         {
-            modifyRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl(
-                            "dn:" + getSubjectDN().toNormalizedString()));
-            LdapDAO.checkLdapResult(getConnection().
-                    modify(modifyRequest).getResultCode());
+        	// modify admin group first (if necessary)
+        	if (adminChanges)
+        	{   
+                ModifyRequest modifyRequest = new ModifyRequest(getAdminGroupDN(group.getID()), adminMods);
+                
+	            modifyRequest.addControl(
+	                    new ProxiedAuthorizationV2RequestControl(
+	                            "dn:" + getSubjectDN().toNormalizedString()));
+	            LdapDAO.checkLdapResult(getConnection().
+	                    modify(modifyRequest).getResultCode());
+        	}
             
             // modify the group itself now
-            modifyRequest = new ModifyRequest(getGroupDN(group.getID()), mods);
+        	ModifyRequest modifyRequest = new ModifyRequest(getGroupDN(group.getID()), mods);
 
             modifyRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl(
@@ -671,6 +701,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
+        	logger.debug("Modify Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
         try
@@ -744,6 +775,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
+        	logger.debug("Delete Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
         
@@ -835,6 +867,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
+        	logger.debug("getGroups Exception: " + e, e);
             throw new TransientException("Error getting group", e);
         }
         return groups;
@@ -879,6 +912,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
+        	logger.debug("getOwnerGroups Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
         return groupDNs; 
@@ -1028,6 +1062,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
+        	logger.debug("getGroupDN Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
         }
         throw new IllegalArgumentException(groupID + " not a valid group ID");
@@ -1046,6 +1081,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
+        	logger.debug("getAdminGroupDN Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
         }
         throw new IllegalArgumentException(groupID + " not a valid group ID");
@@ -1072,6 +1108,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
+        	logger.debug("isCreatorOwner Exception: " + e, e);
             throw new RuntimeException(e);
         }
     }
