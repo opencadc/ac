@@ -69,18 +69,16 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import java.io.File;
-import java.net.MalformedURLException;
+
+import org.apache.log4j.Logger;
+
 import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.Set;
 
 import com.unboundid.ldap.sdk.*;
-import com.unboundid.util.ssl.*;
 
 import ca.nrc.cadc.auth.*;
 import ca.nrc.cadc.net.TransientException;
@@ -88,6 +86,8 @@ import ca.nrc.cadc.net.TransientException;
 
 public abstract class LdapDAO
 {
+	private static final Logger logger = Logger.getLogger(LdapDAO.class);
+	
     private LDAPConnection conn;
 
     LdapConfig config;
@@ -226,6 +226,8 @@ public abstract class LdapDAO
     protected static void checkLdapResult(ResultCode code)
             throws TransientException
     {
+    	logger.debug("Ldap result: " + code);
+    	
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
         {
             throw new AccessControlException("Not authorized ");
