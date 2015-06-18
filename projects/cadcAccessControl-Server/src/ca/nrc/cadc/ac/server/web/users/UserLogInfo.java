@@ -66,19 +66,19 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.log.ServletLogInfo;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
-public class GroupLogInfo extends ServletLogInfo
+public class UserLogInfo extends ServletLogInfo
 {
     public String groupID;
     public List<String> addedMembers;
     public List<String> deletedMembers;
 
-    public GroupLogInfo(HttpServletRequest request)
+    public UserLogInfo(HttpServletRequest request)
     {
         super(request);
     }

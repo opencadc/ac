@@ -66,46 +66,99 @@
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.users;
 
-package ca.nrc.cadc.ac.server.web;
+import static org.junit.Assert.fail;
 
-import java.io.Writer;
+import java.io.PrintWriter;
+import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.GetGroupNamesAction;
+import ca.nrc.cadc.ac.server.web.GroupLogInfo;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.server.SyncOutput;
 
-public class GetGroupNamesAction extends GroupsAction
+/**
+ *
+ * @author adriand
+ */
+public class GetUserIDsActionTest
 {
-    
-    private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
+    private final static Logger log = Logger.getLogger(GetUserIDsActionTest.class);
 
-    GetGroupNamesAction(GroupLogInfo logInfo)
+    @BeforeClass
+    public static void setUpClass()
     {
-        super(logInfo);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    public Object run()
-        throws Exception
+    @Test
+    @Ignore
+    public void testRun() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Collection<String> groups = groupPersistence.getGroupNames();
-        log.debug("Found " + groups.size() + " group names");
-        response.setContentType("text/plain");
-        log.debug("Set content-type to text/plain");
-        Writer writer = response.getWriter();
-        boolean start = true;
-        for (final String group : groups)
+        try
         {
-            if (!start)
+            Collection<HttpPrincipal> userIDs = new ArrayList<HttpPrincipal>();
+            userIDs.add(new HttpPrincipal("foo"));
+            userIDs.add(new HttpPrincipal("bar"));
+
+            final UserPersistence mockPersistence = EasyMock.createMock(UserPersistence.class);
+            EasyMock.expect(mockPersistence.getCadcIDs()).andReturn(userIDs).once();
+
+            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
+            mockWriter.write("foo", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write(44);
+            EasyMock.expectLastCall();
+            mockWriter.write("bar", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write("\n");
+            EasyMock.expectLastCall();
+
+            final SyncOutput mockSyncOutput =
+                    EasyMock.createMock(SyncOutput.class);
+
+            mockSyncOutput.setHeader("Content-Type", "text/csv");
+
+            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
+            mockResponse.setContentType("text/csv");
+            EasyMock.expectLastCall();
+            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
+
+            UserLogInfo mockLog = EasyMock.createMock(UserLogInfo.class);
+
+            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
+
+            GetUserIDsAction action = new GetUserIDsAction(mockLog)
             {
-                writer.write("\r\n");
-            }
-            writer.write(group);
-            start = false;
+                @Override
+                <T extends Principal> UserPersistence<T> getUserPersistence()
+                {
+                    return mockPersistence;
+                };
+            };
+
+            action.run();
         }
-        
-        return null;
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
+
 }

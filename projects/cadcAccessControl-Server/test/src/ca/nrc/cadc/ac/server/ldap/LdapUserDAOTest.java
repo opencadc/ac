@@ -270,7 +270,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 catch (Exception e)
                 {
                     throw new Exception("Problems", e);
-                }
+                } 
             }
         });
     }

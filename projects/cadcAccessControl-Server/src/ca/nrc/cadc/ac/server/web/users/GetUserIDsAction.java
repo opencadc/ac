@@ -66,96 +66,47 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.Writer;
+import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
-public class UsersServlet extends HttpServlet
+public class GetUserIDsAction extends UsersAction
 {
-    private static final Logger log = Logger.getLogger(UsersServlet.class);
+    
+    private static final Logger log = Logger.getLogger(GetUserIDsAction.class);
 
-    /**
-     * Create a UserAction and run the action safely.
-     */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    GetUserIDsAction(UserLogInfo logInfo)
     {
-        long start = System.currentTimeMillis();
-        UserLogInfo logInfo = new UserLogInfo(request);
-        try
+        super(logInfo);
+    }
+
+    public Object run()
+        throws Exception
+    {
+        UserPersistence userPersistence = getUserPersistence();
+        Collection<HttpPrincipal> userIDs = userPersistence.getCadcIDs();
+        log.debug("Found " + userIDs.size() + " user IDs");
+        response.setContentType("text/plain");
+        log.debug("Set content-type to text/plain");
+        Writer writer = response.getWriter();
+        boolean start = true;
+        for (final HttpPrincipal userID : userIDs)
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
-            action.doAction(subject, response);
+            if (!start)
+            {
+                writer.write("\r\n");
+            }
+            writer.write(userID.getName());
+            start = false;
         }
-        catch (IllegalArgumentException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
-        }
-        catch (Throwable t)
-        {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
-        }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
+        
+        return null;
     }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
 }

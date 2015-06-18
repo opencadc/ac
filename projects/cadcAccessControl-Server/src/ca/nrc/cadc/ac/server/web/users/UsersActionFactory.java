@@ -66,7 +66,7 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 import java.net.URL;
@@ -76,16 +76,23 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.web.AddGroupMemberAction;
+import ca.nrc.cadc.ac.server.web.AddUserMemberAction;
+import ca.nrc.cadc.ac.server.web.DeleteGroupAction;
+import ca.nrc.cadc.ac.server.web.GetGroupAction;
+import ca.nrc.cadc.ac.server.web.ModifyGroupAction;
+import ca.nrc.cadc.ac.server.web.RemoveGroupMemberAction;
+import ca.nrc.cadc.ac.server.web.RemoveUserMemberAction;
 import ca.nrc.cadc.util.StringUtil;
 
-public class GroupsActionFactory
+public class UsersActionFactory
 {
-    private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
+    private static final Logger log = Logger.getLogger(UsersActionFactory.class);
 
-    static GroupsAction getGroupsAction(HttpServletRequest request, GroupLogInfo logInfo)
+    static UsersAction getUsersAction(HttpServletRequest request, UserLogInfo logInfo)
         throws IOException
     {
-        GroupsAction action = null;
+        UsersAction action = null;
         String method = request.getMethod();
         String path = request.getPathInfo();
         log.debug("method: " + method);
@@ -116,78 +123,17 @@ public class GroupsActionFactory
         {
             if (method.equals("GET"))
             {
-                action = new GetGroupNamesAction(logInfo);
+                action = new GetUserIDsAction(logInfo);
             }
             else if (method.equals("PUT"))
             {
-                action = new CreateGroupAction(logInfo, request.getInputStream());
+                throw new UnsupportedOperationException("TODO");
             }
 
         }
-        else if (segments.length == 1)
+        else
         {
-            String groupName = segments[0];
-            if (method.equals("GET"))
-            {
-                action = new GetGroupAction(logInfo, groupName);
-            }
-            else if (method.equals("DELETE"))
-            {
-                action = new DeleteGroupAction(logInfo, groupName);
-            }
-            else if (method.equals("POST"))
-            {
-                final URL requestURL = new URL(request.getRequestURL().toString());
-                final StringBuilder sb = new StringBuilder();
-                sb.append(requestURL.getProtocol());
-                sb.append("://");
-                sb.append(requestURL.getHost());
-                if (requestURL.getPort() > 0)
-                {
-                    sb.append(":");
-                    sb.append(requestURL.getPort());
-                }
-                sb.append(request.getContextPath());
-                sb.append(request.getServletPath());
-                sb.append("/");
-                sb.append(path);
-
-                action = new ModifyGroupAction(logInfo, groupName, sb.toString(),
-                                               request.getInputStream());
-            }
-        }
-        else if (segments.length == 3)
-        {
-            String groupName = segments[0];
-            String memberCategory = segments[1];
-            if (method.equals("PUT"))
-            {
-                if (memberCategory.equals("groupMembers"))
-                {
-                    String groupMemberName = segments[2];
-                    action = new AddGroupMemberAction(logInfo, groupName, groupMemberName);
-                }
-                else if (memberCategory.equals("userMembers"))
-                {
-                    String userMemberID = URLDecoder.decode(segments[2], "UTF-8");
-                    String userMemberIDType = request.getParameter("idType");
-                    action = new AddUserMemberAction(logInfo, groupName, userMemberID, userMemberIDType);
-                }
-            }
-            else if (method.equals("DELETE"))
-            {
-                if (memberCategory.equals("groupMembers"))
-                {
-                    String groupMemberName = segments[2];
-                    action = new RemoveGroupMemberAction(logInfo, groupName, groupMemberName);
-                }
-                else if (memberCategory.equals("userMembers"))
-                {
-                    String memberUserID = URLDecoder.decode(segments[2], "UTF-8");
-                    String memberUserIDType = request.getParameter("idType");
-                    action = new RemoveUserMemberAction(logInfo, groupName, memberUserID, memberUserIDType);
-                }
-            }
+            throw new UnsupportedOperationException("TODO");
         }
 
         if (action != null)

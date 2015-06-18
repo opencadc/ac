@@ -66,7 +66,7 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 import java.security.AccessControlException;
@@ -90,14 +90,14 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
 
-public abstract class GroupsAction
+public abstract class UsersAction
     implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(GroupsAction.class);
-    protected GroupLogInfo logInfo;
+    private static final Logger log = Logger.getLogger(UsersAction.class);
+    protected UserLogInfo logInfo;
     protected HttpServletResponse response;
 
-    GroupsAction(GroupLogInfo logInfo)
+    UsersAction(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
