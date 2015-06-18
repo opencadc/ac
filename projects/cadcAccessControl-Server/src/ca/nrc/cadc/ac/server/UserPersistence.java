@@ -68,16 +68,29 @@
  */
 package ca.nrc.cadc.ac.server;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.net.TransientException;
-import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.TransientException;
+
+import com.unboundid.ldap.sdk.DN;
+
 public abstract interface UserPersistence<T extends Principal>
 {
+    /**
+     * Get all the CADC user IDs
+     * 
+     * @return A collection of CADC user IDS
+     * @throws TransientException If a temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<HttpPrincipal> getCadcIDs()
+        throws TransientException, AccessControlException;
+    
     /**
      * Get the user specified by userID.
      *

@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
@@ -93,6 +94,27 @@ public class LdapUserPersistence<T extends Principal>
         catch (RuntimeException e)
         {
             logger.error("test/config/LdapConfig.properties file required.", e);
+        }
+    }
+    
+
+    @Override
+    public Collection<HttpPrincipal> getCadcIDs() throws TransientException,
+            AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            Collection<HttpPrincipal> ret = userDAO.getCadcIDs();
+            return ret;
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
         }
     }
 

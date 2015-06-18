@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import javax.security.auth.x500.X500Principal;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
@@ -76,8 +75,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import com.unboundid.ldap.sdk.*;
-import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
+import javax.security.auth.x500.X500Principal;
+
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -86,6 +85,17 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+
+import com.unboundid.ldap.sdk.DN;
+import com.unboundid.ldap.sdk.Filter;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPSearchException;
+import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchRequest;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchScope;
+import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 
 
 public class LdapUserDAO<T extends Principal> extends LdapDAO
@@ -123,6 +133,55 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         System.arraycopy(memberAttribs, 0, tmp, princs.length,
                          memberAttribs.length);
         memberAttribs = tmp;
+    }
+    
+    /**
+     * 
+     * @return
+     * @throws TransientException 
+     */
+    public Collection<HttpPrincipal> getCadcIDs() throws TransientException
+    {
+        try
+        {
+            Filter filter = Filter.createPresenceFilter("uid");
+            String [] attributes = new String[] {"uid"};
+            
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getUsersDN(), 
+                                      SearchScope.SUB, filter, attributes);
+    
+            SearchResult searchResult = null;
+            try
+            {
+                searchResult = getConnection().search(searchRequest);
+            }
+            catch (LDAPSearchException e)
+            {
+                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+                {
+                    logger.debug("Could not find users root", e);
+                    throw new IllegalStateException("Could not find users root");
+                }
+            }
+            
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            Collection<HttpPrincipal> userIDs = new HashSet<HttpPrincipal>();
+            for (SearchResultEntry next : searchResult.getSearchEntries())
+            {
+                userIDs.add(new HttpPrincipal(next.getAttributeValue("uid")));
+            }
+            
+            return userIDs;
+        }
+        catch (LDAPException e1)
+        {
+            logger.debug("getCadcIDs Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
+            throw new IllegalStateException("Unexpected exception: " + 
+                    e1.getMatchedDN(), e1);
+        }
+        
     }
 
 
