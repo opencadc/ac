@@ -81,11 +81,15 @@ import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class LdapUserDAO<T extends Principal> extends LdapDAO
@@ -93,21 +97,46 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
     // Map of identity type to LDAP attribute
-    private Map<Class<?>, String> userLdapAttrib =
-            new HashMap<Class<?>, String>();
+    private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
 
-    // User attributes returned to the GMS
-    private static final String LDAP_FNAME = "givenname";
-    private static final String LDAP_LNAME = "sn";
-    //TODO to add the rest
-    private String[] userAttribs = new String[]{LDAP_FNAME, LDAP_LNAME};
-    private String[] memberAttribs = new String[]{LDAP_FNAME, LDAP_LNAME};
+    // Returned User attributes
+    protected static final String LDAP_OBJECT_CLASS = "objectClass";
+    protected static final String LDAP_CADC_ACCOUNT = "cadcaccount";
+    protected static final String LDAP_POSIX_ACCOUNT = "posixaccount";
+    protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
+    protected static final String LDAP_MEMBEROF = "memberOf";
+    protected static final String LDAP_ENTRYDN = "entrydn";
+    protected static final String LDAP_COMMON_NAME = "cn";
+    protected static final String LDAP_DISTINGUISHED_NAME = "distinguishedName";
+    protected static final String LDAP_FIRST_NAME = "givenName";
+    protected static final String LDAP_LAST_NAME = "sn";
+    protected static final String LDAP_ADDRESS = "address";
+    protected static final String LDAP_CITY = "city";
+    protected static final String LDAP_COUNTRY = "country";
+    protected static final String LDAP_EMAIL = "email";
+    protected static final String LDAP_INSTITUTE = "institute";
+    protected static final String LDAP_UID = "uid";
+    protected static final String LDAP_UID_NUMBER = "uidNumber";
+    protected static final String LDAP_GID_NUMBER = "gidNumber";
+    protected static final String LDAP_HOME_DIRECTORY = "homeDirectory";
+    protected static final String LDAP_LOGIN_SHELL = "loginShell";
+    
+    private String[] userAttribs = new String[]
+    {
+        LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY, LDAP_COUNTRY,
+        LDAP_EMAIL, LDAP_INSTITUTE, LDAP_UID, LDAP_UID_NUMBER, LDAP_GID_NUMBER,
+        LDAP_HOME_DIRECTORY, LDAP_LOGIN_SHELL
+    };
+    private String[] memberAttribs = new String[]
+    {
+        LDAP_FIRST_NAME, LDAP_LAST_NAME
+    };
 
     public LdapUserDAO(LdapConfig config)
     {
         super(config);
-        this.userLdapAttrib.put(HttpPrincipal.class, "uid");
-        this.userLdapAttrib.put(X500Principal.class, "distinguishedname");
+        this.userLdapAttrib.put(HttpPrincipal.class, LDAP_UID);
+        this.userLdapAttrib.put(X500Principal.class, LDAP_DISTINGUISHED_NAME);
 
         // add the id attributes to user and member attributes
         String[] princs = userLdapAttrib.values()
@@ -127,6 +156,87 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
 
     /**
+     * Add the specified user..
+     *
+     * @param user The user to add.
+     * @return User instance.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> addUser(final User<T> user)
+        throws TransientException
+    {
+        final Class userType = user.getUserID().getClass();
+        String searchField = userLdapAttrib.get(userType);
+        if (searchField == null)
+        {
+            throw new IllegalArgumentException(
+                    "Unsupported principal type " + userType);
+        }
+        
+        try
+        {
+            // add new user
+            DN userDN = getUserDN(user.getUserID().getName());
+            List<Attribute> attributes = new ArrayList<Attribute>();
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
+            addAttribute(attributes, LDAP_COMMON_NAME, user.getUserID().getName());
+            addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userDN.toNormalizedString());
+
+            for (UserDetails details : user.details)
+            {
+                if (details.getClass() == PersonalDetails.class)
+                {
+                    PersonalDetails pd = (PersonalDetails) details;
+                    addAttribute(attributes, LDAP_FIRST_NAME, pd.getFirstName());
+                    addAttribute(attributes, LDAP_LAST_NAME, pd.getLastName());
+                    addAttribute(attributes, LDAP_ADDRESS, pd.address);
+                    addAttribute(attributes, LDAP_CITY, pd.city);
+                    addAttribute(attributes, LDAP_COUNTRY, pd.country);
+                    addAttribute(attributes, LDAP_EMAIL, pd.email);
+                    addAttribute(attributes, LDAP_INSTITUTE, pd.institute);
+                }
+                else if (details.getClass() == PosixDetails.class)
+                {
+                    PosixDetails pd = (PosixDetails) details;
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_POSIX_ACCOUNT);
+                    addAttribute(attributes, LDAP_UID, Long.toString(pd.getUid()));
+                    addAttribute(attributes, LDAP_UID_NUMBER, Long.toString(pd.getUid()));
+                    addAttribute(attributes, LDAP_GID_NUMBER, Long.toString(pd.getGid()));
+                    addAttribute(attributes, LDAP_HOME_DIRECTORY, pd.getHomeDirectory());
+                    addAttribute(attributes, LDAP_LOGIN_SHELL, pd.loginShell);
+                }
+            }
+        
+            AddRequest addRequest = new AddRequest(userDN, attributes);
+            addRequest.addControl(
+                    new ProxiedAuthorizationV2RequestControl(
+                            "dn:" + getSubjectDN().toNormalizedString()));
+
+            LDAPResult result = getConnection().add(addRequest);
+            LdapDAO.checkLdapResult(result.getResultCode());
+
+            getConnection().reconnect();
+            try
+            {
+                return getUser(user.getUserID());
+            }
+            catch (UserNotFoundException e)
+            {
+                throw new RuntimeException("BUG: new user not found");
+            }
+        }
+        catch (LDAPException e)
+        {
+            System.out.println("LDAPe: " + e);
+            System.out.println("LDAPrc: " + e.getResultCode());
+            logger.debug("addUser Exception: " + e, e);
+//            LdapDAO.checkLdapResult(e.getResultCode());
+            throw new RuntimeException("Unexpected LDAP exception", e);
+        }
+    }
+    
+    /**
      * Get the user specified by userID.
      *
      * @param userID The userID.
@@ -135,9 +245,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> getUser(T userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException
+    public User<T> getUser(final T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
         if (searchField == null)
@@ -146,22 +255,19 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField =
-                "(&(objectclass=cadcaccount)(" + searchField + "=" + userID
-                        .getName() + "))";
+        searchField = "(&(objectclass=cadcaccount)(" + 
+                      searchField + "=" + userID.getName() + "))";
 
         SearchResultEntry searchResult = null;
         try
         {
-            SearchRequest searchRequest = new SearchRequest(config.getUsersDN(),
-                                                            SearchScope.SUB,
-                                                            searchField,
-                                                            userAttribs);
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getUsersDN(), SearchScope.SUB, 
+                                     searchField, userAttribs);
 
             searchRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl("dn:" +
-                                                             getSubjectDN()
-                                                                     .toNormalizedString()));
+                    new ProxiedAuthorizationV2RequestControl(
+                            "dn:" + getSubjectDN().toNormalizedString()));
 
             searchResult = getConnection().searchForEntry(searchRequest);
         }
@@ -177,15 +283,117 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new UserNotFoundException(msg);
         }
         User<T> user = new User<T>(userID);
-        user.getIdentities().add(
-                new HttpPrincipal(searchResult.getAttributeValue(userLdapAttrib
-                                                                         .get(HttpPrincipal.class))));
+        user.getIdentities().add(new HttpPrincipal(searchResult
+                .getAttributeValue(userLdapAttrib.get(HttpPrincipal.class))));
 
-        String fname = searchResult.getAttributeValue(LDAP_FNAME);
-        String lname = searchResult.getAttributeValue(LDAP_LNAME);
-        user.details.add(new PersonalDetails(fname, lname));
-        //TODO populate user with the other returned personal or posix attributes
+        String fname = searchResult.getAttributeValue(LDAP_FIRST_NAME);
+        String lname = searchResult.getAttributeValue(LDAP_LAST_NAME);
+        PersonalDetails personaDetails = new PersonalDetails(fname, lname);
+        personaDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
+        personaDetails.city = searchResult.getAttributeValue(LDAP_CITY);
+        personaDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
+        personaDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
+        personaDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
+        user.details.add(personaDetails);
+        
+        Long uid = searchResult.getAttributeValueAsLong(LDAP_UID_NUMBER);
+        Long gid = searchResult.getAttributeValueAsLong(LDAP_GID_NUMBER);
+        String homeDirectory = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
+        if (uid != null && gid != null && homeDirectory != null)
+        {
+            PosixDetails posixDetails = new PosixDetails(uid, gid, homeDirectory);
+            posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
+            user.details.add(posixDetails);
+        }
+        
         return user;
+    }
+    
+    /**
+     * Get all group names.
+     * 
+     * @return A collection of strings
+     * 
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     */
+    public Collection<String> getUserNames()
+        throws TransientException
+    {
+        try
+        {
+            Filter filter = Filter.createPresenceFilter(LDAP_COMMON_NAME);
+            String [] attributes = new String[] {LDAP_COMMON_NAME, LDAP_NSACCOUNTLOCK};
+            
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getGroupsDN(), 
+                                      SearchScope.SUB, filter, attributes);
+    
+            SearchResult searchResult = null;
+            try
+            {
+                searchResult = getConnection().search(searchRequest);
+            }
+            catch (LDAPSearchException e)
+            {
+                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+                {
+                    logger.debug("Could not find groups root", e);
+                    throw new IllegalStateException("Could not find groups root");
+                }
+            }
+            
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            List<String> groupNames = new ArrayList<String>();
+            for (SearchResultEntry next : searchResult.getSearchEntries())
+            {
+                if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
+                {
+                    groupNames.add(next.getAttributeValue(LDAP_COMMON_NAME));
+                }
+            }
+            
+            return groupNames;
+        }
+        catch (LDAPException e1)
+        {
+        	logger.debug("getGroupNames Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
+            throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
+        }
+    }
+    
+    /**
+     * Updated the user specified by User.
+     *
+     * @param user
+     *
+     * @return User instance.
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> modifyUser(User<T> user)
+        throws UserNotFoundException, TransientException, 
+               AccessControlException
+    {
+        return null;
+    }
+    
+    /**
+     * Delete the user specified by userID.
+     *
+     * @param userID The userID.
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void deleteUser(final T userID)
+        throws UserNotFoundException, TransientException, 
+               AccessControlException
+    {
+        
     }
 
     /**
@@ -216,11 +424,11 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             Filter filter = Filter.createANDFilter(
                     Filter.createEqualityFilter(searchField,
                                                 user.getUserID().getName()),
-                    Filter.createPresenceFilter("memberOf"));
+                    Filter.createPresenceFilter(LDAP_MEMBEROF));
 
             SearchRequest searchRequest =
                     new SearchRequest(config.getUsersDN(), SearchScope.SUB,
-                                      filter, "memberOf");
+                                      filter, LDAP_MEMBEROF);
 
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" +
@@ -242,7 +450,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             if (searchResult != null)
             {
-                String[] members = searchResult.getAttributeValues("memberOf");
+                String[] members = searchResult.getAttributeValues(LDAP_MEMBEROF);
                 if (members != null)
                 {
                     for (String member : members)
@@ -290,11 +498,11 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             Filter filter = Filter.createANDFilter(
                     Filter.createEqualityFilter(searchField,
                                                 user.getUserID().getName()),
-                    Filter.createEqualityFilter("memberOf", groupID));
+                    Filter.createEqualityFilter(LDAP_MEMBEROF, groupID));
 
             SearchRequest searchRequest =
                     new SearchRequest(config.getUsersDN(), SearchScope.SUB,
-                                      filter, "cn");
+                                      filter, LDAP_COMMON_NAME);
 
             searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" +
@@ -313,41 +521,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         return false;
     }
 
-//    public boolean isMember(T userID, String groupID)
-//        throws UserNotFoundException, TransientException,
-//               AccessControlException
-//    {
-//        try
-//        {
-//            String searchField = (String) userLdapAttrib.get(userID.getClass());
-//            if (searchField == null)
-//            {
-//                throw new IllegalArgumentException(
-//                        "Unsupported principal type " + userID.getClass());
-//            }
-//
-//            User<T> user = getUser(userID);
-//            DN userDN = getUserDN(user);
-//
-//            CompareRequest compareRequest = 
-//                    new CompareRequest(userDN.toNormalizedString(), 
-//                                      "memberOf", groupID);
-//            
-//            compareRequest.addControl(
-//                    new ProxiedAuthorizationV2RequestControl("dn:" + 
-//                            getSubjectDN().toNormalizedString()));
-//            
-//            CompareResult compareResult = 
-//                    getConnection().compare(compareRequest);
-//            return compareResult.compareMatched();
-//        }
-//        catch (LDAPException e)
-//        {
-//            LdapDAO.checkLdapResult(e.getResultCode());
-//            throw new RuntimeException("Unexpected LDAP exception", e);
-//        }
-//    }
-
     /**
      * Returns a member user identified by the X500Principal only. The
      * returned object has the fields required by the GMS.
@@ -363,7 +536,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throws UserNotFoundException, LDAPException
     {
         Filter filter =
-                Filter.createEqualityFilter("entrydn",
+                Filter.createEqualityFilter(LDAP_ENTRYDN,
                                             userDN.toNormalizedString());
 
         SearchRequest searchRequest =
@@ -388,8 +561,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             user.getIdentities().add(new HttpPrincipal(princ));
         }
-        String fname = searchResult.getAttributeValue(LDAP_FNAME);
-        String lname = searchResult.getAttributeValue(LDAP_LNAME);
+        String fname = searchResult.getAttributeValue(LDAP_FIRST_NAME);
+        String lname = searchResult.getAttributeValue(LDAP_LAST_NAME);
         user.details.add(new PersonalDetails(fname, lname));
         return user;
     }
@@ -427,7 +600,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             SearchRequest searchRequest =
                     new SearchRequest(this.config.getUsersDN(), SearchScope.SUB,
-                                      searchField, "entrydn");
+                                      searchField, LDAP_ENTRYDN);
 
 
             searchResult =
@@ -445,7 +618,30 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
-        return searchResult.getAttributeValueAsDN("entrydn");
+        return searchResult.getAttributeValueAsDN(LDAP_ENTRYDN);
+    }
+    
+    protected DN getUserDN(final String userID)
+        throws LDAPException, TransientException
+    {
+        try
+        {
+            return new DN(LDAP_COMMON_NAME + "=" + userID + "," + config.getUsersDN());
+        }
+        catch (LDAPException e)
+        {
+        	logger.debug("getUserDN Exception: " + e, e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+        throw new IllegalArgumentException(userID + " not a valid user ID");
+    }
+    
+    void addAttribute(List<Attribute> attributes, final String name, final String value)
+    {
+        if (value != null && !value.isEmpty())
+        {
+            attributes.add(new Attribute(name, value));
+        }
     }
 
 }

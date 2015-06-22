@@ -66,7 +66,7 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 
@@ -79,9 +79,9 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
 
-public class GroupsServlet extends HttpServlet
+public class UsersServlet extends HttpServlet
 {
-    private static final Logger log = Logger.getLogger(GroupsServlet.class);
+    private static final Logger log = Logger.getLogger(UsersServlet.class);
 
     /**
      * Create a GroupAction and run the action safely.
@@ -90,13 +90,13 @@ public class GroupsServlet extends HttpServlet
         throws IOException
     {
         long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
+        UserLogInfo logInfo = new UserLogInfo(request);
         try
         {
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
-            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
+            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
             action.doAction(subject, response);
         }
         catch (IllegalArgumentException e)

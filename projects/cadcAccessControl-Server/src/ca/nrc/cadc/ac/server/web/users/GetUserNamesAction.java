@@ -67,21 +67,21 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.Writer;
 import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
 
-public class GetGroupNamesAction extends GroupsAction
+public class GetUserNamesAction extends UsersAction
 {
     
-    private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
+    private static final Logger log = Logger.getLogger(GetUserNamesAction.class);
 
-    GetGroupNamesAction(GroupLogInfo logInfo)
+    GetUserNamesAction(UserLogInfo logInfo)
     {
         super(logInfo);
     }
@@ -89,20 +89,20 @@ public class GetGroupNamesAction extends GroupsAction
     public Object run()
         throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Collection<String> groups = groupPersistence.getGroupNames();
-        log.debug("Found " + groups.size() + " group names");
+        UserPersistence userPersistence = getUserPersistence();
+        Collection<String> users = userPersistence.getUserNames();
+        log.debug("Found " + users.size() + " user names");
         response.setContentType("text/plain");
         log.debug("Set content-type to text/plain");
         Writer writer = response.getWriter();
         boolean start = true;
-        for (final String group : groups)
+        for (final String user : users)
         {
             if (!start)
             {
                 writer.write("\r\n");
             }
-            writer.write(group);
+            writer.write(user);
             start = false;
         }
         

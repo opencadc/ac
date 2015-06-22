@@ -79,6 +79,29 @@ import java.util.Collection;
 public abstract interface UserPersistence<T extends Principal>
 {
     /**
+     * Get all user names.
+     * 
+     * @return A collection of strings.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<String> getUserNames()
+            throws TransientException, AccessControlException;
+    
+    /**
+     * Add the new user.
+     *
+     * @param user
+     *
+     * @return User instance.
+     * 
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract User<T> addUser(User<T> user)
+        throws TransientException, AccessControlException;
+    
+    /**
      * Get the user specified by userID.
      *
      * @param userID The userID.
@@ -90,6 +113,34 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      */
     public abstract User<T> getUser(T userID)
+        throws UserNotFoundException, TransientException, 
+               AccessControlException;
+    
+    /**
+     * Updated the user specified by User.
+     *
+     * @param user
+     *
+     * @return User instance.
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract User<T> modifyUser(User<T> user)
+        throws UserNotFoundException, TransientException, 
+               AccessControlException;
+    
+    /**
+     * Delete the user specified by userID.
+     *
+     * @param userID The userID.
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public abstract void deleteUser(T userID)
         throws UserNotFoundException, TransientException, 
                AccessControlException;
     

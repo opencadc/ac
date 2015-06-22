@@ -66,38 +66,32 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.List;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.MemberAlreadyExistsException;
-import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
 
-public abstract class GroupsAction
+public abstract class UsersAction
     implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(GroupsAction.class);
-    protected GroupLogInfo logInfo;
+    private static final Logger log = Logger.getLogger(UsersAction.class);
+    protected UserLogInfo logInfo;
     protected HttpServletResponse response;
 
-    GroupsAction(GroupLogInfo logInfo)
+    UsersAction(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
@@ -144,40 +138,12 @@ public abstract class GroupsAction
             this.logInfo.setMessage(message);
             sendError(400, message);
         }
-        catch (MemberNotFoundException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Member not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        }
-        catch (GroupNotFoundException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Group not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        }
         catch (UserNotFoundException e)
         {
             log.debug(e.getMessage(), e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
-        }
-        catch (MemberAlreadyExistsException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Member already exists: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(409, message);
-        }
-        catch (GroupAlreadyExistsException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Group already exists: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(409, message);
         }
         catch (UnsupportedOperationException e)
         {
@@ -227,23 +193,15 @@ public abstract class GroupsAction
         }
     }
 
-    <T extends Principal> GroupPersistence<T> getGroupPersistence()
-    {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.getGroupPersistence();
-    }
-
     <T extends Principal> UserPersistence<T> getUserPersistence()
     {
         PluginFactory pluginFactory = new PluginFactory();
         return pluginFactory.getUserPersistence();
     }
 
-    protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers)
+    protected void logUserInfo(String userName)
     {
-        this.logInfo.groupID = groupID;
-        this.logInfo.addedMembers = addedMembers;
-        this.logInfo.deletedMembers = deletedMembers;
+        this.logInfo.userName = userName;
     }
 
 }

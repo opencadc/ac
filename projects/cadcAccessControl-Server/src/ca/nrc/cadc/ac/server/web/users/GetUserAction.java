@@ -65,122 +65,31 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */
-package ca.nrc.cadc.ac.server.web.users;
+ */package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.util.StringUtil;
-import java.io.IOException;
-import java.net.URL;
+import ca.nrc.cadc.ac.UserWriter;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import java.security.Principal;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import org.apache.log4j.Logger;
 
-public class UsersActionFactory
+public class GetUserAction extends UsersAction
 {
-    private static final Logger log = Logger.getLogger(UsersActionFactory.class);
+    private final Principal userID;
 
-    static UsersAction getUsersAction(HttpServletRequest request, UserLogInfo logInfo)
-        throws IOException
+    GetUserAction(UserLogInfo logInfo, Principal userID)
     {
-        UsersAction action = null;
-        String method = request.getMethod();
-        String path = request.getPathInfo();
-        log.debug("method: " + method);
-        log.debug("path: " + path);
-
-        if (path == null)
-        {
-            path = "";
-        }
-
-        if (path.startsWith("/"))
-        {
-            path = path.substring(1);
-        }
-
-        if (path.endsWith("/"))
-        {
-            path = path.substring(0, path.length() - 1);
-        }
-
-        String[] segments = new String[0];
-        if (StringUtil.hasText(path))
-        {
-            segments = path.split("/");
-        }
-
-        if (segments.length == 0)
-        {
-            if (method.equals("GET"))
-            {
-                action = new GetUserNamesAction(logInfo);
-            }
-            else if (method.equals("PUT"))
-            {
-                action = new CreateUserAction(logInfo, request.getInputStream());
-            }
-
-        }
-        else if (segments.length == 1)
-        {
-            String userName = segments[0];
-            User user = getUserFromUsername(userName);
-            if (method.equals("GET"))
-            {
-                action = new GetUserAction(logInfo, user.getUserID());
-            }
-            else if (method.equals("DELETE"))
-            {
-                action = new DeleteUserAction(logInfo, user.getUserID());
-            }
-            else if (method.equals("POST"))
-            {
-                final URL requestURL = new URL(request.getRequestURL().toString());
-                final StringBuilder sb = new StringBuilder();
-                sb.append(requestURL.getProtocol());
-                sb.append("://");
-                sb.append(requestURL.getHost());
-                if (requestURL.getPort() > 0)
-                {
-                    sb.append(":");
-                    sb.append(requestURL.getPort());
-                }
-                sb.append(request.getContextPath());
-                sb.append(request.getServletPath());
-                sb.append("/");
-                sb.append(path);
-
-                action = new ModifyUserAction(logInfo, user.getUserID(), sb.toString(),
-                                              request.getInputStream());
-            }
-        }
-
-        if (action != null)
-        {
-            log.debug("Returning action: " + action.getClass());
-            return action;
-        }
-        throw new IllegalArgumentException("Bad users request: " + method + " on " + path);
+        super(logInfo);
+        this.userID = userID;
     }
 
-    private static User<? extends Principal> getUserFromUsername(final String userName)
+    public Object run()
+        throws Exception
     {
-        try
-        {
-            return new User(new X500Principal(userName));
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            return new User(new NumericPrincipal(Long.parseLong(userName)));
-        }
-        catch (NumberFormatException e) {}
-        
-        return new User((new HttpPrincipal(userName)));
+        UserPersistence userPersistence = getUserPersistence();
+        User<? extends Principal> user = userPersistence.getUser(userID);
+        this.response.setContentType("application/xml");
+        UserWriter.write(user, this.response.getOutputStream());
+        return null;
     }
+
 }
