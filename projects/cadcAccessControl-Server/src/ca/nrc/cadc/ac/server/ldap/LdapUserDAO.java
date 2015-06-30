@@ -68,18 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import javax.security.auth.x500.X500Principal;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-
-import com.unboundid.ldap.sdk.*;
-import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
@@ -88,8 +76,29 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import com.unboundid.ldap.sdk.AddRequest;
+import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.DN;
+import com.unboundid.ldap.sdk.Filter;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPResult;
+import com.unboundid.ldap.sdk.LDAPSearchException;
+import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchRequest;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchScope;
+import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
+import java.security.AccessControlException;
+import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
 
 
 public class LdapUserDAO<T extends Principal> extends LdapDAO
@@ -101,6 +110,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
     // Returned User attributes
     protected static final String LDAP_OBJECT_CLASS = "objectClass";
+    protected static final String LDAP_INET_ORG_PERSON = "inetOrgPerson";
     protected static final String LDAP_CADC_ACCOUNT = "cadcaccount";
     protected static final String LDAP_POSIX_ACCOUNT = "posixaccount";
     protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
@@ -179,6 +189,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             // add new user
             DN userDN = getUserDN(user.getUserID().getName());
             List<Attribute> attributes = new ArrayList<Attribute>();
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
+            addAttribute(attributes, LDAP_UID, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_COMMON_NAME, user.getUserID().getName());
             addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userDN.toNormalizedString());
@@ -215,7 +227,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             LDAPResult result = getConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
-
+            // AD: Search results sometimes come incomplete if
+            // connection is not reset - not sure why.
             getConnection().reconnect();
             try
             {
@@ -223,7 +236,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             }
             catch (UserNotFoundException e)
             {
-                throw new RuntimeException("BUG: new user not found");
+                throw new RuntimeException("BUG: new user " + userDN.toNormalizedString() +
+                                           " not found, result " + result.getResultCode());
             }
         }
         catch (LDAPException e)
@@ -231,7 +245,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             System.out.println("LDAPe: " + e);
             System.out.println("LDAPrc: " + e.getResultCode());
             logger.debug("addUser Exception: " + e, e);
-//            LdapDAO.checkLdapResult(e.getResultCode());
+            LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -255,8 +269,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField = "(&(objectclass=cadcaccount)(" + 
+        searchField = "(&(objectclass=inetorgperson)(" + 
                       searchField + "=" + userID.getName() + "))";
+        logger.debug(searchField);
 
         SearchResultEntry searchResult = null;
         try
@@ -626,7 +641,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            return new DN(LDAP_COMMON_NAME + "=" + userID + "," + config.getUsersDN());
+            return new DN(LDAP_UID + "=" + userID + "," + config.getUsersDN());
         }
         catch (LDAPException e)
         {
