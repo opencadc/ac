@@ -66,45 +66,107 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
-import java.io.IOException;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.UserDetails;
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * Class for all Exceptions that occur during reading.
+ *
+ * @author jburke
  */
-public class ReaderException extends IOException
+public class UserDetailsReaderWriterTest
 {
-    /**
-     * Constructs a new exception with the specified detail message.  The
-     * cause is not initialized, and may subsequently be initialized by
-     * a call to {@link #initCause}.
-     *
-     * @param message the detail message. The detail message is saved for
-     *                later retrieval by the {@link #getMessage()} method.
-     */
-    public ReaderException(String message)
-    {
-        super(message);
-    }
+    private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
 
-    /**
-     * Constructs a new exception with the specified detail message and
-     * cause.  <p>Note that the detail message associated with
-     * <code>cause</code> is <i>not</i> automatically incorporated in
-     * this exception's detail message.
-     *
-     * @param message the detail message (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
-     * @param cause   the cause (which is saved for later retrieval by the
-     *                {@link #getCause()} method).  (A <tt>null</tt> value is
-     *                permitted, and indicates that the cause is nonexistent or
-     *                unknown.)
-     * @since 1.4
-     */
-    public ReaderException(String message, Throwable cause)
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        super(message, cause);
+        Element element = null;
+        try
+        {
+            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            fail("null element should throw ReaderException");
+        }
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element = new Element("foo");
+        try
+        {
+            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            fail("element not named 'userDetails' should throw ReaderException");
+        }
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element = new Element(UserDetails.NAME);
+        try
+        {
+            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            fail("element without 'type' attribute should throw ReaderException");
+        }
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element.setAttribute("type", "foo");
+        try
+        {
+            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            fail("element with unknown 'type' attribute should throw ReaderException");
+        }
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
     }
-
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            Element element = ca.nrc.cadc.ac.xml.UserDetailsWriter.write(null);
+            fail("null UserDetails should throw WriterException");
+        }
+        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+    }
+     
+    @Test
+    public void testReadWritePersonalDetails()
+        throws Exception
+    {
+        PersonalDetails expected = new PersonalDetails("firstname", "lastname");
+        expected.address = "address";
+        expected.city = "city";
+        expected.country = "country";
+        expected.email = "email";
+        expected.institute = "institute";
+        Element element = ca.nrc.cadc.ac.xml.UserDetailsWriter.write(expected);
+        assertNotNull(element);
+        
+        PersonalDetails actual = (PersonalDetails) ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+        assertEquals(expected.address, actual.address);
+        assertEquals(expected.city, actual.city);
+        assertEquals(expected.country, actual.country);
+        assertEquals(expected.email, actual.email);
+        assertEquals(expected.institute, actual.institute);
+    }
+    
+    @Test
+    public void testReadWritePosixDetails()
+        throws Exception
+    {
+        UserDetails expected = new PosixDetails(123l, 456, "/dev/null");
+        Element element = ca.nrc.cadc.ac.xml.UserDetailsWriter.write(expected);
+        assertNotNull(element);
+        
+        UserDetails actual = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
 }

@@ -66,152 +66,110 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.xml.XmlUtil;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
-import java.security.Principal;
-import java.util.List;
-import org.jdom2.Document;
+import ca.nrc.cadc.ac.GroupProperty;
+import org.apache.log4j.Logger;
 import org.jdom2.Element;
-import org.jdom2.JDOMException;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class UserReader
+/**
+ *
+ * @author jburke
+ */
+public class GroupPropertyReaderWriterTest
 {
-    /**
-     * Construct a User from an XML String source.
-     * 
-     * @param xml String of the XML.
-     * @return User User.
-     * @throws ca.nrc.cadc.ac.ReaderException
-     * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
-     */
-    public static User<? extends Principal> read(String xml)
-        throws ReaderException, IOException, URISyntaxException
-    {
-        if (xml == null)
-        {
-            throw new IllegalArgumentException("XML must not be null");
-        }
-        return read(new StringReader(xml));
-    }
+    private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
-    /**
-     * Construct a User from a InputStream.
-     * 
-     * @param in InputStream.
-     * @return User User.
-     * @throws ca.nrc.cadc.ac.ReaderException
-     * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
-     */
-    public static User<? extends Principal> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        if (in == null)
-        {
-            throw new IOException("stream closed");
-        }
-        InputStreamReader reader;
+        Element element = null;
         try
         {
-            reader = new InputStreamReader(in, "UTF-8");
+            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            fail("null element should throw ReaderException");
         }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported");
-        }
-        return read(reader);
-    }
-
-    /**
-     * Construct a User from a Reader.
-     * 
-     * @param reader Reader.
-     * @return User User.
-     * @throws ca.nrc.cadc.ac.ReaderException
-     * @throws java.io.IOException
-     */
-    public static User<? extends Principal> read(Reader reader)
-        throws ReaderException, IOException
-    {
-        if (reader == null)
-        {
-            throw new IllegalArgumentException("reader must not be null");
-        }
-
-        // Create a JDOM Document from the XML
-        Document document;
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element = new Element("foo");
         try
         {
-            document = XmlUtil.buildDocument(reader);
+            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            fail("element not named 'property' should throw ReaderException");
         }
-        catch (JDOMException jde)
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element = new Element("property");
+        try
         {
-            String error = "XML failed validation: " + jde.getMessage();
-            throw new ReaderException(error, jde);
+            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            fail("element without 'key' attribute should throw ReaderException");
         }
-
-        // Root element and namespace of the Document
-        Element root = document.getRootElement();
-
-        return parseUser(root);
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element.setAttribute("key", "foo");
+        try
+        {
+            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            fail("element without 'type' attribute should throw ReaderException");
+        }
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+         
+        element.setAttribute("type", "Double");
+        try
+        {
+            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            fail("Unsupported 'type' should throw ReaderException");
+        }
+        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
     }
-
-    protected static User<? extends Principal> parseUser(Element userElement)
-        throws ReaderException
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        // userID element of the User element
-        Element userIDElement = userElement.getChild("userID");
-        if (userIDElement == null)
+        try
         {
-            String error = "userID element not found in user element";
-            throw new ReaderException(error);
+            Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(null);
+            fail("null GroupProperty should throw WriterException");
         }
-
-        // identity element of the userID element
-        Element userIDIdentityElement = userIDElement.getChild("identity");
-        if (userIDIdentityElement == null)
+        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+         
+        GroupProperty gp = new GroupProperty("key", new Double(1.0), true);
+        try
         {
-            String error = "identity element not found in userID element";
-            throw new ReaderException(error);
+            Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(gp);
+            fail("Unsupported GroupProperty type should throw IllegalArgumentException");
         }
-
-        Principal userID = IdentityReader.read(userIDIdentityElement);
-
-        User<Principal> user = new User<Principal>(userID);
-
-        // identities
-        Element identitiesElement = userElement.getChild("identities");
-        if (identitiesElement != null)
-        {
-            List<Element> identityElements = identitiesElement.getChildren("identity");
-            for (Element identityElement : identityElements)
-            {
-                user.getIdentities().add(IdentityReader.read(identityElement));
-            }
-
-        }
-
-        // details
-        Element detailsElement = userElement.getChild("details");
-        if (detailsElement != null)
-        {
-            List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
-            for (Element userDetailsElement : userDetailsElements)
-            {
-                user.details.add(UserDetailsReader.read(userDetailsElement));
-            }
-        }
-
-        return user;
+        catch (IllegalArgumentException e) {}
     }
-
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        // String type
+        GroupProperty expected = new GroupProperty("key", "value", true);
+        Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(expected);
+        assertNotNull(element);
+         
+        GroupProperty actual = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+         
+        // Integer tuype
+        expected = new GroupProperty("key", new Integer(1), false);
+        element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(expected);
+        assertNotNull(element);
+         
+        actual = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+        assertNotNull(actual);
+         
+        assertEquals(expected, actual);
+    }
+     
 }

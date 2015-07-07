@@ -66,77 +66,38 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import java.security.Principal;
 
-public class ModifyGroupAction extends GroupsAction
+public class UserRequest<T extends Principal>
 {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
+    private User<T> user;
+    private String password;
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
+    public UserRequest(final User<T> user, final String password)
     {
-        super(logInfo);
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
+        if (user == null)
+        {
+            throw new IllegalArgumentException("null user");
+        }
+        if (password == null || password.isEmpty())
+        {
+            throw new IllegalArgumentException("null or empty password");
+        }
+        this.user = user;
+        this.password = password;
     }
 
-    public Object run()
-        throws Exception
+    public User<T> getUser()
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.modifyGroup(group);
+        return this.user;
+    }
 
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
-        {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
-                addedMembers.add(member.getUserID().getName());
-            }
-        }
-        for (Group gr : group.getGroupMembers())
-        {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                addedMembers.add(gr.getID());
-            }
-        }
-        if (addedMembers.isEmpty())
-        {
-            addedMembers = null;
-        }
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
-            deletedMembers.add(member.getUserID().getName());
-        }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
-            deletedMembers.add(gr.getID());
-        }
-        if (deletedMembers.isEmpty())
-        {
-            deletedMembers = null;
-        }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
-
-        this.response.sendRedirect(request);
-
-        return null;
+    public String getPassword()
+    {
+        return this.password;
     }
 
 }

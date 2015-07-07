@@ -66,35 +66,29 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+package ca.nrc.cadc.ac.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.security.Principal;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
-import javax.security.auth.x500.X500Principal;
-
+import ca.nrc.cadc.ac.Group;
 import org.apache.log4j.Logger;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import org.junit.Test;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import static org.junit.Assert.assertTrue;
 
 /**
  *
  * @author jburke
  */
-public class GroupReaderWriterTest
+public class GroupsReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
+    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
 
     @Test
     public void testReaderExceptions()
@@ -103,7 +97,7 @@ public class GroupReaderWriterTest
         try
         {
             String s = null;
-            Group g = GroupReader.read(s);
+            List<Group> g = ca.nrc.cadc.ac.xml.GroupsReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -111,7 +105,7 @@ public class GroupReaderWriterTest
         try
         {
             InputStream in = null;
-            Group g = GroupReader.read(in);
+            List<Group> g = ca.nrc.cadc.ac.xml.GroupsReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -119,7 +113,7 @@ public class GroupReaderWriterTest
         try
         {
             Reader r = null;
-            Group g = GroupReader.read(r);
+            List<Group> g = ca.nrc.cadc.ac.xml.GroupsReader.read(r);
             fail("null element should throw ReaderException");
         }
         catch (IllegalArgumentException e) {}
@@ -131,58 +125,29 @@ public class GroupReaderWriterTest
     {
         try
         {
-            GroupWriter.write(null, new StringBuilder());
+            ca.nrc.cadc.ac.xml.GroupsWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
-        catch (WriterException e) {}
+        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
     }
      
     @Test
     public void testMinimalReadWrite()
         throws Exception
-    {
-        Group expected = new Group("groupID", null);
-                
-        StringBuilder xml = new StringBuilder();
-        GroupWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
-        
-        Group actual = GroupReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-    }
-    
-    @Test
-    public void testMaximalReadWrite()
-        throws Exception
-    {
-        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
-        expected.description = "description";
-        expected.lastModified = new Date();
-        expected.properties.add(new GroupProperty("key", "value", true));
-        
-        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
-        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
-        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
-        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
-        
-        expected.getGroupMembers().add(groupMember);
-        expected.getUserMembers().add(userMember);
-        expected.getGroupAdmins().add(groupAdmin);
-        expected.getUserAdmins().add(userAdmin);
+    {        
+        List<Group> expected = new ArrayList<Group>();
+        expected.add(new Group("group1", null));
+        expected.add(new Group("group2", null));
         
         StringBuilder xml = new StringBuilder();
-        GroupWriter.write(expected, xml);
+        ca.nrc.cadc.ac.xml.GroupsWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
         
-        Group actual = GroupReader.read(xml.toString());
+        List<Group> actual = ca.nrc.cadc.ac.xml.GroupsReader.read(xml.toString());
         assertNotNull(actual);
-        assertEquals(expected, actual);
-        assertEquals(expected.description, actual.description);
-        assertEquals(expected.lastModified, actual.lastModified);
-        assertEquals(expected.getProperties(), actual.getProperties());
-        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
-        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+        assertEquals(expected.size(), actual.size());
+        assertEquals(expected.get(0), actual.get(0));
+        assertEquals(expected.get(1), actual.get(1));
     }
-    
+
 }

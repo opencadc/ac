@@ -66,77 +66,92 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.util.StringBuilderWriter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
-public class ModifyGroupAction extends GroupsAction
+import java.io.IOException;
+import java.io.Writer;
+import java.security.Principal;
+
+public class UserRequestWriter
 {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
-
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
+    /**
+     * Write a UserRequest to a StringBuilder.
+     *
+     * @param userRequest UserRequest to write.
+     * @param builder StringBuilder to write to.
+     * @throws java.io.IOException if the writer fails to write.
+     * @throws WriterException
+     */
+    public static void write(UserRequest<? extends Principal> userRequest, StringBuilder builder)
+        throws IOException, WriterException
     {
-        super(logInfo);
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
+        write(userRequest, new StringBuilderWriter(builder));
     }
 
-    public Object run()
-        throws Exception
+    /**
+     * Write a UserRequest to a Writer.
+     *
+     * @param userRequest UserRequest to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws WriterException
+     */
+    public static void write(UserRequest<? extends Principal> userRequest, Writer writer)
+        throws IOException, WriterException
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.modifyGroup(group);
+        if (userRequest == null)
+        {
+            throw new WriterException("null UserRequest");
+        }
 
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
-        {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
-                addedMembers.add(member.getUserID().getName());
-            }
-        }
-        for (Group gr : group.getGroupMembers())
-        {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                addedMembers.add(gr.getID());
-            }
-        }
-        if (addedMembers.isEmpty())
-        {
-            addedMembers = null;
-        }
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
-            deletedMembers.add(member.getUserID().getName());
-        }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
-            deletedMembers.add(gr.getID());
-        }
-        if (deletedMembers.isEmpty())
-        {
-            deletedMembers = null;
-        }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
-
-        this.response.sendRedirect(request);
-
-        return null;
+        write(getUserRequestElement(userRequest), writer);
     }
 
+    /**
+     * Build the UserRequest element.
+     *
+     * @param userRequest UserRequest.
+     * @return member Element.
+     * @throws WriterException
+     */
+    public static Element getUserRequestElement(UserRequest<? extends Principal> userRequest)
+        throws WriterException
+    {
+        // Create the userRequest Element.
+        Element userRequestElement = new Element("userRequest");
+
+        // user element
+        Element userElement = UserWriter.getUserElement(userRequest.getUser());
+        userRequestElement.addContent(userElement);
+
+        // password element
+        Element passwordElement = new Element("password");
+        passwordElement.setText(userRequest.getPassword());
+        userRequestElement.addContent(passwordElement);
+
+        return userRequestElement;
+    }
+
+    /**
+     * Write to root Element to a writer.
+     *
+     * @param root Root Element to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     */
+    private static void write(Element root, Writer writer)
+        throws IOException
+    {
+        XMLOutputter outputter = new XMLOutputter();
+        outputter.setFormat(Format.getPrettyFormat());
+        outputter.output(new Document(root), writer);
+    }
 }

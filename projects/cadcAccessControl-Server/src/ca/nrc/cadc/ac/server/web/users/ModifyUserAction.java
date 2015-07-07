@@ -70,8 +70,9 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.InputStream;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserReader;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.xml.UserReader;
+
 import java.security.Principal;
 
 public class ModifyUserAction extends UsersAction

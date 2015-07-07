@@ -87,7 +87,7 @@ public class UserActionFactoryTest
     }
 
     @Test
-    public void testCreateCreateUserAction()
+    public void testCreateUserAction()
     {
         try
         {
@@ -108,13 +108,14 @@ public class UserActionFactoryTest
     }
 
     @Test
-    public void testCreateDeleteUserAction()
+    public void testDeleteUserAction()
     {
         try
         {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
             EasyMock.expect(request.getMethod()).andReturn("DELETE");
+            EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
             UsersAction action = UsersActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
@@ -128,13 +129,14 @@ public class UserActionFactoryTest
     }
 
     @Test
-    public void testCreateGetUserAction()
+    public void testGetUserAction()
     {
         try
         {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
             EasyMock.expect(request.getMethod()).andReturn("GET");
+            EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
             UsersAction action = UsersActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
@@ -148,7 +150,7 @@ public class UserActionFactoryTest
     }
 
     @Test
-    public void testCreateGetUserNamesAction()
+    public void testGetUserNamesAction()
     {
         try
         {
@@ -168,7 +170,7 @@ public class UserActionFactoryTest
     }
 
     @Test
-    public void testCreateModifyUserAction()
+    public void testModifyUserAction()
     {
         try
         {
@@ -182,6 +184,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getContextPath()).andReturn("");
             EasyMock.expect(request.getServletPath()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
+            EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
             UsersAction action = UsersActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);

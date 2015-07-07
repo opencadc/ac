@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
@@ -125,7 +126,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> addUser(User<T> user)
+    public User<T> addUser(UserRequest<T> user)
         throws TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;

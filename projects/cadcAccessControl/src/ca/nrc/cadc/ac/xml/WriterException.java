@@ -66,113 +66,45 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import java.io.IOException;
 
 /**
- *
- * @author jburke
+ * Base exception for all Writer class exceptions.
  */
-public class GroupPropertyReaderWriterTest
+public class WriterException extends IOException
 {
-    private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
+    /**
+     * Constructs a new exception with the specified detail message.  The
+     * cause is not initialized, and may subsequently be initialized by
+     * a call to {@link #initCause}.
+     *
+     * @param message the detail message. The detail message is saved for
+     *                later retrieval by the {@link #getMessage()} method.
+     */
+    public WriterException(String message)
+    {
+        super(message);
+    }
 
-    @Test
-    public void testReaderExceptions()
-        throws Exception
+    /**
+     * Constructs a new exception with the specified detail message and
+     * cause.  <p>Note that the detail message associated with
+     * <code>cause</code> is <i>not</i> automatically incorporated in
+     * this exception's detail message.
+     *
+     * @param message the detail message (which is saved for later retrieval
+     *                by the {@link #getMessage()} method).
+     * @param cause   the cause (which is saved for later retrieval by the
+     *                {@link #getCause()} method).  (A <tt>null</tt> value is
+     *                permitted, and indicates that the cause is nonexistent or
+     *                unknown.)
+     * @since 1.4
+     */
+    public WriterException(String message, Throwable cause)
     {
-        Element element = null;
-        try
-        {
-            GroupProperty gp = GroupPropertyReader.read(element);
-            fail("null element should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element = new Element("foo");
-        try
-        {
-            GroupProperty gp = GroupPropertyReader.read(element);
-            fail("element not named 'property' should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element = new Element("property");
-        try
-        {
-            GroupProperty gp = GroupPropertyReader.read(element);
-            fail("element without 'key' attribute should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element.setAttribute("key", "foo");
-        try
-        {
-            GroupProperty gp = GroupPropertyReader.read(element);
-            fail("element without 'type' attribute should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element.setAttribute("type", "Double");
-        try
-        {
-            GroupProperty gp = GroupPropertyReader.read(element);
-            fail("Unsupported 'type' should throw ReaderException");
-        }
-        catch (ReaderException e) {}
+        super(message, cause);
     }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            Element element = GroupPropertyWriter.write(null);
-            fail("null GroupProperty should throw WriterException");
-        }
-        catch (WriterException e) {}
-         
-        GroupProperty gp = new GroupProperty("key", new Double(1.0), true);
-        try
-        {
-            Element element = GroupPropertyWriter.write(gp);
-            fail("Unsupported GroupProperty type should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testReadWrite()
-        throws Exception
-    {
-        // String type
-        GroupProperty expected = new GroupProperty("key", "value", true);
-        Element element = GroupPropertyWriter.write(expected);
-        assertNotNull(element);
-         
-        GroupProperty actual = GroupPropertyReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-         
-        // Integer tuype
-        expected = new GroupProperty("key", new Integer(1), false);
-        element = GroupPropertyWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = GroupPropertyReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-    }
-     
+
 }

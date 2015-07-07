@@ -68,11 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.*;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
@@ -118,6 +114,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_ENTRYDN = "entrydn";
     protected static final String LDAP_COMMON_NAME = "cn";
     protected static final String LDAP_DISTINGUISHED_NAME = "distinguishedName";
+    protected static final String LADP_USER_PASSWORD = "userPassword";
     protected static final String LDAP_FIRST_NAME = "givenName";
     protected static final String LDAP_LAST_NAME = "sn";
     protected static final String LDAP_ADDRESS = "address";
@@ -168,32 +165,32 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     /**
      * Add the specified user..
      *
-     * @param user The user to add.
+     * @param userRequest The user to add.
      * @return User instance.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> addUser(final User<T> user)
+    public User<T> addUser(final UserRequest<T> userRequest)
         throws TransientException
     {
+        final User<T> user = userRequest.getUser();
         final Class userType = user.getUserID().getClass();
         String searchField = userLdapAttrib.get(userType);
         if (searchField == null)
         {
-            throw new IllegalArgumentException(
-                    "Unsupported principal type " + userType);
+            throw new IllegalArgumentException("Unsupported principal type " + userType);
         }
         
         try
         {
             // add new user
-            DN userDN = getUserDN(user.getUserID().getName());
+            DN userDN = getUserRequestsDN(user.getUserID().getName());
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
-            addAttribute(attributes, LDAP_UID, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_COMMON_NAME, user.getUserID().getName());
             addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userDN.toNormalizedString());
+            addAttribute(attributes, LADP_USER_PASSWORD, userRequest.getPassword());
 
             for (UserDetails details : user.details)
             {
@@ -232,7 +229,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             getConnection().reconnect();
             try
             {
-                return getUser(user.getUserID());
+                return getUser(user.getUserID(), config.getUserRequestsDN());
             }
             catch (UserNotFoundException e)
             {
@@ -249,7 +246,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
-    
+
     /**
      * Get the user specified by userID.
      *
@@ -260,6 +257,22 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      */
     public User<T> getUser(final T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        return getUser(userID, config.getUsersDN());
+    }
+
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID The userID.
+     * @param usersDN The LDAP tree to search.
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    private User<T> getUser(final T userID, final String usersDN)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
@@ -277,7 +290,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             SearchRequest searchRequest = 
-                    new SearchRequest(config.getUsersDN(), SearchScope.SUB, 
+                    new SearchRequest(usersDN, SearchScope.SUB,
                                      searchField, userAttribs);
 
             searchRequest.addControl(
@@ -646,6 +659,21 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         catch (LDAPException e)
         {
         	logger.debug("getUserDN Exception: " + e, e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+        throw new IllegalArgumentException(userID + " not a valid user ID");
+    }
+
+    protected DN getUserRequestsDN(final String userID)
+        throws LDAPException, TransientException
+    {
+        try
+        {
+            return new DN(LDAP_UID + "=" + userID + "," + config.getUserRequestsDN());
+        }
+        catch (LDAPException e)
+        {
+            logger.debug("getUserRequestsDN Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
         }
         throw new IllegalArgumentException(userID + " not a valid user ID");

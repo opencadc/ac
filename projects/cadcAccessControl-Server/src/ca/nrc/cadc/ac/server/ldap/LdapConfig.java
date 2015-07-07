@@ -96,12 +96,14 @@ public class LdapConfig
     public static final String LDAP_PORT = "port";
     public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
     public static final String LDAP_USERS_DN = "usersDn";
+    public static final String LDAP_USER_REQUESTS_DN = "userRequestsDN";
     public static final String LDAP_GROUPS_DN = "groupsDn";
     public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDn";
 
     private final static int SECURE_PORT = 636;
 
     private String usersDN;
+    private String userRequestsDN;
     private String groupsDN;
     private String adminGroupsDN;
     private String server;
@@ -166,6 +168,14 @@ public class LdapConfig
                                        LDAP_USERS_DN);
         }
         String ldapUsersDn = prop.get(0);
+        
+        prop = config.getProperty(LDAP_USER_REQUESTS_DN);
+        if ((prop == null) || (prop.size() != 1))
+        {
+            throw new RuntimeException("failed to read property " +
+                LDAP_USER_REQUESTS_DN);
+        }
+        String ldapUserRequestsDn = prop.get(0);
 
         prop = config.getProperty(LDAP_GROUPS_DN);
         if ((prop == null) || (prop.size() != 1))
@@ -203,14 +213,14 @@ public class LdapConfig
         }
         
         return new LdapConfig(server, Integer.valueOf(port), cc.getUsername(), 
-                              cc.getPassword(), ldapUsersDn, ldapGroupsDn,
-                              ldapAdminGroupsDn);
+                              cc.getPassword(), ldapUsersDn, ldapUserRequestsDn,
+                              ldapGroupsDn, ldapAdminGroupsDn);
     }
     
 
     public LdapConfig(String server, int port, String proxyUserDN, 
-                      String proxyPasswd, String usersDN, String groupsDN,
-                      String adminGroupsDN)
+                      String proxyPasswd, String usersDN, String userRequestsDN,
+                      String groupsDN, String adminGroupsDN)
     {
         if (!StringUtil.hasText(server))
         {
@@ -233,6 +243,10 @@ public class LdapConfig
         {
             throw new IllegalArgumentException("Illegal users LDAP DN");
         }
+        if (!StringUtil.hasText(userRequestsDN))
+        {
+            throw new IllegalArgumentException("Illegal userRequests LDAP DN");
+        }
         if (!StringUtil.hasText(groupsDN))
         {
             throw new IllegalArgumentException("Illegal groups LDAP DN");
@@ -247,6 +261,7 @@ public class LdapConfig
         this.proxyUserDN = proxyUserDN;
         this.proxyPasswd = proxyPasswd;
         this.usersDN = usersDN;
+        this.userRequestsDN = userRequestsDN;
         this.groupsDN = groupsDN;
         this.adminGroupsDN = adminGroupsDN;
         logger.debug(toString());
@@ -255,6 +270,11 @@ public class LdapConfig
     public String getUsersDN()
     {
         return this.usersDN;
+    }
+    
+    public String getUserRequestsDN()
+    {
+        return this.userRequestsDN;
     }
 
     public String getGroupsDN()

@@ -68,30 +68,25 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import com.unboundid.ldap.sdk.DN;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
 
-import com.unboundid.ldap.sdk.DN;
+import static org.junit.Assert.*;
 
 public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
@@ -135,9 +130,12 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testAddUser() throws Exception
     {
-        final User<HttpPrincipal> newUser = new User<HttpPrincipal>(new HttpPrincipal(getUserID()));
-        newUser.details.add(new PersonalDetails("foo", "bar"));
-        
+        final User<HttpPrincipal> expected = new User<HttpPrincipal>(new HttpPrincipal(getUserID()));
+        expected.getIdentities().add(new HttpPrincipal(getUserID()));
+        expected.details.add(new PersonalDetails("foo", "bar"));
+
+        final UserRequest userRequest = new UserRequest(expected, "123456");
+
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
 
@@ -148,8 +146,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User<? extends Principal> actual = getUserDAO().addUser(newUser);
-                    check(newUser, actual);
+                    User<? extends Principal> actual = getUserDAO().addUser(userRequest);
+                    check(expected, actual);
                     
                     return null;
                 }
@@ -164,7 +162,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     /**
      * Test of getUser method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testGetUser() throws Exception
     {
         Subject subject = new Subject();
@@ -194,7 +192,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testGetUserGroups() throws Exception
     {
         Subject subject = new Subject();
@@ -232,7 +230,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testIsMember() throws Exception
     {
         Subject subject = new Subject();
@@ -265,7 +263,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     /**
      * Test of getMember.
      */
-//    @Test
+    @Test
     public void testGetMember() throws Exception
     {
         Subject subject = new Subject();

@@ -68,9 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.IOException;
 import java.net.URL;
@@ -127,8 +130,8 @@ public class UsersActionFactory
         }
         else if (segments.length == 1)
         {
-            String userName = segments[0];
-            User user = getUserFromUsername(userName);
+            User user = getUser(segments[0], request.getParameter("idType"),
+                                method, path);
             if (method.equals("GET"))
             {
                 action = new GetUserAction(logInfo, user.getUserID());
@@ -164,23 +167,43 @@ public class UsersActionFactory
             log.debug("Returning action: " + action.getClass());
             return action;
         }
-        throw new IllegalArgumentException("Bad users request: " + method + " on " + path);
+        final String error = "Bad users request: " + method + " on " + path;
+        throw new IllegalArgumentException(error);
     }
 
-    private static User<? extends Principal> getUserFromUsername(final String userName)
+    private static User<? extends Principal> getUser(final String userName, final String idType,
+                                                     final String method, final String path)
     {
-        try
+        if (idType == null || idType.isEmpty())
+        {
+            throw new IllegalArgumentException("User endpoint missing idType parameter");
+        }
+        else if (idType.equals(IdentityType.USERNAME.getValue()))
+        {
+            return new User(new HttpPrincipal(userName));
+        }
+        else if (idType.equals(IdentityType.X500.getValue()))
         {
             return new User(new X500Principal(userName));
         }
-        catch (IllegalArgumentException e) {}
-        
-        try
+        else if (idType.equals(IdentityType.UID.getValue()))
         {
             return new User(new NumericPrincipal(Long.parseLong(userName)));
         }
-        catch (NumberFormatException e) {}
-        
-        return new User((new HttpPrincipal(userName)));
+        else if (idType.equals(IdentityType.OPENID.getValue()))
+        {
+            return new User(new OpenIdPrincipal(userName));
+        }
+        else if (idType.equals(IdentityType.COOKIE.getValue()))
+        {
+            return new User(new CookiePrincipal(userName));
+        }
+        else
+        {
+            final String error = "Bad users request: " + method + " on " + path + 
+                                 " because of unknown principal type " + idType;
+            throw new IllegalArgumentException(error);
+        }
     }
+
 }

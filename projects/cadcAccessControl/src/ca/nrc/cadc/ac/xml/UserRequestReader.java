@@ -66,45 +66,131 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.security.Principal;
 
-/**
- * Base exception for all Writer class exceptions.
- */
-public class WriterException extends IOException
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+
+public class UserRequestReader
 {
     /**
-     * Constructs a new exception with the specified detail message.  The
-     * cause is not initialized, and may subsequently be initialized by
-     * a call to {@link #initCause}.
+     * Construct a UserRequest from an XML String source.
      *
-     * @param message the detail message. The detail message is saved for
-     *                later retrieval by the {@link #getMessage()} method.
+     * @param xml String of the XML.
+     * @return UserRequest UserRequest.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    public WriterException(String message)
+    public static UserRequest<? extends Principal> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
     {
-        super(message);
+        if (xml == null)
+        {
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
     }
 
     /**
-     * Constructs a new exception with the specified detail message and
-     * cause.  <p>Note that the detail message associated with
-     * <code>cause</code> is <i>not</i> automatically incorporated in
-     * this exception's detail message.
+     * Construct a User from a InputStream.
      *
-     * @param message the detail message (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
-     * @param cause   the cause (which is saved for later retrieval by the
-     *                {@link #getCause()} method).  (A <tt>null</tt> value is
-     *                permitted, and indicates that the cause is nonexistent or
-     *                unknown.)
-     * @since 1.4
+     * @param in InputStream.
+     * @return UserRequest UserRequest.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    public WriterException(String message, Throwable cause)
+    public static UserRequest<? extends Principal> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
-        super(message, cause);
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+        InputStreamReader reader;
+        try
+        {
+            reader = new InputStreamReader(in, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported");
+        }
+        return read(reader);
+    }
+
+    /**
+     * Construct a UserRequest from a Reader.
+     *
+     * @param reader Reader.
+     * @return UserRequest UserRequest.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     */
+    public static UserRequest<? extends Principal> read(Reader reader)
+        throws ReaderException, IOException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        // Create a JDOM Document from the XML
+        Document document;
+        try
+        {
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        // Root element and namespace of the Document
+        Element root = document.getRootElement();
+
+        return parseUserRequest(root);
+    }
+
+    protected static UserRequest parseUserRequest(Element userRequestElement)
+        throws ReaderException
+    {
+        // user element of the UserRequest element
+        Element userElement = userRequestElement.getChild("user");
+        if (userElement == null)
+        {
+            String error = "user element not found in userRequest element";
+            throw new ReaderException(error);
+        }
+        User<? extends Principal> user = ca.nrc.cadc.ac.xml.UserReader.parseUser(userElement);
+
+        // password element of the userRequest element
+        Element passwordElement = userRequestElement.getChild("password");
+        if (passwordElement == null)
+        {
+            String error = "password element not found in userRequest element";
+            throw new ReaderException(error);
+        }
+        String password = passwordElement.getText();
+
+        UserRequest userRequest = new UserRequest(user, password);
+
+        return userRequest;
     }
 
 }

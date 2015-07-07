@@ -1,5 +1,6 @@
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.util.StringBuilderWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class GroupsWriter
      * @param groups List of Group's to write.
      * @param builder
      * @throws java.io.IOException
-     * @throws ca.nrc.cadc.ac.WriterException
+     * @throws WriterException
      */
     public static void write(Collection<Group> groups, StringBuilder builder)
         throws IOException, WriterException
@@ -34,7 +35,7 @@ public class GroupsWriter
      * @param groups List of Group's to write.
      * @param out OutputStream to write to.
      * @throws IOException if the writer fails to write.
-     * @throws ca.nrc.cadc.ac.WriterException
+     * @throws WriterException
      */
     public static void write(Collection<Group> groups, OutputStream out)
         throws IOException, WriterException
@@ -57,7 +58,7 @@ public class GroupsWriter
      * @param groups List of Group's to write.
      * @param writer  Writer to write to.
      * @throws IOException if the writer fails to write.
-     * @throws ca.nrc.cadc.ac.WriterException
+     * @throws WriterException
      */
     public static void write(Collection<Group> groups, Writer writer)
         throws IOException, WriterException
@@ -74,7 +75,7 @@ public class GroupsWriter
      * 
      * @param groups List of Group's to write.
      * @return Element of list of Group's.
-     * @throws ca.nrc.cadc.ac.WriterException 
+     * @throws WriterException
      */
     public static Element getGroupsElement(Collection<Group> groups)
         throws WriterException

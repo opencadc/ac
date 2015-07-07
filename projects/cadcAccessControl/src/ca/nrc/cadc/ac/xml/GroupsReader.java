@@ -66,77 +66,124 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.xml.XmlUtil;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
-public class ModifyGroupAction extends GroupsAction
+public class GroupsReader
 {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
-
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
+    /**
+     * Construct a list of Group's from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public static List<Group> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
     {
-        super(logInfo);
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
+        if (xml == null)
+        {
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
     }
 
-    public Object run()
-        throws Exception
+    /**
+     * Construct a list of Group's from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public static List<Group> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
+        if (in == null)
         {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
-                addedMembers.add(member.getUserID().getName());
-            }
+            throw new IOException("stream closed");
         }
-        for (Group gr : group.getGroupMembers())
+        InputStreamReader reader;
+        try
         {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                addedMembers.add(gr.getID());
-            }
+            reader = new InputStreamReader(in, "UTF-8");
         }
-        if (addedMembers.isEmpty())
+        catch (UnsupportedEncodingException e)
         {
-            addedMembers = null;
+            throw new RuntimeException("UTF-8 encoding not supported");
         }
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
-            deletedMembers.add(member.getUserID().getName());
-        }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
-            deletedMembers.add(gr.getID());
-        }
-        if (deletedMembers.isEmpty())
-        {
-            deletedMembers = null;
-        }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
-
-        this.response.sendRedirect(request);
-
-        return null;
+        return read(reader);
     }
 
+    /**
+     * Construct a List of Group's from a Reader.
+     * 
+     * @param reader Reader.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public static List<Group> read(Reader reader)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        Document document;
+        try
+        {
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        Element root = document.getRootElement();
+
+        String groupElemName = root.getName();
+
+        if (!groupElemName.equalsIgnoreCase("groups"))
+        {
+            String error = "Expected groups element, found " + groupElemName;
+            throw new ReaderException(error);
+        }
+
+        return parseGroups(root);
+    }
+
+    protected static List<Group> parseGroups(Element groupsElement)
+            throws URISyntaxException, ReaderException
+    {
+        List<Group> groups = new ArrayList<Group>();
+
+        List<Element> groupElements = groupsElement.getChildren("group");
+        for (Element groupElement : groupElements)
+        {
+            groups.add(ca.nrc.cadc.ac.xml.GroupReader.parseGroup(groupElement));
+        }
+
+        return groups;
+    }
 }

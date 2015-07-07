@@ -66,77 +66,84 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.xml;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class ModifyGroupAction extends GroupsAction
+/**
+ *
+ * @author jburke
+ */
+public class UserReaderWriterTest
 {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
+    private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
-    {
-        super(logInfo);
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
-    }
-
-    public Object run()
+    @Test
+    public void testReaderExceptions()
         throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
+        try
         {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
-                addedMembers.add(member.getUserID().getName());
-            }
+            String s = null;
+            User<? extends Principal> u = ca.nrc.cadc.ac.xml.UserReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        for (Group gr : group.getGroupMembers())
+        catch (IllegalArgumentException e) {}
+        
+        try
         {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                addedMembers.add(gr.getID());
-            }
+            InputStream in = null;
+            User<? extends Principal> u = ca.nrc.cadc.ac.xml.UserReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        if (addedMembers.isEmpty())
+        catch (IOException e) {}
+        
+        try
         {
-            addedMembers = null;
+            Reader r = null;
+            User<? extends Principal> u = ca.nrc.cadc.ac.xml.UserReader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
-            deletedMembers.add(member.getUserID().getName());
-        }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
-            deletedMembers.add(gr.getID());
-        }
-        if (deletedMembers.isEmpty())
-        {
-            deletedMembers = null;
-        }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
-
-        this.response.sendRedirect(request);
-
-        return null;
+        catch (IllegalArgumentException e) {}
     }
-
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            ca.nrc.cadc.ac.xml.UserWriter.write(null, new StringBuilder());
+            fail("null User should throw WriterException");
+        }
+        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+    }
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.details.add(new PersonalDetails("firstname", "lastname"));
+        
+        StringBuilder xml = new StringBuilder();
+        ca.nrc.cadc.ac.xml.UserWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        User<? extends Principal> actual = ca.nrc.cadc.ac.xml.UserReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
 }

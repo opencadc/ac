@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
@@ -98,7 +99,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract User<T> addUser(User<T> user)
+    public abstract User<T> addUser(UserRequest<T> user)
         throws TransientException, AccessControlException;
     
     /**

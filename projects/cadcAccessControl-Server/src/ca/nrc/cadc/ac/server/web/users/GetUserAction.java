@@ -68,8 +68,9 @@
  */package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.xml.UserWriter;
+
 import java.security.Principal;
 
 public class GetUserAction extends UsersAction

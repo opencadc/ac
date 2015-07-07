@@ -66,9 +66,8 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -76,24 +75,32 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.security.Principal;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.List;
+
+import ca.nrc.cadc.ac.*;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
-public class GroupsReader
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.xml.XmlUtil;
+
+public class GroupReader
 {
+
     /**
-     * Construct a list of Group's from an XML String source.
+     * Construct a Group from an XML String source.
      * 
      * @param xml String of the XML.
-     * @return Groups List of Group.
-     * @throws ca.nrc.cadc.ac.ReaderException
+     * @return Group Group.
+     * @throws ReaderException
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static List<Group> read(String xml)
+    public static Group read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
@@ -104,16 +111,16 @@ public class GroupsReader
     }
 
     /**
-     * Construct a list of Group's from a InputStream.
+     * Construct a Group from a InputStream.
      * 
      * @param in InputStream.
-     * @return Groups List of Group.
-     * @throws ca.nrc.cadc.ac.ReaderException
+     * @return Group Group.
+     * @throws ReaderException
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static List<Group> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+    public static Group read(InputStream in)
+        throws ReaderException, IOException
     {
         if (in == null)
         {
@@ -132,16 +139,16 @@ public class GroupsReader
     }
 
     /**
-     * Construct a List of Group's from a Reader.
+     * Construct a Group from a Reader.
      * 
      * @param reader Reader.
-     * @return Groups List of Group.
-     * @throws ca.nrc.cadc.ac.ReaderException
+     * @return Group Group.
+     * @throws ReaderException
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static List<Group> read(Reader reader)
-        throws ReaderException, IOException, URISyntaxException
+    public static Group read(Reader reader)
+        throws ReaderException, IOException
     {
         if (reader == null)
         {
@@ -163,26 +170,134 @@ public class GroupsReader
 
         String groupElemName = root.getName();
 
-        if (!groupElemName.equalsIgnoreCase("groups"))
+        if (!groupElemName.equalsIgnoreCase("group"))
         {
-            String error = "Expected groups element, found " + groupElemName;
+            String error = "Expected group element, found " + groupElemName;
             throw new ReaderException(error);
         }
 
-        return parseGroups(root);
+        return parseGroup(root);
     }
 
-    protected static List<Group> parseGroups(Element groupsElement)
-            throws URISyntaxException, ReaderException
+    protected static Group parseGroup(Element groupElement)
+        throws ReaderException
     {
-        List<Group> groups = new ArrayList<Group>();
-
-        List<Element> groupElements = groupsElement.getChildren("group");
-        for (Element groupElement : groupElements)
+        String uri = groupElement.getAttributeValue("uri");
+        if (uri == null)
         {
-            groups.add(GroupReader.parseGroup(groupElement));
+            String error = "group missing required uri attribute";
+            throw new ReaderException(error);
         }
 
-        return groups;
+        // Group groupID
+        int index = uri.indexOf(AC.GROUP_URI);
+        if (index == -1)
+        {
+            String error = "group uri attribute malformed: " + uri;
+            throw new ReaderException(error);
+        }
+        String groupID = uri.substring(AC.GROUP_URI.length());
+
+        // Group owner
+        User<? extends Principal> user = null;
+        Element ownerElement = groupElement.getChild("owner");
+        if (ownerElement != null)
+        {
+            // Owner user
+            Element userElement = ownerElement.getChild("user");
+            if (userElement == null)
+            {
+                String error = "owner missing required user element";
+                throw new ReaderException(error);
+            }
+            user = UserReader.parseUser(userElement);
+        }
+
+        Group group = new Group(groupID, user);
+
+        // description
+        Element descriptionElement = groupElement.getChild("description");
+        if (descriptionElement != null)
+        {
+            group.description = descriptionElement.getText();
+        }
+
+        // lastModified
+        Element lastModifiedElement = groupElement.getChild("lastModified");
+        if (lastModifiedElement != null)
+        {
+            try
+            {
+                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+                group.lastModified = df.parse(lastModifiedElement.getText());
+            }
+            catch (ParseException e)
+            {
+                String error = "Unable to parse group lastModified because " + e.getMessage();
+
+                throw new ReaderException(error);
+            }
+
+        }
+        
+        // properties
+        Element propertiesElement = groupElement.getChild("properties");
+        if (propertiesElement != null)
+        {
+            List<Element> propertyElements = propertiesElement.getChildren("property");
+            for (Element propertyElement : propertyElements)
+            {
+                group.getProperties().add(ca.nrc.cadc.ac.xml.GroupPropertyReader.read(propertyElement));
+            }
+
+        }
+
+        // groupMembers
+        Element groupMembersElement = groupElement.getChild("groupMembers");
+        if (groupMembersElement != null)
+        {
+            List<Element> groupElements = groupMembersElement.getChildren("group");
+            for (Element groupMember : groupElements)
+            {
+                group.getGroupMembers().add(parseGroup(groupMember));
+            }
+
+        }
+
+        // userMembers
+        Element userMembersElement = groupElement.getChild("userMembers");
+        if (userMembersElement != null)
+        {
+            List<Element> userElements = userMembersElement.getChildren("user");
+            for (Element userMember : userElements)
+            {
+                group.getUserMembers().add(UserReader.parseUser(userMember));
+            }
+        }
+        
+        // groupAdmins
+        Element groupAdminsElement = groupElement.getChild("groupAdmins");
+        if (groupAdminsElement != null)
+        {
+            List<Element> groupElements = groupAdminsElement.getChildren("group");
+            for (Element groupMember : groupElements)
+            {
+                group.getGroupAdmins().add(parseGroup(groupMember));
+            }
+
+        }
+
+        // userAdmins
+        Element userAdminsElement = groupElement.getChild("userAdmins");
+        if (userAdminsElement != null)
+        {
+            List<Element> userElements = userAdminsElement.getChildren("user");
+            for (Element userMember : userElements)
+            {
+                group.getUserAdmins().add(UserReader.parseUser(userMember));
+            }
+        }
+
+        return group;
     }
 }

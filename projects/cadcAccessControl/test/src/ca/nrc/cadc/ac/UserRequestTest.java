@@ -66,82 +66,29 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.security.Principal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-/**
- *
- * @author jburke
- */
-public class UserReaderWriterTest
+import static org.junit.Assert.assertEquals;
+
+public class UserRequestTest
 {
-    private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
+
+    private static Logger log = Logger.getLogger(UserRequestTest.class);
 
     @Test
-    public void testReaderExceptions()
-        throws Exception
+    public void simpleEqualityTests() throws Exception
     {
-        try
-        {
-            String s = null;
-            User<? extends Principal> u = UserReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            User<? extends Principal> u = UserReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            User<? extends Principal> u = UserReader.read(r);
-            fail("null Reader should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
+        UserRequest<HttpPrincipal> ur1 = new UserRequest<HttpPrincipal>(new User(new HttpPrincipal(("foo"))), "password");
+        UserRequest<HttpPrincipal> ur2 = ur1;
+        assertEquals(ur1, ur2);
+        assertEquals(ur1.getUser(), ur2.getUser());
+        assertEquals(ur1.getPassword(), ur2.getPassword());
+        assertEquals(ur1.hashCode(), ur2.hashCode());
     }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            UserWriter.write(null, new StringBuilder());
-            fail("null User should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testReadWrite()
-        throws Exception
-    {
-        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
-        expected.getIdentities().add(new NumericPrincipal(123l));
-        expected.details.add(new PersonalDetails("firstname", "lastname"));
-        
-        StringBuilder xml = new StringBuilder();
-        UserWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
-        
-        User<? extends Principal> actual = UserReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-    }
-    
+
 }

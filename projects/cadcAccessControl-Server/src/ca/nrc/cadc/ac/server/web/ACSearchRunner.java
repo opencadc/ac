@@ -86,7 +86,7 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupsWriter;
+import ca.nrc.cadc.ac.xml.GroupsWriter;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;

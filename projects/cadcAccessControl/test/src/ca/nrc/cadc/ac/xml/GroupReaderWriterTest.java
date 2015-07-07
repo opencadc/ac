@@ -66,77 +66,126 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.Reader;
+import java.security.Principal;
+import java.util.Date;
+
+import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 
-public class ModifyGroupAction extends GroupsAction
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import static org.junit.Assert.assertTrue;
+
+/**
+ *
+ * @author jburke
+ */
+public class GroupReaderWriterTest
 {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
+    private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
-    {
-        super(logInfo);
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
-    }
-
-    public Object run()
+    @Test
+    public void testReaderExceptions()
         throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
+        try
         {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
-                addedMembers.add(member.getUserID().getName());
-            }
+            String s = null;
+            Group g = ca.nrc.cadc.ac.xml.GroupReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        for (Group gr : group.getGroupMembers())
+        catch (IllegalArgumentException e) {}
+        
+        try
         {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                addedMembers.add(gr.getID());
-            }
+            InputStream in = null;
+            Group g = ca.nrc.cadc.ac.xml.GroupReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        if (addedMembers.isEmpty())
+        catch (IOException e) {}
+        
+        try
         {
-            addedMembers = null;
+            Reader r = null;
+            Group g = ca.nrc.cadc.ac.xml.GroupReader.read(r);
+            fail("null element should throw ReaderException");
         }
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
-            deletedMembers.add(member.getUserID().getName());
-        }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
-            deletedMembers.add(gr.getID());
-        }
-        if (deletedMembers.isEmpty())
-        {
-            deletedMembers = null;
-        }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
-
-        this.response.sendRedirect(request);
-
-        return null;
+        catch (IllegalArgumentException e) {}
     }
-
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            ca.nrc.cadc.ac.xml.GroupWriter.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
+        }
+        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+    }
+     
+    @Test
+    public void testMinimalReadWrite()
+        throws Exception
+    {
+        Group expected = new Group("groupID", null);
+                
+        StringBuilder xml = new StringBuilder();
+        ca.nrc.cadc.ac.xml.GroupWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        Group actual = ca.nrc.cadc.ac.xml.GroupReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
+    @Test
+    public void testMaximalReadWrite()
+        throws Exception
+    {
+        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
+        expected.description = "description";
+        expected.lastModified = new Date();
+        expected.getProperties().add(new GroupProperty("key", "value", true));
+        
+        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
+        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
+        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
+        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
+        
+        expected.getGroupMembers().add(groupMember);
+        expected.getUserMembers().add(userMember);
+        expected.getGroupAdmins().add(groupAdmin);
+        expected.getUserAdmins().add(userAdmin);
+        
+        StringBuilder xml = new StringBuilder();
+        ca.nrc.cadc.ac.xml.GroupWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+        
+        Group actual = ca.nrc.cadc.ac.xml.GroupReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+        assertEquals(expected.description, actual.description);
+        assertEquals(expected.lastModified, actual.lastModified);
+        assertEquals(expected.getProperties(), actual.getProperties());
+        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
+        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+    }
+    
 }

@@ -66,8 +66,10 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -76,30 +78,23 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.Principal;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.List;
-
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.xml.XmlUtil;
-
-public class GroupReader
+public class UserReader
 {
-
     /**
-     * Construct a Group from an XML String source.
+     * Construct a User from an XML String source.
      * 
      * @param xml String of the XML.
-     * @return Group Group.
-     * @throws ca.nrc.cadc.ac.ReaderException
+     * @return User User.
+     * @throws ReaderException
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static Group read(String xml)
+    public static User<? extends Principal> read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
@@ -110,16 +105,16 @@ public class GroupReader
     }
 
     /**
-     * Construct a Group from a InputStream.
+     * Construct a User from a InputStream.
      * 
      * @param in InputStream.
-     * @return Group Group.
-     * @throws ca.nrc.cadc.ac.ReaderException
+     * @return User User.
+     * @throws ReaderException
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static Group read(InputStream in)
-        throws ReaderException, IOException
+    public static User<? extends Principal> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
         if (in == null)
         {
@@ -138,15 +133,14 @@ public class GroupReader
     }
 
     /**
-     * Construct a Group from a Reader.
+     * Construct a User from a Reader.
      * 
      * @param reader Reader.
-     * @return Group Group.
-     * @throws ca.nrc.cadc.ac.ReaderException
+     * @return User User.
+     * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
-    public static Group read(Reader reader)
+    public static User<? extends Principal> read(Reader reader)
         throws ReaderException, IOException
     {
         if (reader == null)
@@ -154,6 +148,7 @@ public class GroupReader
             throw new IllegalArgumentException("reader must not be null");
         }
 
+        // Create a JDOM Document from the XML
         Document document;
         try
         {
@@ -165,138 +160,59 @@ public class GroupReader
             throw new ReaderException(error, jde);
         }
 
+        // Root element and namespace of the Document
         Element root = document.getRootElement();
 
-        String groupElemName = root.getName();
-
-        if (!groupElemName.equalsIgnoreCase("group"))
-        {
-            String error = "Expected group element, found " + groupElemName;
-            throw new ReaderException(error);
-        }
-
-        return parseGroup(root);
+        return parseUser(root);
     }
 
-    protected static Group parseGroup(Element groupElement)
+    protected static User<? extends Principal> parseUser(Element userElement)
         throws ReaderException
     {
-        String uri = groupElement.getAttributeValue("uri");
-        if (uri == null)
+        // userID element of the User element
+        Element userIDElement = userElement.getChild("userID");
+        if (userIDElement == null)
         {
-            String error = "group missing required uri attribute";
+            String error = "userID element not found in user element";
             throw new ReaderException(error);
         }
 
-        // Group groupID
-        int index = uri.indexOf(AC.GROUP_URI);
-        if (index == -1)
+        // identity element of the userID element
+        Element userIDIdentityElement = userIDElement.getChild("identity");
+        if (userIDIdentityElement == null)
         {
-            String error = "group uri attribute malformed: " + uri;
+            String error = "identity element not found in userID element";
             throw new ReaderException(error);
         }
-        String groupID = uri.substring(AC.GROUP_URI.length());
 
-        // Group owner
-        User<? extends Principal> user = null;
-        Element ownerElement = groupElement.getChild("owner");
-        if (ownerElement != null)
+        Principal userID = ca.nrc.cadc.ac.xml.IdentityReader.read(userIDIdentityElement);
+
+        User<Principal> user = new User<Principal>(userID);
+
+        // identities
+        Element identitiesElement = userElement.getChild("identities");
+        if (identitiesElement != null)
         {
-            // Owner user
-            Element userElement = ownerElement.getChild("user");
-            if (userElement == null)
+            List<Element> identityElements = identitiesElement.getChildren("identity");
+            for (Element identityElement : identityElements)
             {
-                String error = "owner missing required user element";
-                throw new ReaderException(error);
-            }
-            user = UserReader.parseUser(userElement);
-        }
-
-        Group group = new Group(groupID, user);
-
-        // description
-        Element descriptionElement = groupElement.getChild("description");
-        if (descriptionElement != null)
-        {
-            group.description = descriptionElement.getText();
-        }
-
-        // lastModified
-        Element lastModifiedElement = groupElement.getChild("lastModified");
-        if (lastModifiedElement != null)
-        {
-            try
-            {
-                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-                group.lastModified = df.parse(lastModifiedElement.getText());
-            }
-            catch (ParseException e)
-            {
-                String error = "Unable to parse group lastModified because " + e.getMessage();
-
-                throw new ReaderException(error);
-            }
-
-        }
-        
-        // properties
-        Element propertiesElement = groupElement.getChild("properties");
-        if (propertiesElement != null)
-        {
-            List<Element> propertyElements = propertiesElement.getChildren("property");
-            for (Element propertyElement : propertyElements)
-            {
-                group.getProperties().add(GroupPropertyReader.read(propertyElement));
+                user.getIdentities().add(ca.nrc.cadc.ac.xml.IdentityReader.read(identityElement));
             }
 
         }
 
-        // groupMembers
-        Element groupMembersElement = groupElement.getChild("groupMembers");
-        if (groupMembersElement != null)
+        // details
+        Element detailsElement = userElement.getChild("details");
+        if (detailsElement != null)
         {
-            List<Element> groupElements = groupMembersElement.getChildren("group");
-            for (Element groupMember : groupElements)
+            List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
+            for (Element userDetailsElement : userDetailsElements)
             {
-                group.getGroupMembers().add(parseGroup(groupMember));
-            }
-
-        }
-
-        // userMembers
-        Element userMembersElement = groupElement.getChild("userMembers");
-        if (userMembersElement != null)
-        {
-            List<Element> userElements = userMembersElement.getChildren("user");
-            for (Element userMember : userElements)
-            {
-                group.getUserMembers().add(UserReader.parseUser(userMember));
-            }
-        }
-        
-        // groupAdmins
-        Element groupAdminsElement = groupElement.getChild("groupAdmins");
-        if (groupAdminsElement != null)
-        {
-            List<Element> groupElements = groupAdminsElement.getChildren("group");
-            for (Element groupMember : groupElements)
-            {
-                group.getGroupAdmins().add(parseGroup(groupMember));
-            }
-
-        }
-
-        // userAdmins
-        Element userAdminsElement = groupElement.getChild("userAdmins");
-        if (userAdminsElement != null)
-        {
-            List<Element> userElements = userAdminsElement.getChildren("user");
-            for (Element userMember : userElements)
-            {
-                group.getUserAdmins().add(UserReader.parseUser(userMember));
+                user.details.add(ca.nrc.cadc.ac.xml.UserDetailsReader.read(userDetailsElement));
             }
         }
 
-        return group;
+        return user;
     }
+
 }

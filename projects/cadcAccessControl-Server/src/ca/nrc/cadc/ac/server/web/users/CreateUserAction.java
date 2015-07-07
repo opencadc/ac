@@ -70,9 +70,11 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.InputStream;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserReader;
-import ca.nrc.cadc.ac.UserWriter;
+import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
+
 import java.security.Principal;
 
 public class CreateUserAction extends UsersAction
@@ -89,8 +91,8 @@ public class CreateUserAction extends UsersAction
         throws Exception
     {
         UserPersistence userPersistence = getUserPersistence();
-        User<? extends Principal> user = UserReader.read(this.inputStream);
-        User<? extends Principal> newUser = userPersistence.addUser(user);
+        UserRequest userRequest = UserRequestReader.read(this.inputStream);
+        User<? extends Principal> newUser = userPersistence.addUser(userRequest);
         this.response.setContentType("application/xml");
         UserWriter.write(newUser, this.response.getOutputStream());
         logUserInfo(newUser.getUserID().getName());

@@ -66,62 +66,58 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import java.security.Principal;
-import javax.management.remote.JMXPrincipal;
-import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
-import org.jdom2.Element;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+
 import static org.junit.Assert.*;
 
 /**
  *
  * @author jburke
  */
-public class IdentityReaderWriterTest
+public class UserRequestReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
+    private static Logger log = Logger.getLogger(UserRequestReaderWriterTest.class);
 
     @Test
     public void testReaderExceptions()
         throws Exception
     {
-        Element element = null;
         try
         {
-            Principal p = IdentityReader.read(element);
-            fail("null element should throw ReaderException");
+            String s = null;
+            UserRequest u = UserRequestReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        catch (ReaderException e) {}
-         
-        element = new Element("foo");
+        catch (IllegalArgumentException e) {}
+        
         try
         {
-            Principal p = IdentityReader.read(element);
-            fail("element not named 'identity' should throw ReaderException");
+            InputStream in = null;
+            UserRequest u = UserRequestReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        catch (ReaderException e) {}
-         
-        element = new Element("identity");
+        catch (IOException e) {}
+        
         try
         {
-            Principal p = IdentityReader.read(element);
-            fail("element without 'type' attribute should throw ReaderException");
+            Reader r = null;
+            UserRequest u = UserRequestReader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
-        catch (ReaderException e) {}
-         
-        element.setAttribute("type", "foo");
-        try
-        {
-            Principal p = IdentityReader.read(element);
-            fail("element with unknown 'type' attribute should throw ReaderException");
-        }
-        catch (ReaderException e) {}
+        catch (IllegalArgumentException e) {}
     }
      
     @Test
@@ -130,63 +126,32 @@ public class IdentityReaderWriterTest
     {
         try
         {
-            Element element = IdentityWriter.write(null);
-            fail("null Identity should throw WriterException");
+            UserRequestWriter.write(null, new StringBuilder());
+            fail("null UserRequest should throw WriterException");
         }
-        catch (WriterException e) {}
-         
-        Principal p = new JMXPrincipal("foo");
-        try
-        {
-            Element element = IdentityWriter.write(p);
-            fail("Unsupported Principal type should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
+        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
     }
      
     @Test
     public void testReadWrite()
         throws Exception
     {
-        // X500
-        Principal expected = new X500Principal("cn=foo,o=bar");
-        Element element = IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        Principal actual = IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-         
-        // UID
-        expected = new NumericPrincipal(123l);
-        element = IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
+        User<? extends Principal> expectedUser = new User<Principal>(new HttpPrincipal("foo"));
+        expectedUser.getIdentities().add(new NumericPrincipal(123l));
+        expectedUser.details.add(new PersonalDetails("firstname", "lastname"));
+
+        String expectedPassword = "123456";
+
+        UserRequest expected = new UserRequest(expectedUser, expectedPassword);
+
+        StringBuilder xml = new StringBuilder();
+        UserRequestWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
         
-        // OpenID
-        expected = new OpenIdPrincipal("bar");
-        element = IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = IdentityReader.read(element);
+        UserRequest actual = UserRequestReader.read(xml.toString());
         assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-        
-        // HTTP
-        expected = new HttpPrincipal("baz");
-        element = IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
+        assertEquals(expected.getUser(), actual.getUser());
+        assertEquals(expected.getPassword(), actual.getPassword());
     }
     
 }

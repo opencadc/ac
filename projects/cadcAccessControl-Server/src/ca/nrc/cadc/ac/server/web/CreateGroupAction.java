@@ -73,10 +73,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupReader;
-import ca.nrc.cadc.ac.GroupWriter;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.xml.GroupWriter;
 
 public class CreateGroupAction extends GroupsAction
 {
