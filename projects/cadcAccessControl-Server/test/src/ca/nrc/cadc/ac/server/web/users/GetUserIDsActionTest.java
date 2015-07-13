@@ -68,94 +68,97 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
+import static org.junit.Assert.fail;
 
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
+import java.io.PrintWriter;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.GetGroupNamesAction;
+import ca.nrc.cadc.ac.server.web.GroupLogInfo;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.server.SyncOutput;
 
-public class UsersServlet extends HttpServlet
+/**
+ *
+ * @author adriand
+ */
+public class GetUserIDsActionTest
 {
-    private static final Logger log = Logger.getLogger(UsersServlet.class);
+    private final static Logger log = Logger.getLogger(GetUserIDsActionTest.class);
 
-    /**
-     * Create a UserAction and run the action safely.
-     */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    @BeforeClass
+    public static void setUpClass()
     {
-        long start = System.currentTimeMillis();
-        UserLogInfo logInfo = new UserLogInfo(request);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
+    @Test
+    @Ignore
+    public void testRun() throws Exception
+    {
         try
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
-            action.doAction(subject, response);
-        }
-        catch (IllegalArgumentException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
+            Collection<HttpPrincipal> userIDs = new ArrayList<HttpPrincipal>();
+            userIDs.add(new HttpPrincipal("foo"));
+            userIDs.add(new HttpPrincipal("bar"));
+
+            final UserPersistence mockPersistence = EasyMock.createMock(UserPersistence.class);
+            EasyMock.expect(mockPersistence.getCadcIDs()).andReturn(userIDs).once();
+
+            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
+            mockWriter.write("foo", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write(44);
+            EasyMock.expectLastCall();
+            mockWriter.write("bar", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write("\n");
+            EasyMock.expectLastCall();
+
+            final SyncOutput mockSyncOutput =
+                    EasyMock.createMock(SyncOutput.class);
+
+            mockSyncOutput.setHeader("Content-Type", "text/csv");
+
+            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
+            mockResponse.setContentType("text/csv");
+            EasyMock.expectLastCall();
+            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
+
+            UserLogInfo mockLog = EasyMock.createMock(UserLogInfo.class);
+
+            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
+
+            GetUserIDsAction action = new GetUserIDsAction(mockLog)
+            {
+                @Override
+                <T extends Principal> UserPersistence<T> getUserPersistence()
+                {
+                    return mockPersistence;
+                };
+            };
+
+            action.run();
         }
         catch (Throwable t)
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
         }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
-    }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
     }
 
 }

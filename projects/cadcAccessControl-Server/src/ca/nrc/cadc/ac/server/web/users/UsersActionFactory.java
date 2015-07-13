@@ -82,6 +82,15 @@ import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.web.AddGroupMemberAction;
+import ca.nrc.cadc.ac.server.web.AddUserMemberAction;
+import ca.nrc.cadc.ac.server.web.DeleteGroupAction;
+import ca.nrc.cadc.ac.server.web.GetGroupAction;
+import ca.nrc.cadc.ac.server.web.ModifyGroupAction;
+import ca.nrc.cadc.ac.server.web.RemoveGroupMemberAction;
+import ca.nrc.cadc.ac.server.web.RemoveUserMemberAction;
+import ca.nrc.cadc.util.StringUtil;
+
 public class UsersActionFactory
 {
     private static final Logger log = Logger.getLogger(UsersActionFactory.class);
@@ -128,7 +137,7 @@ public class UsersActionFactory
             }
 
         }
-        else if (segments.length == 1)
+        else
         {
             User user = getUser(segments[0], request.getParameter("idType"),
                                 method, path);

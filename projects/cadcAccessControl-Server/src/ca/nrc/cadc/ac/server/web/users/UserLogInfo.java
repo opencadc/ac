@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-
 import ca.nrc.cadc.log.ServletLogInfo;
 import javax.servlet.http.HttpServletRequest;
 

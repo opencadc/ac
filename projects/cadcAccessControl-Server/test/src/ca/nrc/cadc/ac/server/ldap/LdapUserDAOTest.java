@@ -305,9 +305,60 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 catch (Exception e)
                 {
                     throw new Exception("Problems", e);
+                } 
+            }
+        });
+    }
+    
+    /**
+     * Test of testGetCadcUserIDs.
+     */
+    @Test
+    public void testGetCadcUserIDs() throws Exception
+    {
+        Subject subject = new Subject();
+       
+        
+        // anonymous access
+        int users1 = (Integer)Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {            
+                    
+                    int count = getUserDAO().getCadcIDs().size();
+                    assertTrue(count > 0);
+                    return count;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
                 }
             }
         });
+        
+        // authenticated access
+        subject.getPrincipals().add(testUser.getUserID());
+        int users2 = (Integer)Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+                {
+                    public Object run() throws Exception
+                    {
+                        try
+                        {            
+                            
+                            int count = getUserDAO().getCadcIDs().size();
+                            assertTrue(count > 0);
+                            return count;
+                        }
+                        catch (Exception e)
+                        {
+                            throw new Exception("Problems", e);
+                        }
+                    }
+                });
+        assertEquals("User listing should be independent of the access type",
+                users1, users2);
     }
     
     private static void check(final User<? extends Principal> user1, final User<? extends Principal> user2)
