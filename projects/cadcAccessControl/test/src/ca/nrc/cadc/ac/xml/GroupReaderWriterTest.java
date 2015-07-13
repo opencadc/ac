@@ -84,6 +84,7 @@ import javax.security.auth.x500.X500Principal;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -137,7 +138,7 @@ public class GroupReaderWriterTest
             ca.nrc.cadc.ac.xml.GroupWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
-        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+        catch (WriterException e) {}
     }
      
     @Test

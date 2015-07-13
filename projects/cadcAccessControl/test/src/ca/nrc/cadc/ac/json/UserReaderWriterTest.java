@@ -66,64 +66,61 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import java.security.Principal;
-import javax.management.remote.JMXPrincipal;
-import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
-import org.jdom2.Element;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  *
  * @author jburke
  */
-public class IdentityReaderWriterTest
+public class UserReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
+    private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
 
     @Test
     public void testReaderExceptions()
         throws Exception
     {
-        Element element = null;
         try
         {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("null element should throw ReaderException");
+            String s = null;
+            User<? extends Principal> u = UserReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        catch (ReaderException e) {}
-         
-        element = new Element("foo");
+        catch (IllegalArgumentException e) {}
+        
         try
         {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("element not named 'identity' should throw ReaderException");
+            InputStream in = null;
+            User<? extends Principal> u = UserReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        catch (ReaderException e) {}
-         
-        element = new Element("identity");
+        catch (IOException e) {}
+        
         try
         {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("element without 'type' attribute should throw ReaderException");
+            Reader r = null;
+            User<? extends Principal> u = UserReader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
-        catch (ReaderException e) {}
-         
-        element.setAttribute("type", "foo");
-        try
-        {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("element with unknown 'type' attribute should throw ReaderException");
-        }
-        catch (ReaderException e) {}
+        catch (IllegalArgumentException e) {}
     }
      
     @Test
@@ -132,62 +129,26 @@ public class IdentityReaderWriterTest
     {
         try
         {
-            Element element = ca.nrc.cadc.ac.xml.IdentityWriter.write(null);
-            fail("null Identity should throw WriterException");
+            UserWriter.write(null, new StringBuilder());
+            fail("null User should throw WriterException");
         }
         catch (WriterException e) {}
-         
-        Principal p = new JMXPrincipal("foo");
-        try
-        {
-            Element element = ca.nrc.cadc.ac.xml.IdentityWriter.write(p);
-            fail("Unsupported Principal type should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
     }
      
     @Test
     public void testReadWrite()
         throws Exception
     {
-        // X500
-        Principal expected = new X500Principal("cn=foo,o=bar");
-        Element element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        Principal actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-         
-        // UID
-        expected = new NumericPrincipal(123l);
-        element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
+        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.details.add(new PersonalDetails("firstname", "lastname"));
         
-        // OpenID
-        expected = new OpenIdPrincipal("bar");
-        element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
+        StringBuilder json = new StringBuilder();
+        UserWriter.write(expected, json);
+        assertFalse(json.toString().isEmpty());
         
-        // HTTP
-        expected = new HttpPrincipal("baz");
-        element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
+        User<? extends Principal> actual = UserReader.read(json.toString());
         assertNotNull(actual);
-         
         assertEquals(expected, actual);
     }
     

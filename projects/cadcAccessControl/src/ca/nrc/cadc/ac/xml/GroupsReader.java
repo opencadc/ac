@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;

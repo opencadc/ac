@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
@@ -129,7 +130,7 @@ public class UserRequestReaderWriterTest
             UserRequestWriter.write(null, new StringBuilder());
             fail("null UserRequest should throw WriterException");
         }
-        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+        catch (WriterException e) {}
     }
      
     @Test

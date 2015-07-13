@@ -66,129 +66,45 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import java.security.Principal;
-import javax.management.remote.JMXPrincipal;
-import javax.security.auth.x500.X500Principal;
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import java.io.IOException;
 
 /**
- *
- * @author jburke
+ * Class for all Exceptions that occur during reading.
  */
-public class IdentityReaderWriterTest
+public class ReaderException extends IOException
 {
-    private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
+    /**
+     * Constructs a new exception with the specified detail message.  The
+     * cause is not initialized, and may subsequently be initialized by
+     * a call to {@link #initCause}.
+     *
+     * @param message the detail message. The detail message is saved for
+     *                later retrieval by the {@link #getMessage()} method.
+     */
+    public ReaderException(String message)
+    {
+        super(message);
+    }
 
-    @Test
-    public void testReaderExceptions()
-        throws Exception
+    /**
+     * Constructs a new exception with the specified detail message and
+     * cause.  <p>Note that the detail message associated with
+     * <code>cause</code> is <i>not</i> automatically incorporated in
+     * this exception's detail message.
+     *
+     * @param message the detail message (which is saved for later retrieval
+     *                by the {@link #getMessage()} method).
+     * @param cause   the cause (which is saved for later retrieval by the
+     *                {@link #getCause()} method).  (A <tt>null</tt> value is
+     *                permitted, and indicates that the cause is nonexistent or
+     *                unknown.)
+     * @since 1.4
+     */
+    public ReaderException(String message, Throwable cause)
     {
-        Element element = null;
-        try
-        {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("null element should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element = new Element("foo");
-        try
-        {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("element not named 'identity' should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element = new Element("identity");
-        try
-        {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("element without 'type' attribute should throw ReaderException");
-        }
-        catch (ReaderException e) {}
-         
-        element.setAttribute("type", "foo");
-        try
-        {
-            Principal p = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-            fail("element with unknown 'type' attribute should throw ReaderException");
-        }
-        catch (ReaderException e) {}
+        super(message, cause);
     }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            Element element = ca.nrc.cadc.ac.xml.IdentityWriter.write(null);
-            fail("null Identity should throw WriterException");
-        }
-        catch (WriterException e) {}
-         
-        Principal p = new JMXPrincipal("foo");
-        try
-        {
-            Element element = ca.nrc.cadc.ac.xml.IdentityWriter.write(p);
-            fail("Unsupported Principal type should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testReadWrite()
-        throws Exception
-    {
-        // X500
-        Principal expected = new X500Principal("cn=foo,o=bar");
-        Element element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        Principal actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-         
-        // UID
-        expected = new NumericPrincipal(123l);
-        element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-        
-        // OpenID
-        expected = new OpenIdPrincipal("bar");
-        element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-        
-        // HTTP
-        expected = new HttpPrincipal("baz");
-        element = ca.nrc.cadc.ac.xml.IdentityWriter.write(expected);
-        assertNotNull(element);
-         
-        actual = ca.nrc.cadc.ac.xml.IdentityReader.read(element);
-        assertNotNull(actual);
-         
-        assertEquals(expected, actual);
-    }
-    
+
 }

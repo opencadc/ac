@@ -69,8 +69,13 @@
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -82,6 +87,12 @@ public class GroupPropertyReaderWriterTest
 {
     private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac.xml", Level.INFO);
+    }
+
     @Test
     public void testReaderExceptions()
         throws Exception
@@ -92,7 +103,7 @@ public class GroupPropertyReaderWriterTest
             GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
             fail("null element should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element = new Element("foo");
         try
@@ -100,7 +111,7 @@ public class GroupPropertyReaderWriterTest
             GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
             fail("element not named 'property' should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element = new Element("property");
         try
@@ -108,7 +119,7 @@ public class GroupPropertyReaderWriterTest
             GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
             fail("element without 'key' attribute should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element.setAttribute("key", "foo");
         try
@@ -116,7 +127,7 @@ public class GroupPropertyReaderWriterTest
             GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
             fail("element without 'type' attribute should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element.setAttribute("type", "Double");
         try
@@ -124,7 +135,7 @@ public class GroupPropertyReaderWriterTest
             GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
             fail("Unsupported 'type' should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
     }
      
     @Test
@@ -136,7 +147,7 @@ public class GroupPropertyReaderWriterTest
             Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(null);
             fail("null GroupProperty should throw WriterException");
         }
-        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+        catch (WriterException e) {}
          
         GroupProperty gp = new GroupProperty("key", new Double(1.0), true);
         try
@@ -153,20 +164,20 @@ public class GroupPropertyReaderWriterTest
     {
         // String type
         GroupProperty expected = new GroupProperty("key", "value", true);
-        Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(expected);
+        Element element = GroupPropertyWriter.write(expected);
         assertNotNull(element);
          
-        GroupProperty actual = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+        GroupProperty actual = GroupPropertyReader.read(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);
          
         // Integer tuype
         expected = new GroupProperty("key", new Integer(1), false);
-        element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(expected);
+        element = GroupPropertyWriter.write(expected);
         assertNotNull(element);
          
-        actual = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+        actual = GroupPropertyReader.read(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);

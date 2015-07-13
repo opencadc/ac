@@ -68,8 +68,13 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.xml.XmlUtil;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -79,9 +84,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
 
 public class UserReader
 {
@@ -185,7 +187,7 @@ public class UserReader
             throw new ReaderException(error);
         }
 
-        Principal userID = ca.nrc.cadc.ac.xml.IdentityReader.read(userIDIdentityElement);
+        Principal userID = IdentityReader.read(userIDIdentityElement);
 
         User<Principal> user = new User<Principal>(userID);
 
@@ -196,7 +198,7 @@ public class UserReader
             List<Element> identityElements = identitiesElement.getChildren("identity");
             for (Element identityElement : identityElements)
             {
-                user.getIdentities().add(ca.nrc.cadc.ac.xml.IdentityReader.read(identityElement));
+                user.getIdentities().add(IdentityReader.read(identityElement));
             }
 
         }
@@ -208,7 +210,7 @@ public class UserReader
             List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
             for (Element userDetailsElement : userDetailsElements)
             {
-                user.details.add(ca.nrc.cadc.ac.xml.UserDetailsReader.read(userDetailsElement));
+                user.details.add(UserDetailsReader.read(userDetailsElement));
             }
         }
 

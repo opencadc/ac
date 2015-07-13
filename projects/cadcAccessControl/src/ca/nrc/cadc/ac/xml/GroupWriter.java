@@ -68,6 +68,19 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.util.StringBuilderWriter;
+import org.jdom2.Attribute;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -76,16 +89,6 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
 import java.text.DateFormat;
-
-import ca.nrc.cadc.ac.*;
-import org.jdom2.Attribute;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
-
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.util.StringBuilderWriter;
 
 public class GroupWriter
 {

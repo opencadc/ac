@@ -75,6 +75,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
 import org.apache.log4j.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -128,7 +129,7 @@ public class GroupsReaderWriterTest
             ca.nrc.cadc.ac.xml.GroupsWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
-        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+        catch (WriterException e) {}
     }
      
     @Test

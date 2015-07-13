@@ -1,6 +1,7 @@
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;

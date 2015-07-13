@@ -66,45 +66,136 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac.json;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.util.StringBuilderWriter;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.security.Principal;
+import java.util.Set;
 
-/**
- * Class for all Exceptions that occur during reading.
- */
-public class ReaderException extends IOException
+public class UserWriter
 {
     /**
-     * Constructs a new exception with the specified detail message.  The
-     * cause is not initialized, and may subsequently be initialized by
-     * a call to {@link #initCause}.
-     *
-     * @param message the detail message. The detail message is saved for
-     *                later retrieval by the {@link #getMessage()} method.
+     * Write a User as a JSON string to a StringBuilder.
+     * 
+     * @param user User to write.
+     * @param builder StringBuilder to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws WriterException
      */
-    public ReaderException(String message)
+    public static void write(User<? extends Principal> user, StringBuilder builder)
+        throws IOException, WriterException
     {
-        super(message);
+        write(user, new StringBuilderWriter(builder));
     }
 
     /**
-     * Constructs a new exception with the specified detail message and
-     * cause.  <p>Note that the detail message associated with
-     * <code>cause</code> is <i>not</i> automatically incorporated in
-     * this exception's detail message.
+     * Write a User as a JSON string to an OutputStream.
      *
-     * @param message the detail message (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
-     * @param cause   the cause (which is saved for later retrieval by the
-     *                {@link #getCause()} method).  (A <tt>null</tt> value is
-     *                permitted, and indicates that the cause is nonexistent or
-     *                unknown.)
-     * @since 1.4
+     * @param user User to write.
+     * @param out OutputStream to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws WriterException
      */
-    public ReaderException(String message, Throwable cause)
+    public static void write(User<? extends Principal> user, OutputStream out)
+        throws IOException, WriterException
+    {                
+        OutputStreamWriter outWriter;
+        try
+        {
+            outWriter = new OutputStreamWriter(out, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported", e);
+        }
+        write(user, new BufferedWriter(outWriter));
+    }
+
+    /**
+     * Write a User as a JSON string to a Writer.
+     *
+     * @param user User to write.
+     * @param writer Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws WriterException
+     */
+    public static void write(User<? extends Principal> user, Writer writer)
+        throws IOException, WriterException
     {
-        super(message, cause);
+        if (user == null)
+        {
+            throw new WriterException("null User");
+        }
+
+        try
+        {
+            getUserJSONObject(user).write(writer);
+        }
+        catch (JSONException e)
+        {
+            final String error = "Unable to create JSON for User " +
+                                 " because " + e.getMessage();
+            throw new WriterException(error, e);
+        }
+    }
+
+    /**
+     * Build a User JSONObject from a User.
+     *
+     * @param user User.
+     * @return JSONObject.
+     * @throws WriterException
+     */
+    public static JSONObject getUserJSONObject(User<? extends Principal> user)
+        throws WriterException, JSONException
+    {
+        JSONObject userObject = new JSONObject();
+        JSONObject userIDIdentityObject = new JSONObject();
+        userIDIdentityObject.put("identity", IdentityWriter.write(user.getUserID()));
+        userObject.put("userID", userIDIdentityObject);
+
+        // identities
+        Set<Principal> identities = user.getIdentities();
+        if (!identities.isEmpty())
+        {
+            JSONArray identityArray = new JSONArray();
+            for (Principal identity : identities)
+            {
+                JSONObject identityObject = new JSONObject();
+                identityObject.put("identity" , IdentityWriter.write(identity));
+                identityArray.put(identityObject);
+            }
+            userObject.put("identities", identityArray);
+        }
+
+        // details
+        if (!user.details.isEmpty())
+        {
+            JSONArray detailsArray = new JSONArray();
+            Set<UserDetails> userDetails = user.details;
+            for (UserDetails userDetail : userDetails)
+            {
+                JSONObject detailsObject = new JSONObject();
+                detailsObject.put(UserDetails.NAME , UserDetailsWriter.write(userDetail));
+                detailsArray.put(detailsObject);
+            }
+            userObject.put("details", detailsArray);
+        }
+
+        return new JSONObject().put("user", userObject);
     }
 
 }

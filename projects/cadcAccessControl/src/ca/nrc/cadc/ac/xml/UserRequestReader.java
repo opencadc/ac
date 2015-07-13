@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.xml.XmlUtil;

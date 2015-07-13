@@ -70,11 +70,16 @@ package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.ac.WriterException;
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -91,34 +96,34 @@ public class UserDetailsReaderWriterTest
         Element element = null;
         try
         {
-            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            UserDetails ud = UserDetailsReader.read(element);
             fail("null element should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element = new Element("foo");
         try
         {
-            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            UserDetails ud = UserDetailsReader.read(element);
             fail("element not named 'userDetails' should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element = new Element(UserDetails.NAME);
         try
         {
-            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            UserDetails ud = UserDetailsReader.read(element);
             fail("element without 'type' attribute should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
          
         element.setAttribute("type", "foo");
         try
         {
-            UserDetails ud = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+            UserDetails ud = UserDetailsReader.read(element);
             fail("element with unknown 'type' attribute should throw ReaderException");
         }
-        catch (ca.nrc.cadc.ac.xml.ReaderException e) {}
+        catch (ReaderException e) {}
     }
      
     @Test
@@ -127,10 +132,10 @@ public class UserDetailsReaderWriterTest
     {
         try
         {
-            Element element = ca.nrc.cadc.ac.xml.UserDetailsWriter.write(null);
+            Element element = UserDetailsWriter.write(null);
             fail("null UserDetails should throw WriterException");
         }
-        catch (ca.nrc.cadc.ac.xml.WriterException e) {}
+        catch (WriterException e) {}
     }
      
     @Test
@@ -143,10 +148,10 @@ public class UserDetailsReaderWriterTest
         expected.country = "country";
         expected.email = "email";
         expected.institute = "institute";
-        Element element = ca.nrc.cadc.ac.xml.UserDetailsWriter.write(expected);
+        Element element = UserDetailsWriter.write(expected);
         assertNotNull(element);
         
-        PersonalDetails actual = (PersonalDetails) ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+        PersonalDetails actual = (PersonalDetails) UserDetailsReader.read(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.address, actual.address);
@@ -161,10 +166,10 @@ public class UserDetailsReaderWriterTest
         throws Exception
     {
         UserDetails expected = new PosixDetails(123l, 456, "/dev/null");
-        Element element = ca.nrc.cadc.ac.xml.UserDetailsWriter.write(expected);
+        Element element = UserDetailsWriter.write(expected);
         assertNotNull(element);
         
-        UserDetails actual = ca.nrc.cadc.ac.xml.UserDetailsReader.read(element);
+        UserDetails actual = UserDetailsReader.read(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

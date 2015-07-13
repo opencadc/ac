@@ -70,7 +70,13 @@ package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -79,10 +85,6 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
 import java.util.Set;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
 
 public class UserWriter
 {
@@ -157,7 +159,7 @@ public class UserWriter
 
         // userID element
         Element userIDElement = new Element("userID");
-        userIDElement.addContent(ca.nrc.cadc.ac.xml.IdentityWriter.write(user.getUserID()));
+        userIDElement.addContent(IdentityWriter.write(user.getUserID()));
         userElement.addContent(userIDElement);
 
         // identities
@@ -167,7 +169,7 @@ public class UserWriter
             Element identitiesElement = new Element("identities");
             for (Principal identity : identities)
             {
-                identitiesElement.addContent(ca.nrc.cadc.ac.xml.IdentityWriter.write(identity));
+                identitiesElement.addContent(IdentityWriter.write(identity));
             }
             userElement.addContent(identitiesElement);
         }
@@ -179,7 +181,7 @@ public class UserWriter
             Set<UserDetails> userDetails = user.details;
             for (UserDetails userDetail : userDetails)
             {
-                detailsElement.addContent(ca.nrc.cadc.ac.xml.UserDetailsWriter.write(userDetail));
+                detailsElement.addContent(UserDetailsWriter.write(userDetail));
             }
             userElement.addContent(detailsElement);
         }

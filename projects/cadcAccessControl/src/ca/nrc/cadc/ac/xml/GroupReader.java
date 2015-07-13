@@ -68,6 +68,16 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.xml.XmlUtil;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -79,14 +89,6 @@ import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.List;
-
-import ca.nrc.cadc.ac.*;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.xml.XmlUtil;
 
 public class GroupReader
 {

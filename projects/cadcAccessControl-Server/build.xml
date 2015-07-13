@@ -113,16 +113,15 @@
     </target>
 
     <!-- JAR files needed to run the test suite -->
-    <property name="gson"           value="${ext.lib}/gson.jar" />
+    <property name="json"           value="${ext.lib}/json.jar" />
     <property name="easyMock"       value="${ext.dev}/easymock.jar" />
     <property name="junit"          value="${ext.dev}/junit.jar" />
     <property name="xmlunit"        value="${ext.dev}/xmlunit.jar" />
-    <property name="xerces"         value="${ext.lib}/xerces.jar" />
     <property name="cglib"          value="${ext.dev}/cglib.jar" />
     <property name="objenesis"      value="${ext.dev}/objenesis.jar" />
     <property name="asm"            value="${ext.dev}/asm.jar" />
 
-    <property name="testingJars"    value="${jars}:${gson}:${easyMock}:${junit}:${xmlunit}:${xerces}:${cglib}:${asm}:${objenesis}" />
+    <property name="testingJars"    value="${jars}:${json}:${easyMock}:${junit}:${xmlunit}:${cglib}:${asm}:${objenesis}" />
 
     <target name="resources">
         <copy todir="${build}/class">
