@@ -96,7 +96,6 @@ import java.util.Map;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
-
 public class LdapUserDAO<T extends Principal> extends LdapDAO
 {
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
@@ -159,6 +158,55 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         System.arraycopy(memberAttribs, 0, tmp, princs.length,
                          memberAttribs.length);
         memberAttribs = tmp;
+    }
+    
+    /**
+     * 
+     * @return
+     * @throws TransientException 
+     */
+    public Collection<HttpPrincipal> getCadcIDs() throws TransientException
+    {
+        try
+        {
+            Filter filter = Filter.createPresenceFilter("uid");
+            String [] attributes = new String[] {"uid"};
+            
+            SearchRequest searchRequest = 
+                    new SearchRequest(config.getUsersDN(), 
+                                      SearchScope.SUB, filter, attributes);
+    
+            SearchResult searchResult = null;
+            try
+            {
+                searchResult = getConnection().search(searchRequest);
+            }
+            catch (LDAPSearchException e)
+            {
+                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+                {
+                    logger.debug("Could not find users root", e);
+                    throw new IllegalStateException("Could not find users root");
+                }
+            }
+            
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            Collection<HttpPrincipal> userIDs = new HashSet<HttpPrincipal>();
+            for (SearchResultEntry next : searchResult.getSearchEntries())
+            {
+                userIDs.add(new HttpPrincipal(next.getAttributeValue("uid")));
+            }
+            
+            return userIDs;
+        }
+        catch (LDAPException e1)
+        {
+            logger.debug("getCadcIDs Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
+            throw new IllegalStateException("Unexpected exception: " + 
+                    e1.getMatchedDN(), e1);
+        }
+        
     }
 
 
