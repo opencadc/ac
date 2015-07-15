@@ -66,7 +66,7 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
@@ -144,11 +144,11 @@ public class GroupReaderWriterTest
     {
         Group expected = new Group("groupID", null);
                 
-        StringBuilder xml = new StringBuilder();
-        GroupWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
+        StringBuilder json = new StringBuilder();
+        GroupWriter.write(expected, json);
+        assertFalse(json.toString().isEmpty());
         
-        Group actual = GroupReader.read(xml.toString());
+        Group actual = GroupReader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
@@ -172,11 +172,11 @@ public class GroupReaderWriterTest
         expected.getGroupAdmins().add(groupAdmin);
         expected.getUserAdmins().add(userAdmin);
         
-        StringBuilder xml = new StringBuilder();
-        GroupWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
-        
-        Group actual = GroupReader.read(xml.toString());
+        StringBuilder json = new StringBuilder();
+        GroupWriter.write(expected, json);
+        assertFalse(json.toString().isEmpty());
+
+        Group actual = GroupReader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.description, actual.description);

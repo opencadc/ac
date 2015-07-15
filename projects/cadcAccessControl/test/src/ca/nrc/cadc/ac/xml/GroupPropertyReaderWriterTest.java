@@ -100,7 +100,7 @@ public class GroupPropertyReaderWriterTest
         Element element = null;
         try
         {
-            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            GroupProperty gp = GroupPropertyReader.read(element);
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -108,7 +108,7 @@ public class GroupPropertyReaderWriterTest
         element = new Element("foo");
         try
         {
-            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            GroupProperty gp = GroupPropertyReader.read(element);
             fail("element not named 'property' should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -116,7 +116,7 @@ public class GroupPropertyReaderWriterTest
         element = new Element("property");
         try
         {
-            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            GroupProperty gp = GroupPropertyReader.read(element);
             fail("element without 'key' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -124,7 +124,7 @@ public class GroupPropertyReaderWriterTest
         element.setAttribute("key", "foo");
         try
         {
-            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            GroupProperty gp = GroupPropertyReader.read(element);
             fail("element without 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -132,7 +132,7 @@ public class GroupPropertyReaderWriterTest
         element.setAttribute("type", "Double");
         try
         {
-            GroupProperty gp = ca.nrc.cadc.ac.xml.GroupPropertyReader.read(element);
+            GroupProperty gp = GroupPropertyReader.read(element);
             fail("Unsupported 'type' should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -144,7 +144,7 @@ public class GroupPropertyReaderWriterTest
     {
         try
         {
-            Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(null);
+            Element element = GroupPropertyWriter.write(null);
             fail("null GroupProperty should throw WriterException");
         }
         catch (WriterException e) {}
@@ -152,7 +152,7 @@ public class GroupPropertyReaderWriterTest
         GroupProperty gp = new GroupProperty("key", new Double(1.0), true);
         try
         {
-            Element element = ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(gp);
+            Element element = GroupPropertyWriter.write(gp);
             fail("Unsupported GroupProperty type should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}

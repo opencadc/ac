@@ -68,9 +68,12 @@
  */
 package ca.nrc.cadc.ac.json;
 
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.util.StringBuilderWriter;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,35 +86,34 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
-import java.util.Set;
+import java.text.DateFormat;
 
-public class UserWriter
+public class GroupWriter
 {
     /**
-     * Write a User as a JSON string to a StringBuilder.
-     * 
-     * @param user User to write.
-     * @param builder StringBuilder to write to.
-     * @throws IOException if the writer fails to write.
+     * Write a Group to a StringBuilder.
+     * @param group
+     * @param builder
+     * @throws IOException
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, StringBuilder builder)
+    public static void write(Group group, StringBuilder builder)
         throws IOException, WriterException
     {
-        write(user, new StringBuilderWriter(builder));
+        write(group, new StringBuilderWriter(builder));
     }
 
     /**
-     * Write a User as a JSON string to an OutputStream.
+     * Write a Group to an OutputStream.
      *
-     * @param user User to write.
+     * @param group Group to write.
      * @param out OutputStream to write to.
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, OutputStream out)
+    public static void write(Group group, OutputStream out)
         throws IOException, WriterException
-    {                
+    {
         OutputStreamWriter outWriter;
         try
         {
@@ -121,81 +123,135 @@ public class UserWriter
         {
             throw new RuntimeException("UTF-8 encoding not supported", e);
         }
-        write(user, new BufferedWriter(outWriter));
+        write(group, new BufferedWriter(outWriter));
     }
 
     /**
-     * Write a User as a JSON string to a Writer.
+     * Write a Group to a Writer.
      *
-     * @param user User to write.
-     * @param writer Writer to write to.
+     * @param group Group to write.
+     * @param writer  Writer to write to.
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, Writer writer)
+    public static void write(Group group, Writer writer)
         throws IOException, WriterException
     {
-        if (user == null)
+        if (group == null)
         {
-            throw new WriterException("null User");
+            throw new WriterException("null group");
         }
 
         try
         {
-            getUserObject(user).write(writer);
+            getGroupObject(group).write(writer);
         }
         catch (JSONException e)
         {
-            final String error = "Unable to create JSON for User " +
+            final String error = "Unable to create JSON for Group " +
                                  " because " + e.getMessage();
             throw new WriterException(error, e);
         }
     }
 
     /**
-     * Build a User JSONObject from a User.
      *
-     * @param user User.
-     * @return JSONObject.
+     * @param group
+     * @return
      * @throws WriterException
      */
-    public static JSONObject getUserObject(User<? extends Principal> user)
+    public static JSONObject getGroupObject(Group group)
         throws WriterException, JSONException
     {
-        JSONObject userObject = new JSONObject();
-        JSONObject userIDIdentityObject = new JSONObject();
-        userIDIdentityObject.put("identity", IdentityWriter.write(user.getUserID()));
-        userObject.put("userID", userIDIdentityObject);
+        return getGroupObject(group, true);
+    }
 
-        // identities
-        Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty())
+    public static JSONObject getGroupObject(Group group, boolean deepCopy)
+        throws WriterException, JSONException
+    {
+        JSONObject groupObject = new JSONObject();
+        groupObject.put("uri", AC.GROUP_URI + group.getID());
+
+        // Group owner
+        if (group.getOwner() != null)
         {
-            JSONArray identityArray = new JSONArray();
-            for (Principal identity : identities)
-            {
-                JSONObject identityObject = new JSONObject();
-                identityObject.put("identity" , IdentityWriter.write(identity));
-                identityArray.put(identityObject);
-            }
-            userObject.put("identities", identityArray);
+            groupObject.put("owner", UserWriter.getUserObject(group.getOwner()));
         }
 
-        // details
-        if (!user.details.isEmpty())
+        if (deepCopy)
         {
-            JSONArray detailsArray = new JSONArray();
-            Set<UserDetails> userDetails = user.details;
-            for (UserDetails userDetail : userDetails)
+            // Group description
+            if (group.description != null)
             {
-                JSONObject detailsObject = new JSONObject();
-                detailsObject.put(UserDetails.NAME , UserDetailsWriter.write(userDetail));
-                detailsArray.put(detailsObject);
+                groupObject.put("description", group.description);
             }
-            userObject.put("details", detailsArray);
+
+            // lastModified
+            if (group.lastModified != null)
+            {
+                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+                groupObject.put("lastModified", df.format(group.lastModified));
+            }
+
+            // Group properties
+            if (!group.getProperties().isEmpty())
+            {
+                JSONArray propertiesArray = new JSONArray();
+                for (GroupProperty property : group.getProperties())
+                {
+                    JSONObject propertyObject = new JSONObject();
+                    propertyObject.put("property", GroupPropertyWriter.write(property));
+                    propertiesArray.put(propertyObject);
+                }
+                groupObject.put("properties", propertiesArray);
+            }
+
+            // Group groupMembers.
+            if ((group.getGroupMembers() != null) && (!group.getGroupMembers().isEmpty()))
+            {
+                JSONArray groupMembersArray = new JSONArray();
+                for (Group groupMember : group.getGroupMembers())
+                {
+                    groupMembersArray.put(getGroupObject(groupMember, false));
+                }
+                groupObject.put("groupMembers", groupMembersArray);
+            }
+
+            // Group userMembers
+            if ((group.getUserMembers() != null) && (!group.getUserMembers().isEmpty()))
+            {
+                JSONArray userMembersArray = new JSONArray();
+                for (User<? extends Principal> userMember : group.getUserMembers())
+                {
+                    userMembersArray.put(UserWriter.getUserObject(userMember));
+                }
+                groupObject.put("userMembers", userMembersArray);
+            }
+
+            // Group groupAdmins.
+            if ((group.getGroupAdmins() != null) && (!group.getGroupAdmins().isEmpty()))
+            {
+                JSONArray groupAdminsArray = new JSONArray();
+                for (Group groupAdmin : group.getGroupAdmins())
+                {
+                    groupAdminsArray.put(getGroupObject(groupAdmin, false));
+                }
+                groupObject.put("groupAdmins", groupAdminsArray);
+            }
+
+            // Group userAdmins
+            if ((group.getUserAdmins() != null) && (!group.getUserAdmins().isEmpty()))
+            {
+                JSONArray userAdminsArray = new JSONArray();
+                for (User<? extends Principal> userAdmin : group.getUserAdmins())
+                {
+                    userAdminsArray.put(UserWriter.getUserObject(userAdmin));
+                }
+                groupObject.put("userAdmins", userAdminsArray);
+            }
         }
 
-        return new JSONObject().put("user", userObject);
+        return new JSONObject().put("group", groupObject);
     }
 
 }

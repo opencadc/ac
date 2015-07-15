@@ -129,6 +129,7 @@
             <test name="ca.nrc.cadc.ac.json.UserDetailsReaderWriterTest" />
             <test name="ca.nrc.cadc.ac.json.IdentityReaderWriterTest" />
             <test name="ca.nrc.cadc.ac.json.UserReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.json.GroupReaderWriterTest" />
             <formatter type="plain" usefile="false" />
         </junit>
     </target>

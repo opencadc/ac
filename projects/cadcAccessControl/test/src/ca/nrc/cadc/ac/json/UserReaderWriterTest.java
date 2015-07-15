@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -142,7 +143,8 @@ public class UserReaderWriterTest
         User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
         expected.getIdentities().add(new NumericPrincipal(123l));
         expected.details.add(new PersonalDetails("firstname", "lastname"));
-        
+        expected.details.add(new PosixDetails(123l, 456l, "foo"));
+
         StringBuilder json = new StringBuilder();
         UserWriter.write(expected, json);
         assertFalse(json.toString().isEmpty());

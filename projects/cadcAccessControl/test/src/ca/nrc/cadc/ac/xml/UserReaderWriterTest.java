@@ -73,13 +73,18 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
-import org.apache.log4j.Logger;
-import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -96,7 +101,7 @@ public class UserReaderWriterTest
         try
         {
             String s = null;
-            User<? extends Principal> u = ca.nrc.cadc.ac.xml.UserReader.read(s);
+            User<? extends Principal> u = UserReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -104,7 +109,7 @@ public class UserReaderWriterTest
         try
         {
             InputStream in = null;
-            User<? extends Principal> u = ca.nrc.cadc.ac.xml.UserReader.read(in);
+            User<? extends Principal> u = UserReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -112,7 +117,7 @@ public class UserReaderWriterTest
         try
         {
             Reader r = null;
-            User<? extends Principal> u = ca.nrc.cadc.ac.xml.UserReader.read(r);
+            User<? extends Principal> u = UserReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -139,10 +144,10 @@ public class UserReaderWriterTest
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         
         StringBuilder xml = new StringBuilder();
-        ca.nrc.cadc.ac.xml.UserWriter.write(expected, xml);
+        UserWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
         
-        User<? extends Principal> actual = ca.nrc.cadc.ac.xml.UserReader.read(xml.toString());
+        User<? extends Principal> actual = UserReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

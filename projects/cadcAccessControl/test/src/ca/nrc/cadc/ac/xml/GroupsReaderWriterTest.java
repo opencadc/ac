@@ -68,20 +68,21 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import org.junit.Test;
 
 /**
  *
@@ -98,7 +99,7 @@ public class GroupsReaderWriterTest
         try
         {
             String s = null;
-            List<Group> g = ca.nrc.cadc.ac.xml.GroupsReader.read(s);
+            List<Group> g = GroupsReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -106,7 +107,7 @@ public class GroupsReaderWriterTest
         try
         {
             InputStream in = null;
-            List<Group> g = ca.nrc.cadc.ac.xml.GroupsReader.read(in);
+            List<Group> g = GroupsReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -114,7 +115,7 @@ public class GroupsReaderWriterTest
         try
         {
             Reader r = null;
-            List<Group> g = ca.nrc.cadc.ac.xml.GroupsReader.read(r);
+            List<Group> g = GroupsReader.read(r);
             fail("null element should throw ReaderException");
         }
         catch (IllegalArgumentException e) {}
@@ -126,7 +127,7 @@ public class GroupsReaderWriterTest
     {
         try
         {
-            ca.nrc.cadc.ac.xml.GroupsWriter.write(null, new StringBuilder());
+            GroupsWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
         catch (WriterException e) {}
@@ -141,10 +142,10 @@ public class GroupsReaderWriterTest
         expected.add(new Group("group2", null));
         
         StringBuilder xml = new StringBuilder();
-        ca.nrc.cadc.ac.xml.GroupsWriter.write(expected, xml);
+        GroupsWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
         
-        List<Group> actual = ca.nrc.cadc.ac.xml.GroupsReader.read(xml.toString());
+        List<Group> actual = GroupsReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected.size(), actual.size());
         assertEquals(expected.get(0), actual.get(0));
