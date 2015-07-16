@@ -268,7 +268,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             AddRequest addRequest = new AddRequest(userDN, attributes);
             LDAPResult result = getConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
-            
+
             // AD: Search results sometimes come incomplete if
             // connection is not reset - not sure why.
             getConnection().reconnect();
@@ -307,6 +307,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         return getUser(userID, config.getUsersDN());
     }
 
+
+
     /**
      * Get the user specified by userID.
      *
@@ -338,9 +340,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     new SearchRequest(usersDN, SearchScope.SUB,
                                      searchField, userAttribs);
 
-            searchRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl(
-                            "dn:" + getSubjectDN().toNormalizedString()));
+            if (isSecure(usersDN))
+            {
+                searchRequest.addControl(
+                        new ProxiedAuthorizationV2RequestControl(
+                                "dn:" + getSubjectDN().toNormalizedString()));
+            }
 
             searchResult = getConnection().searchForEntry(searchRequest);
         }
@@ -381,7 +386,18 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         
         return user;
     }
-    
+
+    /**
+     * Obtain whether the given DN tree requires authentication.
+     *
+     * @param usersDN           The usersDN to check.
+     * @return              True if requires authentication, False otherwise.
+     */
+    private boolean isSecure(final String usersDN)
+    {
+        return !usersDN.equals(config.getUserRequestsDN());
+    }
+
     /**
      * Get all group names.
      * 

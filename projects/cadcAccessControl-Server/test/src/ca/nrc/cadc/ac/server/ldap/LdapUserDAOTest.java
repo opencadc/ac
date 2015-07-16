@@ -134,29 +134,14 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         expected.getIdentities().add(new HttpPrincipal(getUserID()));
         expected.details.add(new PersonalDetails("foo", "bar"));
 
-        final UserRequest userRequest = new UserRequest(expected, "123456");
+        final UserRequest<HttpPrincipal> userRequest =
+                new UserRequest<HttpPrincipal>(expected, "123456");
 
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
 
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    User<? extends Principal> actual = getUserDAO().addUser(userRequest);
-                    check(expected, actual);
-                    
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
+        User<HttpPrincipal> actual = getUserDAO().addUser(userRequest);
+        check(expected, actual);
     }
     
     /**

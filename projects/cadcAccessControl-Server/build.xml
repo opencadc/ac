@@ -113,16 +113,19 @@
   </target>
 
   <!-- JAR files needed to run the test suite -->
-  <property name="json" value="${ext.lib}/json.jar"/>
-  <property name="easyMock" value="${ext.dev}/easymock.jar"/>
-  <property name="junit" value="${ext.dev}/junit.jar"/>
-  <property name="xmlunit" value="${ext.dev}/xmlunit.jar"/>
-  <property name="cglib" value="${ext.dev}/cglib.jar"/>
-  <property name="objenesis" value="${ext.dev}/objenesis.jar"/>
-  <property name="asm" value="${ext.dev}/asm.jar"/>
-
+  <property name="dev.junit" value="${ext.dev}/junit.jar"/>
+  <property name="dev.httpunit" value="${ext.dev}/httpunit.jar"/>
+  <property name="dev.easyMock" value="${ext.dev}/easymock.jar"/>
+  <property name="dev.objenesis" value="${ext.dev}/objenesis.jar"/>
+  <property name="dev.selenium.server"
+            value="${ext.dev}/selenium-server-standalone.jar" />
+  <property name="lib.js" value="${ext.lib}/js.jar"/>
+  <property name="lib.nekoHTML" value="${ext.lib}/nekohtml.jar"/>
+  <property name="lib.xerces" value="${ext.lib}/xerces.jar"/>
+  <property name="lib.commons-logging"
+            value="${ext.lib}/commons-logging.jar"/>
   <property name="testingJars"
-            value="${jars}:${json}:${easyMock}:${junit}:${xmlunit}:${cglib}:${asm}:${objenesis}"/>
+            value="${lib.commons-logging}:${dev.junit}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
 
   <target name="setup-test">
     <echo>******************</echo>

@@ -75,7 +75,8 @@ import ca.nrc.cadc.util.Log4jInit;
 import java.security.Principal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
+
+import static org.easymock.EasyMock.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -103,12 +104,12 @@ public class AddGroupMemberActionTest
             Group member = new Group("member", null);
             group.getGroupMembers().add(member);
             
-            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
-            EasyMock.replay(groupPersistence);
+            final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
+            expect(groupPersistence.getGroup("group")).andReturn(group);
+            expect(groupPersistence.getGroup("member")).andReturn(member);
+            replay(groupPersistence);
             
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             
             AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
             {
@@ -142,15 +143,17 @@ public class AddGroupMemberActionTest
             Group member = new Group("member", null);
             Group modified = new Group("group", null);
             modified.getGroupMembers().add(member);
+
+            final GroupPersistence groupPersistence =
+                    createMock(GroupPersistence.class);
+
+            expect(groupPersistence.getGroup("group")).andReturn(group);
+            expect(groupPersistence.getGroup("member")).andReturn(member);
+            expect(groupPersistence.modifyGroup(group)).andReturn(modified);
+
+            replay(groupPersistence);
             
-            
-            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
-            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
-            EasyMock.replay(groupPersistence);
-            
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             
             AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
             {
