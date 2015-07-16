@@ -266,18 +266,15 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             }
         
             AddRequest addRequest = new AddRequest(userDN, attributes);
-            addRequest.addControl(
-                    new ProxiedAuthorizationV2RequestControl(
-                            "dn:" + getSubjectDN().toNormalizedString()));
-
             LDAPResult result = getConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
+            
             // AD: Search results sometimes come incomplete if
             // connection is not reset - not sure why.
             getConnection().reconnect();
             try
             {
-                return getUser(user.getUserID(), config.getUserRequestsDN());
+                 return getUser(user.getUserID(), config.getUserRequestsDN());
             }
             catch (UserNotFoundException e)
             {
