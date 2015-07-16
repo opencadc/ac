@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -75,6 +75,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -82,6 +83,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 public class UsersServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(UsersServlet.class);
+
 
     /**
      * Create a UserAction and run the action safely.
@@ -91,12 +93,14 @@ public class UsersServlet extends HttpServlet
     {
         long start = System.currentTimeMillis();
         UserLogInfo logInfo = new UserLogInfo(request);
+
         try
         {
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
             UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
+            action.setAcceptedContentType(getAcceptedContentType(request));
             action.doAction(subject, response);
         }
         catch (IllegalArgumentException e)
@@ -158,4 +162,23 @@ public class UsersServlet extends HttpServlet
         doAction(request, response);
     }
 
+    /**
+     * Obtain the requested (Accept) content type.
+     *
+     * @param request               The HTTP Request.
+     * @return                      String content type.
+     */
+    String getAcceptedContentType(final HttpServletRequest request)
+    {
+        final String requestedContentType = request.getHeader("Accept");
+
+        if (!StringUtil.hasText(requestedContentType))
+        {
+            return UsersAction.DEFAULT_CONTENT_TYPE;
+        }
+        else
+        {
+            return requestedContentType;
+        }
+    }
 }

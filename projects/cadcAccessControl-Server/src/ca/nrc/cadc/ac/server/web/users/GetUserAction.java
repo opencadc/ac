@@ -88,8 +88,8 @@ public class GetUserAction extends UsersAction
     {
         UserPersistence userPersistence = getUserPersistence();
         User<? extends Principal> user = userPersistence.getUser(userID);
-        this.response.setContentType("application/xml");
-        UserWriter.write(user, this.response.getOutputStream());
+        this.response.setContentType(acceptedContentType);
+        writeUser(user, this.response.getWriter());
         return null;
     }
 

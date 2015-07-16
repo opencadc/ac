@@ -110,6 +110,7 @@ public class GetUserIDsActionTest
     @Ignore
     public void testRun() throws Exception
     {
+        /*
         try
         {
             Collection<HttpPrincipal> userIDs = new ArrayList<HttpPrincipal>();
@@ -159,6 +160,7 @@ public class GetUserIDsActionTest
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }
+        */
     }
 
 }

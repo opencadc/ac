@@ -69,6 +69,8 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -77,6 +79,7 @@ import java.security.PrivilegedExceptionAction;
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.ac.User;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -88,8 +91,12 @@ public abstract class UsersAction
     implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(UsersAction.class);
+    static final String DEFAULT_CONTENT_TYPE = "text/xml";
+    static final String JSON_CONTENT_TYPE = "application/json";
+
     protected UserLogInfo logInfo;
     protected HttpServletResponse response;
+    protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
     UsersAction(UserLogInfo logInfo)
     {
@@ -204,4 +211,22 @@ public abstract class UsersAction
         this.logInfo.userName = userName;
     }
 
+    public void setAcceptedContentType(final String acceptedContentType)
+    {
+        this.acceptedContentType = acceptedContentType;
+    }
+
+    protected final <T extends Principal> void writeUser(final User<T> user,
+                                                         final Writer writer)
+            throws IOException
+    {
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            ca.nrc.cadc.ac.xml.UserWriter.write(user, writer);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            ca.nrc.cadc.ac.json.UserWriter.write(user, writer);
+        }
+    }
 }

@@ -93,8 +93,8 @@ public class CreateUserAction extends UsersAction
         UserPersistence userPersistence = getUserPersistence();
         UserRequest userRequest = UserRequestReader.read(this.inputStream);
         User<? extends Principal> newUser = userPersistence.addUser(userRequest);
-        this.response.setContentType("application/xml");
-        UserWriter.write(newUser, this.response.getOutputStream());
+        this.response.setContentType(acceptedContentType);
+        writeUser(newUser, this.response.getWriter());
         logUserInfo(newUser.getUserID().getName());
         return null;
     }
