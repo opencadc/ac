@@ -96,8 +96,8 @@ public class UserReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static User<? extends Principal> read(String xml)
-        throws ReaderException, IOException, URISyntaxException
+    public static User<Principal> read(String xml)
+        throws IOException, URISyntaxException
     {
         if (xml == null)
         {
@@ -111,12 +111,10 @@ public class UserReader
      * 
      * @param in InputStream.
      * @return User User.
-     * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
-    public static User<? extends Principal> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+    public static User<Principal> read(InputStream in)
+        throws IOException
     {
         if (in == null)
         {
@@ -142,8 +140,8 @@ public class UserReader
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public static User<? extends Principal> read(Reader reader)
-        throws ReaderException, IOException
+    public static User<Principal> read(Reader reader)
+        throws IOException
     {
         if (reader == null)
         {
@@ -168,7 +166,7 @@ public class UserReader
         return parseUser(root);
     }
 
-    protected static User<? extends Principal> parseUser(Element userElement)
+    protected static User<Principal> parseUser(Element userElement)
         throws ReaderException
     {
         // userID element of the User element

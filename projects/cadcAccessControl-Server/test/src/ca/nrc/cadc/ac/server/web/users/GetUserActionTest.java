@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,105 +62,103 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
+package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Properties;
-import java.util.Set;
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import org.junit.Test;
 
-public class PluginFactory
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+
+import static org.easymock.EasyMock.*;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+
+public class GetUserActionTest
 {
-    private static final Logger log = Logger.getLogger(PluginFactory.class);
-
-    private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
-    private Properties config;
-
-    public PluginFactory()
+    @Test
+    public void writeUserXML() throws Exception
     {
-        init();
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+                createMock(UserPersistence.class);
+        final HttpPrincipal userID = new HttpPrincipal("CADCtest");
+
+        final GetUserAction testSubject = new GetUserAction(null, userID)
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+
+        final User<HttpPrincipal> user = new User<HttpPrincipal>(userID);
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getUser(userID)).andReturn(user).once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+        mockResponse.setContentType("text/xml");
+        expectLastCall().once();
+
+        replay(mockResponse, mockUserPersistence);
+
+        testSubject.doAction(null, mockResponse);
+
+        assertEquals("Wrong XML output.",
+                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
+                     "<user>\r\n" +
+                     "  <userID>\r\n" +
+                     "    <identity type=\"HTTP\">CADCtest</identity>\r\n" +
+                     "  </userID>\r\n" +
+                     "</user>\r\n", writer.toString());
+        verify(mockResponse, mockUserPersistence);
     }
 
-    @Override
-    public String toString()
+    @Test
+    public void writeUserJSON() throws Exception
     {
-        return getClass().getName() + "[" + config.entrySet().size() + "]";
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+                createMock(UserPersistence.class);
+        final HttpPrincipal userID = new HttpPrincipal("CADCtest");
+
+        final GetUserAction testSubject = new GetUserAction(null, userID)
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+
+        testSubject.setAcceptedContentType(UsersAction.JSON_CONTENT_TYPE);
+
+        final User<HttpPrincipal> user = new User<HttpPrincipal>(userID);
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getUser(userID)).andReturn(user).once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+        mockResponse.setContentType("application/json");
+        expectLastCall().once();
+
+        replay(mockResponse, mockUserPersistence);
+        testSubject.doAction(null, mockResponse);
+
+        assertEquals("Wrong JSON output.",
+                     "{\"user\":{\"userID\":{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}}}}",
+                     writer.toString());
+        verify(mockResponse, mockUserPersistence);
     }
-
-    private void init()
-    {
-        config = new Properties();
-        URL url = null;
-        try
-        {
-            url = PluginFactory.class.getClassLoader().getResource(CONFIG);
-            if (url != null)
-            {
-                config.load(url.openStream());
-            }
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends Principal> GroupPersistence<T> getGroupPersistence()
-    {
-        GroupPersistence<T> ret = null;
-        String name = GroupPersistence.class.getName();
-        String cname = config.getProperty(name);
-        if (cname == null)
-        {
-            ret = new LdapGroupPersistence<T>();
-        }
-        else
-        {
-            try
-            {
-                Class<?> c = Class.forName(cname);
-                ret = (GroupPersistence<T>) c.newInstance();
-            }
-            catch (Exception ex)
-            {
-                throw new RuntimeException("config error: failed to create GroupPersistence " + cname, ex);
-            }
-        }
-        return ret;
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends Principal> UserPersistence<T> getUserPersistence()
-    {
-        UserPersistence ret = null;
-        String name = UserPersistence.class.getName();
-        String cname = config.getProperty(name);
-
-        if (cname == null)
-        {
-            ret = new LdapUserPersistence<T>();
-        }
-        else
-        {
-            try
-            {
-                Class<?> c = Class.forName(cname);
-                ret = (UserPersistence) c.newInstance();
-            }
-            catch (Exception ex)
-            {
-                throw new RuntimeException("config error: failed to create UserPersistence " + cname, ex);
-            }
-        }
-        return ret;
-    }
-
 }

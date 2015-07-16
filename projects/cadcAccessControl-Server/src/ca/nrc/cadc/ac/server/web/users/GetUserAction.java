@@ -69,9 +69,9 @@
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.xml.UserWriter;
 
 import java.security.Principal;
+
 
 public class GetUserAction extends UsersAction
 {
@@ -83,13 +83,11 @@ public class GetUserAction extends UsersAction
         this.userID = userID;
     }
 
-    public Object run()
-        throws Exception
+    public Object run() throws Exception
     {
-        UserPersistence userPersistence = getUserPersistence();
-        User<? extends Principal> user = userPersistence.getUser(userID);
-        this.response.setContentType(acceptedContentType);
-        writeUser(user, this.response.getWriter());
+        UserPersistence<Principal> userPersistence = getUserPersistence();
+        User<Principal> user = userPersistence.getUser(userID);
+        writeUser(user);
         return null;
     }
 

@@ -70,18 +70,22 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
 
 import java.io.*;
 import java.security.AccessControlException;
+import java.security.Principal;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
+
+import static org.easymock.EasyMock.*;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -97,59 +101,6 @@ public class UsersActionTest
     public static void setUpClass()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-    }
-
-    @Test
-    public void writeUserXML() throws Exception
-    {
-        final UsersAction usersAction = new UsersAction(null)
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                // Do nothing.
-                return null;
-            }
-        };
-
-        final User<HttpPrincipal> user =
-                new User<HttpPrincipal>(new HttpPrincipal("CADCtest"));
-        final Writer writer = new StringWriter();
-
-        usersAction.writeUser(user, writer);
-
-        assertEquals("Wrong XML output.",
-                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
-                     "<user>\r\n" +
-                     "  <userID>\r\n" +
-                     "    <identity type=\"HTTP\">CADCtest</identity>\r\n" +
-                     "  </userID>\r\n" +
-                     "</user>\r\n", writer.toString());
-    }
-
-    @Test
-    public void writeUserJSON() throws Exception
-    {
-        final UsersAction usersAction = new UsersAction(null)
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                // Do nothing.
-                return null;
-            }
-        };
-
-        final User<HttpPrincipal> user =
-                new User<HttpPrincipal>(new HttpPrincipal("CADCtest"));
-        final Writer writer = new StringWriter();
-
-        usersAction.setAcceptedContentType(UsersAction.JSON_CONTENT_TYPE);
-        usersAction.writeUser(user, writer);
-
-        assertEquals("Wrong JSON output.",
-                     "{\"user\":{\"userID\":{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}}}}",
-                     writer.toString());
     }
 
     @Test
@@ -191,69 +142,52 @@ public class UsersActionTest
     @Test
     public void testDoActionTransientException() throws Exception
     {
-        try
-        {
-            HttpServletResponse response = EasyMock
-                    .createMock(HttpServletResponse.class);
-            EasyMock.expect(response.isCommitted()).andReturn(Boolean.FALSE);
-            response.setContentType("text/plain");
-            EasyMock.expectLastCall().once();
-            EasyMock.expect(response.getWriter())
-                    .andReturn(new PrintWriter(new StringWriter()));
-            EasyMock.expectLastCall().once();
-            response.setStatus(503);
-            EasyMock.expectLastCall().once();
-            EasyMock.replay(response);
+        HttpServletResponse response = createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
 
-            UserLogInfo logInfo = EasyMock.createMock(UserLogInfo.class);
-            logInfo.setSuccess(false);
-            EasyMock.expectLastCall().once();
-            logInfo.setMessage("Internal Transient Error: foo");
-            EasyMock.expectLastCall().once();
-            EasyMock.replay(logInfo);
+        response.setStatus(503);
+        expectLastCall().once();
+        replay(response);
 
-            UsersActionImpl action = new UsersActionImpl(logInfo);
-            action.setException(new TransientException("foo"));
-            action.doAction(null, response);
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        logInfo.setSuccess(false);
+        expectLastCall().once();
+        logInfo.setMessage("Internal Transient Error: foo");
+        expectLastCall().once();
+        replay(logInfo);
+
+        UsersActionImpl action = new UsersActionImpl(logInfo);
+        action.setException(new TransientException("foo"));
+        action.doAction(null, response);
     }
 
     private void testDoAction(String message, int responseCode, Exception e)
             throws Exception
     {
-        try
-        {
-            HttpServletResponse response = EasyMock
-                    .createMock(HttpServletResponse.class);
-            EasyMock.expect(response.isCommitted()).andReturn(Boolean.FALSE);
-            response.setContentType("text/plain");
-            EasyMock.expectLastCall().once();
-            EasyMock.expect(response.getWriter())
-                    .andReturn(new PrintWriter(new StringWriter()));
-            EasyMock.expectLastCall().once();
-            response.setStatus(responseCode);
-            EasyMock.expectLastCall().once();
-            EasyMock.replay(response);
+        HttpServletResponse response =
+                createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
 
-            UserLogInfo logInfo = EasyMock.createMock(UserLogInfo.class);
-            logInfo.setMessage(message);
-            EasyMock.expectLastCall().once();
-            EasyMock.replay(logInfo);
+        response.setStatus(responseCode);
+        expectLastCall().once();
+        replay(response);
 
-            UsersActionImpl action = new UsersActionImpl(logInfo);
-            action.setException(e);
-            action.doAction(null, response);
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        logInfo.setMessage(message);
+        expectLastCall().once();
+        replay(logInfo);
+
+        UsersActionImpl action = new UsersActionImpl(logInfo);
+        action.setException(e);
+        action.doAction(null, response);
     }
 
     public class UsersActionImpl extends UsersAction

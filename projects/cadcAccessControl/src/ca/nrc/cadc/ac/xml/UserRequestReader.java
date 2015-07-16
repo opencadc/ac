@@ -78,7 +78,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.security.Principal;
 
 import org.jdom2.Document;
@@ -92,12 +91,10 @@ public class UserRequestReader
      *
      * @param xml String of the XML.
      * @return UserRequest UserRequest.
-     * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
-    public static UserRequest<? extends Principal> read(String xml)
-        throws ReaderException, IOException, URISyntaxException
+    public static UserRequest<Principal> read(String xml)
+        throws IOException
     {
         if (xml == null)
         {
@@ -113,10 +110,9 @@ public class UserRequestReader
      * @return UserRequest UserRequest.
      * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
-    public static UserRequest<? extends Principal> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+    public static UserRequest<Principal> read(InputStream in)
+        throws IOException
     {
         if (in == null)
         {
@@ -142,8 +138,8 @@ public class UserRequestReader
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public static UserRequest<? extends Principal> read(Reader reader)
-        throws ReaderException, IOException
+    public static UserRequest<Principal> read(Reader reader)
+        throws IOException
     {
         if (reader == null)
         {
@@ -168,7 +164,8 @@ public class UserRequestReader
         return parseUserRequest(root);
     }
 
-    protected static UserRequest parseUserRequest(Element userRequestElement)
+    protected static UserRequest<Principal> parseUserRequest(
+            Element userRequestElement)
         throws ReaderException
     {
         // user element of the UserRequest element
@@ -178,7 +175,7 @@ public class UserRequestReader
             String error = "user element not found in userRequest element";
             throw new ReaderException(error);
         }
-        User<? extends Principal> user = ca.nrc.cadc.ac.xml.UserReader.parseUser(userElement);
+        User<Principal> user = ca.nrc.cadc.ac.xml.UserReader.parseUser(userElement);
 
         // password element of the userRequest element
         Element passwordElement = userRequestElement.getChild("password");
@@ -189,9 +186,6 @@ public class UserRequestReader
         }
         String password = passwordElement.getText();
 
-        UserRequest userRequest = new UserRequest(user, password);
-
-        return userRequest;
+        return new UserRequest<Principal>(user, password);
     }
-
 }

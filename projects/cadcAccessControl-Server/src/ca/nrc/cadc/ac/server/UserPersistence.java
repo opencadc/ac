@@ -79,7 +79,7 @@ import ca.nrc.cadc.net.TransientException;
 
 import com.unboundid.ldap.sdk.DN;
 
-public abstract interface UserPersistence<T extends Principal>
+public interface UserPersistence<T extends Principal>
 {
     /**
      * Get all user names.
@@ -88,7 +88,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<String> getUserNames()
+    Collection<String> getUserNames()
             throws TransientException, AccessControlException;
     
     /**
@@ -101,7 +101,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract User<T> addUser(UserRequest<T> user)
+    User<T> addUser(UserRequest<T> user)
         throws TransientException, AccessControlException;
     
     /**
@@ -115,7 +115,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract User<T> getUser(T userID)
+    User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, 
                AccessControlException;
     
@@ -130,7 +130,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract User<T> modifyUser(User<T> user)
+    User<T> modifyUser(User<T> user)
         throws UserNotFoundException, TransientException, 
                AccessControlException;
     
@@ -143,7 +143,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract void deleteUser(T userID)
+    void deleteUser(T userID)
         throws UserNotFoundException, TransientException, 
                AccessControlException;
     
@@ -160,7 +160,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Collection<DN> getUserGroups(T userID, boolean isAdmin)
+    Collection<DN> getUserGroups(T userID, boolean isAdmin)
         throws UserNotFoundException, TransientException,
                AccessControlException;
     
@@ -176,7 +176,7 @@ public abstract interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract boolean isMember(T userID, String groupID)
+    boolean isMember(T userID, String groupID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 }

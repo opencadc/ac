@@ -91,8 +91,8 @@ public class UserReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static User<? extends Principal> read(InputStream in)
-        throws ReaderException, IOException
+    public static User<Principal> read(InputStream in)
+        throws IOException
     {
         if (in == null)
         {
@@ -113,8 +113,8 @@ public class UserReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static User<? extends Principal> read(Reader reader)
-        throws ReaderException, IOException
+    public static User<Principal> read(Reader reader)
+        throws IOException
     {
         if (reader == null)
         {
@@ -135,8 +135,8 @@ public class UserReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static User<? extends Principal> read(String json)
-        throws ReaderException, IOException
+    public static User<Principal> read(String json)
+        throws IOException
     {
         if (json == null || json.isEmpty())
         {
@@ -156,7 +156,7 @@ public class UserReader
         }
     }
 
-    protected static User<? extends Principal> parseUser(JSONObject userObject)
+    protected static User<Principal> parseUser(JSONObject userObject)
         throws ReaderException, JSONException
     {
         JSONObject userIDObject = userObject.getJSONObject("userID");

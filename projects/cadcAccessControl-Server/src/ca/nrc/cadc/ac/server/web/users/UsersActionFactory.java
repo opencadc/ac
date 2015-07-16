@@ -75,28 +75,23 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.util.StringUtil;
+
 import java.io.IOException;
 import java.net.URL;
 import java.security.Principal;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
+
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.web.AddGroupMemberAction;
-import ca.nrc.cadc.ac.server.web.AddUserMemberAction;
-import ca.nrc.cadc.ac.server.web.DeleteGroupAction;
-import ca.nrc.cadc.ac.server.web.GetGroupAction;
-import ca.nrc.cadc.ac.server.web.ModifyGroupAction;
-import ca.nrc.cadc.ac.server.web.RemoveGroupMemberAction;
-import ca.nrc.cadc.ac.server.web.RemoveUserMemberAction;
-import ca.nrc.cadc.util.StringUtil;
 
 public class UsersActionFactory
 {
-    private static final Logger log = Logger.getLogger(UsersActionFactory.class);
+    private static final Logger log = Logger
+            .getLogger(UsersActionFactory.class);
 
     static UsersAction getUsersAction(HttpServletRequest request, UserLogInfo logInfo)
-        throws IOException
+            throws IOException
     {
         UsersAction action = null;
         String method = request.getMethod();
@@ -133,7 +128,8 @@ public class UsersActionFactory
             }
             else if (method.equals("PUT"))
             {
-                action = new CreateUserAction(logInfo, request.getInputStream());
+                action = new CreateUserAction(logInfo, request
+                        .getInputStream());
             }
 
         }
@@ -151,7 +147,8 @@ public class UsersActionFactory
             }
             else if (method.equals("POST"))
             {
-                final URL requestURL = new URL(request.getRequestURL().toString());
+                final URL requestURL = new URL(request.getRequestURL()
+                                                       .toString());
                 final StringBuilder sb = new StringBuilder();
                 sb.append(requestURL.getProtocol());
                 sb.append("://");
@@ -166,7 +163,8 @@ public class UsersActionFactory
                 sb.append("/");
                 sb.append(path);
 
-                action = new ModifyUserAction(logInfo, user.getUserID(), sb.toString(),
+                action = new ModifyUserAction(logInfo, user.getUserID(), sb
+                        .toString(),
                                               request.getInputStream());
             }
         }
@@ -180,8 +178,10 @@ public class UsersActionFactory
         throw new IllegalArgumentException(error);
     }
 
-    private static User<? extends Principal> getUser(final String userName, final String idType,
-                                                     final String method, final String path)
+    private static User<? extends Principal> getUser(final String userName,
+                                                     final String idType,
+                                                     final String method,
+                                                     final String path)
     {
         if (idType == null || idType.isEmpty())
         {
@@ -189,27 +189,28 @@ public class UsersActionFactory
         }
         else if (idType.equals(IdentityType.USERNAME.getValue()))
         {
-            return new User(new HttpPrincipal(userName));
+            return new User<HttpPrincipal>(new HttpPrincipal(userName));
         }
         else if (idType.equals(IdentityType.X500.getValue()))
         {
-            return new User(new X500Principal(userName));
+            return new User<X500Principal>(new X500Principal(userName));
         }
         else if (idType.equals(IdentityType.UID.getValue()))
         {
-            return new User(new NumericPrincipal(Long.parseLong(userName)));
+            return new User<NumericPrincipal>(new NumericPrincipal(
+                    Long.parseLong(userName)));
         }
         else if (idType.equals(IdentityType.OPENID.getValue()))
         {
-            return new User(new OpenIdPrincipal(userName));
+            return new User<OpenIdPrincipal>(new OpenIdPrincipal(userName));
         }
         else if (idType.equals(IdentityType.COOKIE.getValue()))
         {
-            return new User(new CookiePrincipal(userName));
+            return new User<CookiePrincipal>(new CookiePrincipal(userName));
         }
         else
         {
-            final String error = "Bad users request: " + method + " on " + path + 
+            final String error = "Bad users request: " + method + " on " + path +
                                  " because of unknown principal type " + idType;
             throw new IllegalArgumentException(error);
         }

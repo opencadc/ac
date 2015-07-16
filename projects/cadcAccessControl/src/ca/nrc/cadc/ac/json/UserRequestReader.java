@@ -66,101 +66,103 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
+package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import java.net.URL;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.*;
 import java.security.Principal;
-import java.util.Properties;
-import java.util.Set;
-import org.apache.log4j.Logger;
+import java.util.Scanner;
 
-public class PluginFactory
+public class UserRequestReader
 {
-    private static final Logger log = Logger.getLogger(PluginFactory.class);
-
-    private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
-    private Properties config;
-
-    public PluginFactory()
+    /**
+     * Construct a UserRequest from an XML String source.
+     *
+     * @param json String of the XML.
+     * @return UserRequest UserRequest.
+     * @throws IOException
+     */
+    public static UserRequest<Principal> read(String json)
+        throws IOException
     {
-        init();
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getName() + "[" + config.entrySet().size() + "]";
-    }
-
-    private void init()
-    {
-        config = new Properties();
-        URL url = null;
-        try
+        if (json == null)
         {
-            url = PluginFactory.class.getClassLoader().getResource(CONFIG);
-            if (url != null)
-            {
-                config.load(url.openStream());
-            }
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends Principal> GroupPersistence<T> getGroupPersistence()
-    {
-        GroupPersistence<T> ret = null;
-        String name = GroupPersistence.class.getName();
-        String cname = config.getProperty(name);
-        if (cname == null)
-        {
-            ret = new LdapGroupPersistence<T>();
+            throw new IllegalArgumentException("XML must not be null");
         }
         else
         {
             try
             {
-                Class<?> c = Class.forName(cname);
-                ret = (GroupPersistence<T>) c.newInstance();
+                return parseUserRequest(new JSONObject(json));
             }
-            catch (Exception ex)
+            catch (JSONException e)
             {
-                throw new RuntimeException("config error: failed to create GroupPersistence " + cname, ex);
+                String error = "Unable to parse JSON to User because " +
+                               e.getMessage();
+                throw new ReaderException(error, e);
             }
         }
-        return ret;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T extends Principal> UserPersistence<T> getUserPersistence()
+    /**
+     * Construct a User from a InputStream.
+     *
+     * @param in InputStream.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    public static UserRequest<Principal> read(InputStream in)
+            throws IOException
     {
-        UserPersistence ret = null;
-        String name = UserPersistence.class.getName();
-        String cname = config.getProperty(name);
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
 
-        if (cname == null)
-        {
-            ret = new LdapUserPersistence<T>();
-        }
-        else
-        {
-            try
-            {
-                Class<?> c = Class.forName(cname);
-                ret = (UserPersistence) c.newInstance();
-            }
-            catch (Exception ex)
-            {
-                throw new RuntimeException("config error: failed to create UserPersistence " + cname, ex);
-            }
-        }
-        return ret;
+        Scanner s = new Scanner(in).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
     }
 
+    /**
+     * Construct a User from a Reader.
+     *
+     * @param reader Reader.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    public static UserRequest<Principal> read(Reader reader)
+            throws IOException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
+
+
+    protected static UserRequest<Principal> parseUserRequest(
+            JSONObject userRequestObject)
+        throws ReaderException, JSONException
+    {
+        final User<Principal> user =
+                ca.nrc.cadc.ac.json.UserReader.parseUser(
+                        userRequestObject.getJSONObject("user"));
+
+        return new UserRequest<Principal>(user, userRequestObject.
+                getString("password"));
+    }
 }

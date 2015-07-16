@@ -77,7 +77,7 @@ import ca.nrc.cadc.ac.xml.UserWriter;
 
 import java.security.Principal;
 
-public class CreateUserAction extends UsersAction
+public class CreateUserAction<T extends Principal> extends UsersAction
 {
     private final InputStream inputStream;
 
@@ -90,11 +90,10 @@ public class CreateUserAction extends UsersAction
     public Object run()
         throws Exception
     {
-        UserPersistence userPersistence = getUserPersistence();
-        UserRequest userRequest = UserRequestReader.read(this.inputStream);
-        User<? extends Principal> newUser = userPersistence.addUser(userRequest);
-        this.response.setContentType(acceptedContentType);
-        writeUser(newUser, this.response.getWriter());
+        UserPersistence<Principal> userPersistence = getUserPersistence();
+        UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
+        User<Principal> newUser = userPersistence.addUser(userRequest);
+        writeUser(newUser);
         logUserInfo(newUser.getUserID().getName());
         return null;
     }

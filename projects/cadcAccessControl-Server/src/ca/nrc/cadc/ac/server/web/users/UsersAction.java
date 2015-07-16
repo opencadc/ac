@@ -69,7 +69,7 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.io.Writer;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -80,6 +80,7 @@ import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -200,6 +201,7 @@ public abstract class UsersAction
         }
     }
 
+    @SuppressWarnings("unchecked")
     <T extends Principal> UserPersistence<T> getUserPersistence()
     {
         PluginFactory pluginFactory = new PluginFactory();
@@ -216,10 +218,80 @@ public abstract class UsersAction
         this.acceptedContentType = acceptedContentType;
     }
 
-    protected final <T extends Principal> void writeUser(final User<T> user,
-                                                         final Writer writer)
+    /**
+     * Read a user request (User pending approval) from the HTTP Request's
+     * stream.
+     *
+     * @param inputStream           The Input Stream to read from.
+     * @return                      User Request instance.
+     * @throws IOException          Any reading errors.
+     */
+    protected final UserRequest<Principal> readUserRequest(
+            final InputStream inputStream) throws IOException
+    {
+        final UserRequest<Principal> userRequest;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            userRequest = ca.nrc.cadc.ac.xml.UserRequestReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            userRequest =
+                    ca.nrc.cadc.ac.json.UserRequestReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+
+        return userRequest;
+    }
+
+    /**
+     * Read a user from the HTTP Request's stream.
+     *
+     * @param inputStream       The Input Stream to read from.
+     * @return                  User instance.
+     * @throws IOException      Any reading error(s)
+     */
+    protected final User<Principal> readUser(
+            final InputStream inputStream) throws IOException
+    {
+        final User<Principal> user;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            user = ca.nrc.cadc.ac.xml.UserReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            user = ca.nrc.cadc.ac.json.UserReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+
+        return user;
+    }
+
+    /**
+     * Write a user to the response's writer.
+     *
+     * @param user              The user object to marshall and write out.
+     * @throws IOException      Any writing errors.
+     */
+    protected final <T extends Principal> void writeUser(final User<T> user)
             throws IOException
     {
+        response.setContentType(acceptedContentType);
+        final Writer writer = response.getWriter();
+
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
             ca.nrc.cadc.ac.xml.UserWriter.write(user, writer);

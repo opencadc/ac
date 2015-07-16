@@ -100,4 +100,27 @@ public class UserRequest<T extends Principal>
         return this.password;
     }
 
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o)
+        {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass())
+        {
+            return false;
+        }
+
+        UserRequest<?> that = (UserRequest<?>) o;
+
+        return user.equals(that.user);
+
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return user.hashCode();
+    }
 }
