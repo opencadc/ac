@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
@@ -78,6 +79,8 @@ import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchScope;
+
+import java.nio.file.FileAlreadyExistsException;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
@@ -233,7 +236,7 @@ public abstract class LdapDAO
             throws TransientException
     {
     	logger.debug("Ldap result: " + code);
-    	
+
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
         {
             throw new AccessControlException("Not authorized ");
@@ -242,8 +245,7 @@ public abstract class LdapDAO
         {
             throw new AccessControlException("Invalid credentials ");
         }
-        else if ((code == ResultCode.SUCCESS) || (code
-                                                  == ResultCode.NO_SUCH_OBJECT))
+        else if ((code == ResultCode.SUCCESS) || (code == ResultCode.NO_SUCH_OBJECT))
         {
             // all good. nothing to do
         }
@@ -251,8 +253,7 @@ public abstract class LdapDAO
         {
             throw new IllegalArgumentException("Error in Ldap parameters ");
         }
-        else if (code == ResultCode.BUSY ||
-                 code == ResultCode.CONNECT_ERROR)
+        else if (code == ResultCode.BUSY || code == ResultCode.CONNECT_ERROR)
         {
             throw new TransientException("Connection problems ");
         }

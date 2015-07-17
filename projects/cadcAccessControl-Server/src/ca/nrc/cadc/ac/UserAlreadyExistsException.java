@@ -62,124 +62,24 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
+package ca.nrc.cadc.ac;
 
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.auth.AuthenticationUtil;
-
-public class UsersServlet extends HttpServlet
+public class UserAlreadyExistsException extends Exception
 {
-    private static final Logger log = Logger.getLogger(UsersServlet.class);
-
-
     /**
-     * Create a UserAction and run the action safely.
-     */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        long start = System.currentTimeMillis();
-        UserLogInfo logInfo = new UserLogInfo(request);
-
-        try
-        {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
-            action.setAcceptedContentType(getAcceptedContentType(request));
-            action.doAction(subject, response);
-        }
-        catch (IllegalArgumentException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
-        }
-        catch (Throwable t)
-        {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
-        }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
-    }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    /**
-     * Obtain the requested (Accept) content type.
+     * Constructs a new exception with the specified detail message.  The
+     * cause is not initialized, and may subsequently be initialized by
+     * a call to {@link #initCause}.
      *
-     * @param request               The HTTP Request.
-     * @return                      String content type.
+     * @param message the detail message. The detail message is saved for
+     *                later retrieval by the {@link #getMessage()} method.
      */
-    String getAcceptedContentType(final HttpServletRequest request)
+    public UserAlreadyExistsException(String message)
     {
-        final String requestedContentType = request.getHeader("Accept");
-
-        if (!StringUtil.hasText(requestedContentType))
-        {
-            return UsersAction.DEFAULT_CONTENT_TYPE;
-        }
-        else
-        {
-            return requestedContentType;
-        }
+        super(message);
     }
 }

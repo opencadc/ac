@@ -73,6 +73,7 @@ import java.security.Principal;
 import java.util.Collection;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.net.TransientException;
@@ -102,7 +103,8 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      */
     User<T> addUser(UserRequest<T> user)
-        throws TransientException, AccessControlException;
+        throws TransientException, AccessControlException,
+               UserAlreadyExistsException;
     
     /**
      * Get the user specified by userID.
