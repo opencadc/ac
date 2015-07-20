@@ -75,27 +75,32 @@ import org.jdom2.output.XMLOutputter;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collection;
+import java.util.Map;
 
 public class UsersWriter
 {
     /**
-     * Write the Collection of String entries as XML.
+     * Write the Map of User entries as XML.
      *
-     * @param users             The Collection of User strings.
+     * @param users             The Map of User IDs to Names.
      * @param writer            The Writer to output to.
      * @throws IOException      Any writing errors.
      */
-    public static void write(final Collection<String> users,
+    public static void write(final Map<String, String> users,
                              final Writer writer) throws IOException
     {
         // Create the root users Element.
         final Element usersElement = new Element("users");
 
-        for (final String s : users)
+        for (final Map.Entry<String, String> entry : users.entrySet())
         {
             final Element userEntryElement = new Element("user");
-            userEntryElement.setText(s);
+            final Element nameElement = new Element("name");
+
+            userEntryElement.setAttribute("id", entry.getKey());
+
+            nameElement.setText(entry.getValue());
+            userEntryElement.addContent(nameElement);
 
             usersElement.addContent(userEntryElement);
         }

@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.Map;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -90,7 +91,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<String> getUserNames()
+    Map<String, String> getUsers()
             throws TransientException, AccessControlException;
     
     /**

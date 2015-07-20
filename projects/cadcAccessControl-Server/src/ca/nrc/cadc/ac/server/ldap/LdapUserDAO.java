@@ -418,49 +418,54 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Get all group names.
+     * Get all users.  This will query the main tree only, and will return the
+     * user name as the map's key, with the user's full name as the value.
      *
-     * @return A collection of strings
+     * @return A map of string keys to string values.
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Collection<String> getUserNames()
+    public Map<String, String> getUsers()
             throws TransientException
     {
+        final Map<String, String> users = new HashMap<String, String>();
+
         try
         {
-            Filter filter = Filter.createPresenceFilter(LDAP_COMMON_NAME);
-            String[] attributes = new String[]{LDAP_COMMON_NAME,
-                                               LDAP_NSACCOUNTLOCK};
-
-            SearchRequest searchRequest =
-                    new SearchRequest(config.getGroupsDN(),
+            final Filter filter = Filter.createPresenceFilter(LDAP_COMMON_NAME);
+            final String[] attributes = new String[]{LDAP_COMMON_NAME,
+                                                     LDAP_FIRST_NAME,
+                                                     LDAP_LAST_NAME,
+                                                     LDAP_NSACCOUNTLOCK};
+            final SearchRequest searchRequest =
+                    new SearchRequest(config.getUsersDN(),
                                       SearchScope.SUB, filter, attributes);
 
-            SearchResult searchResult = null;
             try
             {
-                searchResult = getConnection().search(searchRequest);
+                final SearchResult searchResult =
+                        getConnection().search(searchRequest);
+
+                LdapDAO.checkLdapResult(searchResult.getResultCode());
+                for (SearchResultEntry next : searchResult.getSearchEntries())
+                {
+                    if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
+                    {
+                        users.put(next.getAttributeValue(LDAP_COMMON_NAME),
+                                  next.getAttributeValue(LDAP_FIRST_NAME)
+                                  + " "
+                                  + next.getAttributeValue(LDAP_LAST_NAME));
+                    }
+                }
             }
             catch (LDAPSearchException e)
             {
                 if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
                 {
-                    logger.debug("Could not find groups root", e);
-                    throw new IllegalStateException("Could not find groups root");
+                    final String message = "Could not find users root";
+                    logger.debug(message, e);
+                    throw new IllegalStateException(message);
                 }
             }
-
-            LdapDAO.checkLdapResult(searchResult.getResultCode());
-            List<String> groupNames = new ArrayList<String>();
-            for (SearchResultEntry next : searchResult.getSearchEntries())
-            {
-                if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
-                {
-                    groupNames.add(next.getAttributeValue(LDAP_COMMON_NAME));
-                }
-            }
-
-            return groupNames;
         }
         catch (LDAPException e1)
         {
@@ -469,6 +474,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new IllegalStateException("Unexpected exception: " + e1
                     .getMatchedDN(), e1);
         }
+
+        return users;
     }
 
     /**

@@ -73,7 +73,7 @@ import org.json.JSONWriter;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collection;
+import java.util.Map;
 
 
 /**
@@ -81,7 +81,7 @@ import java.util.Collection;
  */
 public class UsersWriter
 {
-    public static void write(final Collection<String> users,
+    public static void write(final Map<String, String> users,
                              final Writer writer) throws IOException
     {
         final JSONWriter jsonWriter = new JSONWriter(writer);
@@ -90,9 +90,14 @@ public class UsersWriter
         {
             jsonWriter.array();
 
-            for (final String s : users)
+            for (final Map.Entry<String, String> entry : users.entrySet())
             {
-                jsonWriter.value(s);
+                jsonWriter.object();
+
+                jsonWriter.key("id").value(entry.getKey());
+                jsonWriter.key("name").value(entry.getValue());
+
+                jsonWriter.endObject();
             }
         }
         catch (JSONException e)

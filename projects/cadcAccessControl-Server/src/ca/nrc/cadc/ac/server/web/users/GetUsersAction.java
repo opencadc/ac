@@ -90,7 +90,7 @@ public class GetUsersAction extends UsersAction
     {
         final UserPersistence userPersistence = getUserPersistence();
 
-        writeUsers(userPersistence.getUserNames());
+        writeUsers(userPersistence.getUsers());
         return null;
     }
 }

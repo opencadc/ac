@@ -83,6 +83,8 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.easymock.EasyMock.*;
 import org.junit.BeforeClass;
@@ -110,11 +112,11 @@ public class GetUsersActionTest
                 createMock(HttpServletResponse.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
-        final Collection<String> userEntries = new ArrayList<String>();
+        final Map<String, String> userEntries = new HashMap<String, String>();
 
-        for (int i = 1; i <= 13; i++)
+        for (int i = 1; i <= 5; i++)
         {
-            userEntries.add("USER_" + i);
+            userEntries.put("USER_" + i, "USER " + i);
         }
 
         final GetUsersAction testSubject = new GetUsersAction(null)
@@ -131,7 +133,7 @@ public class GetUsersActionTest
         final Writer writer = new StringWriter();
         final PrintWriter printWriter = new PrintWriter(writer);
 
-        expect(mockUserPersistence.getUserNames()).andReturn(
+        expect(mockUserPersistence.getUsers()).andReturn(
                 userEntries).once();
         expect(mockResponse.getWriter()).andReturn(printWriter).once();
         mockResponse.setContentType("application/json");
@@ -141,7 +143,7 @@ public class GetUsersActionTest
         testSubject.doAction(null, mockResponse);
 
         final JSONArray expected =
-                new JSONArray("['USER_1','USER_2','USER_3','USER_4','USER_5','USER_6','USER_7','USER_8','USER_9','USER_10','USER_11','USER_12','USER_13']");
+                new JSONArray("[{\"id\":\"USER_1\",\"name\":\"USER 1\"},{\"id\":\"USER_3\",\"name\":\"USER 3\"},{\"id\":\"USER_2\",\"name\":\"USER 2\"},{\"id\":\"USER_4\",\"name\":\"USER 4\"},{\"id\":\"USER_5\",\"name\":\"USER 5\"}]");
         final JSONArray result = new JSONArray(writer.toString());
 
         JSONAssert.assertEquals(expected, result, true);
@@ -156,11 +158,11 @@ public class GetUsersActionTest
                 createMock(HttpServletResponse.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
-        final Collection<String> userEntries = new ArrayList<String>();
+        final Map<String, String> userEntries = new HashMap<String, String>();
 
-        for (int i = 1; i <= 13; i++)
+        for (int i = 1; i <= 5; i++)
         {
-            userEntries.add("USER_" + i);
+            userEntries.put("USER_" + i, "USER " + i);
         }
 
         final GetUsersAction testSubject = new GetUsersAction(null)
@@ -175,7 +177,7 @@ public class GetUsersActionTest
         final Writer writer = new StringWriter();
         final PrintWriter printWriter = new PrintWriter(writer);
 
-        expect(mockUserPersistence.getUserNames()).andReturn(
+        expect(mockUserPersistence.getUsers()).andReturn(
                 userEntries).once();
         expect(mockResponse.getWriter()).andReturn(printWriter).once();
         mockResponse.setContentType("text/xml");
@@ -186,19 +188,21 @@ public class GetUsersActionTest
 
         final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
                                 "<users>\r\n" +
-                                "  <user>USER_1</user>\r\n" +
-                                "  <user>USER_2</user>\r\n" +
-                                "  <user>USER_3</user>\r\n" +
-                                "  <user>USER_4</user>\r\n" +
-                                "  <user>USER_5</user>\r\n" +
-                                "  <user>USER_6</user>\r\n" +
-                                "  <user>USER_7</user>\r\n" +
-                                "  <user>USER_8</user>\r\n" +
-                                "  <user>USER_9</user>\r\n" +
-                                "  <user>USER_10</user>\r\n" +
-                                "  <user>USER_11</user>\r\n" +
-                                "  <user>USER_12</user>\r\n" +
-                                "  <user>USER_13</user>\r\n" +
+                                "  <user id=\"USER_1\">\r\n" +
+                                "    <name>USER 1</name>\r\n" +
+                                "  </user>\r\n" +
+                                "  <user id=\"USER_3\">\r\n" +
+                                "    <name>USER 3</name>\r\n" +
+                                "  </user>\r\n" +
+                                "  <user id=\"USER_2\">\r\n" +
+                                "    <name>USER 2</name>\r\n" +
+                                "  </user>\r\n" +
+                                "  <user id=\"USER_4\">\r\n" +
+                                "    <name>USER 4</name>\r\n" +
+                                "  </user>\r\n" +
+                                "  <user id=\"USER_5\">\r\n" +
+                                "    <name>USER 5</name>\r\n" +
+                                "  </user>\r\n" +
                                 "</users>\r\n";
         final String result = writer.toString();
 

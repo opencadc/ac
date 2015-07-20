@@ -75,7 +75,7 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
+import java.util.Map;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
@@ -274,11 +274,11 @@ public abstract class UsersAction
     }
 
     /**
-     * Write out a list of users as this Action's specified content type.
+     * Write out a Map of users as this Action's specified content type.
      *
-     * @param users         The Collection of user entries.
+     * @param users         The Map of user IDs to names.
      */
-    protected final void writeUsers(final Collection<String> users)
+    protected final void writeUsers(final Map<String, String> users)
             throws IOException
     {
         response.setContentType(acceptedContentType);

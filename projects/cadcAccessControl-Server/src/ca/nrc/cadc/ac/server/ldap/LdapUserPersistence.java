@@ -73,12 +73,13 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 
 public class LdapUserPersistence<T extends Principal>
@@ -99,15 +100,14 @@ public class LdapUserPersistence<T extends Principal>
         }
     }
     
-    public Collection<String> getUserNames()
+    public Map<String, String> getUsers()
         throws TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try
         {
             userDAO = new LdapUserDAO<T>(config);
-            Collection<String> ret = userDAO.getUserNames();
-            return ret;
+            return userDAO.getUsers();
         }
         finally
         {
