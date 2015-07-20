@@ -124,7 +124,7 @@ public class UsersActionFactory
         {
             if (method.equals("GET"))
             {
-                action = new GetUserNamesAction(logInfo);
+                action = new GetUsersAction(logInfo);
             }
             else if (method.equals("PUT"))
             {

@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.server.web.RemoveUserMemberAction;
 import ca.nrc.cadc.util.Log4jInit;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Level;
@@ -160,7 +159,7 @@ public class UserActionFactoryTest
             EasyMock.replay(request);
             UsersAction action = UsersActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
-            Assert.assertTrue("Wrong action", action instanceof GetUserNamesAction);
+            Assert.assertTrue("Wrong action", action instanceof GetUsersAction);
         }
         catch (Throwable t)
         {

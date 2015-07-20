@@ -68,38 +68,34 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import static org.junit.Assert.fail;
 
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import org.apache.log4j.Level;
+
+import org.json.JSONArray;
+
+import ca.nrc.cadc.util.Log4jInit;
+
+import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
-import java.security.Principal;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
+import static org.easymock.EasyMock.*;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.web.GetGroupNamesAction;
-import ca.nrc.cadc.ac.server.web.GroupLogInfo;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.server.SyncOutput;
+import static org.junit.Assert.assertEquals;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 /**
  *
  * @author adriand
  */
-public class GetUserIDsActionTest
+public class GetUsersActionTest
 {
-    private final static Logger log = Logger.getLogger(GetUserIDsActionTest.class);
-
     @BeforeClass
     public static void setUpClass()
     {
@@ -107,60 +103,106 @@ public class GetUserIDsActionTest
     }
 
     @Test
-    @Ignore
-    public void testRun() throws Exception
+    @SuppressWarnings("unchecked")
+    public void testWriteUsersJSON() throws Exception
     {
-        /*
-        try
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+                createMock(UserPersistence.class);
+        final Collection<String> userEntries = new ArrayList<String>();
+
+        for (int i = 1; i <= 13; i++)
         {
-            Collection<HttpPrincipal> userIDs = new ArrayList<HttpPrincipal>();
-            userIDs.add(new HttpPrincipal("foo"));
-            userIDs.add(new HttpPrincipal("bar"));
+            userEntries.add("USER_" + i);
+        }
 
-            final UserPersistence mockPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(mockPersistence.getCadcIDs()).andReturn(userIDs).once();
-
-            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
-            mockWriter.write("foo", 0, 3);
-            EasyMock.expectLastCall();
-            mockWriter.write(44);
-            EasyMock.expectLastCall();
-            mockWriter.write("bar", 0, 3);
-            EasyMock.expectLastCall();
-            mockWriter.write("\n");
-            EasyMock.expectLastCall();
-
-            final SyncOutput mockSyncOutput =
-                    EasyMock.createMock(SyncOutput.class);
-
-            mockSyncOutput.setHeader("Content-Type", "text/csv");
-
-            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
-            mockResponse.setContentType("text/csv");
-            EasyMock.expectLastCall();
-            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
-
-            UserLogInfo mockLog = EasyMock.createMock(UserLogInfo.class);
-
-            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
-
-            GetUserIDsAction action = new GetUserIDsAction(mockLog)
+        final GetUsersAction testSubject = new GetUsersAction(null)
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
             {
-                @Override
-                <T extends Principal> UserPersistence<T> getUserPersistence()
-                {
-                    return mockPersistence;
-                };
-            };
+                return mockUserPersistence;
+            }
+        };
 
-            action.run();
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
-        */
+        testSubject.setAcceptedContentType(UsersAction.JSON_CONTENT_TYPE);
+
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getUserNames()).andReturn(
+                userEntries).once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+        mockResponse.setContentType("application/json");
+        expectLastCall().once();
+
+        replay(mockResponse, mockUserPersistence);
+        testSubject.doAction(null, mockResponse);
+
+        final JSONArray expected =
+                new JSONArray("['USER_1','USER_2','USER_3','USER_4','USER_5','USER_6','USER_7','USER_8','USER_9','USER_10','USER_11','USER_12','USER_13']");
+        final JSONArray result = new JSONArray(writer.toString());
+
+        JSONAssert.assertEquals(expected, result, true);
+        verify(mockResponse, mockUserPersistence);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testWriteUsersXML() throws Exception
+    {
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+                createMock(UserPersistence.class);
+        final Collection<String> userEntries = new ArrayList<String>();
+
+        for (int i = 1; i <= 13; i++)
+        {
+            userEntries.add("USER_" + i);
+        }
+
+        final GetUsersAction testSubject = new GetUsersAction(null)
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getUserNames()).andReturn(
+                userEntries).once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+        mockResponse.setContentType("text/xml");
+        expectLastCall().once();
+
+        replay(mockResponse, mockUserPersistence);
+        testSubject.doAction(null, mockResponse);
+
+        final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
+                                "<users>\r\n" +
+                                "  <USER_1 />\r\n" +
+                                "  <USER_2 />\r\n" +
+                                "  <USER_3 />\r\n" +
+                                "  <USER_4 />\r\n" +
+                                "  <USER_5 />\r\n" +
+                                "  <USER_6 />\r\n" +
+                                "  <USER_7 />\r\n" +
+                                "  <USER_8 />\r\n" +
+                                "  <USER_9 />\r\n" +
+                                "  <USER_10 />\r\n" +
+                                "  <USER_11 />\r\n" +
+                                "  <USER_12 />\r\n" +
+                                "  <USER_13 />\r\n" +
+                                "</users>\r\n";
+        final String result = writer.toString();
+
+        assertEquals("Wrong XML", expected, result);
+        verify(mockResponse, mockUserPersistence);
+    }
 }

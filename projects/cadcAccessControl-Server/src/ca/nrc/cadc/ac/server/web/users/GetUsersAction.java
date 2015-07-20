@@ -69,19 +69,18 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.Writer;
-import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
 
-public class GetUserNamesAction extends UsersAction
+
+public class GetUsersAction extends UsersAction
 {
     
-    private static final Logger log = Logger.getLogger(GetUserNamesAction.class);
+    private static final Logger log = Logger.getLogger(GetUsersAction.class);
 
-    GetUserNamesAction(UserLogInfo logInfo)
+    GetUsersAction(UserLogInfo logInfo)
     {
         super(logInfo);
     }
@@ -89,23 +88,9 @@ public class GetUserNamesAction extends UsersAction
     public Object run()
         throws Exception
     {
-        UserPersistence userPersistence = getUserPersistence();
-        Collection<String> users = userPersistence.getUserNames();
-        log.debug("Found " + users.size() + " user names");
-        response.setContentType("text/plain");
-        log.debug("Set content-type to text/plain");
-        Writer writer = response.getWriter();
-        boolean start = true;
-        for (final String user : users)
-        {
-            if (!start)
-            {
-                writer.write("\r\n");
-            }
-            writer.write(user);
-            start = false;
-        }
-        
+        final UserPersistence userPersistence = getUserPersistence();
+
+        writeUsers(userPersistence.getUserNames());
         return null;
     }
 }

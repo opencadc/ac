@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,124 +62,53 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
 
-import java.security.AccessControlException;
-import java.security.Principal;
+package ca.nrc.cadc.ac.json;
+
+import org.json.JSONException;
+import org.json.JSONWriter;
+
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.net.TransientException;
 
-import com.unboundid.ldap.sdk.DN;
-
-
-public interface UserPersistence<T extends Principal>
+/**
+ * Class to write out, as JSON, a list of user entries.
+ */
+public class UsersWriter
 {
-    /**
-     * Get all user names.
-     * 
-     * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<String> getUserNames()
-            throws TransientException, AccessControlException;
-    
-    /**
-     * Add the new user.
-     *
-     * @param user
-     *
-     * @return User instance.
-     * 
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> addUser(UserRequest<T> user)
-        throws TransientException, AccessControlException,
-               UserAlreadyExistsException;
-    
-    /**
-     * Get the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> getUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Updated the user specified by User.
-     *
-     * @param user
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Delete the user specified by userID.
-     *
-     * @param userID The userID.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    void deleteUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Get all groups the user specified by userID belongs to.
-     * 
-     * @param userID The userID.
-     * @param isAdmin return only admin Groups when true, else return non-admin
-     *                Groups.
-     * 
-     * @return Collection of group DN.
-     * 
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<DN> getUserGroups(T userID, boolean isAdmin)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
-    
-    /**
-     * Check whether the user is a member of the group.
-     *
-     * @param userID The userID.
-     * @param groupID The groupID.
-     *
-     * @return true or false
-     *
-     * @throws UserNotFoundException If the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    boolean isMember(T userID, String groupID)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
+    public static void write(final Collection<String> users,
+                             final Writer writer) throws IOException
+    {
+        final JSONWriter jsonWriter = new JSONWriter(writer);
+
+        try
+        {
+            jsonWriter.array();
+
+            for (final String s : users)
+            {
+                jsonWriter.value(s);
+            }
+        }
+        catch (JSONException e)
+        {
+            throw new IOException(e);
+        }
+        finally
+        {
+            try
+            {
+                jsonWriter.endArray();
+            }
+            catch (JSONException e)
+            {
+                throw new IOException(e);
+            }
+        }
+    }
 }

@@ -75,6 +75,7 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
@@ -251,36 +252,6 @@ public abstract class UsersAction
     }
 
     /**
-     * Read a user from the HTTP Request's stream.
-     *
-     * @param inputStream       The Input Stream to read from.
-     * @return                  User instance.
-     * @throws IOException      Any reading error(s)
-     */
-    protected final User<Principal> readUser(
-            final InputStream inputStream) throws IOException
-    {
-        final User<Principal> user;
-
-        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
-        {
-            user = ca.nrc.cadc.ac.xml.UserReader.read(inputStream);
-        }
-        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
-        {
-            user = ca.nrc.cadc.ac.json.UserReader.read(inputStream);
-        }
-        else
-        {
-            // Should never happen.
-            throw new IOException("Unknown content being asked for: "
-                                  + acceptedContentType);
-        }
-
-        return user;
-    }
-
-    /**
      * Write a user to the response's writer.
      *
      * @param user              The user object to marshall and write out.
@@ -299,6 +270,27 @@ public abstract class UsersAction
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
             ca.nrc.cadc.ac.json.UserWriter.write(user, writer);
+        }
+    }
+
+    /**
+     * Write out a list of users as this Action's specified content type.
+     *
+     * @param users         The Collection of user entries.
+     */
+    protected final void writeUsers(final Collection<String> users)
+            throws IOException
+    {
+        response.setContentType(acceptedContentType);
+        final Writer writer = response.getWriter();
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            ca.nrc.cadc.ac.xml.UsersWriter.write(users, writer);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            ca.nrc.cadc.ac.json.UsersWriter.write(users, writer);
         }
     }
 }
