@@ -137,15 +137,22 @@ public class GroupsActionFactory
             }
             else if (method.equals("POST"))
             {
-                final URL requestURL =
-                        new URL(request.getRequestURL().toString());
-                final String redirectURI = requestURL.getProtocol() + "://"
-                                           + requestURL.getHost() + ":"
-                                           + requestURL.getPort()
-                                           + request.getContextPath()
-                                           + request.getServletPath()
-                                           + "/" + path;
-                action = new ModifyGroupAction(logInfo, groupName, redirectURI,
+                final URL requestURL = new URL(request.getRequestURL().toString());
+                final StringBuilder sb = new StringBuilder();
+                sb.append(requestURL.getProtocol());
+                sb.append("://");
+                sb.append(requestURL.getHost());
+                if (requestURL.getPort() > 0)
+                {
+                    sb.append(":");
+                    sb.append(requestURL.getPort());
+                }
+                sb.append(request.getContextPath());
+                sb.append(request.getServletPath());
+                sb.append("/");
+                sb.append(path);
+
+                action = new ModifyGroupAction(logInfo, groupName, sb.toString(),
                                                request.getInputStream());
             }
         }

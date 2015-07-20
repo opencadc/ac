@@ -83,6 +83,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
@@ -405,9 +406,21 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + user.getUserID()
                             .getClass());
         }
-
-        searchField = "(" + searchField + "=" +
-                      user.getUserID().getName() + ")";
+        
+        // change the DN to be in the 'java' format
+        if (user.getUserID() instanceof X500Principal)
+        {
+            X500Principal orderedPrincipal = AuthenticationUtil.getOrderedForm(
+                (X500Principal) user.getUserID());
+            searchField = "(" + searchField + "=" + orderedPrincipal.toString() + ")";
+        }
+        else
+        {
+            searchField = "(" + searchField + "=" + user.getUserID().getName()
+                    + ")";
+        }
+        
+        logger.debug("Search field is: " + searchField);
 
         SearchResultEntry searchResult = null;
         try
