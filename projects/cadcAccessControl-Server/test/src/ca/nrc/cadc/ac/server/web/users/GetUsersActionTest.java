@@ -186,19 +186,19 @@ public class GetUsersActionTest
 
         final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
                                 "<users>\r\n" +
-                                "  <USER_1 />\r\n" +
-                                "  <USER_2 />\r\n" +
-                                "  <USER_3 />\r\n" +
-                                "  <USER_4 />\r\n" +
-                                "  <USER_5 />\r\n" +
-                                "  <USER_6 />\r\n" +
-                                "  <USER_7 />\r\n" +
-                                "  <USER_8 />\r\n" +
-                                "  <USER_9 />\r\n" +
-                                "  <USER_10 />\r\n" +
-                                "  <USER_11 />\r\n" +
-                                "  <USER_12 />\r\n" +
-                                "  <USER_13 />\r\n" +
+                                "  <user>USER_1</user>\r\n" +
+                                "  <user>USER_2</user>\r\n" +
+                                "  <user>USER_3</user>\r\n" +
+                                "  <user>USER_4</user>\r\n" +
+                                "  <user>USER_5</user>\r\n" +
+                                "  <user>USER_6</user>\r\n" +
+                                "  <user>USER_7</user>\r\n" +
+                                "  <user>USER_8</user>\r\n" +
+                                "  <user>USER_9</user>\r\n" +
+                                "  <user>USER_10</user>\r\n" +
+                                "  <user>USER_11</user>\r\n" +
+                                "  <user>USER_12</user>\r\n" +
+                                "  <user>USER_13</user>\r\n" +
                                 "</users>\r\n";
         final String result = writer.toString();
 

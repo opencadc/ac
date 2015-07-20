@@ -94,7 +94,9 @@ public class UsersWriter
 
         for (final String s : users)
         {
-            final Element userEntryElement = new Element(s);
+            final Element userEntryElement = new Element("user");
+            userEntryElement.setText(s);
+
             usersElement.addContent(userEntryElement);
         }
 

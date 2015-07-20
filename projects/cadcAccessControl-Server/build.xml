@@ -112,11 +112,23 @@
     </jar>
   </target>
 
+  <target name="setup-test" depends="init">
+
+    <!-- Why do the tests need this configuration in two places? -->
+    <!-- jenkinsd 2015.07.20 -->
+    <copy overwrite="true" file="test/LdapConfig.test.properties"
+          todir="build/test/class"/>
+    <mkdir dir="${user.home}/config" />
+    <copy overwrite="true" file="test/LdapConfig.test.properties"
+          todir="${user.home}/config/"/>
+  </target>
+
   <!-- JAR files needed to run the test suite -->
   <property name="dev.junit" value="${ext.dev}/junit.jar"/>
   <property name="dev.httpunit" value="${ext.dev}/httpunit.jar"/>
   <property name="dev.easyMock" value="${ext.dev}/easymock.jar"/>
   <property name="dev.objenesis" value="${ext.dev}/objenesis.jar"/>
+  <property name="dev.jsonassert" value="${ext.dev}/jsonassert.jar" />
   <property name="dev.selenium.server"
             value="${ext.dev}/selenium-server-standalone.jar" />
   <property name="lib.js" value="${ext.lib}/js.jar"/>
@@ -125,15 +137,5 @@
   <property name="lib.commons-logging"
             value="${ext.lib}/commons-logging.jar"/>
   <property name="testingJars"
-            value="${lib.commons-logging}:${dev.junit}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
-
-  <target name="setup-test">
-    <echo>******************</echo>
-    <echo>******************</echo>
-    <echo>Don't forget to set the ca.nrc.cadc.util.PropertiesReader.dir system property first!</echo>
-    <echo>e.g. ant -Dca.nrc.cadc.util.PropertiesReader.dir=test clean build test</echo>
-    <echo>******************</echo>
-    <echo>******************</echo>
-  </target>
-
+            value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
 </project>
