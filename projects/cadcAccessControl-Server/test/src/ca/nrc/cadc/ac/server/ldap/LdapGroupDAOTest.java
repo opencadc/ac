@@ -67,23 +67,6 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.security.AccessControlException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.ActivatedGroup;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
@@ -91,8 +74,23 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import java.security.AccessControlException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {

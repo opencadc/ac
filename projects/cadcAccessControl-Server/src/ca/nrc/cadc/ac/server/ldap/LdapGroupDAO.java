@@ -68,18 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.ActivatedGroup;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
@@ -89,7 +77,6 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
-
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.DN;
@@ -106,6 +93,16 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
+import org.apache.log4j.Logger;
+
+import javax.security.auth.x500.X500Principal;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
