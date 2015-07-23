@@ -136,4 +136,19 @@
     <echo>******************</echo>
   </target>
 
+  <target name="test" depends="compile,compile-test">
+    <echo message="Running test suite..." />
+    <junit printsummary="yes" haltonfailure="yes" fork="yes">
+      <classpath>
+        <pathelement path="${build}/class"/>
+        <pathelement path="${build}/test/class"/>
+        <pathelement path="${jars}:${testingJars}"/>
+      </classpath>
+      <sysproperty key="ca.nrc.cadc.util.PropertiesReader.dir" value="test"/>
+      <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />-->
+      <formatter type="plain" usefile="false" />
+    </junit>
+  </target>
+
 </project>
