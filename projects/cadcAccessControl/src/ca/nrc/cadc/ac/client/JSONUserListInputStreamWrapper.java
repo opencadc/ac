@@ -66,60 +66,89 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.json;
+package ca.nrc.cadc.ac.client;
 
 import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.util.StringUtil;
+import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
 
-
-/**
- * Class to write out, as JSON, a list of user entries.
- */
-public class UsersWriter
+public class JSONUserListInputStreamWrapper implements InputStreamWrapper
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    private static final Logger LOGGER = Logger
+            .getLogger(JSONUserListInputStreamWrapper.class);
+    private final List<User<HttpPrincipal>> output;
+
+
+    public JSONUserListInputStreamWrapper(
+            final List<User<HttpPrincipal>> output)
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
+        this.output = output;
+    }
+
+
+    /**
+     * Read the stream in.
+     *
+     * @param inputStream The stream to read from.
+     * @throws IOException Any reading exceptions.
+     */
+    @Override
+    public void read(final InputStream inputStream) throws IOException
+    {
+        String line = null;
 
         try
         {
-            jsonWriter.array();
+            final InputStreamReader inReader =
+                    new InputStreamReader(inputStream);
+            final BufferedReader reader = new BufferedReader(inReader);
 
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
+            while (StringUtil.hasText(line = reader.readLine()))
             {
-                jsonWriter.object();
+                // Deal with arrays stuff.
+                while (line.startsWith("[") || line.startsWith(","))
+                {
+                    line = line.substring(1);
+                }
 
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
+                while (line.endsWith("]") || line.endsWith(","))
+                {
+                    line = line.substring(0, (line.length() - 1));
+                }
 
-                jsonWriter.endObject();
-                writer.write("\n");
+                if (StringUtil.hasText(line))
+                {
+                    LOGGER.debug(String.format("Reading: %s", line));
+
+                    final JSONObject jsonObject = new JSONObject(line);
+                    final User<HttpPrincipal> webUser =
+                            new User<HttpPrincipal>(
+                                    new HttpPrincipal(jsonObject
+                                                              .getString("id")));
+                    final String firstName = jsonObject.getString("firstName");
+                    final String lastName = jsonObject.getString("lastName");
+
+                    webUser.details
+                            .add(new PersonalDetails(firstName, lastName));
+
+                    output.add(webUser);
+                }
             }
         }
-        catch (JSONException e)
+        catch (Exception bug)
         {
-            throw new IOException(e);
-        }
-        finally
-        {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
+            throw new IOException(bug + (StringUtil.hasText(line)
+                                         ? "Error line is " + line : ""));
         }
     }
 }

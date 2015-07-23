@@ -73,10 +73,7 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.Map;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.*;
 import ca.nrc.cadc.net.TransientException;
 
 import com.unboundid.ldap.sdk.DN;
@@ -91,7 +88,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Map<String, String> getUsers()
+    Map<String, PersonalDetails> getUsers()
             throws TransientException, AccessControlException;
     
     /**

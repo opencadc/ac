@@ -66,60 +66,37 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.json;
+package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 
-/**
- * Class to write out, as JSON, a list of user entries.
- */
-public class UsersWriter
+public class JSONUserListInputStreamWrapperTest
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    @Test
+    public void readInputStream() throws Exception
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
+        final List<User<HttpPrincipal>> output =
+                new ArrayList<User<HttpPrincipal>>();
+        final JSONUserListInputStreamWrapper testSubject =
+                new JSONUserListInputStreamWrapper(output);
+        final InputStream inputStream =
+                new ByteArrayInputStream("[{\"id\":\"CADCTest\",\"firstName\":\"CADCtest\",\"lastName\":\"USER\"}\n,{\"id\":\"User_2\",\"firstName\":\"User\",\"lastName\":\"2\"}]".getBytes());
 
-        try
-        {
-            jsonWriter.array();
+        testSubject.read(inputStream);
 
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
-            {
-                jsonWriter.object();
-
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
-
-                jsonWriter.endObject();
-                writer.write("\n");
-            }
-        }
-        catch (JSONException e)
-        {
-            throw new IOException(e);
-        }
-        finally
-        {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
-        }
+        assertEquals("First item is wrong.", "CADCTest",
+                     output.get(0).getUserID().getName());
+        assertEquals("First item is wrong.", "User_2",
+                     output.get(1).getUserID().getName());
     }
 }
