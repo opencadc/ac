@@ -69,6 +69,8 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.User;
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivilegedAction;
@@ -83,6 +85,10 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.ArgumentMap;
 import ca.nrc.cadc.util.Log4jInit;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.util.Set;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Prototype main class for the GMSClient.  Currently
@@ -95,6 +101,8 @@ public class GMSClientMain implements PrivilegedAction<Object>
     private static Logger log = Logger.getLogger(GMSClientMain.class);
 
     public static final String ARG_ADD_MEMBER = "add-member";
+    public static final String ARG_CREATE_GROUP = "create";
+    public static final String ARG_GET_GROUP = "get";
 
     public static final String ARG_USERID = "userid";
     public static final String ARG_GROUP = "group";
@@ -119,9 +127,9 @@ public class GMSClientMain implements PrivilegedAction<Object>
         }
         catch (Exception e)
         {
-            e.printStackTrace();
+            log.error("FAIL", e);
         }
-        log.debug("Using ac url: " + acURL);
+        log.info("GMS service URL: " + acURL);
         client = new GMSClient(acURL.toString());
     }
 
@@ -167,13 +175,22 @@ public class GMSClientMain implements PrivilegedAction<Object>
     {
         if (argMap.isSet(ARG_ADD_MEMBER))
             return ARG_ADD_MEMBER;
+        
+        if (argMap.isSet(ARG_CREATE_GROUP))
+            return ARG_CREATE_GROUP;
+        
+        if (argMap.isSet(ARG_GET_GROUP))
+            return ARG_GET_GROUP;
 
         throw new IllegalArgumentException("No valid commands");
     }
 
     private static void usage()
     {
-        System.out.println("Usage TBD");
+        System.out.println("--add-member --group=<g> --userid=<u>");
+        System.out.println("--create --group=<g>");
+        System.out.println("--get --group=<g>");
+
     }
 
     @Override
@@ -195,6 +212,37 @@ public class GMSClientMain implements PrivilegedAction<Object>
                     throw new IllegalArgumentException("No userid specified");
 
                 client.addUserMember(group, new HttpPrincipal(userID));
+            }
+            
+            if (command.equals(ARG_CREATE_GROUP))
+            {
+                String group = argMap.getValue(ARG_GROUP);
+                if (group == null)
+                    throw new IllegalArgumentException("No group specified");
+                
+                AccessControlContext accessControlContext = AccessController.getContext();
+                Subject subject = Subject.getSubject(accessControlContext);
+                Set<X500Principal> principals = subject.getPrincipals(X500Principal.class);
+                X500Principal p = principals.iterator().next();
+                
+                Group g = new Group(group, new User(p));
+                g.getUserMembers().add(g.getOwner());
+                client.createGroup(g);
+            }
+            
+            if (command.equals(ARG_GET_GROUP))
+            {
+                String group = argMap.getValue(ARG_GROUP);
+                if (group == null)
+                    throw new IllegalArgumentException("No group specified");
+             
+                Group g = client.getGroup(group);
+                System.out.println("found: " + g.getID());
+                System.out.println("\t" + g.description);
+                System.out.println("owner: " + g.getOwner());
+                for (User u : g.getUserMembers())
+                    System.out.println("member: " + u);
+                
             }
 
             return null;
