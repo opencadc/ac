@@ -68,6 +68,7 @@
 
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.Format;
@@ -86,21 +87,25 @@ public class UsersWriter
      * @param writer            The Writer to output to.
      * @throws IOException      Any writing errors.
      */
-    public static void write(final Map<String, String> users,
+    public static void write(final Map<String, PersonalDetails> users,
                              final Writer writer) throws IOException
     {
         // Create the root users Element.
         final Element usersElement = new Element("users");
 
-        for (final Map.Entry<String, String> entry : users.entrySet())
+        for (final Map.Entry<String, PersonalDetails> entry : users.entrySet())
         {
             final Element userEntryElement = new Element("user");
-            final Element nameElement = new Element("name");
+            final Element firstNameElement = new Element("firstName");
+            final Element lastNameElement = new Element("lastName");
 
             userEntryElement.setAttribute("id", entry.getKey());
 
-            nameElement.setText(entry.getValue());
-            userEntryElement.addContent(nameElement);
+            firstNameElement.setText(entry.getValue().getFirstName());
+            userEntryElement.addContent(firstNameElement);
+
+            lastNameElement.setText(entry.getValue().getLastName());
+            userEntryElement.addContent(lastNameElement);
 
             usersElement.addContent(userEntryElement);
         }

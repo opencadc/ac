@@ -68,10 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.*;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
@@ -100,7 +97,7 @@ public class LdapUserPersistence<T extends Principal>
         }
     }
     
-    public Map<String, String> getUsers()
+    public Map<String, PersonalDetails> getUsers()
         throws TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;

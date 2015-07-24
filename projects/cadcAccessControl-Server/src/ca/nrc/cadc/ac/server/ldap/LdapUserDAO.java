@@ -488,15 +488,16 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @return A map of string keys to string values.
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Map<String, String> getUsers()
+    public Map<String, PersonalDetails> getUsers()
             throws TransientException
     {
-        final Map<String, String> users = new HashMap<String, String>();
+        final Map<String, PersonalDetails> users =
+                new HashMap<String, PersonalDetails>();
 
         try
         {
-            final Filter filter = Filter.createPresenceFilter(LDAP_COMMON_NAME);
-            final String[] attributes = new String[]{LDAP_COMMON_NAME,
+            final Filter filter = Filter.createPresenceFilter(LDAP_UID);
+            final String[] attributes = new String[]{LDAP_UID,
                                                      LDAP_FIRST_NAME,
                                                      LDAP_LAST_NAME,
                                                      LDAP_NSACCOUNTLOCK};
@@ -514,10 +515,16 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 {
                     if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
                     {
-                        users.put(next.getAttributeValue(LDAP_COMMON_NAME),
-                                  next.getAttributeValue(LDAP_FIRST_NAME)
-                                  + " "
-                                  + next.getAttributeValue(LDAP_LAST_NAME));
+                        final String trimmedFirstName =
+                                next.getAttributeValue(LDAP_FIRST_NAME).trim();
+                        final String trimmedLastName =
+                                next.getAttributeValue(LDAP_LAST_NAME).trim();
+                        final String trimmedUID =
+                                next.getAttributeValue(LDAP_UID).trim();
+
+                        users.put(trimmedUID,
+                                  new PersonalDetails(trimmedFirstName,
+                                                      trimmedLastName));
                     }
                 }
             }

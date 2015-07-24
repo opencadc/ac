@@ -80,6 +80,7 @@ import java.util.Map;
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
 import org.apache.log4j.Logger;
@@ -278,7 +279,7 @@ public abstract class UsersAction
      *
      * @param users         The Map of user IDs to names.
      */
-    protected final void writeUsers(final Map<String, String> users)
+    protected final void writeUsers(final Map<String, PersonalDetails> users)
             throws IOException
     {
         response.setContentType(acceptedContentType);
