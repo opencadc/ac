@@ -66,35 +66,31 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.server.SyncOutput;
-
+import java.security.Principal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  *
  * @author jburke
  */
-public class GetGroupNamesActionTest
+public class RemoveUserMemberActionTest
 {
-    private final static Logger log = Logger.getLogger(GetGroupNamesActionTest.class);
-
+   private final static Logger log = Logger.getLogger(RemoveUserMemberActionTest.class);
+    
     @BeforeClass
     public static void setUpClass()
     {
@@ -102,51 +98,98 @@ public class GetGroupNamesActionTest
     }
 
     @Test
-    @Ignore
-    public void testRun() throws Exception
+    @SuppressWarnings("unchecked")
+    public void testExceptions()
     {
         try
-        {
-            Collection<String> groupNames = new ArrayList<String>();
-            groupNames.add("foo");
-            groupNames.add("bar");
-
-            final GroupPersistence mockPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(mockPersistence.getGroupNames()).andReturn(groupNames).once();
-
-            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
-            mockWriter.write("foo", 0, 3);
-            EasyMock.expectLastCall();
-            mockWriter.write(44);
-            EasyMock.expectLastCall();
-            mockWriter.write("bar", 0, 3);
-            EasyMock.expectLastCall();
-            mockWriter.write("\n");
-            EasyMock.expectLastCall();
-
-            final SyncOutput mockSyncOutput =
-                    EasyMock.createMock(SyncOutput.class);
-
-            mockSyncOutput.setHeader("Content-Type", "text/csv");
-
-            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
-            mockResponse.setContentType("text/csv");
-            EasyMock.expectLastCall();
-            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
-
-            GroupLogInfo mockLog = EasyMock.createMock(GroupLogInfo.class);
-
-            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
-
-            GetGroupNamesAction action = new GetGroupNamesAction(mockLog)
+        {   
+            String userID = "foo";
+            String userIDType = AuthenticationUtil.AUTH_TYPE_HTTP;
+            Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
+            User<Principal> user = new User<Principal>(userPrincipal);
+            
+            Group group = new Group("group", null);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            EasyMock.replay(groupPersistence);
+            
+            final UserPersistence userPersistence = EasyMock.createMock(UserPersistence.class);
+            EasyMock.expect(userPersistence.getUser(userPrincipal)).andReturn(user);
+            EasyMock.replay(userPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            RemoveUserMemberAction action = new RemoveUserMemberAction(logInfo, "group", userID, userIDType)
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
                 {
-                    return mockPersistence;
+                    return groupPersistence;
+                };
+                
+                @Override
+                <T extends Principal> UserPersistence<T> getUserPersistence()
+                {
+                    return userPersistence;
                 };
             };
-
+            
+            try
+            {
+                action.run();
+                fail("unknown group member should throw MemberNotFoundException");
+            }
+            catch (MemberNotFoundException ignore) {}
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
+    }
+    
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRun() throws Exception
+    {
+        try
+        {
+            String userID = "foo";
+            String userIDType = AuthenticationUtil.AUTH_TYPE_HTTP;
+            Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
+            User<Principal> user = new User<Principal>(userPrincipal);
+            
+            Group group = new Group("group", null);
+            group.getUserMembers().add(user);
+            Group modified = new Group("group", null);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
+            EasyMock.replay(groupPersistence);
+            
+            final UserPersistence userPersistence = EasyMock.createMock(UserPersistence.class);
+            EasyMock.expect(userPersistence.getUser(userPrincipal)).andReturn(user);
+            EasyMock.replay(userPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            RemoveUserMemberAction action = new RemoveUserMemberAction(logInfo, "group", userID, userIDType)
+            {
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+                
+                @Override
+                <T extends Principal> UserPersistence<T> getUserPersistence()
+                {
+                    return userPersistence;
+                };
+            };
+            
             action.run();
         }
         catch (Throwable t)
@@ -155,5 +198,5 @@ public class GetGroupNamesActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-
+    
 }

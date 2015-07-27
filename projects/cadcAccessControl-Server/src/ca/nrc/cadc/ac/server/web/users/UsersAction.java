@@ -68,6 +68,17 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.net.TransientException;
+import org.apache.log4j.Logger;
+
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
@@ -76,19 +87,6 @@ import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
-
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletResponse;
-
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserRequest;
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.net.TransientException;
 
 public abstract class UsersAction
     implements PrivilegedExceptionAction<Object>

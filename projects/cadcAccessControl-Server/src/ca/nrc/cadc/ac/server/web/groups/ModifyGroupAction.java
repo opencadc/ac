@@ -66,42 +66,76 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.xml.GroupReader;
 
-public class DeleteGroupAction extends GroupsAction
+public class ModifyGroupAction extends GroupsAction
 {
     private final String groupName;
+    private final String request;
+    private final InputStream inputStream;
 
-    DeleteGroupAction(GroupLogInfo logInfo, String groupName)
+    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
+                      final String request, InputStream inputStream)
     {
         super(logInfo);
         this.groupName = groupName;
+        this.request = request;
+        this.inputStream = inputStream;
     }
 
     public Object run()
         throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Group deletedGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.deleteGroup(this.groupName);
-        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))
+        Group group = GroupReader.read(this.inputStream);
+        Group oldGroup = groupPersistence.getGroup(this.groupName);
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        for (User member : group.getUserMembers())
         {
-            this.logInfo.deletedMembers = new ArrayList<String>();
-            for (Group gr : deletedGroup.getGroupMembers())
+            if (!oldGroup.getUserMembers().remove(member))
             {
-                this.logInfo.deletedMembers.add(gr.getID());
-            }
-            for (User usr : deletedGroup.getUserMembers())
-            {
-                this.logInfo.deletedMembers.add(usr.getUserID().getName());
+                addedMembers.add(member.getUserID().getName());
             }
         }
+        for (Group gr : group.getGroupMembers())
+        {
+            if (!oldGroup.getGroupMembers().remove(gr))
+            {
+                addedMembers.add(gr.getID());
+            }
+        }
+        if (addedMembers.isEmpty())
+        {
+            addedMembers = null;
+        }
+        List<String> deletedMembers = new ArrayList<String>();
+        for (User member : oldGroup.getUserMembers())
+        {
+            deletedMembers.add(member.getUserID().getName());
+        }
+        for (Group gr : oldGroup.getGroupMembers())
+        {
+            deletedMembers.add(gr.getID());
+        }
+        if (deletedMembers.isEmpty())
+        {
+            deletedMembers = null;
+        }
+        logGroupInfo(group.getID(), deletedMembers, addedMembers);
+
+        this.response.sendRedirect(request);
+
         return null;
     }
 

@@ -137,19 +137,7 @@
   <property name="lib.commons-logging"
             value="${ext.lib}/commons-logging.jar"/>
   <property name="testingJars"
-<<<<<<< HEAD
             value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
-=======
-            value="${lib.commons-logging}:${dev.junit}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
-
-  <target name="setup-test">
-    <echo>******************</echo>
-    <echo>******************</echo>
-    <echo>Don't forget to set the ca.nrc.cadc.util.PropertiesReader.dir system property first!</echo>
-    <echo>e.g. ant -Dca.nrc.cadc.util.PropertiesReader.dir=test clean build test</echo>
-    <echo>******************</echo>
-    <echo>******************</echo>
-  </target>
 
   <target name="test" depends="compile,compile-test">
     <echo message="Running test suite..." />
@@ -161,10 +149,9 @@
       </classpath>
       <sysproperty key="ca.nrc.cadc.util.PropertiesReader.dir" value="test"/>
       <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
-      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />-->
+      <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
       <formatter type="plain" usefile="false" />
     </junit>
   </target>
 
->>>>>>> s1734
 </project>

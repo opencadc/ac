@@ -66,46 +66,42 @@
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.groups;
 
-package ca.nrc.cadc.ac.server.web;
-
-import java.io.Writer;
-import java.util.Collection;
-
-import org.apache.log4j.Logger;
-
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import java.util.ArrayList;
+import java.util.List;
 
-public class GetGroupNamesAction extends GroupsAction
+public class RemoveGroupMemberAction extends GroupsAction
 {
-    
-    private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
+    private final String groupName;
+    private final String groupMemberName;
 
-    GetGroupNamesAction(GroupLogInfo logInfo)
+    RemoveGroupMemberAction(GroupLogInfo logInfo, String groupName, String groupMemberName)
     {
         super(logInfo);
+        this.groupName = groupName;
+        this.groupMemberName = groupMemberName;
     }
 
     public Object run()
         throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Collection<String> groups = groupPersistence.getGroupNames();
-        log.debug("Found " + groups.size() + " group names");
-        response.setContentType("text/plain");
-        log.debug("Set content-type to text/plain");
-        Writer writer = response.getWriter();
-        boolean start = true;
-        for (final String group : groups)
+        Group group = groupPersistence.getGroup(this.groupName);
+        Group toRemove = new Group(this.groupMemberName);
+        if (!group.getGroupMembers().remove(toRemove))
         {
-            if (!start)
-            {
-                writer.write("\r\n");
-            }
-            writer.write(group);
-            start = false;
+            throw new GroupNotFoundException(this.groupMemberName);
         }
-        
+        groupPersistence.modifyGroup(group);
+
+        List<String> deletedMembers = new ArrayList<String>();
+        deletedMembers.add(toRemove.getID());
+        logGroupInfo(group.getID(), deletedMembers, null);
         return null;
     }
+
 }

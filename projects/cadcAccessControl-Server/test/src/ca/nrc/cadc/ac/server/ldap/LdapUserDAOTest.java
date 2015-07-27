@@ -69,7 +69,6 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserRequest;
@@ -132,7 +131,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     /**
      * Test of addUser method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testAddUser() throws Exception
     {
         final User<HttpPrincipal> expected = new User<HttpPrincipal>(new HttpPrincipal(getUserID()));
@@ -152,7 +151,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     /**
      * Test of getUser method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testGetUser() throws Exception
     {
         Subject subject = new Subject();
@@ -167,8 +166,6 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                 try
                 {
                     User<X500Principal> actual = getUserDAO().getUser(testUser.getUserID());
-                    User<X500Principal> actual = getUserDAO()
-                            .getUser(testUser.getUserID());
                     check(testUser, actual);
 
                     return null;
@@ -185,7 +182,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testGetUserGroups() throws Exception
     {
         Subject subject = new Subject();
@@ -198,11 +195,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
             {
                 try
                 {
-                    Collection<DN> groups = getUserDAO().getUserGroups(testUser.getUserID(), false);
-                    assertNotNull(groups);
-                    assertTrue(!groups.isEmpty());
-                    Collection<DN> groups =
-                            getUserDAO().getUserGroups(testUser.getUserID(),
+                    Collection<DN> groups = getUserDAO().getUserGroups(testUser.getUserID(),
                                                        false);
                     assertNotNull("Groups should not be null.", groups);
 
@@ -211,9 +204,6 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                         log.debug(groupDN);
                     }
 
-                    groups = getUserDAO().getUserGroups(testUser.getUserID(), true);
-                    assertNotNull(groups);
-                    assertTrue(!groups.isEmpty());
                     groups = getUserDAO().getUserGroups(testUser.getUserID(),
                                                         true);
                     assertNotNull("Groups should not be null.", groups);
@@ -235,7 +225,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     /**
      * Test of getUserGroups method, of class LdapUserDAO.
      */
-//    @Test
+    @Test
     public void testIsMember() throws Exception
     {
         Subject subject = new Subject();
@@ -249,16 +239,9 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                 try
                 {
                     boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
-                    assertFalse(isMember);
-                    boolean isMember =
-                            getUserDAO().isMember(testUser.getUserID(), "foo");
                     assertFalse("Membership should not exist.", isMember);
 
-                    String groupDN = "cn=cadcdaotestgroup1," + config.getGroupsDN();
-                    isMember = getUserDAO().isMember(testUser.getUserID(), groupDN);
-                    assertTrue(isMember);
-                    String groupDN = "cn=cadcdaotestgroup1,"
-                                     + config.getGroupsDN();
+                    String  groupDN = "cn=cadcdaotestgroup1," + config.getGroupsDN();
                     isMember = getUserDAO().isMember(testUser.getUserID(),
                                                      groupDN);
                     assertTrue("Membership should exist.", isMember);
@@ -276,7 +259,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     /**
      * Test of getMember.
      */
-//    @Test
+    @Test
     public void testGetMember() throws Exception
     {
         Subject subject = new Subject();
@@ -290,8 +273,6 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                 try
                 {
                     User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
-                    User<X500Principal> actual = getUserDAO()
-                            .getMember(new DN(testUserDN));
                     check(testUser, actual);
                     return null;
                 }
@@ -314,12 +295,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
             {
                 try
                 {
-<<<<<<< HEAD
                     User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
-=======
-                    User<X500Principal> actual = getUserDAO()
-                            .getMember(new DN(testUserDN));
->>>>>>> 57bf534cb0ace85be32da449ca35a73e96a379b2
                     check(testUser, actual);
                     return null;
                 }
@@ -334,14 +310,12 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     /**
      * Test of testGetCadcUserIDs.
      */
-//    @Test
+    @Test
     public void testGetCadcUserIDs() throws Exception
     {
         Subject subject = new Subject();
 
-
         // anonymous access
-        int users1 = (Integer)Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         int users1 = (Integer) Subject
                 .doAs(subject, new PrivilegedExceptionAction<Object>()
                 {
@@ -363,7 +337,6 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
 
         // authenticated access
         subject.getPrincipals().add(testUser.getUserID());
-        int users2 = (Integer)Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         int users2 = (Integer) Subject
                 .doAs(subject, new PrivilegedExceptionAction<Object>()
                 {
@@ -383,11 +356,10 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                     }
                 });
         assertEquals("User listing should be independent of the access type",
-<<<<<<< HEAD
             users1, users2);
     }
 
-    @Test
+//    @Test
     public void testSetPassword() throws Exception
     {
 //        LDAPConnection connection =
@@ -507,7 +479,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
 
     }
 
-//    @Test
+    @Test
     public void testUpdateUser() throws Exception
     {
         // Create a test user
@@ -596,9 +568,6 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
         });
         assertNotNull(updatedUser);
         check(testUser2, updatedUser);
-=======
-                     users1, users2);
->>>>>>> 57bf534cb0ace85be32da449ca35a73e96a379b2
     }
 
     private static void check(final User<? extends Principal> user1, final User<? extends Principal> user2)
@@ -625,24 +594,6 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                         assertEquals(pd1.country, pd2.country);
                         assertEquals(pd1.email, pd2.email);
                         assertEquals(pd1.institute, pd2.institute);
-                        found = true;
-                    }
-                    assertTrue(found);
-                }
-            }
-            if (d1 instanceof PosixDetails)
-            {
-                PosixDetails pd1 = (PosixDetails) d1;
-                boolean found = false;
-                for(UserDetails d2 : user2.details)
-                {
-                    if(d2 instanceof PosixDetails)
-                    {
-                        PosixDetails pd2 = (PosixDetails) d2;
-                        assertEquals(pd1, pd2);
-                        assertEquals(pd1.getUid(), pd2.getUid());
-                        assertEquals(pd1.getGid(), pd2.getGid());
-                        assertEquals(pd1.getHomeDirectory(), pd2.getHomeDirectory());
                         found = true;
                     }
                     assertTrue(found);

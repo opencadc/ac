@@ -66,43 +66,46 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+package ca.nrc.cadc.ac.server.web.groups;
+
+import java.io.Writer;
+import java.util.Collection;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.util.ArrayList;
-import java.util.List;
 
-public class AddGroupMemberAction extends GroupsAction
+public class GetGroupNamesAction extends GroupsAction
 {
-    private final String groupName;
-    private final String groupMemberName;
+    
+    private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
 
-    AddGroupMemberAction(GroupLogInfo logInfo, String groupName,
-                         String groupMemberName)
+    GetGroupNamesAction(GroupLogInfo logInfo)
     {
         super(logInfo);
-        this.groupName = groupName;
-        this.groupMemberName = groupMemberName;
     }
 
     public Object run()
         throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = groupPersistence.getGroup(this.groupName);
-        Group toAdd = new Group(this.groupMemberName);
-        if (!group.getGroupMembers().add(toAdd))
+        Collection<String> groups = groupPersistence.getGroupNames();
+        log.debug("Found " + groups.size() + " group names");
+        response.setContentType("text/plain");
+        log.debug("Set content-type to text/plain");
+        Writer writer = response.getWriter();
+        boolean start = true;
+        for (final String group : groups)
         {
-            throw new GroupAlreadyExistsException(this.groupMemberName);
+            if (!start)
+            {
+                writer.write("\r\n");
+            }
+            writer.write(group);
+            start = false;
         }
-        groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getID());
-        logGroupInfo(group.getID(), null, addedMembers);
+        
         return null;
     }
-
 }

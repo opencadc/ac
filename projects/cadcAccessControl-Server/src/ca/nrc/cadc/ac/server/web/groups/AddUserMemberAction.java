@@ -66,111 +66,51 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import java.security.Principal;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.easymock.EasyMock.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
-
-/**
- *
- * @author jburke
- */
-public class AddGroupMemberActionTest
+public class AddUserMemberAction extends GroupsAction
 {
-    private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
-    
-    @BeforeClass
-    public static void setUpClass()
+    private final String groupName;
+    private final String userID;
+    private final String userIDType;
+
+    AddUserMemberAction(GroupLogInfo logInfo, String groupName, String userID,
+                        String userIDType)
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        super(logInfo);
+        this.groupName = groupName;
+        this.userID = userID;
+        this.userIDType = userIDType;
     }
 
-    @Test
-    public void testExceptions()
+    @SuppressWarnings("unchecked")
+    public Object run()
+        throws Exception
     {
-        try
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group group = groupPersistence.getGroup(this.groupName);
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
+        User<Principal> toAdd = new User(userPrincipal);
+        if (!group.getUserMembers().add(toAdd))
         {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
-            group.getGroupMembers().add(member);
-            
-            final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            replay(groupPersistence);
-            
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            
-            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
-            
-            try
-            {
-                action.run();
-                fail("duplicate group member should throw GroupAlreadyExistsException");
-            }
-            catch (GroupAlreadyExistsException ignore) {}
+            throw new MemberAlreadyExistsException();
         }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        addedMembers.add(toAdd.getUserID().getName());
+        logGroupInfo(group.getID(), null, addedMembers);
+        return null;
     }
-    
-    @Test
-    public void testRun() throws Exception
-    {
-        try
-        {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
-            Group modified = new Group("group", null);
-            modified.getGroupMembers().add(member);
 
-            final GroupPersistence groupPersistence =
-                    createMock(GroupPersistence.class);
-
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            expect(groupPersistence.modifyGroup(group)).andReturn(modified);
-
-            replay(groupPersistence);
-            
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            
-            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
-
-            action.run();
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
-    }
-    
 }

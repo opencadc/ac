@@ -69,11 +69,11 @@
 package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.server.web.AddUserMemberActionTest;
+import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
-import java.security.Principal;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Level;
