@@ -240,8 +240,18 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 System.out.println("found: " + g.getID());
                 System.out.println("\t" + g.description);
                 System.out.println("owner: " + g.getOwner());
+                
+                for (User u : g.getUserAdmins())
+                    System.out.println("admin: " + u);
+                
+                for (Group ga : g.getGroupAdmins())
+                    System.out.println("admin: " + ga);
+                
                 for (User u : g.getUserMembers())
                     System.out.println("member: " + u);
+                
+                for (Group gm : g.getGroupMembers())
+                    System.out.println("member: " + gm);
                 
             }
 
