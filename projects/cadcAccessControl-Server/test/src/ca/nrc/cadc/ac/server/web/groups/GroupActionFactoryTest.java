@@ -65,7 +65,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -76,8 +76,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import ca.nrc.cadc.util.Log4jInit;
-
-import java.net.URL;
 
 public class GroupActionFactoryTest
 {

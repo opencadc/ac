@@ -65,20 +65,26 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac.server.web;
+ */
+package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupWriter;
+import java.util.ArrayList;
+import java.util.List;
 
-public class GetGroupAction extends GroupsAction
+public class AddGroupMemberAction extends GroupsAction
 {
     private final String groupName;
+    private final String groupMemberName;
 
-    GetGroupAction(GroupLogInfo logInfo, String groupName)
+    AddGroupMemberAction(GroupLogInfo logInfo, String groupName,
+                         String groupMemberName)
     {
         super(logInfo);
         this.groupName = groupName;
+        this.groupMemberName = groupMemberName;
     }
 
     public Object run()
@@ -86,8 +92,16 @@ public class GetGroupAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(group, this.response.getOutputStream());
+        Group toAdd = new Group(this.groupMemberName);
+        if (!group.getGroupMembers().add(toAdd))
+        {
+            throw new GroupAlreadyExistsException(this.groupMemberName);
+        }
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        addedMembers.add(toAdd.getID());
+        logGroupInfo(group.getID(), null, addedMembers);
         return null;
     }
 

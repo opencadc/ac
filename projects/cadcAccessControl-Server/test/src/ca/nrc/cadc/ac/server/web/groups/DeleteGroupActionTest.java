@@ -66,43 +66,64 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import ca.nrc.cadc.util.Log4jInit;
+import java.security.Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class RemoveGroupMemberAction extends GroupsAction
+/**
+ *
+ * @author jburke
+ */
+public class DeleteGroupActionTest
 {
-    private final String groupName;
-    private final String groupMemberName;
-
-    RemoveGroupMemberAction(GroupLogInfo logInfo, String groupName, String groupMemberName)
+   private final static Logger log = Logger.getLogger(DeleteGroupActionTest.class);
+    
+    @BeforeClass
+    public static void setUpClass()
     {
-        super(logInfo);
-        this.groupName = groupName;
-        this.groupMemberName = groupMemberName;
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    public Object run()
-        throws Exception
+    @Test
+    public void testRun()
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = groupPersistence.getGroup(this.groupName);
-        Group toRemove = new Group(this.groupMemberName);
-        if (!group.getGroupMembers().remove(toRemove))
-        {
-            throw new GroupNotFoundException(this.groupMemberName);
+        try
+        {   
+            Group group = new Group("group", null);
+            
+            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
+            groupPersistence.deleteGroup("group");
+            EasyMock.expectLastCall().once();
+            EasyMock.replay(groupPersistence);
+            
+            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
+            
+            DeleteGroupAction action = new DeleteGroupAction(logInfo, "group")
+            {
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return groupPersistence;
+                };
+            };
+
+            action.run();
         }
-        groupPersistence.modifyGroup(group);
-
-        List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getID());
-        logGroupInfo(group.getID(), deletedMembers, null);
-        return null;
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
-
+    
 }

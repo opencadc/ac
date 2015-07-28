@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,64 +62,56 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.groups;
 
-package ca.nrc.cadc.ac.json;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.xml.GroupWriter;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
-
-
-/**
- * Class to write out, as JSON, a list of user entries.
- */
-public class UsersWriter
+public class CreateGroupAction extends GroupsAction
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    private final InputStream inputStream;
+
+    CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
-
-        try
-        {
-            jsonWriter.array();
-
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
-            {
-                jsonWriter.object();
-
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
-
-                jsonWriter.endObject();
-                writer.write("\n");
-            }
-        }
-        catch (JSONException e)
-        {
-            throw new IOException(e);
-        }
-        finally
-        {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
-        }
+        super(logInfo);
+        this.inputStream = inputStream;
     }
+
+    public Object run()
+        throws Exception
+    {
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group group = GroupReader.read(this.inputStream);
+        Group newGroup = groupPersistence.addGroup(group);
+        this.response.setContentType("application/xml");
+        GroupWriter.write(newGroup, this.response.getOutputStream());
+
+        List<String> addedMembers = null;
+        if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
+        {
+            addedMembers = new ArrayList<String>();
+            for (Group gr : newGroup.getGroupMembers())
+            {
+                addedMembers.add(gr.getID());
+            }
+            for (User usr : newGroup.getUserMembers())
+            {
+                addedMembers.add(usr.getUserID().getName());
+            }
+        }
+        logGroupInfo(newGroup.getID(), null, addedMembers);
+        return null;
+    }
+
 }

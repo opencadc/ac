@@ -66,77 +66,94 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.server.SyncOutput;
 
-public class ModifyGroupAction extends GroupsAction
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static org.junit.Assert.fail;
+
+/**
+ *
+ * @author jburke
+ */
+public class GetGroupNamesActionTest
 {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
+    private final static Logger log = Logger.getLogger(GetGroupNamesActionTest.class);
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
+    @BeforeClass
+    public static void setUpClass()
     {
-        super(logInfo);
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    public Object run()
-        throws Exception
+    @Test
+    @Ignore
+    public void testRun() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
+        try
         {
-            if (!oldGroup.getUserMembers().remove(member))
+            Collection<String> groupNames = new ArrayList<String>();
+            groupNames.add("foo");
+            groupNames.add("bar");
+
+            final GroupPersistence mockPersistence = EasyMock.createMock(GroupPersistence.class);
+            EasyMock.expect(mockPersistence.getGroupNames()).andReturn(groupNames).once();
+
+            final PrintWriter mockWriter = EasyMock.createMock(PrintWriter.class);
+            mockWriter.write("foo", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write(44);
+            EasyMock.expectLastCall();
+            mockWriter.write("bar", 0, 3);
+            EasyMock.expectLastCall();
+            mockWriter.write("\n");
+            EasyMock.expectLastCall();
+
+            final SyncOutput mockSyncOutput =
+                    EasyMock.createMock(SyncOutput.class);
+
+            mockSyncOutput.setHeader("Content-Type", "text/csv");
+
+            final HttpServletResponse mockResponse = EasyMock.createMock(HttpServletResponse.class);
+            mockResponse.setContentType("text/csv");
+            EasyMock.expectLastCall();
+            EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
+
+            GroupLogInfo mockLog = EasyMock.createMock(GroupLogInfo.class);
+
+            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
+
+            GetGroupNamesAction action = new GetGroupNamesAction(mockLog)
             {
-                addedMembers.add(member.getUserID().getName());
-            }
-        }
-        for (Group gr : group.getGroupMembers())
-        {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
-                addedMembers.add(gr.getID());
-            }
-        }
-        if (addedMembers.isEmpty())
-        {
-            addedMembers = null;
-        }
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
-            deletedMembers.add(member.getUserID().getName());
-        }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
-            deletedMembers.add(gr.getID());
-        }
-        if (deletedMembers.isEmpty())
-        {
-            deletedMembers = null;
-        }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
+                @Override
+                <T extends Principal> GroupPersistence<T> getGroupPersistence()
+                {
+                    return mockPersistence;
+                };
+            };
 
-        this.response.sendRedirect(request);
-
-        return null;
+            action.run();
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
 
 }

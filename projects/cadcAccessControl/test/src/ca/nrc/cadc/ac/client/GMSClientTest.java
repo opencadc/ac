@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.ac.client;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
@@ -77,10 +78,10 @@ import java.util.List;
 
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.net.HttpDownload;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
 
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
@@ -88,6 +89,11 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
+
+import org.junit.Assert;
+import org.junit.Test;
+import static org.easymock.EasyMock.*;
+
 
 public class GMSClientTest
 {
@@ -98,7 +104,41 @@ public class GMSClientTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
     }
-    
+
+
+    @Test
+    public void testGetDisplayUsers() throws Exception
+    {
+        final HttpDownload mockHTTPDownload = createMock(HttpDownload.class);
+        final GMSClient testSubject = new GMSClient("http://mysite.com/users")
+        {
+            @Override
+            HttpDownload createDisplayUsersHTTPDownload(
+                    List<User<HttpPrincipal>> webUsers) throws IOException
+            {
+                return mockHTTPDownload;
+            }
+        };
+
+        mockHTTPDownload.setRequestProperty("Accept", "application/json");
+        expectLastCall().once();
+
+        mockHTTPDownload.run();
+        expectLastCall().once();
+
+        expect(mockHTTPDownload.getThrowable()).andReturn(null).once();
+
+        expect(mockHTTPDownload.getContentLength()).andReturn(88l).once();
+        expect(mockHTTPDownload.getContentType()).andReturn(
+                "application/json").once();
+
+        replay(mockHTTPDownload);
+
+        testSubject.getDisplayUsers();
+
+        verify(mockHTTPDownload);
+    }
+
     @Test
     public void testUserIsSubject()
     {

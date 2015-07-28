@@ -66,21 +66,43 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.log.ServletLogInfo;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 
-public class GroupLogInfo extends ServletLogInfo
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+
+public class DeleteGroupAction extends GroupsAction
 {
-    public String groupID;
-    public List<String> addedMembers;
-    public List<String> deletedMembers;
+    private final String groupName;
 
-    public GroupLogInfo(HttpServletRequest request)
+    DeleteGroupAction(GroupLogInfo logInfo, String groupName)
     {
-        super(request);
+        super(logInfo);
+        this.groupName = groupName;
+    }
+
+    public Object run()
+        throws Exception
+    {
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group deletedGroup = groupPersistence.getGroup(this.groupName);
+        groupPersistence.deleteGroup(this.groupName);
+        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))
+        {
+            this.logInfo.deletedMembers = new ArrayList<String>();
+            for (Group gr : deletedGroup.getGroupMembers())
+            {
+                this.logInfo.deletedMembers.add(gr.getID());
+            }
+            for (User usr : deletedGroup.getUserMembers())
+            {
+                this.logInfo.deletedMembers.add(usr.getUserID().getName());
+            }
+        }
+        return null;
     }
 
 }

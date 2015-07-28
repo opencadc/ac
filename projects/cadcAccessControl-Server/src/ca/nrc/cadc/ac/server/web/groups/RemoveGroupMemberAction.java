@@ -66,21 +66,20 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AddGroupMemberAction extends GroupsAction
+public class RemoveGroupMemberAction extends GroupsAction
 {
     private final String groupName;
     private final String groupMemberName;
 
-    AddGroupMemberAction(GroupLogInfo logInfo, String groupName,
-                         String groupMemberName)
+    RemoveGroupMemberAction(GroupLogInfo logInfo, String groupName, String groupMemberName)
     {
         super(logInfo);
         this.groupName = groupName;
@@ -92,16 +91,16 @@ public class AddGroupMemberAction extends GroupsAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        Group toAdd = new Group(this.groupMemberName);
-        if (!group.getGroupMembers().add(toAdd))
+        Group toRemove = new Group(this.groupMemberName);
+        if (!group.getGroupMembers().remove(toRemove))
         {
-            throw new GroupAlreadyExistsException(this.groupMemberName);
+            throw new GroupNotFoundException(this.groupMemberName);
         }
         groupPersistence.modifyGroup(group);
 
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getID());
-        logGroupInfo(group.getID(), null, addedMembers);
+        List<String> deletedMembers = new ArrayList<String>();
+        deletedMembers.add(toRemove.getID());
+        logGroupInfo(group.getID(), deletedMembers, null);
         return null;
     }
 

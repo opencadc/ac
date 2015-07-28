@@ -66,111 +66,96 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
-import java.security.Principal;
-import org.apache.log4j.Level;
+import java.io.IOException;
+
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 
-import static org.easymock.EasyMock.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 
-/**
- *
- * @author jburke
- */
-public class AddGroupMemberActionTest
+public class GroupsServlet extends HttpServlet
 {
-    private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
-    
-    @BeforeClass
-    public static void setUpClass()
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-    }
+    private static final Logger log = Logger.getLogger(GroupsServlet.class);
 
-    @Test
-    public void testExceptions()
+    /**
+     * Create a GroupAction and run the action safely.
+     */
+    private void doAction(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
+        long start = System.currentTimeMillis();
+        GroupLogInfo logInfo = new GroupLogInfo(request);
         try
         {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
-            group.getGroupMembers().add(member);
-            
-            final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            replay(groupPersistence);
-            
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            
-            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
-            
-            try
-            {
-                action.run();
-                fail("duplicate group member should throw GroupAlreadyExistsException");
-            }
-            catch (GroupAlreadyExistsException ignore) {}
+            log.info(logInfo.start());
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
+            action.doAction(subject, response);
+        }
+        catch (IllegalArgumentException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            logInfo.setSuccess(false);
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
         }
         catch (Throwable t)
         {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.getWriter().write(message);
+            response.setStatus(500);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
         }
     }
-    
-    @Test
-    public void testRun() throws Exception
+
+    @Override
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        try
-        {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
-            Group modified = new Group("group", null);
-            modified.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence =
-                    createMock(GroupPersistence.class);
-
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            expect(groupPersistence.modifyGroup(group)).andReturn(modified);
-
-            replay(groupPersistence);
-            
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            
-            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
-
-            action.run();
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        doAction(request, response);
     }
-    
+
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doHead(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
 }

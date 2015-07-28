@@ -173,13 +173,14 @@ public class UsersServlet extends HttpServlet
     {
         final String requestedContentType = request.getHeader("Accept");
 
-        if (!UsersAction.JSON_CONTENT_TYPE.equals(requestedContentType))
+        if (StringUtil.hasText(requestedContentType)
+            && requestedContentType.contains(UsersAction.JSON_CONTENT_TYPE))
         {
-            return UsersAction.DEFAULT_CONTENT_TYPE;
+            return UsersAction.JSON_CONTENT_TYPE;
         }
         else
         {
-            return requestedContentType;
+            return UsersAction.DEFAULT_CONTENT_TYPE;
         }
     }
 }

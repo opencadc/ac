@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,64 +62,55 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.groups;
 
-package ca.nrc.cadc.ac.json;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
-
-
-/**
- * Class to write out, as JSON, a list of user entries.
- */
-public class UsersWriter
+public class AddUserMemberAction extends GroupsAction
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    private final String groupName;
+    private final String userID;
+    private final String userIDType;
+
+    AddUserMemberAction(GroupLogInfo logInfo, String groupName, String userID,
+                        String userIDType)
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
-
-        try
-        {
-            jsonWriter.array();
-
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
-            {
-                jsonWriter.object();
-
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
-
-                jsonWriter.endObject();
-                writer.write("\n");
-            }
-        }
-        catch (JSONException e)
-        {
-            throw new IOException(e);
-        }
-        finally
-        {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
-        }
+        super(logInfo);
+        this.groupName = groupName;
+        this.userID = userID;
+        this.userIDType = userIDType;
     }
+
+    @SuppressWarnings("unchecked")
+    public Object run()
+        throws Exception
+    {
+        GroupPersistence groupPersistence = getGroupPersistence();
+        Group group = groupPersistence.getGroup(this.groupName);
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
+        User<Principal> toAdd = new User(userPrincipal);
+        if (!group.getUserMembers().add(toAdd))
+        {
+            throw new MemberAlreadyExistsException();
+        }
+        
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        addedMembers.add(toAdd.getUserID().getName());
+        logGroupInfo(group.getID(), null, addedMembers);
+        return null;
+    }
+
 }

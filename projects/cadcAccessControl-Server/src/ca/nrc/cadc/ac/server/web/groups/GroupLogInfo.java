@@ -66,53 +66,21 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.MemberAlreadyExistsException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import java.security.Principal;
-import java.util.ArrayList;
+import ca.nrc.cadc.log.ServletLogInfo;
 import java.util.List;
-import java.util.Set;
+import javax.servlet.http.HttpServletRequest;
 
-public class AddUserMemberAction extends GroupsAction
+public class GroupLogInfo extends ServletLogInfo
 {
-    private final String groupName;
-    private final String userID;
-    private final String userIDType;
+    public String groupID;
+    public List<String> addedMembers;
+    public List<String> deletedMembers;
 
-    AddUserMemberAction(GroupLogInfo logInfo, String groupName, String userID,
-                        String userIDType)
+    public GroupLogInfo(HttpServletRequest request)
     {
-        super(logInfo);
-        this.groupName = groupName;
-        this.userID = userID;
-        this.userIDType = userIDType;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Object run()
-        throws Exception
-    {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = groupPersistence.getGroup(this.groupName);
-        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User<Principal> toAdd = new User(userPrincipal);
-        if (!group.getUserMembers().add(toAdd))
-        {
-            throw new MemberAlreadyExistsException();
-        }
-        
-        groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getUserID().getName());
-        logGroupInfo(group.getID(), null, addedMembers);
-        return null;
+        super(request);
     }
 
 }

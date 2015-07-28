@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
@@ -79,18 +78,17 @@ import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchScope;
+import org.apache.log4j.Logger;
 
-import java.nio.file.FileAlreadyExistsException;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.Set;
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import org.apache.log4j.Logger;
 
 
 public abstract class LdapDAO
@@ -236,6 +234,7 @@ public abstract class LdapDAO
             throws TransientException
     {
     	logger.debug("Ldap result: " + code);
+        System.out.println("Ldap result: " + code);
 
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
         {

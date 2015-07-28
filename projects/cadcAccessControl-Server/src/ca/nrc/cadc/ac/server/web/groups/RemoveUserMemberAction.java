@@ -66,51 +66,48 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import java.io.InputStream;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.xml.GroupReader;
-import ca.nrc.cadc.ac.xml.GroupWriter;
-
-public class CreateGroupAction extends GroupsAction
+public class RemoveUserMemberAction extends GroupsAction
 {
-    private final InputStream inputStream;
+    private final String groupName;
+    private final String userID;
+    private final String userIDType;
 
-    CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
+    RemoveUserMemberAction(GroupLogInfo logInfo, String groupName, String userID, String userIDType)
     {
         super(logInfo);
-        this.inputStream = inputStream;
+        this.groupName = groupName;
+        this.userID = userID;
+        this.userIDType = userIDType;
     }
 
+    @SuppressWarnings("unchecked")
     public Object run()
         throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
-        Group newGroup = groupPersistence.addGroup(group);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(newGroup, this.response.getOutputStream());
-
-        List<String> addedMembers = null;
-        if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
+        Group group = groupPersistence.getGroup(this.groupName);
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
+        User<Principal> toRemove = new User(userPrincipal);
+        if (!group.getUserMembers().remove(toRemove))
         {
-            addedMembers = new ArrayList<String>();
-            for (Group gr : newGroup.getGroupMembers())
-            {
-                addedMembers.add(gr.getID());
-            }
-            for (User usr : newGroup.getUserMembers())
-            {
-                addedMembers.add(usr.getUserID().getName());
-            }
+            throw new MemberNotFoundException();
         }
-        logGroupInfo(newGroup.getID(), null, addedMembers);
+        groupPersistence.modifyGroup(group);
+
+        List<String> deletedMembers = new ArrayList<String>();
+        deletedMembers.add(toRemove.getUserID().getName());
+        logGroupInfo(group.getID(), deletedMembers, null);
         return null;
     }
 

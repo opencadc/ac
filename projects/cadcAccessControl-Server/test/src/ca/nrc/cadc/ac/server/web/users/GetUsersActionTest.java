@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Level;
@@ -112,11 +113,13 @@ public class GetUsersActionTest
                 createMock(HttpServletResponse.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
-        final Map<String, String> userEntries = new HashMap<String, String>();
+        final Map<String, PersonalDetails> userEntries =
+                new HashMap<String, PersonalDetails>();
 
         for (int i = 1; i <= 5; i++)
         {
-            userEntries.put("USER_" + i, "USER " + i);
+            userEntries.put("USER_" + i,
+                            new PersonalDetails("USER", Integer.toString(i)));
         }
 
         final GetUsersAction testSubject = new GetUsersAction(null)
@@ -143,7 +146,7 @@ public class GetUsersActionTest
         testSubject.doAction(null, mockResponse);
 
         final JSONArray expected =
-                new JSONArray("[{\"id\":\"USER_1\",\"name\":\"USER 1\"},{\"id\":\"USER_3\",\"name\":\"USER 3\"},{\"id\":\"USER_2\",\"name\":\"USER 2\"},{\"id\":\"USER_4\",\"name\":\"USER 4\"},{\"id\":\"USER_5\",\"name\":\"USER 5\"}]");
+                new JSONArray("[{\"id\":\"USER_1\",\"firstName\":\"USER\",\"lastName\":\"1\"},{\"id\":\"USER_3\",\"firstName\":\"USER\",\"lastName\":\"3\"},{\"id\":\"USER_2\",\"firstName\":\"USER\",\"lastName\":\"2\"},{\"id\":\"USER_4\",\"firstName\":\"USER\",\"lastName\":\"4\"},{\"id\":\"USER_5\",\"firstName\":\"USER\",\"lastName\":\"5\"}]");
         final JSONArray result = new JSONArray(writer.toString());
 
         JSONAssert.assertEquals(expected, result, true);
@@ -158,11 +161,13 @@ public class GetUsersActionTest
                 createMock(HttpServletResponse.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
-        final Map<String, String> userEntries = new HashMap<String, String>();
+        final Map<String, PersonalDetails> userEntries =
+                new HashMap<String, PersonalDetails>();
 
         for (int i = 1; i <= 5; i++)
         {
-            userEntries.put("USER_" + i, "USER " + i);
+            userEntries.put("USER_" + i,
+                            new PersonalDetails("USER", Integer.toString(i)));
         }
 
         final GetUsersAction testSubject = new GetUsersAction(null)
@@ -189,19 +194,24 @@ public class GetUsersActionTest
         final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
                                 "<users>\r\n" +
                                 "  <user id=\"USER_1\">\r\n" +
-                                "    <name>USER 1</name>\r\n" +
+                                "    <firstName>USER</firstName>\r\n" +
+                                "    <lastName>1</lastName>\r\n" +
                                 "  </user>\r\n" +
                                 "  <user id=\"USER_3\">\r\n" +
-                                "    <name>USER 3</name>\r\n" +
+                                "    <firstName>USER</firstName>\r\n" +
+                                "    <lastName>3</lastName>\r\n" +
                                 "  </user>\r\n" +
                                 "  <user id=\"USER_2\">\r\n" +
-                                "    <name>USER 2</name>\r\n" +
+                                "    <firstName>USER</firstName>\r\n" +
+                                "    <lastName>2</lastName>\r\n" +
                                 "  </user>\r\n" +
                                 "  <user id=\"USER_4\">\r\n" +
-                                "    <name>USER 4</name>\r\n" +
+                                "    <firstName>USER</firstName>\r\n" +
+                                "    <lastName>4</lastName>\r\n" +
                                 "  </user>\r\n" +
                                 "  <user id=\"USER_5\">\r\n" +
-                                "    <name>USER 5</name>\r\n" +
+                                "    <firstName>USER</firstName>\r\n" +
+                                "    <lastName>5</lastName>\r\n" +
                                 "  </user>\r\n" +
                                 "</users>\r\n";
         final String result = writer.toString();

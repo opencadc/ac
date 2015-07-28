@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,50 +62,93 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.client;
 
-import java.io.Writer;
-import java.util.Collection;
-
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
-import ca.nrc.cadc.ac.server.GroupPersistence;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
 
-public class GetGroupNamesAction extends GroupsAction
+public class JSONUserListInputStreamWrapper implements InputStreamWrapper
 {
-    
-    private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
+    private static final Logger LOGGER = Logger
+            .getLogger(JSONUserListInputStreamWrapper.class);
+    private final List<User<HttpPrincipal>> output;
 
-    GetGroupNamesAction(GroupLogInfo logInfo)
+
+    public JSONUserListInputStreamWrapper(
+            final List<User<HttpPrincipal>> output)
     {
-        super(logInfo);
+        this.output = output;
     }
 
-    public Object run()
-        throws Exception
+
+    /**
+     * Read the stream in.
+     *
+     * @param inputStream The stream to read from.
+     * @throws IOException Any reading exceptions.
+     */
+    @Override
+    public void read(final InputStream inputStream) throws IOException
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
-        Collection<String> groups = groupPersistence.getGroupNames();
-        log.debug("Found " + groups.size() + " group names");
-        response.setContentType("text/plain");
-        log.debug("Set content-type to text/plain");
-        Writer writer = response.getWriter();
-        boolean start = true;
-        for (final String group : groups)
+        String line = null;
+
+        try
         {
-            if (!start)
+            final InputStreamReader inReader =
+                    new InputStreamReader(inputStream);
+            final BufferedReader reader = new BufferedReader(inReader);
+
+            while (StringUtil.hasText(line = reader.readLine()))
             {
-                writer.write("\r\n");
+                // Deal with arrays stuff.
+                while (line.startsWith("[") || line.startsWith(","))
+                {
+                    line = line.substring(1);
+                }
+
+                while (line.endsWith("]") || line.endsWith(","))
+                {
+                    line = line.substring(0, (line.length() - 1));
+                }
+
+                if (StringUtil.hasText(line))
+                {
+                    LOGGER.debug(String.format("Reading: %s", line));
+
+                    final JSONObject jsonObject = new JSONObject(line);
+                    final User<HttpPrincipal> webUser =
+                            new User<HttpPrincipal>(
+                                    new HttpPrincipal(jsonObject
+                                                              .getString("id")));
+                    final String firstName = jsonObject.getString("firstName");
+                    final String lastName = jsonObject.getString("lastName");
+
+                    webUser.details
+                            .add(new PersonalDetails(firstName, lastName));
+
+                    output.add(webUser);
+                }
             }
-            writer.write(group);
-            start = false;
         }
-        
-        return null;
+        catch (Exception bug)
+        {
+            throw new IOException(bug + (StringUtil.hasText(line)
+                                         ? "Error line is " + line : ""));
+        }
     }
 }
