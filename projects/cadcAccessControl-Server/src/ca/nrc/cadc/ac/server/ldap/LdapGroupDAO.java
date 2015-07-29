@@ -345,11 +345,15 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
             catch (LDAPSearchException e)
             {
+                logger.debug("Could not find groups root", e);
                 if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
                 {
-                    logger.debug("Could not find groups root", e);
                     throw new IllegalStateException("Could not find groups root");
                 }
+                else if (e.getResultCode() == ResultCode.TIME_LIMIT_EXCEEDED)
+                    throw new TransientException("time limit exceeded", e);
+                
+                throw new IllegalStateException("unexpected failure", e);
             }
             
             LdapDAO.checkLdapResult(searchResult.getResultCode());
@@ -366,7 +370,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e1)
         {
-        	logger.debug("getGroupNames Exception: " + e1, e1);
+            logger.debug("getGroupNames Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
             throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
         }
