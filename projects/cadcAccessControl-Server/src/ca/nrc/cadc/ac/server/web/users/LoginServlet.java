@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,48 +69,76 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.security.AccessControlException;
 
-import javax.security.auth.Subject;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.SSOCookieManager;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.util.StringUtil;
 
-public class UsersServlet extends HttpServlet
+@SuppressWarnings("serial")
+public class LoginServlet extends HttpServlet
 {
-    private static final Logger log = Logger.getLogger(UsersServlet.class);
-
-
+    private static final Logger log = Logger.getLogger(LoginServlet.class);
+    private static final String CONTENT_TYPE = "text/plain";
     /**
-     * Create a UserAction and run the action safely.
+     * Attempt to login for userid/password.
      */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
+	@SuppressWarnings("rawtypes")
+	public void doPost(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
         long start = System.currentTimeMillis();
-        UserLogInfo logInfo = new UserLogInfo(request);
-
+        ServletLogInfo logInfo = new ServletLogInfo(request);
         try
         {
             log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
-            action.setAcceptedContentType(getAcceptedContentType(request));
-            action.doAction(subject, response);
+            String userID = request.getParameter("userid");
+            String password = request.getParameter("password");
+            if (StringUtil.hasText(userID))
+            {
+                if (StringUtil.hasText(password))
+                {
+                	if (new LdapUserPersistence().loginUser(userID, password))
+                	{
+	            	    String token = new SSOCookieManager().generate(new HttpPrincipal(userID));
+	            	    response.setContentType(CONTENT_TYPE);
+	            	    response.setContentLength(token.length());
+	            	    response.getWriter().write(token);
+                	}
+                }
+                else
+                {
+                	throw new IllegalArgumentException("Missing password");
+                }
+            }
+            else
+            {
+            	throw new IllegalArgumentException("Missing userid");
+            }
         }
         catch (IllegalArgumentException e)
         {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
+    	    response.setContentType(CONTENT_TYPE);
             response.getWriter().write(e.getMessage());
             response.setStatus(400);
+        }
+        catch (AccessControlException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+    	    response.setContentType(CONTENT_TYPE);
+            response.getWriter().write(e.getMessage());
+            response.setStatus(401);
         }
         catch (Throwable t)
         {
@@ -118,6 +146,7 @@ public class UsersServlet extends HttpServlet
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
+    	    response.setContentType(CONTENT_TYPE);
             response.getWriter().write(message);
             response.setStatus(500);
         }
@@ -125,61 +154,6 @@ public class UsersServlet extends HttpServlet
         {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
-        }
-    }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    /**
-     * Obtain the requested (Accept) content type.
-     *
-     * @param request               The HTTP Request.
-     * @return                      String content type.
-     */
-    String getAcceptedContentType(final HttpServletRequest request)
-    {
-        final String requestedContentType = request.getHeader("Accept");
-
-        if (!UsersAction.JSON_CONTENT_TYPE.equals(requestedContentType))
-        {
-            return UsersAction.DEFAULT_CONTENT_TYPE;
-        }
-        else
-        {
-            return requestedContentType;
         }
     }
 }

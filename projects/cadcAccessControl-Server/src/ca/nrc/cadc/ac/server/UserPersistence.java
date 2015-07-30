@@ -121,6 +121,22 @@ public interface UserPersistence<T extends Principal>
                AccessControlException;
     
     /**
+     * Attempt to login the specified user.
+     *
+     * @param userID The userID.
+     * @param password The password.
+     *
+     * @return Boolean
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    Boolean loginUser(String userID, String password)
+            throws UserNotFoundException, TransientException, 
+            AccessControlException;
+   
+    /**
      * Updated the user specified by User.
      *
      * @param user
