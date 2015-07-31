@@ -175,7 +175,36 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-        
+
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @return Boolean.
+     * 
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Boolean loginUser(String userID, String password)
+            throws UserNotFoundException, TransientException, AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.loginUser(userID, password);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+       
     /**
      * Updated the user specified by User.
      *

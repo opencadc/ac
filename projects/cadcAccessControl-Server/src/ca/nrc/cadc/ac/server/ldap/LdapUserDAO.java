@@ -177,11 +177,11 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      *
      * @param username username to verify.
      * @param password password to verify.
-     * @return User
+     * @return Boolean
      * @throws TransientException
      * @throws UserNotFoundException
      */
-    public User<T> loginUser(final String username, final String password)
+    public Boolean loginUser(final String username, final String password)
         throws TransientException, UserNotFoundException
     {
         try
@@ -191,7 +191,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             if (bindResult != null && bindResult.getResultCode() == ResultCode.SUCCESS)
             {
-                return getUser((T) new HttpPrincipal(username));
+                return Boolean.TRUE;
             }
             else
             {
@@ -200,7 +200,16 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            logger.debug("addUser Exception: " + e, e);
+            logger.debug("loginUser Exception: " + e, e);
+
+            if (e.getResultCode() == ResultCode.INVALID_CREDENTIALS)
+            {
+                throw new AccessControlException("Invalid password");
+            }
+            else if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+            {
+                throw new AccessControlException("Invalid username");
+            }
 
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
