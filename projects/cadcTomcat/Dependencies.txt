@@ -1,8 +1,6 @@
 JAR files required for the OpenCADC cadcTomcat project
 ======================================================
 
-Name in build.xml          Versioned Name		Project URL
+Name in build.xml          Versioned Name		    Project URL
 -----------------          --------------       	-----------
-catalina.jar               catalina-7.0.33.jar          http://tomcat.apache.org/
-cadcUtil.jar                                    	http://code.google.com/p/opencadc    
-
+catalina.jar               catalina-7.0.33.jar      http://tomcat.apache.org/

@@ -86,10 +86,10 @@
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
 
-    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
+    <property name="log4j"              value="${ext.lib}/log4j.jar" />
     <property name="tomcat"             value="${ext.lib}/catalina.jar" />
 
-    <property name="jars"               value="${cadcUtil}:${tomcat}" />
+    <property name="jars"               value="${log4j}:${tomcat}" />
 
     <target name="build" depends="compile,resources">
         <jar jarfile="${build}/lib/${project}.jar"
