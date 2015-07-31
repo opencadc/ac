@@ -128,7 +128,7 @@ public class LdapConfig
 
     public static LdapConfig getLdapConfig(final String ldapProperties)
     {
-        logger.info("Reading LDAP properties from: " + ldapProperties);
+        logger.debug("Reading LDAP properties from: " + ldapProperties);
         PropertiesReader pr = new PropertiesReader(ldapProperties);
         
         MultiValuedProperties config = pr.getAllProperties();
