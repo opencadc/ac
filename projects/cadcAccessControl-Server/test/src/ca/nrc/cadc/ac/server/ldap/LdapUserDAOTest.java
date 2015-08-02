@@ -68,39 +68,47 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
-import com.unboundid.ldap.sdk.DN;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+import java.util.Random;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+
+import com.unboundid.ldap.sdk.DN;
+
 public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
 
     static final String testUserX509DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
+    static int nextUserNumericID = 666;
 
     static String testUserDN;
     static User<X500Principal> testUser;
+    static User<X500Principal> testMember;
     static LdapConfig config;
+    static Random ran = new Random(); // source of randomness for numeric ids
 
     @BeforeClass
     public static void setUpBeforeClass()
@@ -110,17 +118,32 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
 
         // get the configuration of the development server from and config files...
         config = getLdapConfig();
-
-        testUser = new User<X500Principal>(new X500Principal(testUserX509DN));
+        X500Principal testUserX500Princ = new X500Principal(testUserX509DN);
+        testUser = new User<X500Principal>(testUserX500Princ);
         testUser.details.add(new PersonalDetails("CADC", "DAOTest1"));
         testUser.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
+        testUser.getIdentities().add(testUserX500Princ);
+        testUser.getIdentities().add(new NumericPrincipal(666));
 
         testUserDN = "uid=cadcdaotest1," + config.getUsersDN();
+        
+        
+        // member returned by getMember contains only the fields required by
+        // the GMS
+        testMember = new User<X500Principal>(testUserX500Princ);
+        testMember.details.add(new PersonalDetails("CADC", "DAOTest1"));
+        testMember.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
+        
     }
 
     LdapUserDAO getUserDAO()
     {
-        return new LdapUserDAO(config);
+        return new LdapUserDAO(config){
+            protected int genNextNumericId()
+            {
+                return nextUserNumericID;
+            }
+        };
     }
 
     String getUserID()
@@ -134,8 +157,13 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
     @Test
     public void testAddUser() throws Exception
     {
-        final User<HttpPrincipal> expected = new User<HttpPrincipal>(new HttpPrincipal(getUserID()));
-        expected.getIdentities().add(new HttpPrincipal(getUserID()));
+        String userID = getUserID();
+        final User<HttpPrincipal> expected = new User<HttpPrincipal>(new HttpPrincipal(userID));
+        expected.getIdentities().add(new HttpPrincipal(userID));
+        expected.getIdentities().add(new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca"));
+        nextUserNumericID = ran.nextInt(Integer.MAX_VALUE);
+        expected.getIdentities().add(new NumericPrincipal(nextUserNumericID));
+        
         expected.details.add(new PersonalDetails("foo", "bar"));
 
         final UserRequest<HttpPrincipal> userRequest =
@@ -265,6 +293,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
 
+        
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -273,7 +302,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                 try
                 {
                     User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
-                    check(testUser, actual);
+                    check(testMember, actual);
                     return null;
                 }
                 catch (Exception e)
@@ -296,7 +325,7 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
                 try
                 {
                     User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
-                    check(testUser, actual);
+                    check(testMember, actual);
                     return null;
                 }
                 catch (Exception e)
@@ -490,6 +519,10 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
         HttpPrincipal principal = new HttpPrincipal(username);
         testUser2 = new User<HttpPrincipal>(principal);
         testUser2.getIdentities().add(principal);
+        testUser2.getIdentities().add(new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca"));
+        // update nextNumericId
+        nextUserNumericID = ran.nextInt(Integer.MAX_VALUE);
+        testUser2.getIdentities().add(new NumericPrincipal(nextUserNumericID));
         testUser2.details.add(new PersonalDetails("firstName", "lastName"));
         final UserRequest userRequest = new UserRequest(testUser2, password);
 
@@ -575,8 +608,21 @@ public class LdapUserDAOTest<T extends Principal> extends AbstractLdapDAOTest
         assertEquals(user1, user2);
         assertEquals(user1.details, user2.details);
         assertEquals(user1.details.size(), user2.details.size());
-        assertEquals(user1.getIdentities(), user2.getIdentities());
-        for (UserDetails d1 : user1.details)
+        assertEquals(user1.getIdentities().size(), user2.getIdentities().size());
+        for( Principal princ1 : user1.getIdentities())
+        {
+            boolean found = false;
+            for( Principal princ2 : user2.getIdentities())
+            {
+                if (princ2.getClass() == princ1.getClass())
+                {
+                    assertEquals(princ1, princ2);
+                    found = true;
+                }
+            }
+            assertTrue(princ1.getName(), found);
+        }
+        for(UserDetails d1 : user1.details)
         {
             assertTrue(user2.details.contains(d1));
             if (d1 instanceof PersonalDetails)
