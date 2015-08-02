@@ -998,14 +998,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     /**
      * Method to return a randomly generated user numeric ID. The default 
      * implementation returns a value between 10000 and Integer.MAX_VALUE.
+     * Services that support a different mechanism for generating numeric
+     * IDs overide this method.
      * @return
      */
     protected int genNextNumericId()
     {
         Random rand = new Random();
-
-        // nextInt is normally exclusive of the top value,
-        // so add 1 to make it inclusive
         return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
     }
 }
