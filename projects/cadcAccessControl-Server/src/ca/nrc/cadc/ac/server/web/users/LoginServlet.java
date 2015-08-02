@@ -100,7 +100,7 @@ public class LoginServlet extends HttpServlet
         try
         {
             log.info(logInfo.start());
-            String userID = request.getParameter("userid");
+            String userID = request.getParameter("username");
             String password = request.getParameter("password");
             if (StringUtil.hasText(userID))
             {
