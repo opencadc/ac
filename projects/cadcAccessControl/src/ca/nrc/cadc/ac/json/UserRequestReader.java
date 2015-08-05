@@ -81,9 +81,9 @@ import java.util.Scanner;
 public class UserRequestReader
 {
     /**
-     * Construct a UserRequest from an XML String source.
+     * Construct a UserRequest from an JSON String source.
      *
-     * @param json String of the XML.
+     * @param json String of the JSON.
      * @return UserRequest UserRequest.
      * @throws IOException
      */
