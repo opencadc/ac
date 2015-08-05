@@ -111,6 +111,6 @@ SSLImplementation - The CADC Custom implementation of TrustManagers that
             truststorePass="changeit"
             truststoreType="JKS"
             sslProtocol="TLS"
-            SSLImplementation="ca.nrc.cadc.auth.CADCSSLImplementation"/>
+            SSLImplementation="ca.nrc.cadc.auth.CadcSSLImplementation"/>
 
 (Note that the environment variables cannot be used in server.xml in this way.)
