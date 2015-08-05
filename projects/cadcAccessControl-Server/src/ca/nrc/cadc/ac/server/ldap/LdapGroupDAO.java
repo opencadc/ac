@@ -77,32 +77,14 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
-import com.unboundid.ldap.sdk.AddRequest;
-import com.unboundid.ldap.sdk.Attribute;
-import com.unboundid.ldap.sdk.DN;
-import com.unboundid.ldap.sdk.Filter;
-import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.LDAPResult;
-import com.unboundid.ldap.sdk.LDAPSearchException;
-import com.unboundid.ldap.sdk.Modification;
-import com.unboundid.ldap.sdk.ModificationType;
-import com.unboundid.ldap.sdk.ModifyRequest;
-import com.unboundid.ldap.sdk.ResultCode;
-import com.unboundid.ldap.sdk.SearchRequest;
-import com.unboundid.ldap.sdk.SearchResult;
-import com.unboundid.ldap.sdk.SearchResultEntry;
-import com.unboundid.ldap.sdk.SearchScope;
+import com.unboundid.ldap.sdk.*;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -323,49 +305,47 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * 
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Collection<String> getGroupNames()
-        throws TransientException
+    public Collection<String> getGroupNames() throws TransientException
     {
         try
         {
-            Filter filter = Filter.createPresenceFilter("cn");
-            String [] attributes = new String[] {"cn", "nsaccountlock"};
-            
-            SearchRequest searchRequest = 
-                    new SearchRequest(config.getGroupsDN(), 
-                                      SearchScope.SUB, filter, attributes);
-    
-            SearchResult searchResult = null;
-            try
+            final Filter filter = Filter.createPresenceFilter("cn");
+            final String [] attributes = new String[] {"cn", "nsaccountlock"};
+            final List<String> groupNames = new ArrayList<String>();
+            final long begin = System.currentTimeMillis();
+
+            final SearchResult searchResult =
+                    getConnection().search(new SearchResultListener()
             {
-                searchResult = getConnection().search(searchRequest);
-            }
-            catch (LDAPSearchException e)
-            {
-                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+                @Override
+                public void searchEntryReturned(
+                        final SearchResultEntry searchEntry)
                 {
-                    logger.debug("Could not find groups root", e);
-                    throw new IllegalStateException("Could not find groups root");
+                    groupNames.add(searchEntry.getAttributeValue("cn"));
                 }
-            }
-            
+
+                @Override
+                public void searchReferenceReturned(
+                        final SearchResultReference searchReference)
+                {
+
+                }
+            }, config.getGroupsDN(), SearchScope.ONE, filter, attributes);
+
             LdapDAO.checkLdapResult(searchResult.getResultCode());
-            List<String> groupNames = new ArrayList<String>();
-            for (SearchResultEntry next : searchResult.getSearchEntries())
-            {
-                if (!next.hasAttribute("nsaccountlock"))
-                {
-                    groupNames.add(next.getAttributeValue("cn"));
-                }
-            }
-            
+            long end = System.currentTimeMillis();
+
+            logger.info("<-- groupNames in " + ((new Long(end).doubleValue()
+                                                 - new Long(begin).doubleValue())
+                                                / 1000.0) + " seconds.");
             return groupNames;
         }
         catch (LDAPException e1)
         {
         	logger.debug("getGroupNames Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
-            throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
+            throw new IllegalStateException("Unexpected exception: "
+                                            + e1.getMatchedDN(), e1);
         }
         
     }

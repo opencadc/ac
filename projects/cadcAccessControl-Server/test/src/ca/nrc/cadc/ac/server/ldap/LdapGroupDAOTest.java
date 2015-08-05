@@ -150,7 +150,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         anonSubject.getPrincipals().add(unknownUser.getUserID());
     }
 
-    LdapGroupDAO<X500Principal> getGroupDAO()
+    LdapGroupDAO<X500Principal> getGroupDAO() throws Exception
     {
         return new LdapGroupDAO<X500Principal>(config,
                 new LdapUserDAO<X500Principal>(config));

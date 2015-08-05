@@ -70,13 +70,14 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import java.security.AccessControlException;
 
+import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 
 
 public class LdapDAOTestImpl extends LdapDAO
 {
-    public LdapDAOTestImpl(LdapConfig config)
+    public LdapDAOTestImpl(LdapConfig config) throws TransientException
     {
         super(config);
     }

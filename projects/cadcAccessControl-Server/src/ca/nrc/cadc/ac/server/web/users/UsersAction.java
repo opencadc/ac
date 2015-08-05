@@ -99,6 +99,9 @@ public abstract class UsersAction
     protected HttpServletResponse response;
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
+    private String redirectURLPrefix;
+
+
     UsersAction(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
@@ -251,6 +254,38 @@ public abstract class UsersAction
     }
 
     /**
+     * Read the user from the given stream of marshalled data.
+     *
+     * @param inputStream       The stream to read in.
+     * @return                  User instance, never null.
+     *
+     * @throws IOException      Any errors in reading the stream.
+     */
+    protected final User<Principal> readUser(final InputStream inputStream)
+            throws IOException
+    {
+        response.setContentType(acceptedContentType);
+        final User<Principal> user;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            user = ca.nrc.cadc.ac.xml.UserReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            user = ca.nrc.cadc.ac.json.UserReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+
+        return user;
+    }
+
+    /**
      * Write a user to the response's writer.
      *
      * @param user              The user object to marshall and write out.
@@ -291,5 +326,17 @@ public abstract class UsersAction
         {
             ca.nrc.cadc.ac.json.UsersWriter.write(users, writer);
         }
+    }
+
+    protected void setRedirectURLPrefix(final String redirectURLPrefix)
+    {
+        this.redirectURLPrefix = redirectURLPrefix;
+    }
+
+    void redirectGet(final String userID) throws Exception
+    {
+        final String redirectURL = this.redirectURLPrefix + "/" + userID
+                                   + "?idType=HTTP";
+        response.setHeader("Location", redirectURL);
     }
 }
