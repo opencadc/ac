@@ -1,0 +1,16 @@
+===============================================================================
+ REALM README file for opencadc project cadcTomcat.
+
+ This project contains plugins to apache tomcat for x509
+ client certificates and custom authentication realms.
+ 
+ To use this plugin, add the following line to the <Host> element (within
+ the <Service> element) in the tomcat 7 server.xml file:
+ 
+ <Realm className="ca.nrc.cadc.tomcat.CadcBasicAuthenticator" />
+ 
+===============================================================================
+
+
+
+

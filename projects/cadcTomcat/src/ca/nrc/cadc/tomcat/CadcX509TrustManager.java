@@ -1,14 +1,14 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -65,74 +65,85 @@
 *  $Revision: 4 $
 *
 ************************************************************************
--->
+*/
 
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+import javax.net.ssl.X509TrustManager;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+import org.apache.log4j.Logger;
 
-    <property name="project" value="cadcTomcat" />
+import ca.nrc.cadc.auth.X509CertificateChain;
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+/**
+ * Custom trust manager implementation that will accept client proxy certificates.
+ *
+ * @author majorb
+ *
+ */
+public class CadcX509TrustManager implements X509TrustManager
+{
+    private static Logger log = Logger.getLogger(CadcX509TrustManager.class);
 
-    <property name="cadc"               value="${lib}/cadcUtil.jar" />
-    <property name="log4j"              value="${ext.lib}/log4j.jar" />
-    <property name="tomcat"             value="${ext.lib}/catalina.jar:${ext.lib}/tomcat-util.jar:${ext.lib}/tomcat-coyote.jar" />
-    <property name="jars"               value="${cadc}:${log4j}:${tomcat}" />
+    private X509TrustManager defaultTrustManager;
+    public CadcX509TrustManager(X509TrustManager defaultTrustManager)
+    {
+        this.defaultTrustManager = defaultTrustManager;
+    }
 
-    <target name="build" depends="simpleJar" />
-    
-    <target name="test-resources">
-        <copy todir="${build}/class">
-            <fileset dir="src/resources">
-                <include name="**.properties" />
-            </fileset>
-        </copy>
-        <jar jarfile="${build}/tmp/test.jar"
-                basedir="${build}/class"
-                update="no">
-            <include name="ca/nrc/cadc/reg/client/**" />
-            <include name="**.properties" />
-        </jar>
-    </target>
+    /*
+     * Remove any proxy entries and delegate to the default trust manager.
+     */
+    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                throws CertificateException
+    {
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="dev.junit" value="${ext.dev}/junit.jar" />
-    <property name="servlet" value="${ext.lib}/servlet-api.jar" />
-    <property name="log" value="${ext.lib}/commons-logging.jar" />
-    <property name="juli" value="${ext.lib}/tomcat-juli.jar" />
-    <property name="tomcatUtil" value="${ext.lib}/tomcat-util.jar" />
-    <property name="test" value="${build}/tmp/test.jar" />
-    <property name="testingJars" value="${dev.junit}:${servlet}:${log}:${juli}:${tomcatUtil}:${test}" />
-    
-    <!-- Run the test suite -->
-    <target name="test" depends="compile-test,test-resources">
-        <echo message="Running test" />
+        log.debug("Checking if client chain is trusted.");
+        if (chain == null || chain.length == 0)
+        {
+            log.error("No certificates in chain.");
+            throw new CertificateException("No credentials provided.");
+        }
 
-        <!-- Run the junit test suite -->
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/test/class" />
-                <pathelement path="${build}/class" />
-                <pathelement path="${jars}:${testingJars}" />
-            </classpath>
+        // remove all but the end entity from the chain so that the default
+        // trust manager can authenticate proxy certificate chains as well as
+        // original certificate chains.
+        X509CertificateChain x509CertificateChain = new X509CertificateChain(chain, null);
+        X509Certificate endEntity = x509CertificateChain.getEndEntity();
+        if (endEntity == null)
+        {
+            log.error("Bug: Should always have an endEntity");
+            throw new CertificateException("Error extracting certifcate chain end entity.");
+        }
+        X509Certificate[] endEntityChain = new X509Certificate[] { endEntity };
 
-            <test name="ca.nrc.cadc.tomcat.CadcBasicAuthenticatorTest"/>
-            <test name="ca.nrc.cadc.tomcat.RealmRegistryClientTest"/>
-            <formatter type="plain" usefile="false"/>
-        </junit>
-    </target>
-    
-</project>
+        // send the authentication to the default trust manager.
+        defaultTrustManager.checkClientTrusted(endEntityChain, authType);
+        log.debug("Client is trusted.");
+    }
+
+    /**
+     * Delegate to the default trust manager.
+     */
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException
+    {
+        log.debug("Checking if server trusted.");
+        defaultTrustManager.checkServerTrusted(chain, authType);
+    }
+
+    /**
+     * Delegate to the default trust manager.
+     */
+    @Override
+    public X509Certificate[] getAcceptedIssuers()
+    {
+        X509Certificate[] acceptedIssuers = defaultTrustManager.getAcceptedIssuers();
+        log.debug("Trusting " + acceptedIssuers.length + " issuers.");
+        return acceptedIssuers;
+    }
+}
