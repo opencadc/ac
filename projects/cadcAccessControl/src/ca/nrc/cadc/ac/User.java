@@ -134,18 +134,15 @@ public class User<T extends Principal>
         {
             return false;
         }
-        User other = (User) obj;
+
+        final User other = (User) obj;
         if (userID instanceof X500Principal)
         {
             return AuthenticationUtil.equals(userID, other.userID);
         }
         else
         {
-            if (!userID.equals(other.userID))
-            {
-                return false;
-            }
-            return true;
+            return userID.equals(other.userID);
         }
     }
 
@@ -172,5 +169,32 @@ public class User<T extends Principal>
         }
 
         return matchedDetails;
+    }
+
+    /**
+     * Obtain a set of identities whose type match the given one.
+     *
+     * @param identityClass     The class to search on.
+     * @param <S>               The Principal type.
+     * @return                  Set of matched identities, or empty Set.
+     *                          Never null.
+     */
+    public <S extends Principal> Set<S> getIdentities(
+            final Class<S> identityClass)
+    {
+        final Set<S> matchedIdentities = new HashSet<S>();
+
+        for (final Principal p : identities)
+        {
+            if (p.getClass() == identityClass)
+            {
+                // This casting shouldn't happen, but it's the only way to
+                // do this without a lot of work.
+                // jenkinsd 2014.09.26
+                matchedIdentities.add((S) p);
+            }
+        }
+
+        return matchedIdentities;
     }
 }

@@ -94,7 +94,7 @@ public interface UserPersistence<T extends Principal>
     /**
      * Add the new user.
      *
-     * @param user
+     * @param user      The user request to put into the request tree.
      *
      * @return User instance.
      * 
@@ -119,6 +119,21 @@ public interface UserPersistence<T extends Principal>
     User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, 
                AccessControlException;
+
+    /**
+     * Get the user specified by userID whose account is pending approval.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User<T> getPendingUser(T userID)
+            throws UserNotFoundException, TransientException,
+                   AccessControlException;
     
     /**
      * Attempt to login the specified user.
@@ -139,7 +154,7 @@ public interface UserPersistence<T extends Principal>
     /**
      * Updated the user specified by User.
      *
-     * @param user
+     * @param user      The user instance to modify.
      *
      * @return User instance.
      * 

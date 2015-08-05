@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,45 +62,91 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac.server.web.users;
+ */
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.UserPersistence;
+package ca.nrc.cadc.ac.server.web.users;
 
+
+import java.io.*;
 import java.security.Principal;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-public class GetUserAction extends UsersAction
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import org.junit.Test;
+import static org.junit.Assert.*;
+import static org.easymock.EasyMock.*;
+
+
+public class ModifyUserActionTest
 {
-    private final Principal userID;
-
-    GetUserAction(UserLogInfo logInfo, Principal userID)
+    @Test
+    public void run() throws Exception
     {
-        super(logInfo);
-        this.userID = userID;
-    }
+        final byte[] input =
+                "{\"user\":{\"userID\":{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}},\"details\":[{\"userDetails\":{\"lastName\":\"Test\",\"firstName\":\"CADC\",\"email\":\"CADC.Test@nrc-cnrc.gc.ca\",\"type\":\"personalDetails\"}}],\"identities\":[{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}}]}}"
+                        .getBytes();
+        final InputStream inputStream = new ByteArrayInputStream(input);
 
-    public Object run() throws Exception
-    {
-        final UserPersistence<Principal> userPersistence = getUserPersistence();
+        // Should match the JSON above, without the e-mail modification.
+        final User<Principal> userObject =
+                new User<Principal>(new HttpPrincipal("CADCtest"));
+        final PersonalDetails personalDetail =
+                new PersonalDetails("CADC", "Test");
+        personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
+        userObject.details.add(personalDetail);
 
-        User<Principal> user;
+        final HttpServletRequest mockRequest =
+                createMock(HttpServletRequest.class);
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
 
-        try
+        final String requestURL = "http://mysite.com:8080/noentry/authorize";
+
+        @SuppressWarnings("unchecked")
+        final UserPersistence<Principal> mockUserPersistence =
+                createMock(UserPersistence.class);
+
+        expect(mockUserPersistence.modifyUser(userObject)).andReturn(
+                userObject).once();
+
+        expect(mockRequest.getMethod()).andReturn("POST").once();
+        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
+                once();
+
+        mockResponse.sendRedirect(requestURL);
+        expectLastCall().once();
+
+        mockResponse.setContentType("application/json");
+        expectLastCall().once();
+
+        replay(mockRequest, mockResponse, mockUserPersistence);
+
+        final UserLogInfo userLogInfo = new UserLogInfo(mockRequest);
+        final ModifyUserAction testSubject = new ModifyUserAction(userLogInfo,
+                                                                  inputStream)
         {
-            user = userPersistence.getUser(userID);
-        }
-        catch (UserNotFoundException e)
-        {
-            user = userPersistence.getPendingUser(userID);
-        }
+            @Override
+            @SuppressWarnings("unchecked")
+            UserPersistence<Principal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
 
-        writeUser(user);
-        return null;
+        testSubject.setAcceptedContentType("application/json");
+        testSubject.response = mockResponse;
+
+        testSubject.run();
+
+        assertEquals("Wrong username logged.", "CADCtest",
+                     userLogInfo.userName);
+        verify(mockRequest, mockResponse, mockUserPersistence);
     }
-
 }

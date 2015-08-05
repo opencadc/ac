@@ -77,7 +77,7 @@ import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.util.StringUtil;
 
 import java.io.IOException;
-import java.net.URL;
+import java.io.InputStream;
 import java.security.Principal;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
@@ -128,10 +128,10 @@ public class UsersActionFactory
             }
             else if (method.equals("PUT"))
             {
-                action = new CreateUserAction(logInfo, request
-                        .getInputStream());
+                action = new CreateUserAction(logInfo,
+                                              request.getInputStream());
+                action.setRedirectURLPrefix(request.getRequestURL().toString());
             }
-
         }
         else
         {
@@ -147,25 +147,9 @@ public class UsersActionFactory
             }
             else if (method.equals("POST"))
             {
-                final URL requestURL = new URL(request.getRequestURL()
-                                                       .toString());
-                final StringBuilder sb = new StringBuilder();
-                sb.append(requestURL.getProtocol());
-                sb.append("://");
-                sb.append(requestURL.getHost());
-                if (requestURL.getPort() > 0)
-                {
-                    sb.append(":");
-                    sb.append(requestURL.getPort());
-                }
-                sb.append(request.getContextPath());
-                sb.append(request.getServletPath());
-                sb.append("/");
-                sb.append(path);
-
-                action = new ModifyUserAction(logInfo, user.getUserID(), sb
-                        .toString(),
+                action = new ModifyUserAction(logInfo,
                                               request.getInputStream());
+                action.setRedirectURLPrefix(request.getRequestURL().toString());
             }
         }
 

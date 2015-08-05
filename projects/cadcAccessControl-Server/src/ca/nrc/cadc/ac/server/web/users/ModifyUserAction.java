@@ -68,41 +68,64 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.InputStream;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.Principal;
+import java.util.Set;
+
 
 public class ModifyUserAction extends UsersAction
 {
-    private final Principal userID;
-    private final String request;
     private final InputStream inputStream;
 
-    ModifyUserAction(UserLogInfo logInfo, Principal userID,
-                      final String request, InputStream inputStream)
+
+    ModifyUserAction(final UserLogInfo logInfo,
+                     final InputStream inputStream)
     {
         super(logInfo);
-        this.userID = userID;
-        this.request = request;
+
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+
+    public Object run() throws Exception
     {
-        UserPersistence userPersistence = getUserPersistence();
-        User<? extends Principal> user = UserReader.read(this.inputStream);
-        User<? extends Principal> oldUser = userPersistence.getUser(userID);
-        userPersistence.modifyUser(user);
+        final User<Principal> user = readUser(this.inputStream);
+        final User<Principal> modifiedUser = modifyUser(user);
+        logUserInfo(modifiedUser.getUserID().getName());
 
-        logUserInfo(user.getUserID().getName());
+        final Set<HttpPrincipal> httpPrincipals =
+                modifiedUser.getIdentities(HttpPrincipal.class);
 
-        this.response.sendRedirect(request);
+        if (httpPrincipals.isEmpty())
+        {
+            throw new IOException("No Web Identity found (HttpPrincipal)");
+        }
+        else
+        {
+            redirectGet(httpPrincipals.toArray(
+                    new HttpPrincipal[1])[0].getName());
+        }
 
         return null;
     }
 
+    /**
+     * Perform the modification at the persistence level.
+     *
+     * @param user          The user to modify.
+     * @param <T>           The ID (Principal) type.
+     * @return              The modified User.
+     * @throws Exception    Any problems during update.
+     */
+    <T extends Principal> User<T> modifyUser(final User<T> user)
+            throws Exception
+    {
+        final UserPersistence<T> userPersistence = getUserPersistence();
+        return userPersistence.modifyUser(user);
+    }
 }
