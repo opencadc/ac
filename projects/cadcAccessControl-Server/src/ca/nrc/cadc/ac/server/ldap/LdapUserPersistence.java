@@ -235,6 +235,34 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
+
+    /**
+     * Update a user's password. The given user and authenticating user must match.
+     *
+     * @param user
+     * @param oldPassword   current password.
+     * @param newPassword   new password.
+     * @throws UserNotFoundException If the given user does not exist.
+     * @throws TransientException   If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void setPassword(User<T> user, final String oldPassword, final String newPassword)
+            throws UserNotFoundException, TransientException, AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO.setPassword(user, oldPassword, newPassword);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
     
     /**
      * Delete the user specified by userID.
