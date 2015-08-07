@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2015.                            (c) 2015.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,155 +62,46 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
 package ca.nrc.cadc.tomcat;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.catalina.realm.GenericPrincipal;
-import org.apache.catalina.realm.RealmBase;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.tomcat.util.net.AbstractEndpoint;
+import org.apache.tomcat.util.net.ServerSocketFactory;
+import org.apache.tomcat.util.net.jsse.JSSEImplementation;
 
 /**
- * Custom class for Tomcat realm authentication.
- *
- * This class was written against the Apache Tomcat 7 (7.0.33.0) API
- *
- * Authentication checks are performed as REST calls to servers
- * implementing the cadcAccessControl-Server code.
+ * CADC Custom SSLImplementation that delivers a custom socket factory.
  *
  * @author majorb
+ *
  */
-public class CadcBasicAuthenticator extends RealmBase
+public class CadcSSLImplementation extends JSSEImplementation
 {
 
-    private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/canfargms";
+    private static Logger log = Logger.getLogger(CadcSSLImplementation.class);
 
-    static
+    ServerSocketFactory serverSocketFactory = null;
+
+    public CadcSSLImplementation() throws ClassNotFoundException
     {
-        RealmUtil.initLogging();
-        Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
+        super();
     }
 
     @Override
-    protected String getName()
+    public ServerSocketFactory getServerSocketFactory(AbstractEndpoint endpoint)
     {
-        // not used
-        return this.getClass().getSimpleName();
-    }
-
-    @Override
-    protected String getPassword(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    protected Principal getPrincipal(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    public Principal authenticate(String username, String credentials)
-    {
-        long start = System.currentTimeMillis();
-        boolean success = true;
-
-        try
+        if (serverSocketFactory == null)
         {
-            boolean valid = login(username, credentials);
-
-            if (valid)
-            {
-                // authentication ok, add public role
-                List<String> roles = Arrays.asList("public");
-
-                // Don't want to return the password here in the principal
-                // in case it makes it into the servlet somehow
-                return new GenericPrincipal(username, null, roles);
-            }
-
-            return null;
+            log.debug("Constructing CADCSSLSocketFactory.");
+            serverSocketFactory = new CadcSSLSocketFactory(endpoint);
         }
-        catch (Throwable t)
-        {
-            success = false;
-            String message = "Could not do http basic authentication: " + t.getMessage();
-            log.error(message, t);
-            throw new IllegalStateException(message, t);
-        }
-        finally
-        {
-            long duration = System.currentTimeMillis() - start;
-
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            json.append("\"method\":\"AUTH\",");
-            json.append("\"user\":\"" + username + "\",");
-            json.append("\"success\":" + success + ",");
-            json.append("\"time\":" + duration);
-            json.append("}");
-
-            log.info(json.toString());
-        }
+        log.debug("Delivering CADCSSLSocketFactory.");
+        return serverSocketFactory;
     }
-
-    boolean login(String username, String credentials)
-            throws URISyntaxException, IOException
-    {
-        RealmRegistryClient registryClient = new RealmRegistryClient();
-        URL loginURL = registryClient.getServiceURL(
-            new URI(AC_URI), "http", "/login");
-
-        String post = "userid=" + username + "&password=" + credentials;
-
-        HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-
-        byte[] postData = post.getBytes("UTF-8");
-        conn.getOutputStream().write(postData);
-
-        int responseCode = conn.getResponseCode();
-
-        log.debug("Http POST to /ac/login returned " +
-                responseCode + " for user " + username);
-
-        if (responseCode != 200)
-        {
-            // authentication not ok
-            if (responseCode != 401)
-            {
-                // not an unauthorized, so log the
-                // possible server side error
-                String errorMessage = "Error calling /ac/login, error code: " + responseCode;
-                throw new IllegalStateException(errorMessage);
-            }
-
-            // authentication simply failed
-            return false;
-        }
-
-        return true;
-    }
-
-
 
 }

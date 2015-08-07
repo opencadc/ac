@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2015.                            (c) 2015.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,155 +62,88 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
 package ca.nrc.cadc.tomcat;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.List;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
-import org.apache.catalina.realm.GenericPrincipal;
-import org.apache.catalina.realm.RealmBase;
-import org.apache.log4j.Level;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.auth.X509CertificateChain;
+
 /**
- * Custom class for Tomcat realm authentication.
- *
- * This class was written against the Apache Tomcat 7 (7.0.33.0) API
- *
- * Authentication checks are performed as REST calls to servers
- * implementing the cadcAccessControl-Server code.
+ * Custom trust manager implementation that will accept client proxy certificates.
  *
  * @author majorb
+ *
  */
-public class CadcBasicAuthenticator extends RealmBase
+public class CadcX509TrustManager implements X509TrustManager
 {
+    private static Logger log = Logger.getLogger(CadcX509TrustManager.class);
 
-    private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/canfargms";
-
-    static
+    private X509TrustManager defaultTrustManager;
+    public CadcX509TrustManager(X509TrustManager defaultTrustManager)
     {
-        RealmUtil.initLogging();
-        Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
+        this.defaultTrustManager = defaultTrustManager;
     }
 
-    @Override
-    protected String getName()
+    /*
+     * Remove any proxy entries and delegate to the default trust manager.
+     */
+    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                throws CertificateException
     {
-        // not used
-        return this.getClass().getSimpleName();
-    }
 
-    @Override
-    protected String getPassword(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    protected Principal getPrincipal(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    public Principal authenticate(String username, String credentials)
-    {
-        long start = System.currentTimeMillis();
-        boolean success = true;
-
-        try
+        log.debug("Checking if client chain is trusted.");
+        if (chain == null || chain.length == 0)
         {
-            boolean valid = login(username, credentials);
-
-            if (valid)
-            {
-                // authentication ok, add public role
-                List<String> roles = Arrays.asList("public");
-
-                // Don't want to return the password here in the principal
-                // in case it makes it into the servlet somehow
-                return new GenericPrincipal(username, null, roles);
-            }
-
-            return null;
-        }
-        catch (Throwable t)
-        {
-            success = false;
-            String message = "Could not do http basic authentication: " + t.getMessage();
-            log.error(message, t);
-            throw new IllegalStateException(message, t);
-        }
-        finally
-        {
-            long duration = System.currentTimeMillis() - start;
-
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            json.append("\"method\":\"AUTH\",");
-            json.append("\"user\":\"" + username + "\",");
-            json.append("\"success\":" + success + ",");
-            json.append("\"time\":" + duration);
-            json.append("}");
-
-            log.info(json.toString());
-        }
-    }
-
-    boolean login(String username, String credentials)
-            throws URISyntaxException, IOException
-    {
-        RealmRegistryClient registryClient = new RealmRegistryClient();
-        URL loginURL = registryClient.getServiceURL(
-            new URI(AC_URI), "http", "/login");
-
-        String post = "userid=" + username + "&password=" + credentials;
-
-        HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-
-        byte[] postData = post.getBytes("UTF-8");
-        conn.getOutputStream().write(postData);
-
-        int responseCode = conn.getResponseCode();
-
-        log.debug("Http POST to /ac/login returned " +
-                responseCode + " for user " + username);
-
-        if (responseCode != 200)
-        {
-            // authentication not ok
-            if (responseCode != 401)
-            {
-                // not an unauthorized, so log the
-                // possible server side error
-                String errorMessage = "Error calling /ac/login, error code: " + responseCode;
-                throw new IllegalStateException(errorMessage);
-            }
-
-            // authentication simply failed
-            return false;
+            log.error("No certificates in chain.");
+            throw new CertificateException("No credentials provided.");
         }
 
-        return true;
+        // remove all but the end entity from the chain so that the default
+        // trust manager can authenticate proxy certificate chains as well as
+        // original certificate chains.
+        X509CertificateChain x509CertificateChain = new X509CertificateChain(chain, null);
+        X509Certificate endEntity = x509CertificateChain.getEndEntity();
+        if (endEntity == null)
+        {
+            log.error("Bug: Should always have an endEntity");
+            throw new CertificateException("Error extracting certifcate chain end entity.");
+        }
+        X509Certificate[] endEntityChain = new X509Certificate[] { endEntity };
+
+        // send the authentication to the default trust manager.
+        defaultTrustManager.checkClientTrusted(endEntityChain, authType);
+        log.debug("Client is trusted.");
     }
 
+    /**
+     * Delegate to the default trust manager.
+     */
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException
+    {
+        log.debug("Checking if server trusted.");
+        defaultTrustManager.checkServerTrusted(chain, authType);
+    }
 
-
+    /**
+     * Delegate to the default trust manager.
+     */
+    @Override
+    public X509Certificate[] getAcceptedIssuers()
+    {
+        X509Certificate[] acceptedIssuers = defaultTrustManager.getAcceptedIssuers();
+        log.debug("Trusting " + acceptedIssuers.length + " issuers.");
+        return acceptedIssuers;
+    }
 }

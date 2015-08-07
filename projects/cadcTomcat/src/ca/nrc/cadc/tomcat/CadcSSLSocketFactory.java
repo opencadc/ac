@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2015.                            (c) 2015.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,155 +62,79 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 5 $
+*  $Revision: 4 $
 *
 ************************************************************************
 */
 
 package ca.nrc.cadc.tomcat;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.List;
+import java.security.KeyStore;
 
-import org.apache.catalina.realm.GenericPrincipal;
-import org.apache.catalina.realm.RealmBase;
-import org.apache.log4j.Level;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.log4j.Logger;
+import org.apache.tomcat.util.net.AbstractEndpoint;
+import org.apache.tomcat.util.net.jsse.JSSESocketFactory;
+
 
 /**
- * Custom class for Tomcat realm authentication.
- *
- * This class was written against the Apache Tomcat 7 (7.0.33.0) API
- *
- * Authentication checks are performed as REST calls to servers
- * implementing the cadcAccessControl-Server code.
+ * Custom factory implementation that will deliver the CADCX509TrustManager.
  *
  * @author majorb
+ *
  */
-public class CadcBasicAuthenticator extends RealmBase
+public class CadcSSLSocketFactory extends JSSESocketFactory
 {
 
-    private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/canfargms";
+    private static Logger log = Logger.getLogger(CadcSSLSocketFactory.class);
 
-    static
+    public CadcSSLSocketFactory(AbstractEndpoint endpoint)
     {
-        RealmUtil.initLogging();
-        Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
+        super(endpoint);
     }
 
     @Override
-    protected String getName()
+    public TrustManager[] getTrustManagers(java.lang.String keystoreType, java.lang.String keystoreProvider, java.lang.String algorithm) throws Exception
     {
-        // not used
-        return this.getClass().getSimpleName();
-    }
-
-    @Override
-    protected String getPassword(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    protected Principal getPrincipal(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    public Principal authenticate(String username, String credentials)
-    {
-        long start = System.currentTimeMillis();
-        boolean success = true;
+        log.info("Creating CADC Trust Manager.");
+        KeyStore trustStore = super.getTrustStore(keystoreType, keystoreProvider);
 
         try
         {
-            boolean valid = login(username, credentials);
 
-            if (valid)
-            {
-                // authentication ok, add public role
-                List<String> roles = Arrays.asList("public");
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509", "SunJSSE");
 
-                // Don't want to return the password here in the principal
-                // in case it makes it into the servlet somehow
-                return new GenericPrincipal(username, null, roles);
+            log.debug("Initializing trust manager factory.");
+            tmf.init(trustStore);
+            log.debug("Trust manager factory initialzation complete.");
+            TrustManager tms [] = tmf.getTrustManagers();
+            X509TrustManager defaultTrustManager = null;
+
+            for (int i = 0; i < tms.length; i++) {
+                if (tms[i] instanceof X509TrustManager) {
+                    defaultTrustManager = (X509TrustManager) tms[i];
+                    log.debug("Tomcat default trust manager: " + tms[i].getClass().getName());
+                }
             }
 
-            return null;
-        }
-        catch (Throwable t)
-        {
-            success = false;
-            String message = "Could not do http basic authentication: " + t.getMessage();
-            log.error(message, t);
-            throw new IllegalStateException(message, t);
-        }
-        finally
-        {
-            long duration = System.currentTimeMillis() - start;
-
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            json.append("\"method\":\"AUTH\",");
-            json.append("\"user\":\"" + username + "\",");
-            json.append("\"success\":" + success + ",");
-            json.append("\"time\":" + duration);
-            json.append("}");
-
-            log.info(json.toString());
-        }
-    }
-
-    boolean login(String username, String credentials)
-            throws URISyntaxException, IOException
-    {
-        RealmRegistryClient registryClient = new RealmRegistryClient();
-        URL loginURL = registryClient.getServiceURL(
-            new URI(AC_URI), "http", "/login");
-
-        String post = "userid=" + username + "&password=" + credentials;
-
-        HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-
-        byte[] postData = post.getBytes("UTF-8");
-        conn.getOutputStream().write(postData);
-
-        int responseCode = conn.getResponseCode();
-
-        log.debug("Http POST to /ac/login returned " +
-                responseCode + " for user " + username);
-
-        if (responseCode != 200)
-        {
-            // authentication not ok
-            if (responseCode != 401)
+            if (defaultTrustManager == null)
             {
-                // not an unauthorized, so log the
-                // possible server side error
-                String errorMessage = "Error calling /ac/login, error code: " + responseCode;
-                throw new IllegalStateException(errorMessage);
+                log.fatal("No default trust manager could be located.");
+                throw new ExceptionInInitializerError("CADCX509TrustManager didn't find a defualt x509 trust manager.");
             }
 
-            // authentication simply failed
-            return false;
+            TrustManager[] trustManagers = new TrustManager[] { new CadcX509TrustManager(defaultTrustManager) };
+            return trustManagers;
+
+        }
+        catch (Exception e)
+        {
+            log.fatal(e);
+            throw new ExceptionInInitializerError(e);
         }
 
-        return true;
     }
-
-
-
 }
