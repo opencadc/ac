@@ -179,7 +179,7 @@ public class CadcBasicAuthenticator extends RealmBase
         URL loginURL = registryClient.getServiceURL(
             new URI(AC_URI), "http", "/login");
 
-        String post = "userid=" + username + "&password=" + credentials;
+        String post = "username=" + username + "&password=" + credentials;
 
         HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
         conn.setRequestMethod("POST");
