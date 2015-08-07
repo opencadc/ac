@@ -72,6 +72,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
@@ -107,6 +108,7 @@ public class ModifyUserAction extends UsersAction
         }
         else
         {
+            response.setStatus(HttpServletResponse.SC_OK);
             redirectGet(httpPrincipals.toArray(
                     new HttpPrincipal[1])[0].getName());
         }

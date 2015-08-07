@@ -92,7 +92,7 @@ public class UserRequestReader
     {
         if (json == null)
         {
-            throw new IllegalArgumentException("XML must not be null");
+            throw new IllegalArgumentException("JSON must not be null");
         }
         else
         {
