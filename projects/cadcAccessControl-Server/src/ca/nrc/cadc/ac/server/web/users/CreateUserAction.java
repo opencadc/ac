@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -75,23 +76,27 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
+import java.util.Set;
 
 
 public class CreateUserAction extends UsersAction
 {
     private final InputStream inputStream;
 
-    CreateUserAction(UserLogInfo logInfo, InputStream inputStream)
+
+    CreateUserAction(final UserLogInfo logInfo,
+                     final InputStream inputStream)
     {
         super(logInfo);
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+
+    public Object run() throws Exception
     {
         try
         {
@@ -101,8 +106,20 @@ public class CreateUserAction extends UsersAction
                     readUserRequest(this.inputStream);
             final User<Principal> newUser =
                     userPersistence.addUser(userRequest);
+            final Set<HttpPrincipal> httpPrincipals =
+                    newUser.getIdentities(HttpPrincipal.class);
 
-            writeUser(newUser);
+            if (httpPrincipals.isEmpty())
+            {
+                throw new IOException("No Web Identity found (HttpPrincipal)");
+            }
+            else
+            {
+                response.setStatus(HttpServletResponse.SC_CREATED);
+                redirectGet(httpPrincipals.toArray(
+                        new HttpPrincipal[1])[0].getName());
+            }
+
             logUserInfo(newUser.getUserID().getName());
         }
         catch (UserAlreadyExistsException e)

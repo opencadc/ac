@@ -122,6 +122,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
     // Returned User attributes
     protected static final String LDAP_OBJECT_CLASS = "objectClass";
+    protected static final String LDAP_INET_USER = "inetuser";
     protected static final String LDAP_INET_ORG_PERSON = "inetOrgPerson";
     protected static final String LDAP_CADC_ACCOUNT = "cadcaccount";
     protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
@@ -352,13 +353,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             // add new user
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_COMMON_NAME, user.getUserID()
                 .getName());
             addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userDN
                 .toNormalizedString());
             addAttribute(attributes, LADP_USER_PASSWORD, userRequest
-                .getPassword());
+                    .getPassword());
 
             for (UserDetails details : user.details)
             {
@@ -397,7 +399,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      *
      * @param userID The userID.
      * @return User instance.
-     * @throws UserNotFoundException  when the user is not found.
+     * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
@@ -406,6 +408,23 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                    AccessControlException
     {
         return getUser(userID, config.getUsersDN());
+    }
+
+    /**
+     * Obtain a user who is awaiting approval.
+     *
+     * @param userID        The user ID of the pending user.
+     * @return              A User instance awaiting approval.
+     *
+     * @throws UserNotFoundException  when the user is not found in the user request tree.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> getPendingUser(final T userID)
+            throws UserNotFoundException, TransientException,
+                   AccessControlException
+    {
+        return getUser(userID, config.getUserRequestsDN());
     }
 
 

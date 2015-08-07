@@ -135,9 +135,10 @@ public class LoginServlet extends HttpServlet
         catch (AccessControlException e)
         {
             log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
+            String message = "Invalid credentials";
+            logInfo.setMessage(message);
     	    response.setContentType(CONTENT_TYPE);
-            response.getWriter().write(e.getMessage());
+            response.getWriter().write(message);
             response.setStatus(401);
         }
         catch (Throwable t)
