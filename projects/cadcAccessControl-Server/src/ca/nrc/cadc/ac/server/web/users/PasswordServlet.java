@@ -97,7 +97,6 @@ public class PasswordServlet extends HttpServlet
 	public void doPost(final HttpServletRequest request, final HttpServletResponse response)
         throws IOException
     {
-        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
         log.info(logInfo.start());
@@ -106,7 +105,7 @@ public class PasswordServlet extends HttpServlet
             final Subject subject = AuthenticationUtil.getSubject(request);
             if ((subject == null) || (subject.getPrincipals(HttpPrincipal.class).isEmpty()))
             {
-                logInfo.setMessage("Missing subject");
+                logInfo.setMessage("Unauthorized subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             else
@@ -119,7 +118,6 @@ public class PasswordServlet extends HttpServlet
                     {
                         try
                         {
-                            response.setStatus(HttpServletResponse.SC_OK);
                             final Set<HttpPrincipal> webPrincipals =
                             subject.getPrincipals(HttpPrincipal.class);
 				
@@ -174,6 +172,7 @@ public class PasswordServlet extends HttpServlet
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
         finally
         {
