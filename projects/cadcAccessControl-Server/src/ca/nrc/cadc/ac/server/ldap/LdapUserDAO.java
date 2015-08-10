@@ -182,7 +182,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException
      * @throws UserNotFoundException
      */
-    public Boolean loginUser(final String username, final String password)
+    public Boolean doLogin(final String username, final String password)
         throws TransientException, UserNotFoundException
     {
         try
@@ -201,7 +201,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            logger.debug("loginUser Exception: " + e, e);
+            logger.debug("doLogin Exception: " + e, e);
 
             if (e.getResultCode() == ResultCode.INVALID_CREDENTIALS)
             {

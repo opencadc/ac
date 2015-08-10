@@ -214,14 +214,14 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Boolean loginUser(String userID, String password)
+    public Boolean doLogin(String userID, String password)
             throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            return userDAO.loginUser(userID, password);
+            return userDAO.doLogin(userID, password);
         }
         finally
         {

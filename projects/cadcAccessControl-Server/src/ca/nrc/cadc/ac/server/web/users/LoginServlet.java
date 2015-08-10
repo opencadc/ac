@@ -106,7 +106,7 @@ public class LoginServlet extends HttpServlet
             {
                 if (StringUtil.hasText(password))
                 {
-                	if (new LdapUserPersistence().loginUser(userID, password))
+                	if (new LdapUserPersistence().doLogin(userID, password))
                 	{
 	            	    String token = new SSOCookieManager().generate(new HttpPrincipal(userID));
 	            	    response.setContentType(CONTENT_TYPE);

@@ -147,7 +147,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Boolean loginUser(String userID, String password)
+    Boolean doLogin(String userID, String password)
             throws UserNotFoundException, TransientException, 
             AccessControlException;
    

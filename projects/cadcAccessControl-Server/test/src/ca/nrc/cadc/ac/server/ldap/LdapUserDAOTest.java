@@ -454,7 +454,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    getUserDAO().loginUser(username, password);
+                    getUserDAO().doLogin(username, password);
                 }
                 catch (Exception e)
                 {
@@ -510,7 +510,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    getUserDAO().loginUser(username, password);
+                    getUserDAO().doLogin(username, password);
                 }
                 catch (Exception e)
                 {
