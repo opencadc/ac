@@ -70,7 +70,6 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 import java.security.AccessControlException;
-import java.security.PrivilegedAction;
 import java.util.Set;
 
 import javax.security.auth.Subject;
@@ -87,15 +86,30 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.util.StringUtil;
 
-@SuppressWarnings("serial")
+
+/**
+ * Servlet to handle password changes.  Passwords are an integral part of the
+ * access control system and are handled differently to accommodate stricter
+ * guidelines.
+ * <p/>
+ * This servlet handles POST only.  It relies on the Subject being set higher
+ * up by the AccessControlFilter as configured in the web descriptor.
+ */
 public class PasswordServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(PasswordServlet.class);
+
+
     /**
      * Attempt to change password.
+     *
+     * @param request  The HTTP Request.
+     * @param response The HTTP Response.
+     * @throws IOException Any errors that are not expected.
      */
-	public void doPost(final HttpServletRequest request, final HttpServletResponse response)
-        throws IOException
+    public void doPost(final HttpServletRequest request,
+                       final HttpServletResponse response)
+            throws IOException
     {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         final long start = System.currentTimeMillis();
@@ -104,68 +118,61 @@ public class PasswordServlet extends HttpServlet
         try
         {
             final Subject subject = AuthenticationUtil.getSubject(request);
-            if ((subject == null) || (subject.getPrincipals(HttpPrincipal.class).isEmpty()))
+            if ((subject == null)
+                || (subject.getPrincipals(HttpPrincipal.class).isEmpty()))
             {
                 logInfo.setMessage("Missing subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             else
             {
-                logInfo.setSubject(subject);		        
-                Subject.doAs(subject, new PrivilegedAction<Void>()
+                logInfo.setSubject(subject);
+                try
                 {
-                    @Override
-                    public Void run()
-                    {
-                        try
-                        {
-                            response.setStatus(HttpServletResponse.SC_OK);
-                            final Set<HttpPrincipal> webPrincipals =
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    final Set<HttpPrincipal> webPrincipals =
                             subject.getPrincipals(HttpPrincipal.class);
-				
-                            User<HttpPrincipal> user = new User<HttpPrincipal>(webPrincipals.iterator().next());
-                            String oldPassword = request.getParameter("old_password");
-                            String newPassword = request.getParameter("new_password");
-                            if (StringUtil.hasText(oldPassword))
-                            {
-                                if (StringUtil.hasText(newPassword))
-                                {
-                                    (new LdapUserPersistence<HttpPrincipal>()).setPassword(user, oldPassword, newPassword);
-                                }
-                                else
-                                {
-                                    throw new IllegalArgumentException("Missing new password");
-                                }
-                            }
-                            else
-                            {
-                                throw new IllegalArgumentException("Missing old password");
-                            }
-                        }
-                        catch (IllegalArgumentException e)
+                    final User<HttpPrincipal> user =
+                            new User<HttpPrincipal>(webPrincipals.iterator().next());
+                    String oldPassword = request.getParameter("old_password");
+                    String newPassword = request.getParameter("new_password");
+                    if (StringUtil.hasText(oldPassword))
+                    {
+                        if (StringUtil.hasText(newPassword))
                         {
-                            log.debug(e.getMessage(), e);
-                            logInfo.setMessage(e.getMessage());
-                            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                            (new LdapUserPersistence<HttpPrincipal>())
+                                    .setPassword(user, oldPassword, newPassword);
                         }
-                        catch (AccessControlException e)
+                        else
                         {
-                            log.debug(e.getMessage(), e);
-                            logInfo.setMessage(e.getMessage());
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            throw new IllegalArgumentException("Missing new password");
                         }
-                        catch (Throwable t)
-                        {
-                            String message = "Internal Server Error: " + t.getMessage();
-                            log.error(message, t);
-                            logInfo.setSuccess(false);
-                            logInfo.setMessage(message);
-                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        }
-			            
-                        return null;
                     }
-                });
+                    else
+                    {
+                        throw new IllegalArgumentException("Missing old password");
+                    }
+                }
+                catch (IllegalArgumentException e)
+                {
+                    log.debug(e.getMessage(), e);
+                    logInfo.setMessage(e.getMessage());
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                }
+                catch (AccessControlException e)
+                {
+                    log.debug(e.getMessage(), e);
+                    logInfo.setMessage(e.getMessage());
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                }
+                catch (Throwable t)
+                {
+                    String message = "Internal Server Error: " + t.getMessage();
+                    log.error(message, t);
+                    logInfo.setSuccess(false);
+                    logInfo.setMessage(message);
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                }
             }
         }
         catch (Throwable t)
