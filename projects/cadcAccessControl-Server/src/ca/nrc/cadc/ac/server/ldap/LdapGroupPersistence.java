@@ -259,4 +259,12 @@ public class LdapGroupPersistence<T extends Principal>
         }
     }
     
+    public boolean isMember(T userID, String groupID)
+            throws UserNotFoundException, TransientException,
+            AccessControlException
+    {
+        return (new LdapUserPersistence<T>()).isMember(userID, groupID);
+    }
+
+  
 }

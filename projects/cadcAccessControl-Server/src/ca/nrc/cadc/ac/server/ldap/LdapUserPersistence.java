@@ -362,7 +362,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public boolean isMember(T userID, String groupID)
+    protected boolean isMember(T userID, String groupID)
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
