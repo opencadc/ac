@@ -967,6 +967,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     protected Group getGroup(final DN groupDN)
         throws LDAPException, GroupNotFoundException, UserNotFoundException
     {
+        logger.debug("groupDN=" + groupDN.toNormalizedString());
         Filter filter = Filter.createEqualityFilter("entrydn", 
                                                     groupDN.toNormalizedString());
         
@@ -996,6 +997,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throw new GroupNotFoundException(groupDN.toNormalizedString());
         }
 
+        logger.debug("cn=" + searchResult.getAttributeValue("cn"));
+        logger.debug("owner=" + searchResult.getAttributeValue("owner"));
         Group group = new Group(searchResult.getAttributeValue("cn"),
                                 userPersist.getMember(
                                         new DN(searchResult.getAttributeValue(
