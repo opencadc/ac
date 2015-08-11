@@ -311,7 +311,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
+                    User<X500Principal> actual = getUserDAO().getX500User(new DN(testUserDN));
                     check(testUser, actual);
                     return null;
                 }
@@ -334,7 +334,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
+                    User<X500Principal> actual = getUserDAO().getX500User(new DN(testUserDN));
                     check(testUser, actual);
                     return null;
                 }

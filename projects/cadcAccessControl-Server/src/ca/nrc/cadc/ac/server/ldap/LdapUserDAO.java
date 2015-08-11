@@ -831,7 +831,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException
      * @throws LDAPException
      */
-    User<X500Principal> getMember(DN userDN)
+    User<X500Principal> getX500User(DN userDN)
             throws UserNotFoundException, LDAPException
     {
         Filter filter =
