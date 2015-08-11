@@ -319,7 +319,8 @@ public class LdapUserPersistence<T extends Principal>
     }
     
     /**
-     * Get all groups the user specified by userID belongs to.
+     * Get all groups the user specified by userID belongs to. This method is created
+     * to provide optimization for the LDAP server.
      * 
      * @param userID The userID.
      * @param isAdmin return only admin Groups when true, else return non-admin
@@ -331,7 +332,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<DN> getUserGroups(T userID, boolean isAdmin)
+    protected Collection<DN> getUserGroups(T userID, boolean isAdmin)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;

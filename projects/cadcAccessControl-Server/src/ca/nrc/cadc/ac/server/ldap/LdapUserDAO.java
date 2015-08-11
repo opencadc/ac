@@ -693,7 +693,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Get all groups the user specified by userID belongs to.
+     * Get all groups the user specified by userID belongs to. This method is created
+     * to provide optimization for the LDAP server.
      *
      * @param userID  The userID.
      * @param isAdmin
@@ -702,7 +703,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred., e.getMessage(
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
+    protected Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
             throws UserNotFoundException, TransientException,
                    AccessControlException
     {

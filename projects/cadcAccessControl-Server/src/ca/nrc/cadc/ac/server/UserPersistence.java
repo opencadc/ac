@@ -70,13 +70,10 @@ package ca.nrc.cadc.ac.server;
 
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Collection;
 import java.util.Map;
 
 import ca.nrc.cadc.ac.*;
 import ca.nrc.cadc.net.TransientException;
-
-import com.unboundid.ldap.sdk.DN;
 
 
 public interface UserPersistence<T extends Principal>
@@ -177,23 +174,6 @@ public interface UserPersistence<T extends Principal>
      */
     void deleteUser(T userID)
         throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Get all groups the user specified by userID belongs to.
-     * 
-     * @param userID The userID.
-     * @param isAdmin return only admin Groups when true, else return non-admin
-     *                Groups.
-     * 
-     * @return Collection of group DN.
-     * 
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<DN> getUserGroups(T userID, boolean isAdmin)
-        throws UserNotFoundException, TransientException,
                AccessControlException;
     
     /**
