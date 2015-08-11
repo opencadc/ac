@@ -74,8 +74,6 @@ import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import com.unboundid.ldap.sdk.DN;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
