@@ -72,8 +72,6 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
 
-import com.unboundid.ldap.sdk.DN;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -106,24 +104,6 @@ public abstract interface GroupPersistence<T extends Principal>
      */
     public abstract Group getGroup(String groupID)
         throws GroupNotFoundException, TransientException,
-               AccessControlException;
-
-    
-    /**
-     * Get all groups the user, specified by userID, belongs to. 
-     * 
-     * @param userID The userID.
-     * @param isAdmin return only admin Groups when true, else return non-admin
-     *                Groups.
-     * 
-     * @return Collection of group DN.
-     * 
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<DN> getUserGroups(T userID, boolean isAdmin)
-        throws UserNotFoundException, TransientException,
                AccessControlException;
 
     /**

@@ -146,14 +146,6 @@ public class LdapGroupPersistence<T extends Principal>
             }
         }
     }
-    
-    public Collection<DN> getUserGroups(T userID, boolean isAdmin)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException
-    {
-        return (new LdapUserPersistence<T>()).getUserGroups(userID, isAdmin);
-    }
-
 
     public Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException, 
