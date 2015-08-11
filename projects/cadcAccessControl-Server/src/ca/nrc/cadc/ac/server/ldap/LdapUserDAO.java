@@ -770,7 +770,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Check whether the user is a member of the group.
+     * Check whether the user is a member of the group. This method is created
+     * to provide optimization for the LDAP server.
      *
      * @param userID  The userID.
      * @param groupID The groupID.
