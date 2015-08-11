@@ -332,7 +332,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    protected Collection<DN> getUserGroups(T userID, boolean isAdmin)
+    Collection<DN> getUserGroups(T userID, boolean isAdmin)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
@@ -363,7 +363,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    protected boolean isMember(T userID, String groupID)
+    boolean isMember(T userID, String groupID)
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
