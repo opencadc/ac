@@ -103,6 +103,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
     public static final String ARG_ADD_MEMBER = "add-member";
     public static final String ARG_CREATE_GROUP = "create";
     public static final String ARG_GET_GROUP = "get";
+    public static final String ARG_DELETE_GROUP = "delete";
 
     public static final String ARG_USERID = "userid";
     public static final String ARG_GROUP = "group";
@@ -181,6 +182,9 @@ public class GMSClientMain implements PrivilegedAction<Object>
         
         if (argMap.isSet(ARG_GET_GROUP))
             return ARG_GET_GROUP;
+        
+        if (argMap.isSet(ARG_DELETE_GROUP))
+            return ARG_DELETE_GROUP;
 
         throw new IllegalArgumentException("No valid commands");
     }
@@ -190,7 +194,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
         System.out.println("--add-member --group=<g> --userid=<u>");
         System.out.println("--create --group=<g>");
         System.out.println("--get --group=<g>");
-
+        System.out.println("--delete --group=<g>");
     }
 
     @Override
@@ -213,8 +217,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
                 client.addUserMember(group, new HttpPrincipal(userID));
             }
-            
-            if (command.equals(ARG_CREATE_GROUP))
+            else if (command.equals(ARG_CREATE_GROUP))
             {
                 String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
@@ -229,8 +232,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 g.getUserMembers().add(g.getOwner());
                 client.createGroup(g);
             }
-            
-            if (command.equals(ARG_GET_GROUP))
+            else if (command.equals(ARG_GET_GROUP))
             {
                 String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
@@ -253,6 +255,14 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 for (Group gm : g.getGroupMembers())
                     System.out.println("member: " + gm);
                 
+            }
+            else if (command.equals(ARG_DELETE_GROUP))
+            {
+                String group = argMap.getValue(ARG_GROUP);
+                if (group == null)
+                    throw new IllegalArgumentException("No group specified");
+             
+                client.deleteGroup(group);
             }
 
             return null;

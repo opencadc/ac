@@ -863,18 +863,10 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     getGroupDAO().getGroups(unknownPrincipal, Role.OWNER, 
                                                groupID);
                     fail("searchGroups with unknown user should throw " + 
-                         "UserNotFoundException");
+                         "AccessControlException");
                 }
                 catch (AccessControlException ignore) {}
                 
-                try
-                {
-                    getGroupDAO().getGroups(daoTestPrincipal1, Role.OWNER, 
-                                               "foo");
-                    fail("searchGroups with unknown user should throw " + 
-                         "GroupNotFoundException");
-                }
-                catch (GroupNotFoundException ignore) {}
                 return null;
             }
         });
