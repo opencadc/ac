@@ -66,96 +66,130 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+package ca.nrc.cadc.ac.json;
+
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserDetails;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import java.util.Scanner;
 
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.auth.AuthenticationUtil;
-
-public class GroupsServlet extends HttpServlet
+public class JsonUserReader
 {
-    private static final Logger log = Logger.getLogger(GroupsServlet.class);
+    /**
+     * Construct a User from a InputStream.
+     *
+     * @param in InputStream.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    public static User<Principal> read(InputStream in)
+        throws IOException
+    {
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+
+        Scanner s = new Scanner(in).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
 
     /**
-     * Create a GroupAction and run the action safely.
+     * Construct a User from a Reader.
+     *
+     * @param reader Reader.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
      */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
+    public static User<Principal> read(Reader reader)
         throws IOException
     {
-        long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
+
+    /**
+     * Construct a User from an JSON String source.
+     *
+     * @param json String of JSON.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    public static User<Principal> read(String json)
+        throws IOException
+    {
+        if (json == null || json.isEmpty())
+        {
+            throw new IllegalArgumentException("JSON must not be null or empty");
+        }
+
+        // Create a JSONObject from the JSON
         try
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
-            action.doAction(subject, response);
+            return parseUser(new JSONObject(json).getJSONObject("user"));
         }
-        catch (IllegalArgumentException e)
+        catch (JSONException e)
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
+            String error = "Unable to parse JSON to User because " +
+                           e.getMessage();
+            throw new ReaderException(error, e);
         }
-        catch (Throwable t)
+    }
+
+    protected static User<Principal> parseUser(JSONObject userObject)
+        throws ReaderException, JSONException
+    {
+        JSONObject userIDObject = userObject.getJSONObject("userID");
+        JSONObject userIDIdentityObject = userIDObject.getJSONObject("identity");
+
+        Principal userID = JsonIdentityReader.read(userIDIdentityObject);
+        User<Principal> user = new User<Principal>(userID);
+
+        // identities
+        if (userObject.has("identities"))
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
+            JSONArray identitiesArray = userObject.getJSONArray("identities");
+            for (int i = 0; i < identitiesArray.length(); i++)
+            {
+                JSONObject identitiesObject = identitiesArray.getJSONObject(i);
+                JSONObject identityObject = identitiesObject.getJSONObject(("identity"));
+                user.getIdentities().add(JsonIdentityReader.read(identityObject));
+            }
         }
-        finally
+
+        // details
+        if (userObject.has("details"))
         {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
+            JSONArray detailsArray = userObject.getJSONArray("details");
+            for (int i = 0; i < detailsArray.length(); i++)
+            {
+                JSONObject detailsObject = detailsArray.getJSONObject(i);
+                JSONObject userDetailsObject = detailsObject.getJSONObject(UserDetails.NAME);
+                user.details.add(JsonUserDetailsReader.read(userDetailsObject));
+            }
         }
-    }
 
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
+        return user;
     }
 
 }

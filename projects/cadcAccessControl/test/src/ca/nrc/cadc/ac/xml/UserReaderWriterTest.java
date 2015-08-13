@@ -101,7 +101,8 @@ public class UserReaderWriterTest
         try
         {
             String s = null;
-            User<? extends Principal> u = UserReader.read(s);
+            UserReader userReader = new UserReader();
+            User<? extends Principal> u = userReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -109,7 +110,8 @@ public class UserReaderWriterTest
         try
         {
             InputStream in = null;
-            User<? extends Principal> u = UserReader.read(in);
+            UserReader userReader = new UserReader();
+            User<? extends Principal> u = userReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -117,7 +119,8 @@ public class UserReaderWriterTest
         try
         {
             Reader r = null;
-            User<? extends Principal> u = UserReader.read(r);
+            UserReader userReader = new UserReader();
+            User<? extends Principal> u = userReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -129,7 +132,8 @@ public class UserReaderWriterTest
     {
         try
         {
-            ca.nrc.cadc.ac.xml.UserWriter.write(null, new StringBuilder());
+            UserWriter userWriter = new UserWriter();
+            userWriter.write(null, new StringBuilder());
             fail("null User should throw WriterException");
         }
         catch (WriterException e) {}
@@ -144,10 +148,12 @@ public class UserReaderWriterTest
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         
         StringBuilder xml = new StringBuilder();
-        UserWriter.write(expected, xml);
+        UserWriter userWriter = new UserWriter();
+        userWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-        
-        User<? extends Principal> actual = UserReader.read(xml.toString());
+
+        UserReader userReader = new UserReader();
+        User<? extends Principal> actual = userReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

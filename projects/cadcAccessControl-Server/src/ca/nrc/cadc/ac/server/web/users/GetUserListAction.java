@@ -66,124 +66,31 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
+package ca.nrc.cadc.ac.server.web.users;
+
+
 import org.apache.log4j.Logger;
-import org.junit.Test;
 
-import javax.security.auth.x500.X500Principal;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.security.Principal;
-import java.util.Date;
+import ca.nrc.cadc.ac.server.UserPersistence;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
-/**
- *
- * @author jburke
- */
-public class GroupReaderWriterTest
+public class GetUserListAction extends AbstractUserAction
 {
-    private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
-
-    @Test
-    public void testReaderExceptions()
-        throws Exception
-    {
-        try
-        {
-            String s = null;
-            Group g = GroupReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            Group g = GroupReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            Group g = GroupReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            GroupWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {
-        Group expected = new Group("groupID", null);
-                
-        StringBuilder json = new StringBuilder();
-        GroupWriter.write(expected, json);
-        assertFalse(json.toString().isEmpty());
-        
-        Group actual = GroupReader.read(json.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-    }
     
-    @Test
-    public void testMaximalReadWrite()
+    private static final Logger log = Logger.getLogger(GetUserListAction.class);
+
+    GetUserListAction(UserLogInfo logInfo)
+    {
+        super(logInfo);
+    }
+
+    public Object run()
         throws Exception
     {
-        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
-        expected.description = "description";
-        expected.lastModified = new Date();
-        expected.getProperties().add(new GroupProperty("key", "value", true));
-        
-        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
-        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
-        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
-        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
-        
-        expected.getGroupMembers().add(groupMember);
-        expected.getUserMembers().add(userMember);
-        expected.getGroupAdmins().add(groupAdmin);
-        expected.getUserAdmins().add(userAdmin);
-        
-        StringBuilder json = new StringBuilder();
-        GroupWriter.write(expected, json);
-        assertFalse(json.toString().isEmpty());
+        final UserPersistence userPersistence = getUserPersistence();
 
-        Group actual = GroupReader.read(json.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-        assertEquals(expected.description, actual.description);
-        assertEquals(expected.lastModified, actual.lastModified);
-        assertEquals(expected.getProperties(), actual.getProperties());
-        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
-        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+        writeUsers(userPersistence.getUsers());
+        return null;
     }
-    
 }

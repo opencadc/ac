@@ -72,7 +72,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import java.security.Principal;
 
-public class DeleteUserAction extends UsersAction
+public class DeleteUserAction extends AbstractUserAction
 {
     private final Principal userID;
 

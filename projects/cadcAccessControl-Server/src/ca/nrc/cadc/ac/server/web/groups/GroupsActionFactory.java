@@ -82,10 +82,10 @@ public class GroupsActionFactory
 {
     private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
 
-    static GroupsAction getGroupsAction(HttpServletRequest request, GroupLogInfo logInfo)
+    static AbstractGroupAction getGroupsAction(HttpServletRequest request, GroupLogInfo logInfo)
         throws IOException
     {
-        GroupsAction action = null;
+        AbstractGroupAction action = null;
         String method = request.getMethod();
         String path = request.getPathInfo();
         log.debug("method: " + method);

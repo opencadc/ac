@@ -76,7 +76,7 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
 
-public class GetGroupNamesAction extends GroupsAction
+public class GetGroupNamesAction extends AbstractGroupAction
 {
     
     private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);

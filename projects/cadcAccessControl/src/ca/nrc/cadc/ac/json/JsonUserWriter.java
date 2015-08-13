@@ -85,7 +85,7 @@ import java.io.Writer;
 import java.security.Principal;
 import java.util.Set;
 
-public class UserWriter
+public class JsonUserWriter
 {
     /**
      * Write a User as a JSON string to a StringBuilder.
@@ -164,7 +164,7 @@ public class UserWriter
     {
         JSONObject userObject = new JSONObject();
         JSONObject userIDIdentityObject = new JSONObject();
-        userIDIdentityObject.put("identity", IdentityWriter.write(user.getUserID()));
+        userIDIdentityObject.put("identity", JsonIdentityWriter.write(user.getUserID()));
         userObject.put("userID", userIDIdentityObject);
 
         // identities
@@ -175,7 +175,7 @@ public class UserWriter
             for (Principal identity : identities)
             {
                 JSONObject identityObject = new JSONObject();
-                identityObject.put("identity" , IdentityWriter.write(identity));
+                identityObject.put("identity" , JsonIdentityWriter.write(identity));
                 identityArray.put(identityObject);
             }
             userObject.put("identities", identityArray);
@@ -189,7 +189,7 @@ public class UserWriter
             for (UserDetails userDetail : userDetails)
             {
                 JSONObject detailsObject = new JSONObject();
-                detailsObject.put(UserDetails.NAME , UserDetailsWriter.write(userDetail));
+                detailsObject.put(UserDetails.NAME , JsonUserDetailsWriter.write(userDetail));
                 detailsArray.put(detailsObject);
             }
             userObject.put("details", detailsArray);

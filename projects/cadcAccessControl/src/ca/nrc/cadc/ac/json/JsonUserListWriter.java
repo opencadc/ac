@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,107 +62,64 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.PersonalDetails;
 import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.JSONWriter;
 
-import java.io.*;
-import java.security.Principal;
-import java.util.Scanner;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Map;
 
-public class UserRequestReader
+
+/**
+ * Class to write out, as JSON, a list of user entries.
+ */
+public class JsonUserListWriter
 {
-    /**
-     * Construct a UserRequest from an JSON String source.
-     *
-     * @param json String of the JSON.
-     * @return UserRequest UserRequest.
-     * @throws IOException
-     */
-    public static UserRequest<Principal> read(String json)
-        throws IOException
+    public static void write(final Map<String, PersonalDetails> users,
+                             final Writer writer) throws IOException
     {
-        if (json == null)
+        final JSONWriter jsonWriter = new JSONWriter(writer);
+
+        try
         {
-            throw new IllegalArgumentException("JSON must not be null");
+            jsonWriter.array();
+
+            for (final Map.Entry<String, PersonalDetails> entry
+                    : users.entrySet())
+            {
+                jsonWriter.object();
+
+                jsonWriter.key("id").value(entry.getKey());
+                jsonWriter.key("firstName").value(entry.getValue().
+                        getFirstName());
+                jsonWriter.key("lastName").value(entry.getValue().
+                        getLastName());
+
+                jsonWriter.endObject();
+                writer.write("\n");
+            }
         }
-        else
+        catch (JSONException e)
+        {
+            throw new IOException(e);
+        }
+        finally
         {
             try
             {
-                return parseUserRequest(new JSONObject(json));
+                jsonWriter.endArray();
             }
             catch (JSONException e)
             {
-                String error = "Unable to parse JSON to User because " +
-                               e.getMessage();
-                throw new ReaderException(error, e);
+                // Do nothing.
             }
         }
-    }
-
-    /**
-     * Construct a User from a InputStream.
-     *
-     * @param in InputStream.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    public static UserRequest<Principal> read(InputStream in)
-            throws IOException
-    {
-        if (in == null)
-        {
-            throw new IOException("stream closed");
-        }
-
-        Scanner s = new Scanner(in).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
-    }
-
-    /**
-     * Construct a User from a Reader.
-     *
-     * @param reader Reader.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    public static UserRequest<Principal> read(Reader reader)
-            throws IOException
-    {
-        if (reader == null)
-        {
-            throw new IllegalArgumentException("reader must not be null");
-        }
-
-        Scanner s = new Scanner(reader).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
-    }
-
-
-    protected static UserRequest<Principal> parseUserRequest(
-            JSONObject userRequestObject)
-        throws ReaderException, JSONException
-    {
-        final User<Principal> user =
-                ca.nrc.cadc.ac.json.UserReader.parseUser(
-                        userRequestObject.getJSONObject("user"));
-
-        return new UserRequest<Principal>(user, userRequestObject.
-                getString("password"));
     }
 }

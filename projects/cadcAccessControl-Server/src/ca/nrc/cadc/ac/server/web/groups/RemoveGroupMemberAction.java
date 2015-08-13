@@ -74,7 +74,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoveGroupMemberAction extends GroupsAction
+public class RemoveGroupMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String groupMemberName;

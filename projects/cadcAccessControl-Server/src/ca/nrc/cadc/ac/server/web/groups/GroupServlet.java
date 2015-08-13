@@ -66,96 +66,96 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-/**
- *
- * @author jburke
- */
-public class GroupsReaderWriterTest
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.auth.AuthenticationUtil;
+
+public class GroupServlet extends HttpServlet
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
+    private static final Logger log = Logger.getLogger(GroupServlet.class);
 
-    @Test
-    public void testReaderExceptions()
-        throws Exception
+    /**
+     * Create a GroupAction and run the action safely.
+     */
+    private void doAction(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
+        long start = System.currentTimeMillis();
+        GroupLogInfo logInfo = new GroupLogInfo(request);
         try
         {
-            String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
-            fail("null String should throw IllegalArgumentException");
+            log.info(logInfo.start());
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+            AbstractGroupAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
+            action.doAction(subject, response);
         }
-        catch (IllegalArgumentException e) {}
-        
-        try
+        catch (IllegalArgumentException e)
         {
-            InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
-            fail("null InputStream should throw IOException");
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            logInfo.setSuccess(false);
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
         }
-        catch (IOException e) {}
-        
-        try
+        catch (Throwable t)
         {
-            Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.getWriter().write(message);
+            response.setStatus(500);
         }
-        catch (IllegalArgumentException e) {}
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
+        }
     }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
 
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
+    @Override
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
+    }
+
+    @Override
+    public void doHead(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(request, response);
     }
 
 }

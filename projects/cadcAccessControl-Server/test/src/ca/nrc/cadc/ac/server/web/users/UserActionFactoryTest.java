@@ -95,7 +95,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getMethod()).andReturn("PUT");
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof CreateUserAction);
         }
@@ -116,7 +116,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getMethod()).andReturn("DELETE");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof DeleteUserAction);
         }
@@ -137,7 +137,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getMethod()).andReturn("GET");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof GetUserAction);
         }
@@ -157,9 +157,9 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("");
             EasyMock.expect(request.getMethod()).andReturn("GET");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
-            Assert.assertTrue("Wrong action", action instanceof GetUsersAction);
+            Assert.assertTrue("Wrong action", action instanceof GetUserListAction);
         }
         catch (Throwable t)
         {
@@ -185,7 +185,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.getUsersAction(request, null);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof ModifyUserAction);
         }
@@ -223,7 +223,7 @@ public class UserActionFactoryTest
                 EasyMock.replay(request);
                 try
                 {
-                    UsersActionFactory.getUsersAction(request, null);
+                    UserActionFactory.getUsersAction(request, null);
                     Assert.fail("Should have been a bad request: " + testRequest.method + " on " + testRequest.path);
                 }
                 catch (IllegalArgumentException e)

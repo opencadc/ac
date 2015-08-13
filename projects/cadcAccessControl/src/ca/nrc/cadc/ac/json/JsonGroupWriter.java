@@ -88,7 +88,7 @@ import java.io.Writer;
 import java.security.Principal;
 import java.text.DateFormat;
 
-public class GroupWriter
+public class JsonGroupWriter
 {
     /**
      * Write a Group to a StringBuilder.
@@ -175,7 +175,7 @@ public class GroupWriter
         // Group owner
         if (group.getOwner() != null)
         {
-            groupObject.put("owner", UserWriter.getUserObject(group.getOwner()));
+            groupObject.put("owner", JsonUserWriter.getUserObject(group.getOwner()));
         }
 
         if (deepCopy)
@@ -200,7 +200,7 @@ public class GroupWriter
                 for (GroupProperty property : group.getProperties())
                 {
                     JSONObject propertyObject = new JSONObject();
-                    propertyObject.put("property", GroupPropertyWriter.write(property));
+                    propertyObject.put("property", JsonGroupPropertyWriter.write(property));
                     propertiesArray.put(propertyObject);
                 }
                 groupObject.put("properties", propertiesArray);
@@ -223,7 +223,7 @@ public class GroupWriter
                 JSONArray userMembersArray = new JSONArray();
                 for (User<? extends Principal> userMember : group.getUserMembers())
                 {
-                    userMembersArray.put(UserWriter.getUserObject(userMember));
+                    userMembersArray.put(JsonUserWriter.getUserObject(userMember));
                 }
                 groupObject.put("userMembers", userMembersArray);
             }
@@ -245,7 +245,7 @@ public class GroupWriter
                 JSONArray userAdminsArray = new JSONArray();
                 for (User<? extends Principal> userAdmin : group.getUserAdmins())
                 {
-                    userAdminsArray.put(UserWriter.getUserObject(userAdmin));
+                    userAdminsArray.put(JsonUserWriter.getUserObject(userAdmin));
                 }
                 groupObject.put("userAdmins", userAdminsArray);
             }

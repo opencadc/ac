@@ -74,7 +74,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AddGroupMemberAction extends GroupsAction
+public class AddGroupMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String groupMemberName;

@@ -311,7 +311,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             final Filter filter = Filter.createPresenceFilter("cn");
             final String [] attributes = new String[] {"cn", "nsaccountlock"};
-            final List<String> groupNames = new ArrayList<String>();
+            final Collection<String> groupNames = new ArrayList<String>();
             final long begin = System.currentTimeMillis();
 
             final SearchResult searchResult =
@@ -973,8 +973,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
         Group group = new Group(searchResult.getAttributeValue("cn"),
                                 userPersist.getX500User(
-                                        new DN(searchResult.getAttributeValue(
-                                                "owner"))));
+                                    new DN(searchResult.getAttributeValue(
+                                        "owner"))));
         group.description = searchResult.getAttributeValue("description");
         return group;
     }

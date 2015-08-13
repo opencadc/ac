@@ -86,6 +86,9 @@ import java.io.Writer;
 import java.security.Principal;
 import java.util.Set;
 
+/**
+ * Class to write a XML representation of a User object.
+ */
 public class UserWriter
 {
     /**
@@ -96,7 +99,7 @@ public class UserWriter
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, StringBuilder builder)
+    public void write(User<? extends Principal> user, StringBuilder builder)
         throws IOException, WriterException
     {
         write(user, new StringBuilderWriter(builder));
@@ -110,7 +113,7 @@ public class UserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, OutputStream out)
+    public void write(User<? extends Principal> user, OutputStream out)
         throws IOException, WriterException
     {                
         OutputStreamWriter outWriter;
@@ -133,7 +136,7 @@ public class UserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, Writer writer)
+    public void write(User<? extends Principal> user, Writer writer)
         throws IOException, WriterException
     {
         if (user == null)
@@ -158,8 +161,9 @@ public class UserWriter
         Element userElement = new Element("user");
 
         // userID element
+        IdentityWriter identityWriter = new IdentityWriter();
         Element userIDElement = new Element("userID");
-        userIDElement.addContent(IdentityWriter.write(user.getUserID()));
+        userIDElement.addContent(identityWriter.write(user.getUserID()));
         userElement.addContent(userIDElement);
 
         // identities
@@ -169,7 +173,7 @@ public class UserWriter
             Element identitiesElement = new Element("identities");
             for (Principal identity : identities)
             {
-                identitiesElement.addContent(IdentityWriter.write(identity));
+                identitiesElement.addContent(identityWriter.write(identity));
             }
             userElement.addContent(identitiesElement);
         }
@@ -177,11 +181,12 @@ public class UserWriter
         // details
         if (!user.details.isEmpty())
         {
+            UserDetailsWriter userDetailsWriter = new UserDetailsWriter();
             Element detailsElement = new Element("details");
             Set<UserDetails> userDetails = user.details;
             for (UserDetails userDetail : userDetails)
             {
-                detailsElement.addContent(UserDetailsWriter.write(userDetail));
+                detailsElement.addContent(userDetailsWriter.write(userDetail));
             }
             userElement.addContent(detailsElement);
         }

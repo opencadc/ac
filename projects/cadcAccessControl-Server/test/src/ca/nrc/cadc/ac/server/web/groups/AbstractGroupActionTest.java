@@ -91,9 +91,9 @@ import static org.junit.Assert.*;
  *
  * @author jburke
  */
-public class GroupsActionTest
+public class AbstractGroupActionTest
 {
-    private final static Logger log = Logger.getLogger(GroupsActionTest.class);
+    private final static Logger log = Logger.getLogger(AbstractGroupActionTest.class);
     
     @BeforeClass
     public static void setUpClass()
@@ -237,7 +237,7 @@ public class GroupsActionTest
         }
     }
 
-    public class GroupsActionImpl extends GroupsAction
+    public class GroupsActionImpl extends AbstractGroupAction
     {
         Exception exception;
         

@@ -68,35 +68,37 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
+
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.net.TransientException;
+import org.apache.log4j.Level;
+
+import org.json.JSONArray;
+
 import ca.nrc.cadc.util.Log4jInit;
 
-import java.io.*;
-import java.security.AccessControlException;
-import java.security.Principal;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.easymock.EasyMock.*;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 /**
- * @author jburke
+ *
+ * @author adriand
  */
-public class UsersActionTest
+public class GetUserListActionTest
 {
-    private final static Logger log = Logger.getLogger(UsersActionTest.class);
-
     @BeforeClass
     public static void setUpClass()
     {
@@ -104,110 +106,98 @@ public class UsersActionTest
     }
 
     @Test
-    public void testDoActionAccessControlException() throws Exception
+    @SuppressWarnings("unchecked")
+    public void testWriteUsersJSON() throws Exception
     {
-        String message = "Permission Denied";
-        int responseCode = 403;
-        Exception e = new AccessControlException("");
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionIllegalArgumentException() throws Exception
-    {
-        String message = "message";
-        int responseCode = 400;
-        Exception e = new IllegalArgumentException("message");
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionUserNotFoundException() throws Exception
-    {
-        String message = "User not found: foo";
-        int responseCode = 404;
-        Exception e = new UserNotFoundException("foo");
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionUnsupportedOperationException() throws Exception
-    {
-        String message = "Not yet implemented.";
-        int responseCode = 501;
-        Exception e = new UnsupportedOperationException();
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionTransientException() throws Exception
-    {
-        HttpServletResponse response = createMock(HttpServletResponse.class);
-        expect(response.isCommitted()).andReturn(Boolean.FALSE);
-        response.setContentType("text/plain");
-        expectLastCall().once();
-        expect(response.getWriter())
-                .andReturn(new PrintWriter(new StringWriter())).once();
-
-        response.setStatus(503);
-        expectLastCall().once();
-        replay(response);
-
-        UserLogInfo logInfo = createMock(UserLogInfo.class);
-        logInfo.setSuccess(false);
-        expectLastCall().once();
-        logInfo.setMessage("Internal Transient Error: foo");
-        expectLastCall().once();
-        replay(logInfo);
-
-        UsersActionImpl action = new UsersActionImpl(logInfo);
-        action.setException(new TransientException("foo"));
-        action.doAction(null, response);
-    }
-
-    private void testDoAction(String message, int responseCode, Exception e)
-            throws Exception
-    {
-        HttpServletResponse response =
+        final HttpServletResponse mockResponse =
                 createMock(HttpServletResponse.class);
-        expect(response.isCommitted()).andReturn(Boolean.FALSE);
-        response.setContentType("text/plain");
-        expectLastCall().once();
-        expect(response.getWriter())
-                .andReturn(new PrintWriter(new StringWriter())).once();
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+                createMock(UserPersistence.class);
+        final Map<String, PersonalDetails> userEntries =
+                new HashMap<String, PersonalDetails>();
 
-        response.setStatus(responseCode);
-        expectLastCall().once();
-        replay(response);
+        for (int i = 1; i <= 5; i++)
+        {
+            userEntries.put("USER_" + i,
+                            new PersonalDetails("USER", Integer.toString(i)));
+        }
 
-        UserLogInfo logInfo = createMock(UserLogInfo.class);
-        logInfo.setMessage(message);
-        expectLastCall().once();
-        replay(logInfo);
+        final GetUserListAction testSubject = new GetUserListAction(null)
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
 
-        UsersActionImpl action = new UsersActionImpl(logInfo);
-        action.setException(e);
-        action.doAction(null, response);
+        testSubject.setAcceptedContentType(AbstractUserAction.JSON_CONTENT_TYPE);
+
+        final Writer actualWriter = new StringWriter();
+        final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
+
+        expect(mockUserPersistence.getUsers()).andReturn(
+                userEntries).once();
+        expect(mockResponse.getWriter()).andReturn(actualPrintWriter).once();
+        mockResponse.setContentType("application/json");
+        expectLastCall().once();
+
+        replay(mockResponse, mockUserPersistence);
+        testSubject.doAction(null, mockResponse);
+
+        final Writer expectedWriter = new StringWriter();
+        final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
+        JsonUserListWriter userListWriter = new JsonUserListWriter();
+        userListWriter.write(userEntries, expectedPrintWriter);
+        JSONAssert.assertEquals(expectedWriter.toString(), actualWriter.toString(), false);
+
+        verify(mockResponse, mockUserPersistence);
     }
 
-    public class UsersActionImpl extends UsersAction
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testWriteUsersXML() throws Exception
     {
-        Exception exception;
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+                createMock(UserPersistence.class);
+        final Map<String, PersonalDetails> userEntries =
+                new HashMap<String, PersonalDetails>();
 
-        public UsersActionImpl(UserLogInfo logInfo)
+        for (int i = 1; i <= 5; i++)
         {
-            super(logInfo);
+            userEntries.put("USER_" + i,
+                            new PersonalDetails("USER", Integer.toString(i)));
         }
 
-        public Object run() throws Exception
+        final GetUserListAction testSubject = new GetUserListAction(null)
         {
-            throw exception;
-        }
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
 
-        public void setException(Exception e)
-        {
-            this.exception = e;
-        }
+        final Writer actualWriter = new StringWriter();
+        final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
+
+        expect(mockUserPersistence.getUsers()).andReturn(
+                userEntries).once();
+        expect(mockResponse.getWriter()).andReturn(actualPrintWriter).once();
+        mockResponse.setContentType("text/xml");
+        expectLastCall().once();
+
+        replay(mockResponse, mockUserPersistence);
+        testSubject.doAction(null, mockResponse);
+
+        final Writer expectedWriter = new StringWriter();
+        final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
+        UserListWriter userListWriter = new UserListWriter();
+        userListWriter.write(userEntries, expectedPrintWriter);
+        assertEquals("Wrong XML", expectedWriter.toString(), actualWriter.toString());
+
+        verify(mockResponse, mockUserPersistence);
     }
-
 }

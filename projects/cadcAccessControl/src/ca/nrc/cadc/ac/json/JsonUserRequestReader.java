@@ -66,31 +66,103 @@
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.json;
 
-package ca.nrc.cadc.ac.server.web.users;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.*;
+import java.security.Principal;
+import java.util.Scanner;
 
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.UserPersistence;
-
-
-public class GetUsersAction extends UsersAction
+public class JsonUserRequestReader
 {
-    
-    private static final Logger log = Logger.getLogger(GetUsersAction.class);
-
-    GetUsersAction(UserLogInfo logInfo)
+    /**
+     * Construct a UserRequest from an JSON String source.
+     *
+     * @param json String of the JSON.
+     * @return UserRequest UserRequest.
+     * @throws IOException
+     */
+    public static UserRequest<Principal> read(String json)
+        throws IOException
     {
-        super(logInfo);
+        if (json == null)
+        {
+            throw new IllegalArgumentException("JSON must not be null");
+        }
+        else
+        {
+            try
+            {
+                return parseUserRequest(new JSONObject(json));
+            }
+            catch (JSONException e)
+            {
+                String error = "Unable to parse JSON to User because " +
+                               e.getMessage();
+                throw new ReaderException(error, e);
+            }
+        }
     }
 
-    public Object run()
-        throws Exception
+    /**
+     * Construct a User from a InputStream.
+     *
+     * @param in InputStream.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    public static UserRequest<Principal> read(InputStream in)
+            throws IOException
     {
-        final UserPersistence userPersistence = getUserPersistence();
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
 
-        writeUsers(userPersistence.getUsers());
-        return null;
+        Scanner s = new Scanner(in).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
+
+    /**
+     * Construct a User from a Reader.
+     *
+     * @param reader Reader.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    public static UserRequest<Principal> read(Reader reader)
+            throws IOException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
+
+
+    protected static UserRequest<Principal> parseUserRequest(
+            JSONObject userRequestObject)
+        throws ReaderException, JSONException
+    {
+        final User<Principal> user =
+                JsonUserReader.parseUser(
+                    userRequestObject.getJSONObject("user"));
+
+        return new UserRequest<Principal>(user, userRequestObject.
+                getString("password").toCharArray());
     }
 }

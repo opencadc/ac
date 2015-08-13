@@ -74,7 +74,7 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import java.security.Principal;
 
 
-public class GetUserAction extends UsersAction
+public class GetUserAction extends AbstractUserAction
 {
     private final Principal userID;
 

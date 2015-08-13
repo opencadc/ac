@@ -359,8 +359,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 .getName());
             addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userDN
                 .toNormalizedString());
-            addAttribute(attributes, LADP_USER_PASSWORD, userRequest
-                    .getPassword());
+            addAttribute(attributes, LADP_USER_PASSWORD,
+                String.valueOf(userRequest.getPassword()));
 
             for (UserDetails details : user.details)
             {

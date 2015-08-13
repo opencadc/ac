@@ -77,7 +77,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoveUserMemberAction extends GroupsAction
+public class RemoveUserMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String userID;

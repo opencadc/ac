@@ -68,7 +68,34 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import java.io.*;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.xml.GroupListReader;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
+import org.apache.log4j.Logger;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import javax.security.auth.Subject;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -83,27 +110,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-
-import ca.nrc.cadc.ac.*;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.xml.GroupReader;
-import ca.nrc.cadc.ac.xml.GroupWriter;
-import ca.nrc.cadc.ac.xml.GroupsReader;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.InputStreamWrapper;
-import ca.nrc.cadc.net.NetUtil;
-import org.json.JSONObject;
 
 
 /**
@@ -217,7 +223,7 @@ public class GMSClient
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
-                                new JSONUserListInputStreamWrapper(webUsers));
+                                new JsonUserListInputStreamWrapper(webUsers));
     }
 
     /**
@@ -242,7 +248,8 @@ public class GMSClient
         clearCache();
 
         StringBuilder groupXML = new StringBuilder();
-        GroupWriter.write(group, groupXML);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(group, groupXML);
         log.debug("createGroup: " + groupXML);
 
         byte[] bytes = groupXML.toString().getBytes("UTF-8");
@@ -283,7 +290,8 @@ public class GMSClient
         try
         {
             log.debug("createGroup returned: " + retXML);
-            return GroupReader.read(retXML);
+            GroupReader groupReader = new GroupReader();
+            return groupReader.read(retXML);
         }
         catch (Exception bug)
         {
@@ -339,7 +347,8 @@ public class GMSClient
         {
             String groupXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getGroup returned: " + groupXML);
-            return GroupReader.read(groupXML);
+            GroupReader groupReader = new GroupReader();
+            return groupReader.read(groupXML);
         }
         catch (Exception bug)
         {
@@ -441,7 +450,8 @@ public class GMSClient
         clearCache();
 
         StringBuilder groupXML = new StringBuilder();
-        GroupWriter.write(group, groupXML);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(group, groupXML);
         log.debug("updateGroup: " + groupXML);
 
         HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(),
@@ -482,7 +492,8 @@ public class GMSClient
         {
             String retXML = transfer.getResponseBody();
             log.debug("getGroup returned: " + retXML);
-            return GroupReader.read(retXML);
+            GroupReader groupReader = new GroupReader();
+            return groupReader.read(retXML);
         }
         catch (Exception bug)
         {
@@ -887,7 +898,8 @@ public class GMSClient
         {
             String groupsXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getMemberships returned: " + groupsXML);
-            List<Group> groups = GroupsReader.read(groupsXML);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> groups = groupListReader.read(groupsXML);
             setCachedGroups(userID, groups, role);
             return groups;
         }
@@ -1004,7 +1016,8 @@ public class GMSClient
         {
             String groupsXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getMembership returned: " + groupsXML);
-            List<Group> groups = GroupsReader.read(groupsXML);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> groups = groupListReader.read(groupsXML);
             if (groups.size() == 0)
             {
                 return null;

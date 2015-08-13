@@ -84,7 +84,11 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
-public class GroupsReader
+/**
+ * Class to read an XML representation of a list of Groups
+ * into a List of Group objects.
+ */
+public class GroupListReader
 {
     /**
      * Construct a list of Group's from an XML String source.
@@ -95,7 +99,7 @@ public class GroupsReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static List<Group> read(String xml)
+    public List<Group> read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
@@ -114,7 +118,7 @@ public class GroupsReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static List<Group> read(InputStream in)
+    public List<Group> read(InputStream in)
         throws ReaderException, IOException, URISyntaxException
     {
         if (in == null)
@@ -142,7 +146,7 @@ public class GroupsReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static List<Group> read(Reader reader)
+    public List<Group> read(Reader reader)
         throws ReaderException, IOException, URISyntaxException
     {
         if (reader == null)
@@ -182,7 +186,7 @@ public class GroupsReader
         List<Element> groupElements = groupsElement.getChildren("group");
         for (Element groupElement : groupElements)
         {
-            groups.add(ca.nrc.cadc.ac.xml.GroupReader.parseGroup(groupElement));
+            groups.add(GroupReader.parseGroup(groupElement));
         }
 
         return groups;

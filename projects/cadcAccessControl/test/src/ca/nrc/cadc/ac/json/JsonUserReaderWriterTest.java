@@ -66,138 +66,92 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.IdentityType;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.CookiePrincipal;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import ca.nrc.cadc.util.StringUtil;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.security.Principal;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
 
-import org.apache.log4j.Logger;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-
-public class UsersActionFactory
+/**
+ *
+ * @author jburke
+ */
+public class JsonUserReaderWriterTest
 {
-    private static final Logger log = Logger
-            .getLogger(UsersActionFactory.class);
+    private static Logger log = Logger.getLogger(JsonUserReaderWriterTest.class);
 
-    static UsersAction getUsersAction(HttpServletRequest request, UserLogInfo logInfo)
-            throws IOException
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        UsersAction action = null;
-        String method = request.getMethod();
-        String path = request.getPathInfo();
-        log.debug("method: " + method);
-        log.debug("path: " + path);
-
-        if (path == null)
+        try
         {
-            path = "";
+            String s = null;
+            User<? extends Principal> u = JsonUserReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-
-        if (path.startsWith("/"))
+        catch (IllegalArgumentException e) {}
+        
+        try
         {
-            path = path.substring(1);
+            InputStream in = null;
+            User<? extends Principal> u = JsonUserReader.read(in);
+            fail("null InputStream should throw IOException");
         }
-
-        if (path.endsWith("/"))
+        catch (IOException e) {}
+        
+        try
         {
-            path = path.substring(0, path.length() - 1);
+            Reader r = null;
+            User<? extends Principal> u = JsonUserReader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
-
-        String[] segments = new String[0];
-        if (StringUtil.hasText(path))
-        {
-            segments = path.split("/");
-        }
-
-        if (segments.length == 0)
-        {
-            if (method.equals("GET"))
-            {
-                action = new GetUsersAction(logInfo);
-            }
-            else if (method.equals("PUT"))
-            {
-                action = new CreateUserAction(logInfo,
-                                              request.getInputStream());
-                action.setRedirectURLPrefix(request.getRequestURL().toString());
-            }
-        }
-        else
-        {
-            User user = getUser(segments[0], request.getParameter("idType"),
-                                method, path);
-            if (method.equals("GET"))
-            {
-                action = new GetUserAction(logInfo, user.getUserID());
-            }
-            else if (method.equals("DELETE"))
-            {
-                action = new DeleteUserAction(logInfo, user.getUserID());
-            }
-            else if (method.equals("POST"))
-            {
-                action = new ModifyUserAction(logInfo,
-                                              request.getInputStream());
-                action.setRedirectURLPrefix(request.getRequestURL().toString());
-            }
-        }
-
-        if (action != null)
-        {
-            log.debug("Returning action: " + action.getClass());
-            return action;
-        }
-        final String error = "Bad users request: " + method + " on " + path;
-        throw new IllegalArgumentException(error);
+        catch (IllegalArgumentException e) {}
     }
-
-    private static User<? extends Principal> getUser(final String userName,
-                                                     final String idType,
-                                                     final String method,
-                                                     final String path)
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        if (idType == null || idType.isEmpty())
+        try
         {
-            throw new IllegalArgumentException("User endpoint missing idType parameter");
+            JsonUserWriter.write(null, new StringBuilder());
+            fail("null User should throw WriterException");
         }
-        else if (idType.equals(IdentityType.USERNAME.getValue()))
-        {
-            return new User<HttpPrincipal>(new HttpPrincipal(userName));
-        }
-        else if (idType.equals(IdentityType.X500.getValue()))
-        {
-            return new User<X500Principal>(new X500Principal(userName));
-        }
-        else if (idType.equals(IdentityType.UID.getValue()))
-        {
-            return new User<NumericPrincipal>(new NumericPrincipal(
-                    Long.parseLong(userName)));
-        }
-        else if (idType.equals(IdentityType.OPENID.getValue()))
-        {
-            return new User<OpenIdPrincipal>(new OpenIdPrincipal(userName));
-        }
-        else if (idType.equals(IdentityType.COOKIE.getValue()))
-        {
-            return new User<CookiePrincipal>(new CookiePrincipal(userName));
-        }
-        else
-        {
-            final String error = "Bad users request: " + method + " on " + path +
-                                 " because of unknown principal type " + idType;
-            throw new IllegalArgumentException(error);
-        }
+        catch (WriterException e) {}
     }
+     
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.details.add(new PersonalDetails("firstname", "lastname"));
+        expected.details.add(new PosixDetails(123l, 456l, "foo"));
 
+        StringBuilder json = new StringBuilder();
+        JsonUserWriter.write(expected, json);
+        assertFalse(json.toString().isEmpty());
+        
+        User<? extends Principal> actual = JsonUserReader.read(json.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
 }

@@ -68,20 +68,25 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
-
-import java.io.*;
-import java.security.Principal;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.easymock.EasyMock.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.security.Principal;
+
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
 
 
 public class ModifyUserActionTest
@@ -89,18 +94,19 @@ public class ModifyUserActionTest
     @Test
     public void run() throws Exception
     {
-        final byte[] input =
-                "{\"user\":{\"userID\":{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}},\"details\":[{\"userDetails\":{\"lastName\":\"Test\",\"firstName\":\"CADC\",\"email\":\"CADC.Test@nrc-cnrc.gc.ca\",\"type\":\"personalDetails\"}}],\"identities\":[{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}}]}}"
-                        .getBytes();
-        final InputStream inputStream = new ByteArrayInputStream(input);
+        final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
+        User<Principal> expected = new User<Principal>(httpPrincipal);
+        expected.getIdentities().add(httpPrincipal);
+        final PersonalDetails pd = new PersonalDetails("CADC", "Test");
+        pd.email = "CADC.Test@nrc-cnrc.gc.ca";
+        expected.details.add(pd);
 
-        // Should match the JSON above, without the e-mail modification.
-        final User<Principal> userObject =
-                new User<Principal>(new HttpPrincipal("CADCtest"));
-        final PersonalDetails personalDetail =
-                new PersonalDetails("CADC", "Test");
-        personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
-        userObject.details.add(personalDetail);
+        final StringBuilder sb = new StringBuilder();
+        final JsonUserWriter userWriter = new JsonUserWriter();
+        userWriter.write(expected, sb);
+
+        final byte[] input = sb.toString().getBytes();
+        final InputStream inputStream = new ByteArrayInputStream(input);
 
         final HttpServletRequest mockRequest =
                 createMock(HttpServletRequest.class);
@@ -113,14 +119,17 @@ public class ModifyUserActionTest
         final UserPersistence<Principal> mockUserPersistence =
                 createMock(UserPersistence.class);
 
-        expect(mockUserPersistence.modifyUser(userObject)).andReturn(
-                userObject).once();
+        expect(mockUserPersistence.modifyUser(expected)).andReturn(
+            expected).once();
 
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
                 once();
+        expect(mockRequest.getPathInfo()).andReturn("CADCtest").once();
 
-        mockResponse.sendRedirect(requestURL);
+        mockResponse.setStatus(HttpServletResponse.SC_OK);
+        expectLastCall().once();
+        mockResponse.setHeader("Location", "null/CADCtest?idType=HTTP");
         expectLastCall().once();
 
         mockResponse.setContentType("application/json");

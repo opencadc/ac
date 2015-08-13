@@ -83,7 +83,7 @@ import java.security.Principal;
 import java.util.Set;
 
 
-public class CreateUserAction extends UsersAction
+public class CreateUserAction extends AbstractUserAction
 {
     private final InputStream inputStream;
 
@@ -98,12 +98,12 @@ public class CreateUserAction extends UsersAction
 
     public Object run() throws Exception
     {
+        UserRequest<Principal> userRequest = null;
         try
         {
             final UserPersistence<Principal> userPersistence =
                     getUserPersistence();
-            final UserRequest<Principal> userRequest =
-                    readUserRequest(this.inputStream);
+            userRequest = readUserRequest(this.inputStream);
             final User<Principal> newUser =
                     userPersistence.addUser(userRequest);
             final Set<HttpPrincipal> httpPrincipals =
@@ -130,6 +130,13 @@ public class CreateUserAction extends UsersAction
         catch (ReaderException e)
         {
             throw new IllegalArgumentException("Invalid input", e);
+        }
+        finally
+        {
+            if (userRequest != null)
+            {
+                userRequest.clear();
+            }
         }
 
         return null;

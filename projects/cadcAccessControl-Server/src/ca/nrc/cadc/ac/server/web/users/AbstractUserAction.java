@@ -72,8 +72,16 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.json.JsonUserReader;
+import ca.nrc.cadc.ac.json.JsonUserRequestReader;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.xml.UserListWriter;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
@@ -88,10 +96,10 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
-public abstract class UsersAction
+public abstract class AbstractUserAction
     implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(UsersAction.class);
+    private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     static final String DEFAULT_CONTENT_TYPE = "text/xml";
     static final String JSON_CONTENT_TYPE = "application/json";
 
@@ -102,7 +110,7 @@ public abstract class UsersAction
     private String redirectURLPrefix;
 
 
-    UsersAction(UserLogInfo logInfo)
+    AbstractUserAction(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
@@ -236,12 +244,13 @@ public abstract class UsersAction
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            userRequest = ca.nrc.cadc.ac.xml.UserRequestReader.read(inputStream);
+            UserRequestReader requestReader = new UserRequestReader();
+            userRequest = requestReader.read(inputStream);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            userRequest =
-                    ca.nrc.cadc.ac.json.UserRequestReader.read(inputStream);
+            JsonUserRequestReader requestReader = new JsonUserRequestReader();
+            userRequest = requestReader.read(inputStream);
         }
         else
         {
@@ -269,11 +278,13 @@ public abstract class UsersAction
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            user = ca.nrc.cadc.ac.xml.UserReader.read(inputStream);
+            UserReader userReader = new UserReader();
+            user = userReader.read(inputStream);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            user = ca.nrc.cadc.ac.json.UserReader.read(inputStream);
+            JsonUserReader userReader = new JsonUserReader();
+            user = userReader.read(inputStream);
         }
         else
         {
@@ -299,11 +310,13 @@ public abstract class UsersAction
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.xml.UserWriter.write(user, writer);
+            UserWriter userWriter = new UserWriter();
+            userWriter.write(user, writer);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.json.UserWriter.write(user, writer);
+            JsonUserWriter userWriter = new JsonUserWriter();
+            userWriter.write(user, writer);
         }
     }
 
@@ -320,11 +333,13 @@ public abstract class UsersAction
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.xml.UsersWriter.write(users, writer);
+            UserListWriter userListWriter = new UserListWriter();
+            userListWriter.write(users, writer);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.json.UsersWriter.write(users, writer);
+            JsonUserListWriter userListWriter = new JsonUserListWriter();
+            userListWriter.write(users, writer);
         }
     }
 

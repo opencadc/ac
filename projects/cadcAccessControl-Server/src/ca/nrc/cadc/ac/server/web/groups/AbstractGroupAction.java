@@ -90,14 +90,14 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
 
-public abstract class GroupsAction
+public abstract class AbstractGroupAction
     implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(GroupsAction.class);
+    private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
     protected GroupLogInfo logInfo;
     protected HttpServletResponse response;
 
-    GroupsAction(GroupLogInfo logInfo)
+    AbstractGroupAction(GroupLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }

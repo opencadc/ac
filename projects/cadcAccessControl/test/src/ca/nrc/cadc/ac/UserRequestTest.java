@@ -83,7 +83,9 @@ public class UserRequestTest
     @Test
     public void simpleEqualityTests() throws Exception
     {
-        UserRequest<HttpPrincipal> ur1 = new UserRequest<HttpPrincipal>(new User(new HttpPrincipal(("foo"))), "password");
+        UserRequest<HttpPrincipal> ur1 =
+            new UserRequest<HttpPrincipal>(
+                new User<HttpPrincipal>(new HttpPrincipal(("foo"))), "password".toCharArray());
         UserRequest<HttpPrincipal> ur2 = ur1;
         assertEquals(ur1, ur2);
         assertEquals(ur1.getUser(), ur2.getUser());

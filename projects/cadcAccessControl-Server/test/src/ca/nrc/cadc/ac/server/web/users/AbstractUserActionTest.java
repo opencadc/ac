@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,64 +62,145 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.users;
 
-package ca.nrc.cadc.ac.json;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.Log4jInit;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import java.io.*;
+import java.security.AccessControlException;
+import javax.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
+import static org.easymock.EasyMock.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
- * Class to write out, as JSON, a list of user entries.
+ * @author jburke
  */
-public class UsersWriter
+public class AbstractUserActionTest
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    private final static Logger log = Logger.getLogger(AbstractUserActionTest.class);
+
+    @BeforeClass
+    public static void setUpClass()
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
 
-        try
+    @Test
+    public void testDoActionAccessControlException() throws Exception
+    {
+        String message = "Permission Denied";
+        int responseCode = 403;
+        Exception e = new AccessControlException("");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionIllegalArgumentException() throws Exception
+    {
+        String message = "message";
+        int responseCode = 400;
+        Exception e = new IllegalArgumentException("message");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionUserNotFoundException() throws Exception
+    {
+        String message = "User not found: foo";
+        int responseCode = 404;
+        Exception e = new UserNotFoundException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionUnsupportedOperationException() throws Exception
+    {
+        String message = "Not yet implemented.";
+        int responseCode = 501;
+        Exception e = new UnsupportedOperationException();
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionTransientException() throws Exception
+    {
+        HttpServletResponse response = createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
+
+        response.setStatus(503);
+        expectLastCall().once();
+        replay(response);
+
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        logInfo.setSuccess(false);
+        expectLastCall().once();
+        logInfo.setMessage("Internal Transient Error: foo");
+        expectLastCall().once();
+        replay(logInfo);
+
+        UsersActionImpl action = new UsersActionImpl(logInfo);
+        action.setException(new TransientException("foo"));
+        action.doAction(null, response);
+    }
+
+    private void testDoAction(String message, int responseCode, Exception e)
+            throws Exception
+    {
+        HttpServletResponse response =
+                createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
+
+        response.setStatus(responseCode);
+        expectLastCall().once();
+        replay(response);
+
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        logInfo.setMessage(message);
+        expectLastCall().once();
+        replay(logInfo);
+
+        UsersActionImpl action = new UsersActionImpl(logInfo);
+        action.setException(e);
+        action.doAction(null, response);
+    }
+
+    public class UsersActionImpl extends AbstractUserAction
+    {
+        Exception exception;
+
+        public UsersActionImpl(UserLogInfo logInfo)
         {
-            jsonWriter.array();
-
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
-            {
-                jsonWriter.object();
-
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
-
-                jsonWriter.endObject();
-                writer.write("\n");
-            }
+            super(logInfo);
         }
-        catch (JSONException e)
+
+        public Object run() throws Exception
         {
-            throw new IOException(e);
+            throw exception;
         }
-        finally
+
+        public void setException(Exception e)
         {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
+            this.exception = e;
         }
     }
+
 }

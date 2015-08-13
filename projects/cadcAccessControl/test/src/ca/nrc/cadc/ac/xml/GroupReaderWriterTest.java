@@ -104,7 +104,8 @@ public class GroupReaderWriterTest
         try
         {
             String s = null;
-            Group g = GroupReader.read(s);
+            GroupReader groupReader = new GroupReader();
+            Group g = groupReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -112,7 +113,8 @@ public class GroupReaderWriterTest
         try
         {
             InputStream in = null;
-            Group g = GroupReader.read(in);
+            GroupReader groupReader = new GroupReader();
+            Group g = groupReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -120,7 +122,8 @@ public class GroupReaderWriterTest
         try
         {
             Reader r = null;
-            Group g = GroupReader.read(r);
+            GroupReader groupReader = new GroupReader();
+            Group g = groupReader.read(r);
             fail("null element should throw ReaderException");
         }
         catch (IllegalArgumentException e) {}
@@ -132,7 +135,8 @@ public class GroupReaderWriterTest
     {
         try
         {
-            GroupWriter.write(null, new StringBuilder());
+            GroupWriter groupWriter = new GroupWriter();
+            groupWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
         catch (WriterException e) {}
@@ -145,10 +149,12 @@ public class GroupReaderWriterTest
         Group expected = new Group("groupID", null);
                 
         StringBuilder xml = new StringBuilder();
-        GroupWriter.write(expected, xml);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-        
-        Group actual = GroupReader.read(xml.toString());
+
+        GroupReader groupReader = new GroupReader();
+        Group actual = groupReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
@@ -173,10 +179,12 @@ public class GroupReaderWriterTest
         expected.getUserAdmins().add(userAdmin);
         
         StringBuilder xml = new StringBuilder();
-        GroupWriter.write(expected, xml);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-        
-        Group actual = GroupReader.read(xml.toString());
+
+        GroupReader groupReader = new GroupReader();
+        Group actual = groupReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.description, actual.description);
