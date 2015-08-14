@@ -1022,8 +1022,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
                             getSubjectDN().toNormalizedString()));
             
-        SearchResultEntry result = 
-                getConnection().searchForEntry(searchRequest);
+        SearchResult result = getConnection().search(searchRequest);
 
         if (result == null)
         {
@@ -1031,14 +1030,18 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             logger.debug(msg);
             throw new GroupNotFoundException(groupDN.toNormalizedString());
         }
+        if (result.getEntryCount() == 0)
+            throw new GroupNotFoundException(groupDN.toString());
         
-        if (result.getAttribute("nsaccountlock") != null)
+        SearchResultEntry sre = result.getSearchEntries().get(0);
+        
+        if (sre.getAttribute("nsaccountlock") != null)
         {
             // TODO: logger.error() + throw GroupNotFoundException instead?
             throw new RuntimeException("BUG: found group with nsaccountlock set: " + groupDN.toString());  
         }
 
-        Group g = createGroup(result);
+        Group g = createGroup(sre);
         logger.debug("found: " + g.getID());
         return g;
     }
