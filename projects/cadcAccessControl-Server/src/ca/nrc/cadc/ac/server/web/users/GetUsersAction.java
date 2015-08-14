@@ -77,20 +77,18 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 
 public class GetUsersAction extends UsersAction
 {
-    
+
     private static final Logger log = Logger.getLogger(GetUsersAction.class);
 
-    GetUsersAction(UserLogInfo logInfo)
+    GetUsersAction()
     {
-        super(logInfo);
+        super();
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         final UserPersistence userPersistence = getUserPersistence();
 
         writeUsers(userPersistence.getUsers());
-        return null;
     }
 }

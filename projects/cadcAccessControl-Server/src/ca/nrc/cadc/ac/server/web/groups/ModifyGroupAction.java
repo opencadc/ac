@@ -83,17 +83,15 @@ public class ModifyGroupAction extends GroupsAction
     private final String request;
     private final InputStream inputStream;
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
+    ModifyGroupAction(String groupName, final String request, InputStream inputStream)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
         this.request = request;
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = GroupReader.read(this.inputStream);
@@ -135,8 +133,6 @@ public class ModifyGroupAction extends GroupsAction
         logGroupInfo(group.getID(), deletedMembers, addedMembers);
 
         this.response.sendRedirect(request);
-
-        return null;
     }
 
 }

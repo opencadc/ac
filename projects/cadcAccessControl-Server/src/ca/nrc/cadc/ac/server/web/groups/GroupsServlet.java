@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
+import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServlet;
@@ -78,15 +79,23 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.util.StringUtil;
 
+/**
+ * Servlet for handling all requests to /groups
+ *
+ * @author majorb
+ */
 public class GroupsServlet extends HttpServlet
 {
+
+    private static final long serialVersionUID = 7854660717655869213L;
     private static final Logger log = Logger.getLogger(GroupsServlet.class);
 
     /**
      * Create a GroupAction and run the action safely.
      */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
+    private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
         long start = System.currentTimeMillis();
@@ -96,14 +105,43 @@ public class GroupsServlet extends HttpServlet
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
-            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
-            action.doAction(subject, response);
+
+            GroupsAction action = factory.createAction(request);
+
+            action.setLogInfo(logInfo);
+            action.setHttpServletRequest(request);
+            action.setHttpServletResponse(response);
+
+            try
+            {
+                if (subject == null)
+                {
+                    action.run();
+                }
+                else
+                {
+                    Subject.doAs(subject, action);
+                }
+            }
+            catch (PrivilegedActionException e)
+            {
+                Throwable cause = e.getCause();
+                if (cause != null)
+                {
+                    throw cause;
+                }
+                Exception exception = e.getException();
+                if (exception != null)
+                {
+                    throw exception;
+                }
+                throw e;
+            }
         }
         catch (IllegalArgumentException e)
         {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
             response.getWriter().write(e.getMessage());
             response.setStatus(400);
         }
@@ -124,38 +162,38 @@ public class GroupsServlet extends HttpServlet
     }
 
     @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
+    public void doGet(final HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(GroupsActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(GroupsActionFactory.httpPostFactory(), request, response);
     }
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
     }
 
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(GroupsActionFactory.httpPutFactory(), request, response);
     }
 
     @Override
     public void doHead(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(GroupsActionFactory.httpHeadFactory(), request, response);
     }
 
 }

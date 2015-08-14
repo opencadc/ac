@@ -95,8 +95,10 @@ public class ModifyUserActionTest
         final InputStream inputStream = new ByteArrayInputStream(input);
 
         // Should match the JSON above, without the e-mail modification.
+        Principal principal = new HttpPrincipal("CADCtest");
         final User<Principal> userObject =
-                new User<Principal>(new HttpPrincipal("CADCtest"));
+                new User<Principal>(principal);
+        userObject.getIdentities().add(principal);
         final PersonalDetails personalDetail =
                 new PersonalDetails("CADC", "Test");
         personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
@@ -107,20 +109,20 @@ public class ModifyUserActionTest
         final HttpServletResponse mockResponse =
                 createMock(HttpServletResponse.class);
 
-        final String requestURL = "http://mysite.com:8080/noentry/authorize";
-
         @SuppressWarnings("unchecked")
         final UserPersistence<Principal> mockUserPersistence =
                 createMock(UserPersistence.class);
 
         expect(mockUserPersistence.modifyUser(userObject)).andReturn(
                 userObject).once();
+//
+//        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
+//                once();
 
-        expect(mockRequest.getMethod()).andReturn("POST").once();
-        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
-                once();
+        mockResponse.setHeader("Location", "/CADCtest?idType=http");
+        expectLastCall().once();
 
-        mockResponse.sendRedirect(requestURL);
+        mockResponse.setStatus(200);
         expectLastCall().once();
 
         mockResponse.setContentType("application/json");
@@ -128,9 +130,7 @@ public class ModifyUserActionTest
 
         replay(mockRequest, mockResponse, mockUserPersistence);
 
-        final UserLogInfo userLogInfo = new UserLogInfo(mockRequest);
-        final ModifyUserAction testSubject = new ModifyUserAction(userLogInfo,
-                                                                  inputStream)
+        final ModifyUserAction testSubject = new ModifyUserAction(inputStream)
         {
             @Override
             @SuppressWarnings("unchecked")
@@ -142,11 +142,10 @@ public class ModifyUserActionTest
 
         testSubject.setAcceptedContentType("application/json");
         testSubject.response = mockResponse;
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
 
-        testSubject.run();
-
-        assertEquals("Wrong username logged.", "CADCtest",
-                     userLogInfo.userName);
         verify(mockRequest, mockResponse, mockUserPersistence);
     }
 }

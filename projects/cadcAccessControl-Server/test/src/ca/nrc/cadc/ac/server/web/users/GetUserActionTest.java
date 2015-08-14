@@ -69,6 +69,7 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.groups.GroupLogInfo;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.junit.Test;
 
@@ -92,7 +93,7 @@ public class GetUserActionTest
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(null, userID)
+        final GetUserAction testSubject = new GetUserAction(userID)
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -112,7 +113,8 @@ public class GetUserActionTest
 
         replay(mockResponse, mockUserPersistence);
 
-        testSubject.doAction(null, mockResponse);
+        testSubject.setResponse(mockResponse);
+        testSubject.doAction();
 
         assertEquals("Wrong XML output.",
                      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
@@ -133,7 +135,7 @@ public class GetUserActionTest
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(null, userID)
+        final GetUserAction testSubject = new GetUserAction(userID)
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -154,7 +156,10 @@ public class GetUserActionTest
         expectLastCall().once();
 
         replay(mockResponse, mockUserPersistence);
-        testSubject.doAction(null, mockResponse);
+        testSubject.setResponse(mockResponse);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
 
         assertEquals("Wrong JSON output.",
                      "{\"user\":{\"userID\":{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}}}}",

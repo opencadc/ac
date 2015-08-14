@@ -82,14 +82,13 @@ public class CreateGroupAction extends GroupsAction
 {
     private final InputStream inputStream;
 
-    CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
+    CreateGroupAction(InputStream inputStream)
     {
-        super(logInfo);
+        super();
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = GroupReader.read(this.inputStream);
@@ -111,7 +110,6 @@ public class CreateGroupAction extends GroupsAction
             }
         }
         logGroupInfo(newGroup.getID(), null, addedMembers);
-        return null;
     }
 
 }

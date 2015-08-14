@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
@@ -86,10 +87,11 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
-public abstract class UsersAction
-    implements PrivilegedExceptionAction<Object>
+public abstract class UsersAction implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(UsersAction.class);
     static final String DEFAULT_CONTENT_TYPE = "text/xml";
@@ -99,41 +101,27 @@ public abstract class UsersAction
     protected HttpServletResponse response;
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
-    private String redirectURLPrefix;
+    UsersAction()
+    {
+    }
 
+    public abstract void doAction() throws Exception;
 
-    UsersAction(UserLogInfo logInfo)
+    public void setLogInfo(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    public void doAction(Subject subject, HttpServletResponse response)
-        throws IOException
+    public void setResponse(HttpServletResponse response)
+    {
+        this.response = response;
+    }
+
+    public Object run() throws IOException
     {
         try
         {
-            try
-            {
-                this.response = response;
-
-                if (subject == null)
-                {
-                    run();
-                }
-                else
-                {
-                    Subject.doAs(subject, this);
-                }
-            }
-            catch (PrivilegedActionException e)
-            {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                throw e;
-            }
+            doAction();
         }
         catch (AccessControlException e)
         {
@@ -178,6 +166,7 @@ public abstract class UsersAction
             log.error(message, t);
             sendError(500, message);
         }
+        return null;
     }
 
     private void sendError(int responseCode)
@@ -328,15 +317,28 @@ public abstract class UsersAction
         }
     }
 
-    protected void setRedirectURLPrefix(final String redirectURLPrefix)
+    void redirectGet(User<?> user) throws Exception
     {
-        this.redirectURLPrefix = redirectURLPrefix;
-    }
+        final Set<Principal> httpPrincipals =  user.getIdentities();
 
-    void redirectGet(final String userID) throws Exception
-    {
-        final String redirectURL = this.redirectURLPrefix + "/" + userID
-                                   + "?idType=HTTP";
+        String id = null;
+        String idType = null;
+        Iterator<Principal> i = httpPrincipals.iterator();
+        Principal next = null;
+        while (idType == null && i.hasNext())
+        {
+            next = i.next();
+            idType = AuthenticationUtil.getPrincipalType(next);
+            id = next.getName();
+        }
+
+        if (idType == null)
+        {
+            throw new IllegalStateException("No identities found.");
+        }
+
+        response.setStatus(HttpServletResponse.SC_OK);
+        final String redirectURL = "/" + id + "?idType=" + idType;
         response.setHeader("Location", redirectURL);
     }
 }

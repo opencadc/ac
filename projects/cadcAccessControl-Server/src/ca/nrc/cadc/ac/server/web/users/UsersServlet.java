@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServlet;
@@ -89,7 +90,7 @@ public class UsersServlet extends HttpServlet
     /**
      * Create a UserAction and run the action safely.
      */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
+    private void doAction(UsersActionFactory factory, HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
         long start = System.currentTimeMillis();
@@ -100,9 +101,38 @@ public class UsersServlet extends HttpServlet
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
-            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
+
+            UsersAction action = factory.createAction(request);
+
+            action.setLogInfo(logInfo);
+            action.setResponse(response);
             action.setAcceptedContentType(getAcceptedContentType(request));
-            action.doAction(subject, response);
+
+            try
+            {
+                if (subject == null)
+                {
+                    action.run();
+                }
+                else
+                {
+                    Subject.doAs(subject, action);
+                }
+            }
+            catch (PrivilegedActionException e)
+            {
+                Throwable cause = e.getCause();
+                if (cause != null)
+                {
+                    throw cause;
+                }
+                Exception exception = e.getException();
+                if (exception != null)
+                {
+                    throw exception;
+                }
+                throw e;
+            }
         }
         catch (IllegalArgumentException e)
         {
@@ -132,35 +162,35 @@ public class UsersServlet extends HttpServlet
     public void doGet(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UsersActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UsersActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UsersActionFactory.httpDeleteFactory(), request, response);
     }
 
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UsersActionFactory.httpPutFactory(), request, response);
     }
 
     @Override
     public void doHead(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UsersActionFactory.httpHeadFactory(), request, response);
     }
 
     /**

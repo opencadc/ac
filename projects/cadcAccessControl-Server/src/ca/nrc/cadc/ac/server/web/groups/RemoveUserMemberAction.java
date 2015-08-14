@@ -83,17 +83,16 @@ public class RemoveUserMemberAction extends GroupsAction
     private final String userID;
     private final String userIDType;
 
-    RemoveUserMemberAction(GroupLogInfo logInfo, String groupName, String userID, String userIDType)
+    RemoveUserMemberAction(String groupName, String userID, String userIDType)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
         this.userID = userID;
         this.userIDType = userIDType;
     }
 
     @SuppressWarnings("unchecked")
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
@@ -108,7 +107,6 @@ public class RemoveUserMemberAction extends GroupsAction
         List<String> deletedMembers = new ArrayList<String>();
         deletedMembers.add(toRemove.getUserID().getName());
         logGroupInfo(group.getID(), deletedMembers, null);
-        return null;
     }
 
 }

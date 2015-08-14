@@ -70,12 +70,14 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
+import java.util.Iterator;
 import java.util.Set;
 
 
@@ -84,36 +86,21 @@ public class ModifyUserAction extends UsersAction
     private final InputStream inputStream;
 
 
-    ModifyUserAction(final UserLogInfo logInfo,
-                     final InputStream inputStream)
+    ModifyUserAction(final InputStream inputStream)
     {
-        super(logInfo);
+        super();
 
         this.inputStream = inputStream;
     }
 
 
-    public Object run() throws Exception
+    public void doAction() throws Exception
     {
         final User<Principal> user = readUser(this.inputStream);
         final User<Principal> modifiedUser = modifyUser(user);
         logUserInfo(modifiedUser.getUserID().getName());
 
-        final Set<HttpPrincipal> httpPrincipals =
-                modifiedUser.getIdentities(HttpPrincipal.class);
-
-        if (httpPrincipals.isEmpty())
-        {
-            throw new IOException("No Web Identity found (HttpPrincipal)");
-        }
-        else
-        {
-            response.setStatus(HttpServletResponse.SC_OK);
-            redirectGet(httpPrincipals.toArray(
-                    new HttpPrincipal[1])[0].getName());
-        }
-
-        return null;
+        redirectGet(modifiedUser);
     }
 
     /**

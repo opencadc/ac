@@ -75,20 +75,18 @@ public class GetGroupAction extends GroupsAction
 {
     private final String groupName;
 
-    GetGroupAction(GroupLogInfo logInfo, String groupName)
+    GetGroupAction( String groupName)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         this.response.setContentType("application/xml");
         GroupWriter.write(group, this.response.getOutputStream());
-        return null;
     }
 
 }

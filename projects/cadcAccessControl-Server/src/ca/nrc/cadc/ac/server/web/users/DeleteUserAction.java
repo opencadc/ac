@@ -76,19 +76,17 @@ public class DeleteUserAction extends UsersAction
 {
     private final Principal userID;
 
-    DeleteUserAction(UserLogInfo logInfo, Principal userID)
+    DeleteUserAction(Principal userID)
     {
-        super(logInfo);
+        super();
         this.userID = userID;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         UserPersistence userPersistence = getUserPersistence();
         User<? extends Principal> deletedUser = userPersistence.getUser(userID);
         userPersistence.deleteUser(deletedUser.getUserID());
-        return null;
     }
 
 }

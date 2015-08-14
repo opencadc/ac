@@ -76,6 +76,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
 import javax.security.auth.Subject;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
@@ -95,40 +96,35 @@ public abstract class GroupsAction
 {
     private static final Logger log = Logger.getLogger(GroupsAction.class);
     protected GroupLogInfo logInfo;
+    protected HttpServletRequest request;
     protected HttpServletResponse response;
 
-    GroupsAction(GroupLogInfo logInfo)
+    GroupsAction()
+    {
+    }
+
+    abstract void doAction() throws Exception;
+
+    void setLogInfo(GroupLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    public void doAction(Subject subject, HttpServletResponse response)
-        throws IOException
+    void setHttpServletRequest(HttpServletRequest request)
+    {
+        this.request = request;
+    }
+
+    void setHttpServletResponse(HttpServletResponse response)
+    {
+        this.response = response;
+    }
+
+    public Object run() throws PrivilegedActionException
     {
         try
         {
-            try
-            {
-                this.response = response;
-
-                if (subject == null)
-                {
-                    run();
-                }
-                else
-                {
-                    Subject.doAs(subject, this);
-                }
-            }
-            catch (PrivilegedActionException e)
-            {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                throw e;
-            }
+            doAction();
         }
         catch (AccessControlException e)
         {
@@ -201,23 +197,29 @@ public abstract class GroupsAction
             log.error(message, t);
             sendError(500, message);
         }
+        return null;
     }
 
     private void sendError(int responseCode)
-        throws IOException
     {
         sendError(responseCode, null);
     }
 
     private void sendError(int responseCode, String message)
-        throws IOException
     {
         if (!this.response.isCommitted())
         {
             this.response.setContentType("text/plain");
             if (message != null)
             {
-                this.response.getWriter().write(message);
+                try
+                {
+                    this.response.getWriter().write(message);
+                }
+                catch (IOException e)
+                {
+                    log.warn("Could not write error message to output stream");
+                }
             }
             this.response.setStatus(responseCode);
         }

@@ -78,16 +78,15 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 
 public class GetGroupNamesAction extends GroupsAction
 {
-    
+
     private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
 
-    GetGroupNamesAction(GroupLogInfo logInfo)
+    GetGroupNamesAction()
     {
-        super(logInfo);
+        super();
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Collection<String> groups = groupPersistence.getGroupNames();
@@ -105,7 +104,5 @@ public class GetGroupNamesAction extends GroupsAction
             writer.write(group);
             start = false;
         }
-        
-        return null;
     }
 }

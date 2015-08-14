@@ -139,7 +139,7 @@
   <property name="testingJars"
             value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
 
-  <target name="test" depends="compile,compile-test">
+  <target name="single-test" depends="compile,compile-test">
     <echo message="Running test suite..." />
     <junit printsummary="yes" haltonfailure="yes" fork="yes">
       <classpath>

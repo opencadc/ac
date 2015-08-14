@@ -88,6 +88,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.easymock.EasyMock.*;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
@@ -122,7 +123,7 @@ public class GetUsersActionTest
                             new PersonalDetails("USER", Integer.toString(i)));
         }
 
-        final GetUsersAction testSubject = new GetUsersAction(null)
+        final GetUsersAction testSubject = new GetUsersAction()
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -143,7 +144,10 @@ public class GetUsersActionTest
         expectLastCall().once();
 
         replay(mockResponse, mockUserPersistence);
-        testSubject.doAction(null, mockResponse);
+        testSubject.setResponse(mockResponse);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
 
         final JSONArray expected =
                 new JSONArray("[{\"id\":\"USER_1\",\"firstName\":\"USER\",\"lastName\":\"1\"},{\"id\":\"USER_3\",\"firstName\":\"USER\",\"lastName\":\"3\"},{\"id\":\"USER_2\",\"firstName\":\"USER\",\"lastName\":\"2\"},{\"id\":\"USER_4\",\"firstName\":\"USER\",\"lastName\":\"4\"},{\"id\":\"USER_5\",\"firstName\":\"USER\",\"lastName\":\"5\"}]");
@@ -170,7 +174,7 @@ public class GetUsersActionTest
                             new PersonalDetails("USER", Integer.toString(i)));
         }
 
-        final GetUsersAction testSubject = new GetUsersAction(null)
+        final GetUsersAction testSubject = new GetUsersAction()
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -189,7 +193,10 @@ public class GetUsersActionTest
         expectLastCall().once();
 
         replay(mockResponse, mockUserPersistence);
-        testSubject.doAction(null, mockResponse);
+        testSubject.setResponse(mockResponse);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
 
         final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
                                 "<users>\r\n" +

@@ -85,6 +85,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.fail;
 
 /**
@@ -134,11 +135,9 @@ public class GetGroupNamesActionTest
             EasyMock.expectLastCall();
             EasyMock.expect(mockResponse.getWriter()).andReturn(mockWriter).once();
 
-            GroupLogInfo mockLog = EasyMock.createMock(GroupLogInfo.class);
+            EasyMock.replay(mockPersistence, mockWriter, mockResponse);
 
-            EasyMock.replay(mockPersistence, mockWriter, mockResponse, mockLog);
-
-            GetGroupNamesAction action = new GetGroupNamesAction(mockLog)
+            GetGroupNamesAction action = new GetGroupNamesAction()
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
@@ -147,7 +146,9 @@ public class GetGroupNamesActionTest
                 };
             };
 
-            action.run();
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+            action.setLogInfo(logInfo);
+            action.doAction();
         }
         catch (Throwable t)
         {

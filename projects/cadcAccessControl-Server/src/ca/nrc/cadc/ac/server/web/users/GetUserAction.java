@@ -78,13 +78,13 @@ public class GetUserAction extends UsersAction
 {
     private final Principal userID;
 
-    GetUserAction(UserLogInfo logInfo, Principal userID)
+    GetUserAction(Principal userID)
     {
-        super(logInfo);
+        super();
         this.userID = userID;
     }
 
-    public Object run() throws Exception
+    public void doAction() throws Exception
     {
         final UserPersistence<Principal> userPersistence = getUserPersistence();
 
@@ -100,7 +100,6 @@ public class GetUserAction extends UsersAction
         }
 
         writeUser(user);
-        return null;
     }
 
 }
