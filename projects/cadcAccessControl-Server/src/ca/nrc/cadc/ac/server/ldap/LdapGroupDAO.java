@@ -1012,17 +1012,17 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         logger.debug("getGroup: " + groupDN.toNormalizedString());
         Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
         
-        filter = Filter.createANDFilter(filter, 
-                Filter.createEqualityFilter("entrydn", groupDN.toNormalizedString()));
+        //filter = Filter.createANDFilter(filter, 
+        //        Filter.createEqualityFilter("entrydn", groupDN.toNormalizedString()));
                 
         SearchRequest searchRequest =  new SearchRequest(
-                    config.getGroupsDN(), SearchScope.SUB, filter, GROUP_ATTRS);
+                    groupDN.toNormalizedString(), SearchScope.SUB, filter, GROUP_ATTRS);
             
         searchRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl("dn:" + 
                             getSubjectDN().toNormalizedString()));
             
-        SearchResult result = getConnection().search(searchRequest);
+        SearchResultEntry result = getConnection().searchForEntry(searchRequest);
 
         if (result == null)
         {
@@ -1030,18 +1030,18 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             logger.debug(msg);
             throw new GroupNotFoundException(groupDN.toNormalizedString());
         }
-        if (result.getEntryCount() == 0)
-            throw new GroupNotFoundException(groupDN.toString());
+        //if (result.getEntryCount() == 0)
+        //    throw new GroupNotFoundException(groupDN.toString());
         
-        SearchResultEntry sre = result.getSearchEntries().get(0);
+        //SearchResultEntry sre = result.getSearchEntries().get(0);
         
-        if (sre.getAttribute("nsaccountlock") != null)
+        if (result.getAttribute("nsaccountlock") != null)
         {
             // TODO: logger.error() + throw GroupNotFoundException instead?
             throw new RuntimeException("BUG: found group with nsaccountlock set: " + groupDN.toString());  
         }
 
-        Group g = createGroup(sre);
+        Group g = createGroup(result);
         logger.debug("found: " + g.getID());
         return g;
     }
