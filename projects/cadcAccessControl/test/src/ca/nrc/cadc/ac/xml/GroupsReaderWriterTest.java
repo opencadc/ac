@@ -99,7 +99,8 @@ public class GroupsReaderWriterTest
         try
         {
             String s = null;
-            List<Group> g = GroupsReader.read(s);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> g = groupListReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -107,7 +108,8 @@ public class GroupsReaderWriterTest
         try
         {
             InputStream in = null;
-            List<Group> g = GroupsReader.read(in);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> g = groupListReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -115,7 +117,8 @@ public class GroupsReaderWriterTest
         try
         {
             Reader r = null;
-            List<Group> g = GroupsReader.read(r);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> g = groupListReader.read(r);
             fail("null element should throw ReaderException");
         }
         catch (IllegalArgumentException e) {}
@@ -127,7 +130,8 @@ public class GroupsReaderWriterTest
     {
         try
         {
-            GroupsWriter.write(null, new StringBuilder());
+            GroupListWriter groupListWriter = new GroupListWriter();
+            groupListWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
         catch (WriterException e) {}
@@ -142,10 +146,12 @@ public class GroupsReaderWriterTest
         expected.add(new Group("group2", null));
         
         StringBuilder xml = new StringBuilder();
-        GroupsWriter.write(expected, xml);
+        GroupListWriter groupListWriter = new GroupListWriter();
+        groupListWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-        
-        List<Group> actual = GroupsReader.read(xml.toString());
+
+        GroupListReader groupListReader = new GroupListReader();
+        List<Group> actual = groupListReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected.size(), actual.size());
         assertEquals(expected.get(0), actual.get(0));

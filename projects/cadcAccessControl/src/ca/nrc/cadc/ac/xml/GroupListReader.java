@@ -66,134 +66,129 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
-import java.security.PrivilegedActionException;
-
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.util.StringUtil;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 /**
- * Servlet for handling all requests to /groups
- *
- * @author majorb
+ * Class to read an XML representation of a list of Groups
+ * into a List of Group objects.
  */
-public class GroupsServlet extends HttpServlet
+public class GroupListReader
 {
-
-    private static final long serialVersionUID = 7854660717655869213L;
-    private static final Logger log = Logger.getLogger(GroupsServlet.class);
+    /**
+     * Construct a list of Group's from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public List<Group> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (xml == null)
+        {
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
+    }
 
     /**
-     * Create a GroupAction and run the action safely.
+     * Construct a list of Group's from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    public List<Group> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
-        long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+        InputStreamReader reader;
         try
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-
-            GroupsAction action = factory.createAction(request);
-
-            action.setLogInfo(logInfo);
-            action.setHttpServletRequest(request);
-            action.setHttpServletResponse(response);
-
-            try
-            {
-                if (subject == null)
-                {
-                    action.run();
-                }
-                else
-                {
-                    Subject.doAs(subject, action);
-                }
-            }
-            catch (PrivilegedActionException e)
-            {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                Exception exception = e.getException();
-                if (exception != null)
-                {
-                    throw exception;
-                }
-                throw e;
-            }
+            reader = new InputStreamReader(in, "UTF-8");
         }
-        catch (IllegalArgumentException e)
+        catch (UnsupportedEncodingException e)
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
+            throw new RuntimeException("UTF-8 encoding not supported");
         }
-        catch (Throwable t)
+        return read(reader);
+    }
+
+    /**
+     * Construct a List of Group's from a Reader.
+     * 
+     * @param reader Reader.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public List<Group> read(Reader reader)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (reader == null)
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
+            throw new IllegalArgumentException("reader must not be null");
         }
-        finally
+
+        Document document;
+        try
         {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
+            document = XmlUtil.buildDocument(reader);
         }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        Element root = document.getRootElement();
+
+        String groupElemName = root.getName();
+
+        if (!groupElemName.equalsIgnoreCase("groups"))
+        {
+            String error = "Expected groups element, found " + groupElemName;
+            throw new ReaderException(error);
+        }
+
+        return parseGroups(root);
     }
 
-    @Override
-    public void doGet(final HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    protected static List<Group> parseGroups(Element groupsElement)
+            throws URISyntaxException, ReaderException
     {
-        doAction(GroupsActionFactory.httpGetFactory(), request, response);
-    }
+        List<Group> groups = new ArrayList<Group>();
 
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpPostFactory(), request, response);
-    }
+        List<Element> groupElements = groupsElement.getChildren("group");
+        for (Element groupElement : groupElements)
+        {
+            groups.add(GroupReader.parseGroup(groupElement));
+        }
 
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
+        return groups;
     }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpPutFactory(), request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpHeadFactory(), request, response);
-    }
-
 }

@@ -15,7 +15,10 @@ import org.jdom2.Element;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
-public class GroupsWriter
+/**
+ * Class to write a XML representation from a Collection of Groups objects.
+ */
+public class GroupListWriter
 {
     /**
      * Write a List of Group's to a StringBuilder.
@@ -24,7 +27,7 @@ public class GroupsWriter
      * @throws java.io.IOException
      * @throws WriterException
      */
-    public static void write(Collection<Group> groups, StringBuilder builder)
+    public void write(Collection<Group> groups, StringBuilder builder)
         throws IOException, WriterException
     {
         write(groups, new StringBuilderWriter(builder));
@@ -38,7 +41,7 @@ public class GroupsWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(Collection<Group> groups, OutputStream out)
+    public void write(Collection<Group> groups, OutputStream out)
         throws IOException, WriterException
     {
         OutputStreamWriter outWriter;
@@ -61,7 +64,7 @@ public class GroupsWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(Collection<Group> groups, Writer writer)
+    public void write(Collection<Group> groups, Writer writer)
         throws IOException, WriterException
     {
         if (groups == null)

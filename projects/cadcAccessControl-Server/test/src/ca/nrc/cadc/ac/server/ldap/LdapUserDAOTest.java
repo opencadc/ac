@@ -149,7 +149,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         expected.details.add(new PersonalDetails("foo", "bar"));
 
         final UserRequest<HttpPrincipal> userRequest =
-                new UserRequest<HttpPrincipal>(expected, "123456");
+                new UserRequest<HttpPrincipal>(expected, "123456".toCharArray());
 
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
@@ -311,7 +311,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
+                    User<X500Principal> actual = getUserDAO().getX500User(new DN(testUserDN));
                     check(testUser, actual);
                     return null;
                 }
@@ -334,7 +334,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User<X500Principal> actual = getUserDAO().getMember(new DN(testUserDN));
+                    User<X500Principal> actual = getUserDAO().getX500User(new DN(testUserDN));
                     check(testUser, actual);
                     return null;
                 }
@@ -415,8 +415,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         // Create a test user with a known password
         final User<HttpPrincipal> testUser2;
         final String username = createUserID();
-        final String password = "foo";
-        final String newPassword = "bar";
+        final char[] password = "foo".toCharArray();
+        final char[] newPassword = "bar".toCharArray();
 
         HttpPrincipal principal = new HttpPrincipal(username);
         testUser2 = new User<HttpPrincipal>(principal);
@@ -454,7 +454,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    getUserDAO().doLogin(username, password);
+                    getUserDAO().doLogin(username, String.valueOf(password));
                 }
                 catch (Exception e)
                 {
@@ -473,7 +473,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<HttpPrincipal> userDAO = getUserDAO();
-                    userDAO.setPassword(testUser2, password, newPassword);
+                    userDAO.setPassword(testUser2, String.valueOf(password),
+                                        String.valueOf(newPassword));
                     fail("should throw exception if subject and user are not the same");
                 }
                 catch (Exception ignore){}
@@ -491,7 +492,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<HttpPrincipal> userDAO = getUserDAO();
-                    userDAO.setPassword(testUser2, password, newPassword);
+                    userDAO.setPassword(testUser2, String.valueOf(password),
+                                        String.valueOf(newPassword));
                 }
                 catch (Exception e)
                 {
@@ -510,7 +512,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    getUserDAO().doLogin(username, password);
+                    getUserDAO().doLogin(username, String.valueOf(password));
                 }
                 catch (Exception e)
                 {
@@ -528,7 +530,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         // Create a test user
         final User<HttpPrincipal> testUser2;
         final String username = createUserID();
-        final String password = "foo";
+        final char[] password = "foo".toCharArray();
 
         HttpPrincipal principal = new HttpPrincipal(username);
         testUser2 = new User<HttpPrincipal>(principal);

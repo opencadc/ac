@@ -66,136 +66,133 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.json;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.util.StringBuilderWriter;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
-import java.security.Principal;
-import java.util.Set;
+import java.security.PrivilegedActionException;
 
-public class UserWriter
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.util.StringUtil;
+
+/**
+ * Servlet for handling all requests to /groups
+ *
+ * @author majorb
+ */
+public class GroupServlet extends HttpServlet
 {
-    /**
-     * Write a User as a JSON string to a StringBuilder.
-     * 
-     * @param user User to write.
-     * @param builder StringBuilder to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
-     */
-    public static void write(User<? extends Principal> user, StringBuilder builder)
-        throws IOException, WriterException
-    {
-        write(user, new StringBuilderWriter(builder));
-    }
+    private static final long serialVersionUID = 7854660717655869213L;
+    private static final Logger log = Logger.getLogger(GroupServlet.class);
 
     /**
-     * Write a User as a JSON string to an OutputStream.
-     *
-     * @param user User to write.
-     * @param out OutputStream to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
+     * Create a GroupAction and run the action safely.
      */
-    public static void write(User<? extends Principal> user, OutputStream out)
-        throws IOException, WriterException
-    {                
-        OutputStreamWriter outWriter;
+    private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        long start = System.currentTimeMillis();
+        GroupLogInfo logInfo = new GroupLogInfo(request);
         try
         {
-            outWriter = new OutputStreamWriter(out, "UTF-8");
+            log.info(logInfo.start());
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+
+            AbstractGroupAction action = factory.createAction(request);
+
+            action.setLogInfo(logInfo);
+            action.setHttpServletRequest(request);
+            action.setHttpServletResponse(response);
+
+            try
+            {
+                if (subject == null)
+                {
+                    action.run();
+                }
+                else
+                {
+                    Subject.doAs(subject, action);
+                }
+            }
+            catch (PrivilegedActionException e)
+            {
+                Throwable cause = e.getCause();
+                if (cause != null)
+                {
+                    throw cause;
+                }
+                Exception exception = e.getException();
+                if (exception != null)
+                {
+                    throw exception;
+                }
+                throw e;
+            }
         }
-        catch (UnsupportedEncodingException e)
+        catch (IllegalArgumentException e)
         {
-            throw new RuntimeException("UTF-8 encoding not supported", e);
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
         }
-        write(user, new BufferedWriter(outWriter));
+        catch (Throwable t)
+        {
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.getWriter().write(message);
+            response.setStatus(500);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
+        }
     }
 
-    /**
-     * Write a User as a JSON string to a Writer.
-     *
-     * @param user User to write.
-     * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
-     */
-    public static void write(User<? extends Principal> user, Writer writer)
-        throws IOException, WriterException
+    @Override
+    public void doGet(final HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        if (user == null)
-        {
-            throw new WriterException("null User");
-        }
-
-        try
-        {
-            getUserObject(user).write(writer);
-        }
-        catch (JSONException e)
-        {
-            final String error = "Unable to create JSON for User " +
-                                 " because " + e.getMessage();
-            throw new WriterException(error, e);
-        }
+        doAction(GroupsActionFactory.httpGetFactory(), request, response);
     }
 
-    /**
-     * Build a User JSONObject from a User.
-     *
-     * @param user User.
-     * @return JSONObject.
-     * @throws WriterException
-     */
-    public static JSONObject getUserObject(User<? extends Principal> user)
-        throws WriterException, JSONException
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        JSONObject userObject = new JSONObject();
-        JSONObject userIDIdentityObject = new JSONObject();
-        userIDIdentityObject.put("identity", IdentityWriter.write(user.getUserID()));
-        userObject.put("userID", userIDIdentityObject);
+        doAction(GroupsActionFactory.httpPostFactory(), request, response);
+    }
 
-        // identities
-        Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty())
-        {
-            JSONArray identityArray = new JSONArray();
-            for (Principal identity : identities)
-            {
-                JSONObject identityObject = new JSONObject();
-                identityObject.put("identity" , IdentityWriter.write(identity));
-                identityArray.put(identityObject);
-            }
-            userObject.put("identities", identityArray);
-        }
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
+    }
 
-        // details
-        if (!user.details.isEmpty())
-        {
-            JSONArray detailsArray = new JSONArray();
-            Set<UserDetails> userDetails = user.details;
-            for (UserDetails userDetail : userDetails)
-            {
-                JSONObject detailsObject = new JSONObject();
-                detailsObject.put(UserDetails.NAME , UserDetailsWriter.write(userDetail));
-                detailsArray.put(detailsObject);
-            }
-            userObject.put("details", detailsArray);
-        }
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpPutFactory(), request, response);
+    }
 
-        return new JSONObject().put("user", userObject);
+    @Override
+    public void doHead(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpHeadFactory(), request, response);
     }
 
 }

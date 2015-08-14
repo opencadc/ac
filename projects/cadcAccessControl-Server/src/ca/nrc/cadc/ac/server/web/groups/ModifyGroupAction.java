@@ -77,7 +77,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupReader;
 
-public class ModifyGroupAction extends GroupsAction
+public class ModifyGroupAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String request;
@@ -94,7 +94,8 @@ public class ModifyGroupAction extends GroupsAction
     public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
+        GroupReader groupReader = new GroupReader();
+        Group group = groupReader.read(this.inputStream);
         Group oldGroup = groupPersistence.getGroup(this.groupName);
         groupPersistence.modifyGroup(group);
 

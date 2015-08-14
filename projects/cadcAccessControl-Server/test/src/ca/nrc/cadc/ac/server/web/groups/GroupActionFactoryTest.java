@@ -94,7 +94,7 @@ public class GroupActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("groupName/groupMembers/groupToAdd");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpPutFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpPutFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof AddGroupMemberAction);
         }
@@ -114,7 +114,7 @@ public class GroupActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("groupName/userMembers/userToAdd");
             EasyMock.expect(request.getParameter("idType")).andReturn("x509");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpPutFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpPutFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof AddUserMemberAction);
         }
@@ -134,7 +134,8 @@ public class GroupActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpPutFactory().createAction(request);
+
+            AbstractGroupAction action = GroupsActionFactory.httpPutFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof CreateGroupAction);
         }
@@ -153,7 +154,8 @@ public class GroupActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("groupName");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpDeleteFactory().createAction(request);
+
+            AbstractGroupAction action = GroupsActionFactory.httpDeleteFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof DeleteGroupAction);
         }
@@ -172,7 +174,7 @@ public class GroupActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("groupName");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpGetFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof GetGroupAction);
         }
@@ -191,7 +193,7 @@ public class GroupActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpGetFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof GetGroupNamesAction);
         }
@@ -217,7 +219,7 @@ public class GroupActionFactoryTest
             EasyMock.expect(request.getServletPath()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpPostFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpPostFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof ModifyGroupAction);
         }
@@ -236,7 +238,7 @@ public class GroupActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("groupName/groupMembers/groupToRenove");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpDeleteFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpDeleteFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof RemoveGroupMemberAction);
         }
@@ -256,7 +258,7 @@ public class GroupActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("groupName/userMembers/userToRemove");
             EasyMock.expect(request.getParameter("idType")).andReturn("x509");
             EasyMock.replay(request);
-            GroupsAction action = GroupsActionFactory.httpDeleteFactory().createAction(request);
+            AbstractGroupAction action = GroupsActionFactory.httpDeleteFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof RemoveUserMemberAction);
         }

@@ -66,101 +66,56 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.json.JsonUserWriter;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import org.junit.Test;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.security.Principal;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Map;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-
-
-public class ModifyUserActionTest
+/**
+ * Class to write a XML representation of a Collection of User's.
+ */
+public class UserListWriter
 {
-    @Test
-    public void run() throws Exception
+    /**
+     * Write the Map of User entries as XML.
+     *
+     * @param users             The Map of User IDs to Names.
+     * @param writer            The Writer to output to.
+     * @throws IOException      Any writing errors.
+     */
+    public void write(final Map<String, PersonalDetails> users,
+                      final Writer writer) throws IOException
     {
-        final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
-        User<Principal> expected = new User<Principal>(httpPrincipal);
-        expected.getIdentities().add(httpPrincipal);
-        final PersonalDetails pd = new PersonalDetails("CADC", "Test");
-        pd.email = "CADC.Test@nrc-cnrc.gc.ca";
-        expected.details.add(pd);
+        // Create the root users Element.
+        final Element usersElement = new Element("users");
 
-        final StringBuilder sb = new StringBuilder();
-        final JsonUserWriter userWriter = new JsonUserWriter();
-        userWriter.write(expected, sb);
-
-        final byte[] input = sb.toString().getBytes();
-        final InputStream inputStream = new ByteArrayInputStream(input);
-
-        // Should match the JSON above, without the e-mail modification.
-        Principal principal = new HttpPrincipal("CADCtest");
-        final User<Principal> userObject =
-                new User<Principal>(principal);
-        userObject.getIdentities().add(principal);
-        final PersonalDetails personalDetail =
-                new PersonalDetails("CADC", "Test");
-        personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
-        userObject.details.add(personalDetail);
-
-        final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
-
-        @SuppressWarnings("unchecked")
-        final UserPersistence<Principal> mockUserPersistence =
-                createMock(UserPersistence.class);
-
-        expect(mockUserPersistence.modifyUser(userObject)).andReturn(
-                userObject).once();
-//
-//        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
-//                once();
-
-        mockResponse.setHeader("Location", "/CADCtest?idType=http");
-        expectLastCall().once();
-
-        mockResponse.setStatus(200);
-
-        expectLastCall().once();
-
-        mockResponse.setContentType("application/json");
-        expectLastCall().once();
-
-        replay(mockRequest, mockResponse, mockUserPersistence);
-
-        final ModifyUserAction testSubject = new ModifyUserAction(inputStream)
+        for (final Map.Entry<String, PersonalDetails> entry : users.entrySet())
         {
-            @Override
-            @SuppressWarnings("unchecked")
-            UserPersistence<Principal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+            final Element userEntryElement = new Element("user");
+            final Element firstNameElement = new Element("firstName");
+            final Element lastNameElement = new Element("lastName");
 
-        testSubject.setAcceptedContentType("application/json");
-        testSubject.response = mockResponse;
-        UserLogInfo logInfo = createMock(UserLogInfo.class);
-        testSubject.setLogInfo(logInfo);
-        testSubject.doAction();
+            userEntryElement.setAttribute("id", entry.getKey());
 
-        verify(mockRequest, mockResponse, mockUserPersistence);
+            firstNameElement.setText(entry.getValue().getFirstName());
+            userEntryElement.addContent(firstNameElement);
+
+            lastNameElement.setText(entry.getValue().getLastName());
+            userEntryElement.addContent(lastNameElement);
+
+            usersElement.addContent(userEntryElement);
+        }
+
+        final XMLOutputter output = new XMLOutputter();
+
+        output.setFormat(Format.getPrettyFormat());
+        output.output(new Document(usersElement), writer);
     }
 }

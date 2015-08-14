@@ -71,7 +71,7 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 
-public class GetGroupAction extends GroupsAction
+public class GetGroupAction extends AbstractGroupAction
 {
     private final String groupName;
 
@@ -86,7 +86,9 @@ public class GetGroupAction extends GroupsAction
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         this.response.setContentType("application/xml");
-        GroupWriter.write(group, this.response.getOutputStream());
+
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(group, this.response.getOutputStream());
     }
 
 }

@@ -74,7 +74,7 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 
-public class DeleteGroupAction extends GroupsAction
+public class DeleteGroupAction extends AbstractGroupAction
 {
     private final String groupName;
 

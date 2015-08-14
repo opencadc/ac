@@ -74,8 +74,6 @@ import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import com.unboundid.ldap.sdk.DN;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -146,14 +144,6 @@ public class LdapGroupPersistence<T extends Principal>
             }
         }
     }
-    
-    public Collection<DN> getUserGroups(T userID, boolean isAdmin)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException
-    {
-        return (new LdapUserPersistence<T>()).getUserGroups(userID, isAdmin);
-    }
-
 
     public Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException, 

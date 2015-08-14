@@ -85,6 +85,9 @@ import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
 
+/**
+ * Class to read a XML representation of a User to a User object.
+ */
 public class UserReader
 {
     /**
@@ -96,7 +99,7 @@ public class UserReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static User<Principal> read(String xml)
+    public User<Principal> read(String xml)
         throws IOException, URISyntaxException
     {
         if (xml == null)
@@ -113,7 +116,7 @@ public class UserReader
      * @return User User.
      * @throws java.io.IOException
      */
-    public static User<Principal> read(InputStream in)
+    public User<Principal> read(InputStream in)
         throws IOException
     {
         if (in == null)
@@ -140,7 +143,7 @@ public class UserReader
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public static User<Principal> read(Reader reader)
+    public User<Principal> read(Reader reader)
         throws IOException
     {
         if (reader == null)
@@ -185,7 +188,8 @@ public class UserReader
             throw new ReaderException(error);
         }
 
-        Principal userID = IdentityReader.read(userIDIdentityElement);
+        IdentityReader identityReader = new IdentityReader();
+        Principal userID = identityReader.read(userIDIdentityElement);
 
         User<Principal> user = new User<Principal>(userID);
 
@@ -196,7 +200,7 @@ public class UserReader
             List<Element> identityElements = identitiesElement.getChildren("identity");
             for (Element identityElement : identityElements)
             {
-                user.getIdentities().add(IdentityReader.read(identityElement));
+                user.getIdentities().add(identityReader.read(identityElement));
             }
 
         }
@@ -205,10 +209,11 @@ public class UserReader
         Element detailsElement = userElement.getChild("details");
         if (detailsElement != null)
         {
+            UserDetailsReader userDetailsReader = new UserDetailsReader();
             List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
             for (Element userDetailsElement : userDetailsElements)
             {
-                user.details.add(UserDetailsReader.read(userDetailsElement));
+                user.details.add(userDetailsReader.read(userDetailsElement));
             }
         }
 

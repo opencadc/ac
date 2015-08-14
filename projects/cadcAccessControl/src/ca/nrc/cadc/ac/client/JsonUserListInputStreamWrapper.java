@@ -62,155 +62,93 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-import java.security.PrivilegedActionException;
+package ca.nrc.cadc.ac.client;
 
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
 
-public class UsersServlet extends HttpServlet
+public class JsonUserListInputStreamWrapper implements InputStreamWrapper
 {
-    private static final Logger log = Logger.getLogger(UsersServlet.class);
+    private static final Logger LOGGER = Logger
+            .getLogger(JsonUserListInputStreamWrapper.class);
+    private final List<User<HttpPrincipal>> output;
+
+
+    public JsonUserListInputStreamWrapper(
+        final List<User<HttpPrincipal>> output)
+    {
+        this.output = output;
+    }
 
 
     /**
-     * Create a UserAction and run the action safely.
+     * Read the stream in.
+     *
+     * @param inputStream The stream to read from.
+     * @throws IOException Any reading exceptions.
      */
-    private void doAction(UsersActionFactory factory, HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    @Override
+    public void read(final InputStream inputStream) throws IOException
     {
-        long start = System.currentTimeMillis();
-        UserLogInfo logInfo = new UserLogInfo(request);
+        String line = null;
 
         try
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
+            final InputStreamReader inReader =
+                    new InputStreamReader(inputStream);
+            final BufferedReader reader = new BufferedReader(inReader);
 
-            UsersAction action = factory.createAction(request);
-
-            action.setLogInfo(logInfo);
-            action.setResponse(response);
-            action.setAcceptedContentType(getAcceptedContentType(request));
-
-            try
+            while (StringUtil.hasText(line = reader.readLine()))
             {
-                if (subject == null)
+                // Deal with arrays stuff.
+                while (line.startsWith("[") || line.startsWith(","))
                 {
-                    action.run();
+                    line = line.substring(1);
                 }
-                else
+
+                while (line.endsWith("]") || line.endsWith(","))
                 {
-                    Subject.doAs(subject, action);
+                    line = line.substring(0, (line.length() - 1));
+                }
+
+                if (StringUtil.hasText(line))
+                {
+                    LOGGER.debug(String.format("Reading: %s", line));
+
+                    final JSONObject jsonObject = new JSONObject(line);
+                    final User<HttpPrincipal> webUser =
+                            new User<HttpPrincipal>(
+                                    new HttpPrincipal(jsonObject
+                                                              .getString("id")));
+                    final String firstName = jsonObject.getString("firstName");
+                    final String lastName = jsonObject.getString("lastName");
+
+                    webUser.details
+                            .add(new PersonalDetails(firstName, lastName));
+
+                    output.add(webUser);
                 }
             }
-            catch (PrivilegedActionException e)
-            {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                Exception exception = e.getException();
-                if (exception != null)
-                {
-                    throw exception;
-                }
-                throw e;
-            }
         }
-        catch (IllegalArgumentException e)
+        catch (Exception bug)
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
-        }
-        catch (Throwable t)
-        {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
-        }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
-    }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(UsersActionFactory.httpGetFactory(), request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(UsersActionFactory.httpGetFactory(), request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(UsersActionFactory.httpDeleteFactory(), request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(UsersActionFactory.httpPutFactory(), request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(UsersActionFactory.httpHeadFactory(), request, response);
-    }
-
-    /**
-     * Obtain the requested (Accept) content type.
-     *
-     * @param request               The HTTP Request.
-     * @return                      String content type.
-     */
-    String getAcceptedContentType(final HttpServletRequest request)
-    {
-        final String requestedContentType = request.getHeader("Accept");
-
-        if (StringUtil.hasText(requestedContentType)
-            && requestedContentType.contains(UsersAction.JSON_CONTENT_TYPE))
-        {
-            return UsersAction.JSON_CONTENT_TYPE;
-        }
-        else
-        {
-            return UsersAction.DEFAULT_CONTENT_TYPE;
+            throw new IOException(bug + (StringUtil.hasText(line)
+                                         ? "Error line is " + line : ""));
         }
     }
 }

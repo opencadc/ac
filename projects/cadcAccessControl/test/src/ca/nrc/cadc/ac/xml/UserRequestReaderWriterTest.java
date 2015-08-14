@@ -99,7 +99,8 @@ public class UserRequestReaderWriterTest
         try
         {
             String s = null;
-            UserRequest u = UserRequestReader.read(s);
+            UserRequestReader userRequestReader = new UserRequestReader();
+            UserRequest u = userRequestReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -107,7 +108,8 @@ public class UserRequestReaderWriterTest
         try
         {
             InputStream in = null;
-            UserRequest u = UserRequestReader.read(in);
+            UserRequestReader userRequestReader = new UserRequestReader();
+            UserRequest u = userRequestReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -115,7 +117,8 @@ public class UserRequestReaderWriterTest
         try
         {
             Reader r = null;
-            UserRequest u = UserRequestReader.read(r);
+            UserRequestReader userRequestReader = new UserRequestReader();
+            UserRequest u = userRequestReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -127,7 +130,8 @@ public class UserRequestReaderWriterTest
     {
         try
         {
-            UserRequestWriter.write(null, new StringBuilder());
+            UserRequestWriter userRequestWriter = new UserRequestWriter();
+            userRequestWriter.write(null, new StringBuilder());
             fail("null UserRequest should throw WriterException");
         }
         catch (WriterException e) {}
@@ -137,22 +141,26 @@ public class UserRequestReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<? extends Principal> expectedUser = new User<Principal>(new HttpPrincipal("foo"));
+        User<HttpPrincipal> expectedUser = new User<HttpPrincipal>(new HttpPrincipal("foo"));
         expectedUser.getIdentities().add(new NumericPrincipal(123l));
         expectedUser.details.add(new PersonalDetails("firstname", "lastname"));
 
-        String expectedPassword = "123456";
+        char[] expectedPassword = "123456".toCharArray();
 
-        UserRequest expected = new UserRequest(expectedUser, expectedPassword);
+        UserRequest<HttpPrincipal> expected =
+            new UserRequest<HttpPrincipal>(expectedUser, expectedPassword);
 
         StringBuilder xml = new StringBuilder();
-        UserRequestWriter.write(expected, xml);
+        UserRequestWriter userRequestWriter = new UserRequestWriter();
+        userRequestWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-        
-        UserRequest actual = UserRequestReader.read(xml.toString());
+
+        UserRequestReader userRequestReader = new UserRequestReader();
+        UserRequest actual = userRequestReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected.getUser(), actual.getUser());
-        assertEquals(expected.getPassword(), actual.getPassword());
+        assertEquals(String.valueOf(expected.getPassword()),
+                     String.valueOf(actual.getPassword()));
     }
     
 }

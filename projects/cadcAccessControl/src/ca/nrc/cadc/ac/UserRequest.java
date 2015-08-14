@@ -74,15 +74,15 @@ import java.security.Principal;
 public class UserRequest<T extends Principal>
 {
     private User<T> user;
-    private String password;
+    private char[] password;
 
-    public UserRequest(final User<T> user, final String password)
+    public UserRequest(final User<T> user, final char[] password)
     {
         if (user == null)
         {
             throw new IllegalArgumentException("null user");
         }
-        if (password == null || password.isEmpty())
+        if (password == null || password.length == 0)
         {
             throw new IllegalArgumentException("null or empty password");
         }
@@ -95,9 +95,17 @@ public class UserRequest<T extends Principal>
         return this.user;
     }
 
-    public String getPassword()
+    public char[] getPassword()
     {
         return this.password;
+    }
+
+    public void clear()
+    {
+        for (int i = 0; i < password.length; i++)
+        {
+            password[i] = '0';
+        }
     }
 
     @Override
@@ -115,7 +123,6 @@ public class UserRequest<T extends Principal>
         UserRequest<?> that = (UserRequest<?>) o;
 
         return user.equals(that.user);
-
     }
 
     @Override

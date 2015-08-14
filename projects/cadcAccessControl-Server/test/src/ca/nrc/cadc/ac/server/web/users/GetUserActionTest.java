@@ -68,8 +68,9 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.web.groups.GroupLogInfo;
+import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.junit.Test;
 
@@ -79,7 +80,6 @@ import java.io.StringWriter;
 import java.io.Writer;
 
 import static org.easymock.EasyMock.*;
-import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 
 public class GetUserActionTest
@@ -116,13 +116,11 @@ public class GetUserActionTest
         testSubject.setResponse(mockResponse);
         testSubject.doAction();
 
-        assertEquals("Wrong XML output.",
-                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
-                     "<user>\r\n" +
-                     "  <userID>\r\n" +
-                     "    <identity type=\"HTTP\">CADCtest</identity>\r\n" +
-                     "  </userID>\r\n" +
-                     "</user>\r\n", writer.toString());
+        StringBuilder sb = new StringBuilder();
+        UserWriter userWriter = new UserWriter();
+        userWriter.write(user, sb);
+        assertEquals(sb.toString(), writer.toString());
+
         verify(mockResponse, mockUserPersistence);
     }
 
@@ -144,7 +142,7 @@ public class GetUserActionTest
             }
         };
 
-        testSubject.setAcceptedContentType(UsersAction.JSON_CONTENT_TYPE);
+        testSubject.setAcceptedContentType(AbstractUserAction.JSON_CONTENT_TYPE);
 
         final User<HttpPrincipal> user = new User<HttpPrincipal>(userID);
         final Writer writer = new StringWriter();
@@ -161,9 +159,11 @@ public class GetUserActionTest
         testSubject.setLogInfo(logInfo);
         testSubject.doAction();
 
-        assertEquals("Wrong JSON output.",
-                     "{\"user\":{\"userID\":{\"identity\":{\"name\":\"CADCtest\",\"type\":\"HTTP\"}}}}",
-                     writer.toString());
+        StringBuilder sb = new StringBuilder();
+        JsonUserWriter userWriter = new JsonUserWriter();
+        userWriter.write(user, sb);
+        assertEquals(sb.toString(), writer.toString());
+
         verify(mockResponse, mockUserPersistence);
     }
 }

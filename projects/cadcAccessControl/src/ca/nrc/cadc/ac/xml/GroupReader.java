@@ -90,6 +90,9 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.List;
 
+/**
+ * Class to read a XML representation of a Group to a Group object.
+ */
 public class GroupReader
 {
 
@@ -102,7 +105,7 @@ public class GroupReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static Group read(String xml)
+    public Group read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
@@ -121,7 +124,7 @@ public class GroupReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static Group read(InputStream in)
+    public Group read(InputStream in)
         throws ReaderException, IOException
     {
         if (in == null)
@@ -149,7 +152,7 @@ public class GroupReader
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public static Group read(Reader reader)
+    public Group read(Reader reader)
         throws ReaderException, IOException
     {
         if (reader == null)

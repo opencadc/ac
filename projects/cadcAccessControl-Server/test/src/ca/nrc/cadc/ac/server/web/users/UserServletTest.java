@@ -8,14 +8,14 @@ import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
 
-public class UsersServletTest
+public class UserServletTest
 {
     @Test
     public void getAcceptedContentTypeJSON() throws Exception
     {
         final HttpServletRequest mockRequest =
                 createMock(HttpServletRequest.class);
-        final UsersServlet testSubject = new UsersServlet();
+        final UserServlet testSubject = new UserServlet();
 
         expect(mockRequest.getHeader("Accept")).
                 andReturn("application/json").once();
@@ -33,7 +33,7 @@ public class UsersServletTest
     {
         final HttpServletRequest mockRequest =
                 createMock(HttpServletRequest.class);
-        final UsersServlet testSubject = new UsersServlet();
+        final UserServlet testSubject = new UserServlet();
 
         expect(mockRequest.getHeader("Accept")).andReturn(null).once();
 

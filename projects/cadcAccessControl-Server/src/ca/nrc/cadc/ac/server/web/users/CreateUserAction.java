@@ -78,7 +78,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 
 
-public class CreateUserAction extends UsersAction
+public class CreateUserAction extends AbstractUserAction
 {
     private final InputStream inputStream;
 
@@ -91,15 +91,11 @@ public class CreateUserAction extends UsersAction
 
     public void doAction() throws Exception
     {
-        final UserPersistence<Principal> userPersistence =
-                getUserPersistence();
-        final UserRequest<Principal> userRequest =
-                readUserRequest(this.inputStream);
-        final User<Principal> newUser =
-                userPersistence.addUser(userRequest);
+        final UserPersistence<Principal> userPersistence = getUserPersistence();
+        final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
+        final User<Principal> newUser = userPersistence.addUser(userRequest);
 
         response.setStatus(HttpServletResponse.SC_CREATED);
-
         logUserInfo(newUser.getUserID().getName());
     }
 

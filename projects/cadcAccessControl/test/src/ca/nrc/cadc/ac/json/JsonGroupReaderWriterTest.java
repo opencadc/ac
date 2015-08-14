@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,57 +62,128 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.json;
 
-package ca.nrc.cadc.ac.xml;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
-
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import java.util.Date;
 
-public class UsersWriter
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+/**
+ *
+ * @author jburke
+ */
+public class JsonGroupReaderWriterTest
 {
-    /**
-     * Write the Map of User entries as XML.
-     *
-     * @param users             The Map of User IDs to Names.
-     * @param writer            The Writer to output to.
-     * @throws IOException      Any writing errors.
-     */
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
+
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        // Create the root users Element.
-        final Element usersElement = new Element("users");
-
-        for (final Map.Entry<String, PersonalDetails> entry : users.entrySet())
+        try
         {
-            final Element userEntryElement = new Element("user");
-            final Element firstNameElement = new Element("firstName");
-            final Element lastNameElement = new Element("lastName");
-
-            userEntryElement.setAttribute("id", entry.getKey());
-
-            firstNameElement.setText(entry.getValue().getFirstName());
-            userEntryElement.addContent(firstNameElement);
-
-            lastNameElement.setText(entry.getValue().getLastName());
-            userEntryElement.addContent(lastNameElement);
-
-            usersElement.addContent(userEntryElement);
+            String s = null;
+            Group g = JsonGroupReader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-
-        final XMLOutputter output = new XMLOutputter();
-
-        output.setFormat(Format.getPrettyFormat());
-        output.output(new Document(usersElement), writer);
+        catch (IllegalArgumentException e) {}
+        
+        try
+        {
+            InputStream in = null;
+            Group g = JsonGroupReader.read(in);
+            fail("null InputStream should throw IOException");
+        }
+        catch (IOException e) {}
+        
+        try
+        {
+            Reader r = null;
+            Group g = JsonGroupReader.read(r);
+            fail("null element should throw ReaderException");
+        }
+        catch (IllegalArgumentException e) {}
     }
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            JsonGroupWriter.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
+        }
+        catch (WriterException e) {}
+    }
+     
+    @Test
+    public void testMinimalReadWrite()
+        throws Exception
+    {
+        Group expected = new Group("groupID", null);
+                
+        StringBuilder json = new StringBuilder();
+        JsonGroupWriter.write(expected, json);
+        assertFalse(json.toString().isEmpty());
+        
+        Group actual = JsonGroupReader.read(json.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+    }
+    
+    @Test
+    public void testMaximalReadWrite()
+        throws Exception
+    {
+        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
+        expected.description = "description";
+        expected.lastModified = new Date();
+        expected.getProperties().add(new GroupProperty("key", "value", true));
+        
+        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
+        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
+        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
+        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
+        
+        expected.getGroupMembers().add(groupMember);
+        expected.getUserMembers().add(userMember);
+        expected.getGroupAdmins().add(groupAdmin);
+        expected.getUserAdmins().add(userAdmin);
+        
+        StringBuilder json = new StringBuilder();
+        JsonGroupWriter.write(expected, json);
+        assertFalse(json.toString().isEmpty());
+
+        Group actual = JsonGroupReader.read(json.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+        assertEquals(expected.description, actual.description);
+        assertEquals(expected.lastModified, actual.lastModified);
+        assertEquals(expected.getProperties(), actual.getProperties());
+        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
+        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+    }
+    
 }

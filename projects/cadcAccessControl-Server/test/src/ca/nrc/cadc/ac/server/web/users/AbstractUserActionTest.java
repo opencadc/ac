@@ -66,29 +66,129 @@
  *
  ************************************************************************
  */
-
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.Log4jInit;
 
+import java.io.*;
+import java.security.AccessControlException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
+import static org.easymock.EasyMock.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-
-public class GetUsersAction extends UsersAction
+/**
+ * @author jburke
+ */
+public class AbstractUserActionTest
 {
+    private final static Logger log = Logger.getLogger(AbstractUserActionTest.class);
 
-    private static final Logger log = Logger.getLogger(GetUsersAction.class);
-
-    GetUsersAction()
+    @BeforeClass
+    public static void setUpClass()
     {
-        super();
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    public void doAction() throws Exception
+    @Test
+    public void testDoActionAccessControlException() throws Exception
     {
-        final UserPersistence userPersistence = getUserPersistence();
-
-        writeUsers(userPersistence.getUsers());
+        String message = "Permission Denied";
+        int responseCode = 403;
+        Exception e = new AccessControlException("");
+        testDoAction(message, responseCode, e);
     }
+
+    @Test
+    public void testDoActionIllegalArgumentException() throws Exception
+    {
+        String message = "message";
+        int responseCode = 400;
+        Exception e = new IllegalArgumentException("message");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionUserNotFoundException() throws Exception
+    {
+        String message = "User not found: foo";
+        int responseCode = 404;
+        Exception e = new UserNotFoundException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionUnsupportedOperationException() throws Exception
+    {
+        String message = "Not yet implemented.";
+        int responseCode = 501;
+        Exception e = new UnsupportedOperationException();
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionTransientException() throws Exception
+    {
+        HttpServletResponse response = createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
+
+        response.setStatus(503);
+        expectLastCall().once();
+        replay(response);
+
+        UsersActionImpl action = new UsersActionImpl();
+        action.setException(new TransientException("foo"));
+        action.doAction();
+    }
+
+    private void testDoAction(String message, int responseCode, Exception e)
+            throws Exception
+    {
+        HttpServletResponse response =
+                createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
+
+        response.setStatus(responseCode);
+        expectLastCall().once();
+        replay(response);
+
+        UsersActionImpl action = new UsersActionImpl();
+        action.setException(e);
+        action.doAction();
+    }
+
+    public class UsersActionImpl extends AbstractUserAction
+    {
+        Exception exception;
+
+        public UsersActionImpl()
+        {
+            super();
+        }
+
+        public void doAction() throws Exception
+        {
+            throw exception;
+        }
+
+        public void setException(Exception e)
+        {
+            this.exception = e;
+        }
+    }
+
 }

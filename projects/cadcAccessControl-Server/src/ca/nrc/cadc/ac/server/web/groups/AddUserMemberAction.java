@@ -77,7 +77,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AddUserMemberAction extends GroupsAction
+public class AddUserMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String userID;

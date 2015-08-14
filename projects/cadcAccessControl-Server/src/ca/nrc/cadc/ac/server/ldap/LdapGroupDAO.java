@@ -311,7 +311,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             final Filter filter = Filter.createPresenceFilter("cn");
             final String [] attributes = new String[] {"cn", "nsaccountlock"};
-            final List<String> groupNames = new ArrayList<String>();
+            final Collection<String> groupNames = new ArrayList<String>();
             final long begin = System.currentTimeMillis();
 
             final SearchResult searchResult =
@@ -472,7 +472,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             User<X500Principal> owner;
             try
             {
-                owner = userPersist.getMember(groupOwner);
+                owner = userPersist.getX500User(groupOwner);
             }
             catch (UserNotFoundException e)
             {
@@ -504,7 +504,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             User<X500Principal> user;
                             try
                             {
-                                user = userPersist.getMember(memberDN);
+                                user = userPersist.getX500User(memberDN);
                             }
                             catch (UserNotFoundException e)
                             {
@@ -972,9 +972,9 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
 
         Group group = new Group(searchResult.getAttributeValue("cn"),
-                                userPersist.getMember(
-                                        new DN(searchResult.getAttributeValue(
-                                                "owner"))));
+                                userPersist.getX500User(
+                                    new DN(searchResult.getAttributeValue(
+                                        "owner"))));
         group.description = searchResult.getAttributeValue("description");
         return group;
     }
@@ -1076,7 +1076,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         try
         {
             User<X500Principal> subjectUser = 
-                    userPersist.getMember(getSubjectDN());
+                    userPersist.getX500User(getSubjectDN());
             if (subjectUser.equals(owner))
             {
                 return true;

@@ -81,7 +81,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 
-public class ModifyUserAction extends UsersAction
+public class ModifyUserAction extends AbstractUserAction
 {
     private final InputStream inputStream;
 

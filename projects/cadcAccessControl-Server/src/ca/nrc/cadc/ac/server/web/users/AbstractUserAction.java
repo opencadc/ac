@@ -66,61 +66,64 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.List;
-
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.MemberAlreadyExistsException;
-import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.json.JsonUserReader;
+import ca.nrc.cadc.ac.json.JsonUserRequestReader;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.xml.UserListWriter;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
+import org.apache.log4j.Logger;
 
-public abstract class GroupsAction
-    implements PrivilegedExceptionAction<Object>
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(GroupsAction.class);
-    protected GroupLogInfo logInfo;
-    protected HttpServletRequest request;
-    protected HttpServletResponse response;
+    private static final Logger log = Logger.getLogger(AbstractUserAction.class);
+    static final String DEFAULT_CONTENT_TYPE = "text/xml";
+    static final String JSON_CONTENT_TYPE = "application/json";
 
-    GroupsAction()
+    protected UserLogInfo logInfo;
+    protected HttpServletResponse response;
+    protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
+
+    AbstractUserAction()
     {
     }
 
-    abstract void doAction() throws Exception;
+    public abstract void doAction() throws Exception;
 
-    void setLogInfo(GroupLogInfo logInfo)
+    public void setLogInfo(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    void setHttpServletRequest(HttpServletRequest request)
-    {
-        this.request = request;
-    }
-
-    void setHttpServletResponse(HttpServletResponse response)
+    public void setResponse(HttpServletResponse response)
     {
         this.response = response;
     }
 
-    public Object run() throws PrivilegedActionException
+    public Object run() throws IOException
     {
         try
         {
@@ -140,40 +143,12 @@ public abstract class GroupsAction
             this.logInfo.setMessage(message);
             sendError(400, message);
         }
-        catch (MemberNotFoundException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Member not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        }
-        catch (GroupNotFoundException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Group not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        }
         catch (UserNotFoundException e)
         {
             log.debug(e.getMessage(), e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
-        }
-        catch (MemberAlreadyExistsException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Member already exists: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(409, message);
-        }
-        catch (GroupAlreadyExistsException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Group already exists: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(409, message);
         }
         catch (UnsupportedOperationException e)
         {
@@ -201,25 +176,20 @@ public abstract class GroupsAction
     }
 
     private void sendError(int responseCode)
+        throws IOException
     {
         sendError(responseCode, null);
     }
 
     private void sendError(int responseCode, String message)
+        throws IOException
     {
         if (!this.response.isCommitted())
         {
             this.response.setContentType("text/plain");
             if (message != null)
             {
-                try
-                {
-                    this.response.getWriter().write(message);
-                }
-                catch (IOException e)
-                {
-                    log.warn("Could not write error message to output stream");
-                }
+                this.response.getWriter().write(message);
             }
             this.response.setStatus(responseCode);
         }
@@ -229,23 +199,159 @@ public abstract class GroupsAction
         }
     }
 
-    <T extends Principal> GroupPersistence<T> getGroupPersistence()
-    {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.getGroupPersistence();
-    }
-
+    @SuppressWarnings("unchecked")
     <T extends Principal> UserPersistence<T> getUserPersistence()
     {
         PluginFactory pluginFactory = new PluginFactory();
         return pluginFactory.getUserPersistence();
     }
 
-    protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers)
+    protected void logUserInfo(String userName)
     {
-        this.logInfo.groupID = groupID;
-        this.logInfo.addedMembers = addedMembers;
-        this.logInfo.deletedMembers = deletedMembers;
+        this.logInfo.userName = userName;
     }
 
+    public void setAcceptedContentType(final String acceptedContentType)
+    {
+        this.acceptedContentType = acceptedContentType;
+    }
+
+    /**
+     * Read a user request (User pending approval) from the HTTP Request's
+     * stream.
+     *
+     * @param inputStream           The Input Stream to read from.
+     * @return                      User Request instance.
+     * @throws IOException          Any reading errors.
+     */
+    protected final UserRequest<Principal> readUserRequest(
+            final InputStream inputStream) throws IOException
+    {
+        final UserRequest<Principal> userRequest;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            UserRequestReader requestReader = new UserRequestReader();
+            userRequest = requestReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            JsonUserRequestReader requestReader = new JsonUserRequestReader();
+            userRequest = requestReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+
+        return userRequest;
+    }
+
+    /**
+     * Read the user from the given stream of marshalled data.
+     *
+     * @param inputStream       The stream to read in.
+     * @return                  User instance, never null.
+     *
+     * @throws IOException      Any errors in reading the stream.
+     */
+    protected final User<Principal> readUser(final InputStream inputStream)
+            throws IOException
+    {
+        response.setContentType(acceptedContentType);
+        final User<Principal> user;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            UserReader userReader = new UserReader();
+            user = userReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            JsonUserReader userReader = new JsonUserReader();
+            user = userReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+
+        return user;
+    }
+
+    /**
+     * Write a user to the response's writer.
+     *
+     * @param user              The user object to marshall and write out.
+     * @throws IOException      Any writing errors.
+     */
+    protected final <T extends Principal> void writeUser(final User<T> user)
+            throws IOException
+    {
+        response.setContentType(acceptedContentType);
+        final Writer writer = response.getWriter();
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            UserWriter userWriter = new UserWriter();
+            userWriter.write(user, writer);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            JsonUserWriter userWriter = new JsonUserWriter();
+            userWriter.write(user, writer);
+        }
+    }
+
+    /**
+     * Write out a Map of users as this Action's specified content type.
+     *
+     * @param users         The Map of user IDs to names.
+     */
+    protected final void writeUsers(final Map<String, PersonalDetails> users)
+            throws IOException
+    {
+        response.setContentType(acceptedContentType);
+        final Writer writer = response.getWriter();
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            UserListWriter userListWriter = new UserListWriter();
+            userListWriter.write(users, writer);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            JsonUserListWriter userListWriter = new JsonUserListWriter();
+            userListWriter.write(users, writer);
+        }
+    }
+
+    void redirectGet(User<?> user) throws Exception
+    {
+        final Set<Principal> httpPrincipals =  user.getIdentities();
+
+        String id = null;
+        String idType = null;
+        Iterator<Principal> i = httpPrincipals.iterator();
+        Principal next = null;
+        while (idType == null && i.hasNext())
+        {
+            next = i.next();
+            idType = AuthenticationUtil.getPrincipalType(next);
+            id = next.getName();
+        }
+
+        if (idType == null)
+        {
+            throw new IllegalStateException("No identities found.");
+        }
+
+        response.setStatus(HttpServletResponse.SC_OK);
+        final String redirectURL = "/" + id + "?idType=" + idType;
+        response.setHeader("Location", redirectURL);
+    }
 }

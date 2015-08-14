@@ -71,16 +71,12 @@ package ca.nrc.cadc.ac.server.web.users;
 import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.web.WebUtil;
-import ca.nrc.cadc.ac.server.web.groups.GroupsAction;
-import ca.nrc.cadc.ac.server.web.groups.GroupsActionFactory;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
-import ca.nrc.cadc.util.StringUtil;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.Principal;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
@@ -88,22 +84,21 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 
 
-public abstract class UsersActionFactory
+public abstract class UserActionFactory
 {
-    private static final Logger log = Logger
-            .getLogger(UsersActionFactory.class);
+    private static final Logger log = Logger.getLogger(UserActionFactory.class);
 
-    public abstract UsersAction createAction(HttpServletRequest request)
-            throws IllegalArgumentException, IOException;
+    public abstract AbstractUserAction createAction(HttpServletRequest request)
+        throws IllegalArgumentException, IOException;
 
-    public static UsersActionFactory httpGetFactory()
+    public static UserActionFactory httpGetFactory()
     {
-        return new UsersActionFactory()
+        return new UserActionFactory()
         {
-            public UsersAction createAction(HttpServletRequest request)
+            public AbstractUserAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                UsersAction action = null;
+                AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -111,7 +106,7 @@ public abstract class UsersActionFactory
 
                 if (segments.length == 0)
                 {
-                    action = new GetUsersAction();
+                    action = new GetUserListAction();
                 }
                 else if (segments.length == 1)
                 {
@@ -130,14 +125,14 @@ public abstract class UsersActionFactory
         };
     }
 
-    public static UsersActionFactory httpPutFactory()
+    public static UserActionFactory httpPutFactory()
     {
-        return new UsersActionFactory()
+        return new UserActionFactory()
         {
-            public UsersAction createAction(HttpServletRequest request)
+            public AbstractUserAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                UsersAction action = null;
+                AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -159,14 +154,14 @@ public abstract class UsersActionFactory
         };
     }
 
-    public static UsersActionFactory httpPostFactory()
+    public static UserActionFactory httpPostFactory()
     {
-        return new UsersActionFactory()
+        return new UserActionFactory()
         {
-            public UsersAction createAction(HttpServletRequest request)
+            public AbstractUserAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                UsersAction action = null;
+                AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -188,14 +183,14 @@ public abstract class UsersActionFactory
         };
     }
 
-    public static UsersActionFactory httpDeleteFactory()
+    public static UserActionFactory httpDeleteFactory()
     {
-        return new UsersActionFactory()
+        return new UserActionFactory()
         {
-            public UsersAction createAction(HttpServletRequest request)
+            public AbstractUserAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                UsersAction action = null;
+                AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -218,11 +213,11 @@ public abstract class UsersActionFactory
         };
     }
 
-    public static UsersActionFactory httpHeadFactory()
+    public static UserActionFactory httpHeadFactory()
     {
-        return new UsersActionFactory()
+        return new UserActionFactory()
         {
-            public UsersAction createAction(HttpServletRequest request)
+            public AbstractUserAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
                 // http head not supported

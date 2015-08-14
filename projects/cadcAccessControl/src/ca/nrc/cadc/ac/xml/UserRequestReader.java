@@ -84,6 +84,9 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
+/**
+ * Class to read a XML representation of a UserRequest to a UserRequest object.
+ */
 public class UserRequestReader
 {
     /**
@@ -93,7 +96,7 @@ public class UserRequestReader
      * @return UserRequest UserRequest.
      * @throws java.io.IOException
      */
-    public static UserRequest<Principal> read(String xml)
+    public UserRequest<Principal> read(String xml)
         throws IOException
     {
         if (xml == null)
@@ -111,7 +114,7 @@ public class UserRequestReader
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public static UserRequest<Principal> read(InputStream in)
+    public UserRequest<Principal> read(InputStream in)
         throws IOException
     {
         if (in == null)
@@ -138,7 +141,7 @@ public class UserRequestReader
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public static UserRequest<Principal> read(Reader reader)
+    public UserRequest<Principal> read(Reader reader)
         throws IOException
     {
         if (reader == null)
@@ -186,6 +189,6 @@ public class UserRequestReader
         }
         String password = passwordElement.getText();
 
-        return new UserRequest<Principal>(user, password);
+        return new UserRequest<Principal>(user, password.toCharArray());
     }
 }

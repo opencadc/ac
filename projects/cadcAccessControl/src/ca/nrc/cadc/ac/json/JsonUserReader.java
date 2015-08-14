@@ -68,44 +68,36 @@
  */
 package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.AC;
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.ac.UserDetails;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.net.URISyntaxException;
 import java.security.Principal;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.Scanner;
 
-public class GroupReader
+public class JsonUserReader
 {
     /**
-     * Construct a Group from a InputStream.
+     * Construct a User from a InputStream.
      *
      * @param in InputStream.
-     * @return Group Group.
+     * @return User User.
      * @throws ReaderException
      * @throws IOException
-     * @throws URISyntaxException
      */
-    public static Group read(InputStream in)
-        throws ReaderException, IOException
+    public static User<Principal> read(InputStream in)
+        throws IOException
     {
         if (in == null)
         {
             throw new IOException("stream closed");
         }
-        InputStreamReader reader;
 
         Scanner s = new Scanner(in).useDelimiter("\\A");
         String json = s.hasNext() ? s.next() : "";
@@ -114,16 +106,15 @@ public class GroupReader
     }
 
     /**
-     * Construct a Group from a Reader.
+     * Construct a User from a Reader.
      *
      * @param reader Reader.
-     * @return Group Group.
+     * @return User User.
      * @throws ReaderException
      * @throws IOException
-     * @throws URISyntaxException
      */
-    public static Group read(Reader reader)
-        throws ReaderException, IOException
+    public static User<Principal> read(Reader reader)
+        throws IOException
     {
         if (reader == null)
         {
@@ -137,142 +128,68 @@ public class GroupReader
     }
 
     /**
-     * Construct a Group from an JSON String source.
+     * Construct a User from an JSON String source.
      *
      * @param json String of JSON.
-     * @return Group Group.
+     * @return User User.
      * @throws ReaderException
      * @throws IOException
-     * @throws URISyntaxException
      */
-    public static Group read(String json)
-        throws ReaderException, IOException
+    public static User<Principal> read(String json)
+        throws IOException
     {
-        if (json == null)
+        if (json == null || json.isEmpty())
         {
-            throw new IllegalArgumentException("JSON must not be null");
+            throw new IllegalArgumentException("JSON must not be null or empty");
         }
 
         // Create a JSONObject from the JSON
         try
         {
-            return parseGroup(new JSONObject(json).getJSONObject("group"));
+            return parseUser(new JSONObject(json).getJSONObject("user"));
         }
         catch (JSONException e)
         {
-            String error = "Unable to parse JSON to Group because " +
+            String error = "Unable to parse JSON to User because " +
                            e.getMessage();
             throw new ReaderException(error, e);
         }
     }
 
-    protected static Group parseGroup(JSONObject groupObject)
+    protected static User<Principal> parseUser(JSONObject userObject)
         throws ReaderException, JSONException
     {
-        String uri = groupObject.getString("uri");
+        JSONObject userIDObject = userObject.getJSONObject("userID");
+        JSONObject userIDIdentityObject = userIDObject.getJSONObject("identity");
 
-        // Group groupID
-        int index = uri.indexOf(AC.GROUP_URI);
-        if (index == -1)
+        Principal userID = JsonIdentityReader.read(userIDIdentityObject);
+        User<Principal> user = new User<Principal>(userID);
+
+        // identities
+        if (userObject.has("identities"))
         {
-            String error = "group uri attribute malformed: " + uri;
-            throw new ReaderException(error);
-        }
-        String groupID = uri.substring(AC.GROUP_URI.length());
-
-        // Group owner
-        User<? extends Principal> user = null;
-        if (groupObject.has("owner"))
-        {
-            JSONObject ownerObject = groupObject.getJSONObject("owner");
-            JSONObject userObject = ownerObject.getJSONObject("user");
-            user = UserReader.parseUser(userObject);
-        }
-
-        Group group = new Group(groupID, user);
-
-        // description
-        if (groupObject.has("description"))
-        {
-            group.description = groupObject.getString("description");
-        }
-
-        // lastModified
-        if (groupObject.has("lastModified"))
-        {
-            try
+            JSONArray identitiesArray = userObject.getJSONArray("identities");
+            for (int i = 0; i < identitiesArray.length(); i++)
             {
-                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-                group.lastModified = df.parse(groupObject.getString("lastModified"));
-            }
-            catch (ParseException e)
-            {
-                String error = "Unable to parse group lastModified because " + e.getMessage();
-
-                throw new ReaderException(error);
+                JSONObject identitiesObject = identitiesArray.getJSONObject(i);
+                JSONObject identityObject = identitiesObject.getJSONObject(("identity"));
+                user.getIdentities().add(JsonIdentityReader.read(identityObject));
             }
         }
 
-        // properties
-        if (groupObject.has("description"))
+        // details
+        if (userObject.has("details"))
         {
-            JSONArray propertiesArray = groupObject.getJSONArray("properties");
-            for (int i = 0; i < propertiesArray.length(); i++)
+            JSONArray detailsArray = userObject.getJSONArray("details");
+            for (int i = 0; i < detailsArray.length(); i++)
             {
-                JSONObject propertiesObject = propertiesArray.getJSONObject(i);
-                JSONObject propertyObject = propertiesObject.getJSONObject("property");
-                group.getProperties().add(GroupPropertyReader.read(propertyObject));
+                JSONObject detailsObject = detailsArray.getJSONObject(i);
+                JSONObject userDetailsObject = detailsObject.getJSONObject(UserDetails.NAME);
+                user.details.add(JsonUserDetailsReader.read(userDetailsObject));
             }
         }
 
-        // groupMembers
-        if (groupObject.has("groupMembers"))
-        {
-            JSONArray groupMembersArray = groupObject.getJSONArray("groupMembers");
-            for (int i = 0; i < groupMembersArray.length(); i++)
-            {
-                JSONObject groupMembersObject = groupMembersArray.getJSONObject(i);
-                JSONObject groupMemberObject = groupMembersObject.getJSONObject("group");
-                group.getGroupMembers().add(parseGroup(groupMemberObject));
-            }
-        }
-
-        // userMembers
-        if (groupObject.has("userMembers"))
-        {
-            JSONArray userMembersArray = groupObject.getJSONArray("userMembers");
-            for (int i = 0; i < userMembersArray.length(); i++)
-            {
-                JSONObject userMemberObject = userMembersArray.getJSONObject(i);
-                JSONObject userObject = userMemberObject.getJSONObject("user");
-                group.getUserMembers().add(UserReader.parseUser(userObject));
-            }
-        }
-
-        // groupAdmins
-        if (groupObject.has("groupAdmins"))
-        {
-            JSONArray groupAdminsArray = groupObject.getJSONArray("groupAdmins");
-            for (int i = 0; i < groupAdminsArray.length(); i++)
-            {
-                JSONObject groupAdminsObject = groupAdminsArray.getJSONObject(i);
-                JSONObject groupAdminObject = groupAdminsObject.getJSONObject("group");
-                group.getGroupAdmins().add(parseGroup(groupAdminObject));
-            }
-        }
-
-        // userAdmins
-        if (groupObject.has("userAdmins"))
-        {
-            JSONArray userAdminsArray = groupObject.getJSONArray("userAdmins");
-            for (int i = 0; i < userAdminsArray.length(); i++)
-            {
-                JSONObject userAdminObject = userAdminsArray.getJSONObject(i);
-                JSONObject userObject = userAdminObject.getJSONObject("user");
-                group.getUserAdmins().add(UserReader.parseUser(userObject));
-            }
-        }
-
-        return group;
+        return user;
     }
+
 }

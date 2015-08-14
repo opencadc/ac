@@ -94,8 +94,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
-
-            UsersAction action = UsersActionFactory.httpPutFactory().createAction(request);
+            AbstractUserAction action = UserActionFactory.httpPutFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof CreateUserAction);
         }
@@ -115,7 +114,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.httpDeleteFactory().createAction(request);
+            AbstractUserAction action = UserActionFactory.httpDeleteFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof DeleteUserAction);
         }
@@ -135,7 +134,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.httpGetFactory().createAction(request);
+            AbstractUserAction action = UserActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof GetUserAction);
         }
@@ -154,9 +153,9 @@ public class UserActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.httpGetFactory().createAction(request);
+            AbstractUserAction action = UserActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
-            Assert.assertTrue("Wrong action", action instanceof GetUsersAction);
+            Assert.assertTrue("Wrong action", action instanceof GetUserListAction);
         }
         catch (Throwable t)
         {
@@ -181,7 +180,7 @@ public class UserActionFactoryTest
             EasyMock.expect(request.getInputStream()).andReturn(null);
             //EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.httpPostFactory().createAction(request);
+            AbstractUserAction action = UserActionFactory.httpPostFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof ModifyUserAction);
         }
@@ -202,7 +201,7 @@ public class UserActionFactoryTest
             EasyMock.replay(request);
             try
             {
-                UsersActionFactory.httpPostFactory().createAction(request);
+                UserActionFactory.httpPostFactory().createAction(request);
                 Assert.fail("Should have been a bad request");
             }
             catch (IllegalArgumentException e)
@@ -228,7 +227,7 @@ public class UserActionFactoryTest
             EasyMock.replay(request);
             try
             {
-                UsersActionFactory.httpDeleteFactory().createAction(request);
+                UserActionFactory.httpDeleteFactory().createAction(request);
                 Assert.fail("Should have been a bad request");
             }
             catch (IllegalArgumentException e)
@@ -253,7 +252,7 @@ public class UserActionFactoryTest
             EasyMock.replay(request);
             try
             {
-                UsersActionFactory.httpHeadFactory().createAction(request);
+                UserActionFactory.httpHeadFactory().createAction(request);
                 Assert.fail("Should have been a bad request");
             }
             catch (UnsupportedOperationException e)

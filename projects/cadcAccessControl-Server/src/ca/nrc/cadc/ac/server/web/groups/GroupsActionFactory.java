@@ -90,17 +90,17 @@ public abstract class GroupsActionFactory
 {
     private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
 
-    public abstract GroupsAction createAction(HttpServletRequest request)
+    public abstract AbstractGroupAction createAction(HttpServletRequest request)
         throws IllegalArgumentException, IOException;
 
     public static GroupsActionFactory httpGetFactory()
     {
         return new GroupsActionFactory()
         {
-            public GroupsAction createAction(HttpServletRequest request)
+            public AbstractGroupAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                GroupsAction action = null;
+                AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -130,10 +130,10 @@ public abstract class GroupsActionFactory
     {
         return new GroupsActionFactory()
         {
-            public GroupsAction createAction(HttpServletRequest request)
+            public AbstractGroupAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                GroupsAction action = null;
+                AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -174,10 +174,10 @@ public abstract class GroupsActionFactory
     {
         return new GroupsActionFactory()
         {
-            public GroupsAction createAction(HttpServletRequest request)
+            public AbstractGroupAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                GroupsAction action = null;
+                AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -222,10 +222,10 @@ public abstract class GroupsActionFactory
     {
         return new GroupsActionFactory()
         {
-            public GroupsAction createAction(HttpServletRequest request)
+            public AbstractGroupAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
-                GroupsAction action = null;
+                AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
@@ -269,7 +269,7 @@ public abstract class GroupsActionFactory
     {
         return new GroupsActionFactory()
         {
-            public GroupsAction createAction(HttpServletRequest request)
+            public AbstractGroupAction createAction(HttpServletRequest request)
                 throws IllegalArgumentException, IOException
             {
                 // http head not supported
