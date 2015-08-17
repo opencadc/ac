@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.web.users;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.junit.Test;
@@ -87,8 +88,8 @@ public class GetUserActionTest
     @Test
     public void writeUserXML() throws Exception
     {
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
@@ -107,13 +108,13 @@ public class GetUserActionTest
         final PrintWriter printWriter = new PrintWriter(writer);
 
         expect(mockUserPersistence.getUser(userID)).andReturn(user).once();
-        expect(mockResponse.getWriter()).andReturn(printWriter).once();
-        mockResponse.setContentType("text/xml");
+        expect(mockSyncOut.getWriter()).andReturn(printWriter).once();
+        mockSyncOut.setHeader("Content-Type", "text/xml");
         expectLastCall().once();
 
-        replay(mockResponse, mockUserPersistence);
+        replay(mockSyncOut, mockUserPersistence);
 
-        testSubject.setResponse(mockResponse);
+        testSubject.setSyncOut(mockSyncOut);
         testSubject.doAction();
 
         StringBuilder sb = new StringBuilder();
@@ -121,14 +122,14 @@ public class GetUserActionTest
         userWriter.write(user, sb);
         assertEquals(sb.toString(), writer.toString());
 
-        verify(mockResponse, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 
     @Test
     public void writeUserJSON() throws Exception
     {
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
@@ -149,12 +150,12 @@ public class GetUserActionTest
         final PrintWriter printWriter = new PrintWriter(writer);
 
         expect(mockUserPersistence.getUser(userID)).andReturn(user).once();
-        expect(mockResponse.getWriter()).andReturn(printWriter).once();
-        mockResponse.setContentType("application/json");
+        expect(mockSyncOut.getWriter()).andReturn(printWriter).once();
+        mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
 
-        replay(mockResponse, mockUserPersistence);
-        testSubject.setResponse(mockResponse);
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
         UserLogInfo logInfo = createMock(UserLogInfo.class);
         testSubject.setLogInfo(logInfo);
         testSubject.doAction();
@@ -164,6 +165,6 @@ public class GetUserActionTest
         userWriter.write(user, sb);
         assertEquals(sb.toString(), writer.toString());
 
-        verify(mockResponse, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 }

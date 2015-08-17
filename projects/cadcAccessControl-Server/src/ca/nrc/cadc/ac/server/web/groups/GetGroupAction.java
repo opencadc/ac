@@ -85,10 +85,9 @@ public class GetGroupAction extends AbstractGroupAction
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
-        this.response.setContentType("application/xml");
-
+        syncOut.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(group, this.response.getOutputStream());
+        groupWriter.write(group, syncOut.getWriter());
     }
 
 }

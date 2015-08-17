@@ -72,6 +72,7 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.junit.Test;
 
@@ -120,8 +121,8 @@ public class ModifyUserActionTest
 
         final HttpServletRequest mockRequest =
                 createMock(HttpServletRequest.class);
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
 
         @SuppressWarnings("unchecked")
         final UserPersistence<Principal> mockUserPersistence =
@@ -133,17 +134,16 @@ public class ModifyUserActionTest
 //        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
 //                once();
 
-        mockResponse.setHeader("Location", "/CADCtest?idType=http");
+        mockSyncOut.setHeader("Location", "/CADCtest?idType=http");
         expectLastCall().once();
 
-        mockResponse.setStatus(200);
-
+        mockSyncOut.setCode(303);
         expectLastCall().once();
 
-        mockResponse.setContentType("application/json");
+        mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
 
-        replay(mockRequest, mockResponse, mockUserPersistence);
+        replay(mockRequest, mockSyncOut, mockUserPersistence);
 
         final ModifyUserAction testSubject = new ModifyUserAction(inputStream)
         {
@@ -156,11 +156,11 @@ public class ModifyUserActionTest
         };
 
         testSubject.setAcceptedContentType("application/json");
-        testSubject.response = mockResponse;
+        testSubject.syncOut = mockSyncOut;
         UserLogInfo logInfo = createMock(UserLogInfo.class);
         testSubject.setLogInfo(logInfo);
         testSubject.doAction();
 
-        verify(mockRequest, mockResponse, mockUserPersistence);
+        verify(mockRequest, mockSyncOut, mockUserPersistence);
     }
 }

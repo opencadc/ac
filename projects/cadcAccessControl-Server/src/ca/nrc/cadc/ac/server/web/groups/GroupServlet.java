@@ -78,6 +78,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.util.StringUtil;
 
@@ -109,7 +110,8 @@ public class GroupServlet extends HttpServlet
 
             action.setLogInfo(logInfo);
             action.setHttpServletRequest(request);
-            action.setHttpServletResponse(response);
+            SyncOutput syncOut = new SyncOutput(response);
+            action.setSyncOut(syncOut);
 
             try
             {
