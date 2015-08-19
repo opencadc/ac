@@ -137,7 +137,6 @@ public class GetUserAction extends AbstractUserAction
     
     protected boolean isServops()
     {
-    	log.debug("alinga-- isServops(): augmentUserDN = " + this.augmentUserDN);
     	boolean isServops = false;
         AccessControlContext acc = AccessController.getContext();
         Subject subject = Subject.getSubject(acc);

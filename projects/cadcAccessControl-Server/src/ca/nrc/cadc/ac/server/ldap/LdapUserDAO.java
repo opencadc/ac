@@ -77,7 +77,9 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
+
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -100,9 +102,11 @@ import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
+
 import org.apache.log4j.Logger;
 
 import javax.security.auth.x500.X500Principal;
+
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -459,7 +463,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.SUB,
                                       searchField, userAttribs);
-
             if (isSecure(usersDN))
             {
                 searchRequest.addControl(
@@ -480,10 +483,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
+
         User<T> user = new User<T>(userID);
         user.getIdentities().add(new HttpPrincipal(searchResult.getAttributeValue(
             userLdapAttrib.get(HttpPrincipal.class))));
-
+        String dn = searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME);
+        user.getIdentities().add(new X500Principal(dn));
+        
         String fname = searchResult.getAttributeValue(LDAP_FIRST_NAME);
         String lname = searchResult.getAttributeValue(LDAP_LAST_NAME);
         PersonalDetails personaDetails = new PersonalDetails(fname, lname);
