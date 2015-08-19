@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,162 +62,96 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.xml.XmlUtil;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.security.Principal;
-import java.util.List;
 
-/**
- * Class to read a XML representation of a User to a User object.
- */
-public class UserReader
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+
+public class JsonUserRequestReaderWriterTest
 {
-    /**
-     * Construct a User from an XML String source.
-     * 
-     * @param xml String of the XML.
-     * @return User User.
-     * @throws ReaderException
-     * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
-     */
-    public User<Principal> read(String xml)
-        throws IOException, URISyntaxException
+    @Test
+    public void testReaderExceptions()
+        throws Exception
     {
-        if (xml == null)
-        {
-            throw new IllegalArgumentException("XML must not be null");
-        }
-        return read(new StringReader(xml));
-    }
-
-    /**
-     * Construct a User from a InputStream.
-     * 
-     * @param in InputStream.
-     * @return User User.
-     * @throws java.io.IOException
-     */
-    public User<Principal> read(InputStream in)
-        throws IOException
-    {
-        if (in == null)
-        {
-            throw new IOException("stream closed");
-        }
-        InputStreamReader reader;
         try
         {
-            reader = new InputStreamReader(in, "UTF-8");
+            String s = null;
+            JsonUserRequestReader reader = new JsonUserRequestReader();
+            UserRequest u = reader.read(s);
+            fail("null String should throw IllegalArgumentException");
         }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported");
-        }
-        return read(reader);
-    }
+        catch (IllegalArgumentException e) {}
 
-    /**
-     * Construct a User from a Reader.
-     * 
-     * @param reader Reader.
-     * @return User User.
-     * @throws ReaderException
-     * @throws java.io.IOException
-     */
-    public User<Principal> read(Reader reader)
-        throws IOException
-    {
-        if (reader == null)
-        {
-            throw new IllegalArgumentException("reader must not be null");
-        }
-
-        // Create a JDOM Document from the XML
-        Document document;
         try
         {
-            document = XmlUtil.buildDocument(reader);
+            InputStream in = null;
+            JsonUserRequestReader reader = new JsonUserRequestReader();
+            UserRequest u = reader.read(in);
+            fail("null InputStream should throw IOException");
         }
-        catch (JDOMException jde)
+        catch (IOException e) {}
+
+        try
         {
-            String error = "XML failed validation: " + jde.getMessage();
-            throw new ReaderException(error, jde);
+            Reader r = null;
+            JsonUserRequestReader reader = new JsonUserRequestReader();
+            UserRequest u = reader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
-
-        // Root element and namespace of the Document
-        Element root = document.getRootElement();
-
-        return parseUser(root);
+        catch (IllegalArgumentException e) {}
     }
 
-    public static User<Principal> parseUser(Element userElement)
-        throws ReaderException
+    @Test
+    public void testWriterExceptions()
+        throws Exception
     {
-        // userID element of the User element
-        Element userIDElement = userElement.getChild("userID");
-        if (userIDElement == null)
+        try
         {
-            String error = "userID element not found in user element";
-            throw new ReaderException(error);
+            JsonUserRequestWriter writer = new JsonUserRequestWriter();
+            writer.write(null, new StringBuilder());
+            fail("null User should throw WriterException");
         }
+        catch (WriterException e) {}
+    }
 
-        // identity element of the userID element
-        Element userIDIdentityElement = userIDElement.getChild("identity");
-        if (userIDIdentityElement == null)
-        {
-            String error = "identity element not found in userID element";
-            throw new ReaderException(error);
-        }
+    @Test
+    public void testReadWrite()
+        throws Exception
+    {
+        User<Principal> expectedUser =
+            new User<Principal>(new HttpPrincipal("CADCtest"));
+        expectedUser.details.add(new PersonalDetails("CADCtest", "User"));
 
-        IdentityReader identityReader = new IdentityReader();
-        Principal userID = identityReader.read(userIDIdentityElement);
+        UserRequest<Principal> expected =
+            new UserRequest<Principal>(expectedUser, "MYPASSWORD".toCharArray());
 
-        User<Principal> user = new User<Principal>(userID);
+        StringBuilder json = new StringBuilder();
+        JsonUserRequestWriter writer = new JsonUserRequestWriter();
+        writer.write(expected, json);
+        assertFalse(json.toString().isEmpty());
 
-        // identities
-        Element identitiesElement = userElement.getChild("identities");
-        if (identitiesElement != null)
-        {
-            List<Element> identityElements = identitiesElement.getChildren("identity");
-            for (Element identityElement : identityElements)
-            {
-                user.getIdentities().add(identityReader.read(identityElement));
-            }
-
-        }
-
-        // details
-        Element detailsElement = userElement.getChild("details");
-        if (detailsElement != null)
-        {
-            UserDetailsReader userDetailsReader = new UserDetailsReader();
-            List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
-            for (Element userDetailsElement : userDetailsElements)
-            {
-                user.details.add(userDetailsReader.read(userDetailsElement));
-            }
-        }
-
-        return user;
+        JsonUserRequestReader reader = new JsonUserRequestReader();
+        UserRequest<Principal> actual = reader.read(json.toString());
+        assertNotNull(actual);
+        assertEquals(expected, actual);
     }
 
 }

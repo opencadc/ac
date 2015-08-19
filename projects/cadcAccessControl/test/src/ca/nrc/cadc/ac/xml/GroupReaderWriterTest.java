@@ -70,6 +70,8 @@ package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -163,10 +165,24 @@ public class GroupReaderWriterTest
     public void testMaximalReadWrite()
         throws Exception
     {
-        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
+        User<Principal> owner = new User<Principal>(new HttpPrincipal("foo"));
+        X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
+        owner.getIdentities().add(x500Principal);
+        PersonalDetails personalDetails = new PersonalDetails("foo", "bar");
+        personalDetails.address = "address";
+        personalDetails.email = "email";
+        personalDetails.institute = "institute";
+        personalDetails.city = "city";
+        personalDetails.country = "country";
+        owner.details.add(personalDetails);
+        PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
+        owner.details.add(posixDetails);
+
+        Group expected = new Group("groupID", owner);
         expected.description = "description";
         expected.lastModified = new Date();
-        expected.getProperties().add(new GroupProperty("key", "value", true));
+        expected.getProperties().add(new GroupProperty("key1", "value1", true));
+        expected.getProperties().add(new GroupProperty("key2", "value2", false));
         
         Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
         User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));

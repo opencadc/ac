@@ -125,7 +125,7 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <test name="ca.nrc.cadc.ac.json.GroupReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
             <formatter type="plain" usefile="false" />
         </junit>
     </target>

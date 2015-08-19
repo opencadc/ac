@@ -184,7 +184,7 @@ public class GroupReader
         return parseGroup(root);
     }
 
-    protected static Group parseGroup(Element groupElement)
+    public static Group parseGroup(Element groupElement)
         throws ReaderException
     {
         String uri = groupElement.getAttributeValue("uri");
