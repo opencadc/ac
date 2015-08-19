@@ -69,46 +69,20 @@
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.xml.JsonInputter;
+import org.jdom2.Document;
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.security.Principal;
 import java.util.Scanner;
 
-public class JsonUserRequestReader
+public class JsonUserRequestReader extends UserRequestReader
 {
-    /**
-     * Construct a UserRequest from an JSON String source.
-     *
-     * @param json String of the JSON.
-     * @return UserRequest UserRequest.
-     * @throws IOException
-     */
-    public static UserRequest<Principal> read(String json)
-        throws IOException
-    {
-        if (json == null)
-        {
-            throw new IllegalArgumentException("JSON must not be null");
-        }
-        else
-        {
-            try
-            {
-                return parseUserRequest(new JSONObject(json));
-            }
-            catch (JSONException e)
-            {
-                String error = "Unable to parse JSON to User because " +
-                               e.getMessage();
-                throw new ReaderException(error, e);
-            }
-        }
-    }
-
     /**
      * Construct a User from a InputStream.
      *
@@ -117,7 +91,8 @@ public class JsonUserRequestReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static UserRequest<Principal> read(InputStream in)
+    @Override
+    public UserRequest<Principal> read(InputStream in)
             throws IOException
     {
         if (in == null)
@@ -139,7 +114,8 @@ public class JsonUserRequestReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static UserRequest<Principal> read(Reader reader)
+    @Override
+    public UserRequest<Principal> read(Reader reader)
             throws IOException
     {
         if (reader == null)
@@ -153,16 +129,39 @@ public class JsonUserRequestReader
         return read(json);
     }
 
-
-    protected static UserRequest<Principal> parseUserRequest(
-            JSONObject userRequestObject)
-        throws ReaderException, JSONException
+    /**
+     * Construct a UserRequest from an JSON String source.
+     *
+     * @param json String of the JSON.
+     * @return UserRequest UserRequest.
+     * @throws IOException
+     */
+    @Override
+    public UserRequest<Principal> read(String json)
+        throws IOException
     {
-        final User<Principal> user =
-                JsonUserReader.parseUser(
-                    userRequestObject.getJSONObject("user"));
+        if (json == null)
+        {
+            throw new IllegalArgumentException("JSON must not be null");
+        }
+        else
+        {
+            try
+            {
+                JsonInputter jsonInputter = new JsonInputter();
+                jsonInputter.getListElementMap().put("identities", "identity");
+                jsonInputter.getListElementMap().put("details", "userDetails");
 
-        return new UserRequest<Principal>(user, userRequestObject.
-                getString("password").toCharArray());
+                Document document = jsonInputter.input(json);
+                return UserRequestReader.parseUserRequest(document.getRootElement());
+            }
+            catch (JSONException e)
+            {
+                String error = "Unable to parse JSON to User because " +
+                    e.getMessage();
+                throw new ReaderException(error, e);
+            }
+        }
     }
+
 }

@@ -71,7 +71,12 @@ package ca.nrc.cadc.ac.json;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.util.StringBuilderWriter;
+import ca.nrc.cadc.xml.JsonOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -85,7 +90,7 @@ import java.io.Writer;
 import java.security.Principal;
 import java.util.Set;
 
-public class JsonUserWriter
+public class JsonUserWriter extends UserWriter
 {
     /**
      * Write a User as a JSON string to a StringBuilder.
@@ -95,7 +100,8 @@ public class JsonUserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, StringBuilder builder)
+    @Override
+    public void write(User<? extends Principal> user, StringBuilder builder)
         throws IOException, WriterException
     {
         write(user, new StringBuilderWriter(builder));
@@ -109,7 +115,8 @@ public class JsonUserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, OutputStream out)
+    @Override
+    public void write(User<? extends Principal> user, OutputStream out)
         throws IOException, WriterException
     {                
         OutputStreamWriter outWriter;
@@ -132,7 +139,8 @@ public class JsonUserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(User<? extends Principal> user, Writer writer)
+    @Override
+    public void write(User<? extends Principal> user, Writer writer)
         throws IOException, WriterException
     {
         if (user == null)
@@ -140,62 +148,17 @@ public class JsonUserWriter
             throw new WriterException("null User");
         }
 
-        try
-        {
-            getUserObject(user).write(writer);
-        }
-        catch (JSONException e)
-        {
-            final String error = "Unable to create JSON for User " +
-                                 " because " + e.getMessage();
-            throw new WriterException(error, e);
-        }
-    }
+        Element children = UserWriter.getUserElement(user);
+        Element userElement = new Element("user");
+        userElement.addContent(children);
+        Document document = new Document();
+        document.setRootElement(userElement);
 
-    /**
-     * Build a User JSONObject from a User.
-     *
-     * @param user User.
-     * @return JSONObject.
-     * @throws WriterException
-     */
-    public static JSONObject getUserObject(User<? extends Principal> user)
-        throws WriterException, JSONException
-    {
-        JSONObject userObject = new JSONObject();
-        JSONObject userIDIdentityObject = new JSONObject();
-        userIDIdentityObject.put("identity", JsonIdentityWriter.write(user.getUserID()));
-        userObject.put("userID", userIDIdentityObject);
+        JsonOutputter jsonOutputter = new JsonOutputter();
+        jsonOutputter.getListElementNames().add("identities");
+        jsonOutputter.getListElementNames().add("details");
 
-        // identities
-        Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty())
-        {
-            JSONArray identityArray = new JSONArray();
-            for (Principal identity : identities)
-            {
-                JSONObject identityObject = new JSONObject();
-                identityObject.put("identity" , JsonIdentityWriter.write(identity));
-                identityArray.put(identityObject);
-            }
-            userObject.put("identities", identityArray);
-        }
-
-        // details
-        if (!user.details.isEmpty())
-        {
-            JSONArray detailsArray = new JSONArray();
-            Set<UserDetails> userDetails = user.details;
-            for (UserDetails userDetail : userDetails)
-            {
-                JSONObject detailsObject = new JSONObject();
-                detailsObject.put(UserDetails.NAME , JsonUserDetailsWriter.write(userDetail));
-                detailsArray.put(detailsObject);
-            }
-            userObject.put("details", detailsArray);
-        }
-
-        return new JSONObject().put("user", userObject);
+        jsonOutputter.output(document, writer);
     }
 
 }

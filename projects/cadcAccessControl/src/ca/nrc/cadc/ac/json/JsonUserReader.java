@@ -70,10 +70,10 @@ package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import org.json.JSONArray;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.xml.JsonInputter;
+import org.jdom2.Document;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,7 +81,7 @@ import java.io.Reader;
 import java.security.Principal;
 import java.util.Scanner;
 
-public class JsonUserReader
+public class JsonUserReader extends UserReader
 {
     /**
      * Construct a User from a InputStream.
@@ -91,7 +91,8 @@ public class JsonUserReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static User<Principal> read(InputStream in)
+    @Override
+    public User<Principal> read(InputStream in)
         throws IOException
     {
         if (in == null)
@@ -113,7 +114,8 @@ public class JsonUserReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static User<Principal> read(Reader reader)
+    @Override
+    public User<Principal> read(Reader reader)
         throws IOException
     {
         if (reader == null)
@@ -135,7 +137,8 @@ public class JsonUserReader
      * @throws ReaderException
      * @throws IOException
      */
-    public static User<Principal> read(String json)
+    @Override
+    public User<Principal> read(String json)
         throws IOException
     {
         if (json == null || json.isEmpty())
@@ -146,50 +149,19 @@ public class JsonUserReader
         // Create a JSONObject from the JSON
         try
         {
-            return parseUser(new JSONObject(json).getJSONObject("user"));
+            JsonInputter jsonInputter = new JsonInputter();
+            jsonInputter.getListElementMap().put("identities", "identity");
+            jsonInputter.getListElementMap().put("details", "userDetails");
+
+            Document document = jsonInputter.input(json);
+            return UserReader.parseUser(document.getRootElement());
         }
         catch (JSONException e)
         {
             String error = "Unable to parse JSON to User because " +
-                           e.getMessage();
+                e.getMessage();
             throw new ReaderException(error, e);
         }
-    }
-
-    protected static User<Principal> parseUser(JSONObject userObject)
-        throws ReaderException, JSONException
-    {
-        JSONObject userIDObject = userObject.getJSONObject("userID");
-        JSONObject userIDIdentityObject = userIDObject.getJSONObject("identity");
-
-        Principal userID = JsonIdentityReader.read(userIDIdentityObject);
-        User<Principal> user = new User<Principal>(userID);
-
-        // identities
-        if (userObject.has("identities"))
-        {
-            JSONArray identitiesArray = userObject.getJSONArray("identities");
-            for (int i = 0; i < identitiesArray.length(); i++)
-            {
-                JSONObject identitiesObject = identitiesArray.getJSONObject(i);
-                JSONObject identityObject = identitiesObject.getJSONObject(("identity"));
-                user.getIdentities().add(JsonIdentityReader.read(identityObject));
-            }
-        }
-
-        // details
-        if (userObject.has("details"))
-        {
-            JSONArray detailsArray = userObject.getJSONArray("details");
-            for (int i = 0; i < detailsArray.length(); i++)
-            {
-                JSONObject detailsObject = detailsArray.getJSONObject(i);
-                JSONObject userDetailsObject = detailsObject.getJSONObject(UserDetails.NAME);
-                user.details.add(JsonUserDetailsReader.read(userDetailsObject));
-            }
-        }
-
-        return user;
     }
 
 }

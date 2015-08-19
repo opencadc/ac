@@ -102,7 +102,8 @@ public class JsonUserReaderWriterTest
         try
         {
             String s = null;
-            User<? extends Principal> u = JsonUserReader.read(s);
+            JsonUserReader reader = new JsonUserReader();
+            User<? extends Principal> u = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -110,7 +111,8 @@ public class JsonUserReaderWriterTest
         try
         {
             InputStream in = null;
-            User<? extends Principal> u = JsonUserReader.read(in);
+            JsonUserReader reader = new JsonUserReader();
+            User<? extends Principal> u = reader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -118,7 +120,8 @@ public class JsonUserReaderWriterTest
         try
         {
             Reader r = null;
-            User<? extends Principal> u = JsonUserReader.read(r);
+            JsonUserReader reader = new JsonUserReader();
+            User<? extends Principal> u = reader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -130,7 +133,8 @@ public class JsonUserReaderWriterTest
     {
         try
         {
-            JsonUserWriter.write(null, new StringBuilder());
+            JsonUserWriter writer = new JsonUserWriter();
+            writer.write(null, new StringBuilder());
             fail("null User should throw WriterException");
         }
         catch (WriterException e) {}
@@ -140,16 +144,18 @@ public class JsonUserReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
         expected.getIdentities().add(new NumericPrincipal(123l));
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         expected.details.add(new PosixDetails(123l, 456l, "foo"));
 
         StringBuilder json = new StringBuilder();
-        JsonUserWriter.write(expected, json);
+        JsonUserWriter writer = new JsonUserWriter();
+        writer.write(expected, json);
         assertFalse(json.toString().isEmpty());
-        
-        User<? extends Principal> actual = JsonUserReader.read(json.toString());
+
+        JsonUserReader reader = new JsonUserReader();
+        User<Principal> actual = reader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

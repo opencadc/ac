@@ -70,11 +70,16 @@ package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
@@ -97,6 +102,12 @@ public class JsonGroupReaderWriterTest
 {
     private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
 
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac.json", Level.INFO);
+    }
+
     @Test
     public void testReaderExceptions()
         throws Exception
@@ -104,7 +115,8 @@ public class JsonGroupReaderWriterTest
         try
         {
             String s = null;
-            Group g = JsonGroupReader.read(s);
+            JsonGroupReader reader = new JsonGroupReader();
+            Group g = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -112,7 +124,8 @@ public class JsonGroupReaderWriterTest
         try
         {
             InputStream in = null;
-            Group g = JsonGroupReader.read(in);
+            JsonGroupReader reader = new JsonGroupReader();
+            Group g = reader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -120,7 +133,8 @@ public class JsonGroupReaderWriterTest
         try
         {
             Reader r = null;
-            Group g = JsonGroupReader.read(r);
+            JsonGroupReader reader = new JsonGroupReader();
+            Group g = reader.read(r);
             fail("null element should throw ReaderException");
         }
         catch (IllegalArgumentException e) {}
@@ -132,7 +146,8 @@ public class JsonGroupReaderWriterTest
     {
         try
         {
-            JsonGroupWriter.write(null, new StringBuilder());
+            JsonGroupWriter writer = new JsonGroupWriter();
+            writer.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
         catch (WriterException e) {}
@@ -142,41 +157,63 @@ public class JsonGroupReaderWriterTest
     public void testMinimalReadWrite()
         throws Exception
     {
-        Group expected = new Group("groupID", null);
+        Group expected = new Group("groupID");
                 
         StringBuilder json = new StringBuilder();
-        JsonGroupWriter.write(expected, json);
+        JsonGroupWriter writer = new JsonGroupWriter();
+        writer.write(expected, json);
         assertFalse(json.toString().isEmpty());
-        
-        Group actual = JsonGroupReader.read(json.toString());
+
+        JsonGroupReader reader = new JsonGroupReader();
+        Group actual = reader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
-    
+
     @Test
     public void testMaximalReadWrite()
         throws Exception
     {
-        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
+        User<Principal> owner = new User<Principal>(new HttpPrincipal("foo"));
+        X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
+        owner.getIdentities().add(x500Principal);
+        PersonalDetails personalDetails = new PersonalDetails("foo", "bar");
+        personalDetails.address = "address";
+        personalDetails.email = "email";
+        personalDetails.institute = "institute";
+        personalDetails.city = "city";
+        personalDetails.country = "country";
+        owner.details.add(personalDetails);
+        PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
+        owner.details.add(posixDetails);
+
+        Group expected = new Group("groupID", owner);
         expected.description = "description";
         expected.lastModified = new Date();
-        expected.getProperties().add(new GroupProperty("key", "value", true));
-        
+        expected.getProperties().add(new GroupProperty("key1", "value1", true));
+        expected.getProperties().add(new GroupProperty("key2", "value2", true));
+        expected.getProperties().add(new GroupProperty("key3", "value3", true));
+
         Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
         User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
         Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
         User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
-        
+
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);
         expected.getGroupAdmins().add(groupAdmin);
         expected.getUserAdmins().add(userAdmin);
-        
-        StringBuilder json = new StringBuilder();
-        JsonGroupWriter.write(expected, json);
-        assertFalse(json.toString().isEmpty());
 
-        Group actual = JsonGroupReader.read(json.toString());
+        JsonGroupWriter writer = new JsonGroupWriter();
+        StringBuilder sb = new StringBuilder();
+        writer.write(expected, sb);
+
+        String json = sb.toString();
+        log.debug(json);
+
+        JsonGroupReader reader = new JsonGroupReader();
+        Group actual = reader.read(json);
+
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.description, actual.description);
