@@ -89,6 +89,7 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.net.TransientException;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
@@ -96,7 +97,7 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
     private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
     protected GroupLogInfo logInfo;
     protected HttpServletRequest request;
-    protected HttpServletResponse response;
+    protected SyncOutput syncOut;
 
     public AbstractGroupAction()
     {
@@ -114,9 +115,9 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         this.request = request;
     }
 
-    void setHttpServletResponse(HttpServletResponse response)
+    void setSyncOut(SyncOutput syncOut)
     {
-        this.response = response;
+        this.syncOut = syncOut;
     }
 
     public Object run() throws PrivilegedActionException
@@ -206,26 +207,19 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
 
     private void sendError(int responseCode, String message)
     {
-        if (!this.response.isCommitted())
+        syncOut.setHeader("Content-Type", "text/plain");
+        if (message != null)
         {
-            this.response.setContentType("text/plain");
-            if (message != null)
+            try
             {
-                try
-                {
-                    this.response.getWriter().write(message);
-                }
-                catch (IOException e)
-                {
-                    log.warn("Could not write error message to output stream");
-                }
+                syncOut.getWriter() .write(message);
             }
-            this.response.setStatus(responseCode);
+            catch (IOException e)
+            {
+                log.warn("Could not write error message to output stream");
+            }
         }
-        else
-        {
-            log.warn("Could not send error " + responseCode + " (" + message + ") because the response is already committed.");
-        }
+        syncOut.setCode(responseCode);
     }
 
     <T extends Principal> GroupPersistence<T> getGroupPersistence()

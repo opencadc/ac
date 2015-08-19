@@ -94,9 +94,9 @@ public class CreateGroupAction extends AbstractGroupAction
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
         Group newGroup = groupPersistence.addGroup(group);
-        this.response.setContentType("application/xml");
+        syncOut.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(newGroup, this.response.getOutputStream());
+        groupWriter.write(newGroup, syncOut.getWriter());
 
         List<String> addedMembers = null;
         if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))

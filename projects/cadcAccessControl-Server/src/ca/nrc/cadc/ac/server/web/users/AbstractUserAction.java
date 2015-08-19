@@ -78,6 +78,7 @@ import ca.nrc.cadc.ac.json.JsonUserRequestReader;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.ac.xml.UserReader;
@@ -105,7 +106,8 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     protected String augmentUserDN;
     protected UserLogInfo logInfo;
-    protected HttpServletResponse response;
+    protected SyncOutput syncOut;
+
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
     AbstractUserAction()
@@ -129,9 +131,9 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
         this.logInfo = logInfo;
     }
 
-    public void setResponse(HttpServletResponse response)
+    public void setSyncOut(SyncOutput syncOut)
     {
-        this.response = response;
+        this.syncOut = syncOut;
     }
 
     public Object run() throws IOException
@@ -193,21 +195,20 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     }
 
     private void sendError(int responseCode, String message)
-        throws IOException
     {
-        if (!this.response.isCommitted())
+        syncOut.setHeader("Content-Type", "text/plain");
+        if (message != null)
         {
-            this.response.setContentType("text/plain");
-            if (message != null)
+            try
             {
-                this.response.getWriter().write(message);
+                syncOut.getWriter() .write(message);
             }
-            this.response.setStatus(responseCode);
+            catch (IOException e)
+            {
+                log.warn("Could not write error message to output stream");
+            }
         }
-        else
-        {
-            log.warn("Could not send error " + responseCode + " (" + message + ") because the response is already committed.");
-        }
+        syncOut.setCode(responseCode);
     }
 
     @SuppressWarnings("unchecked")
@@ -271,7 +272,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected final User<Principal> readUser(final InputStream inputStream)
             throws IOException
     {
-        response.setContentType(acceptedContentType);
+        syncOut.setHeader("Content-Type", acceptedContentType);
         final User<Principal> user;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
@@ -303,8 +304,8 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected final <T extends Principal> void writeUser(final User<T> user)
             throws IOException
     {
-        response.setContentType(acceptedContentType);
-        final Writer writer = response.getWriter();
+        syncOut.setHeader("Content-Type", acceptedContentType);
+        final Writer writer = syncOut.getWriter();
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
@@ -326,8 +327,8 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected final void writeUsers(final Map<String, PersonalDetails> users)
             throws IOException
     {
-        response.setContentType(acceptedContentType);
-        final Writer writer = response.getWriter();
+        syncOut.setHeader("Content-Type", acceptedContentType);
+        final Writer writer = syncOut.getWriter();
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
@@ -361,8 +362,8 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             throw new IllegalStateException("No identities found.");
         }
 
-        response.setStatus(HttpServletResponse.SC_OK);
         final String redirectURL = "/" + id + "?idType=" + idType;
-        response.setHeader("Location", redirectURL);
+        syncOut.setHeader("Location", redirectURL);
+        syncOut.setCode(303);
     }
 }

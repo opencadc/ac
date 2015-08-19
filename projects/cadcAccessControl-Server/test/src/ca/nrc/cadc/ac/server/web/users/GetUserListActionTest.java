@@ -72,6 +72,7 @@ package ca.nrc.cadc.ac.server.web.users;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Level;
@@ -110,8 +111,8 @@ public class GetUserListActionTest
     @SuppressWarnings("unchecked")
     public void testWriteUsersJSON() throws Exception
     {
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
         final Map<String, PersonalDetails> userEntries =
@@ -139,12 +140,12 @@ public class GetUserListActionTest
 
         expect(mockUserPersistence.getUsers()).andReturn(
                 userEntries).once();
-        expect(mockResponse.getWriter()).andReturn(actualPrintWriter).once();
-        mockResponse.setContentType("application/json");
+        expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
+        mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
 
-        replay(mockResponse, mockUserPersistence);
-        testSubject.setResponse(mockResponse);
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
         UserLogInfo logInfo = createMock(UserLogInfo.class);
         testSubject.setLogInfo(logInfo);
         testSubject.doAction();
@@ -155,15 +156,15 @@ public class GetUserListActionTest
         userListWriter.write(userEntries, expectedPrintWriter);
         JSONAssert.assertEquals(expectedWriter.toString(), actualWriter.toString(), false);
 
-        verify(mockResponse, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testWriteUsersXML() throws Exception
     {
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
         final Map<String, PersonalDetails> userEntries =
@@ -189,12 +190,12 @@ public class GetUserListActionTest
 
         expect(mockUserPersistence.getUsers()).andReturn(
                 userEntries).once();
-        expect(mockResponse.getWriter()).andReturn(actualPrintWriter).once();
-        mockResponse.setContentType("text/xml");
+        expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
+        mockSyncOut.setHeader("Content-Type", "text/xml");
         expectLastCall().once();
 
-        replay(mockResponse, mockUserPersistence);
-        testSubject.setResponse(mockResponse);
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
         UserLogInfo logInfo = createMock(UserLogInfo.class);
         testSubject.setLogInfo(logInfo);
         testSubject.doAction();
@@ -205,6 +206,6 @@ public class GetUserListActionTest
         userListWriter.write(userEntries, expectedPrintWriter);
         assertEquals("Wrong XML", expectedWriter.toString(), actualWriter.toString());
 
-        verify(mockResponse, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 }

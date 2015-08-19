@@ -82,6 +82,7 @@ import ca.nrc.cadc.util.StringUtil;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 
 public class UserServlet extends HttpServlet
@@ -123,10 +124,11 @@ public class UserServlet extends HttpServlet
             logInfo.setSubject(subject);
 
             AbstractUserAction action = factory.createAction(request);
+            SyncOutput syncOut = new SyncOutput(response);
 
             action.setAugmentUserDN(this.augmentUserDN);
             action.setLogInfo(logInfo);
-            action.setResponse(response);
+            action.setSyncOut(syncOut);
             action.setAcceptedContentType(getAcceptedContentType(request));
 
             try

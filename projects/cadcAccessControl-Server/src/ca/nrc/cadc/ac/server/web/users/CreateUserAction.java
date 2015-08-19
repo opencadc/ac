@@ -95,7 +95,7 @@ public class CreateUserAction extends AbstractUserAction
         final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
         final User<Principal> newUser = userPersistence.addUser(userRequest);
 
-        response.setStatus(HttpServletResponse.SC_CREATED);
+        syncOut.setCode(201);
         logUserInfo(newUser.getUserID().getName());
     }
 

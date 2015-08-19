@@ -91,9 +91,9 @@ public class GetGroupNamesAction extends AbstractGroupAction
         GroupPersistence groupPersistence = getGroupPersistence();
         Collection<String> groups = groupPersistence.getGroupNames();
         log.debug("Found " + groups.size() + " group names");
-        response.setContentType("text/plain");
+        syncOut.setHeader("Content-Type", "text/plain");
         log.debug("Set content-type to text/plain");
-        Writer writer = response.getWriter();
+        Writer writer = syncOut.getWriter();
         boolean start = true;
         for (final String group : groups)
         {
