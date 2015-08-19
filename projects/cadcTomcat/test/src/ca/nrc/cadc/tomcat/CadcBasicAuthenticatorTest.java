@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2015.                            (c) 2015.
+*  (c) 2010.                            (c) 2010.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,38 +67,23 @@
 ************************************************************************
 */
 
+
 package ca.nrc.cadc.tomcat;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.List;
+
+import junit.framework.Assert;
 
 import org.apache.catalina.realm.GenericPrincipal;
-import org.apache.catalina.realm.RealmBase;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-/**
- * Custom class for Tomcat realm authentication.
- *
- * This class was written against the Apache Tomcat 7 (7.0.33.0) API
- *
- * Authentication checks are performed as REST calls to servers
- * implementing the cadcAccessControl-Server code.
- *
- * @author majorb
- */
-public class CadcBasicAuthenticator extends RealmBase
+public class CadcBasicAuthenticatorTest
 {
 
-    private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/canfargms";
+    private static Logger log = Logger.getLogger(CadcBasicAuthenticatorTest.class);
 
     static
     {
@@ -106,111 +91,58 @@ public class CadcBasicAuthenticator extends RealmBase
         Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
     }
 
-    @Override
-    protected String getName()
+    @Test
+    public void testValidCredentials()
     {
-        // not used
-        return this.getClass().getSimpleName();
-    }
-
-    @Override
-    protected String getPassword(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    protected Principal getPrincipal(final String username)
-    {
-        // not used
-        return null;
-    }
-
-    @Override
-    public Principal authenticate(String username, String credentials)
-    {
-        long start = System.currentTimeMillis();
-        boolean success = true;
-
         try
         {
-            boolean valid = login(username, credentials);
+            TestAuthenticator auth = new TestAuthenticator(true);
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
 
-            if (valid)
-            {
-                // authentication ok, add public role
-                List<String> roles = Arrays.asList("public");
-
-                // Don't want to return the password here in the principal
-                // in case it makes it into the servlet somehow
-                return new GenericPrincipal(username, null, roles);
-            }
-
-            return null;
+            Assert.assertNotNull(p);
+            Assert.assertEquals("wrong num roles", 1, p.getRoles().length);
+            Assert.assertEquals("wrong role", "public", p.getRoles()[0]);
+            Assert.assertNull(p.getPassword());
         }
-        catch (Throwable t)
+        catch (Exception e)
         {
-            success = false;
-            String message = "Could not do http basic authentication: " + t.getMessage();
-            log.error(message, t);
-            throw new IllegalStateException(message, t);
-        }
-        finally
-        {
-            long duration = System.currentTimeMillis() - start;
-
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            json.append("\"method\":\"AUTH\",");
-            json.append("\"user\":\"" + username + "\",");
-            json.append("\"success\":" + success + ",");
-            json.append("\"time\":" + duration);
-            json.append("}");
-
-            log.info(json.toString());
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception: " + e.getMessage());
         }
     }
 
-    boolean login(String username, String credentials)
-            throws URISyntaxException, IOException
+    @Test
+    public void testInvalidCredentials()
     {
-        RealmRegistryClient registryClient = new RealmRegistryClient();
-        URL loginURL = registryClient.getServiceURL(
-            new URI(AC_URI), "http", "/login");
-
-        String post = "username=" + username + "&password=" + credentials;
-
-        HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-
-        byte[] postData = post.getBytes("UTF-8");
-        conn.getOutputStream().write(postData);
-
-        int responseCode = conn.getResponseCode();
-
-        log.debug("Http POST to /ac/login returned " +
-                responseCode + " for user " + username);
-
-        if (responseCode != 200)
+        try
         {
-            // authentication not ok
-            if (responseCode != 401)
-            {
-                // not an unauthorized, so log the
-                // possible server side error
-                String errorMessage = "Error calling /ac/login, error code: " + responseCode;
-                throw new IllegalStateException(errorMessage);
-            }
+            TestAuthenticator auth = new TestAuthenticator(false);
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
 
-            // authentication simply failed
-            return false;
+            Assert.assertNull(p);
         }
-
-        return true;
+        catch (Exception e)
+        {
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
     }
 
+    class TestAuthenticator extends CadcBasicAuthenticator
+    {
+        private boolean authenticate;
 
+        TestAuthenticator(boolean authenticate)
+        {
+            this.authenticate = authenticate;
+        }
+
+        @Override
+        boolean login(String username, String credentials)
+                throws URISyntaxException, IOException
+        {
+            return authenticate;
+        }
+    }
 
 }

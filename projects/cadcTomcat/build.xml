@@ -86,139 +86,53 @@
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
 
+    <property name="cadc"               value="${lib}/cadcUtil.jar" />
     <property name="log4j"              value="${ext.lib}/log4j.jar" />
-    <property name="tomcat"             value="${ext.lib}/catalina.jar" />
+    <property name="tomcat"             value="${ext.lib}/catalina.jar:${ext.lib}/tomcat-util.jar:${ext.lib}/tomcat-coyote.jar" />
+    <property name="jars"               value="${cadc}:${log4j}:${tomcat}" />
 
-    <property name="jars"               value="${log4j}:${tomcat}" />
-
-    <target name="build" depends="compile,resources">
-        <jar jarfile="${build}/lib/${project}.jar"
-            basedir="${build}/class" update="no">
-                <exclude name="test/**" />
+    <target name="build" depends="simpleJar" />
+    
+    <target name="test-resources">
+        <copy todir="${build}/class">
+            <fileset dir="src/resources">
+                <include name="**.properties" />
+            </fileset>
+        </copy>
+        <jar jarfile="${build}/tmp/test.jar"
+                basedir="${build}/class"
+                update="no">
+            <include name="ca/nrc/cadc/reg/client/**" />
+            <include name="**.properties" />
         </jar>
     </target>
 
-    <target name="resources">
-        <copy todir="${build}/class">
-            <fileset dir="src/resources">
-                <include name="**.xsd" />
-            </fileset>
-        </copy>
-    </target>
-
     <!-- JAR files needed to run the test suite -->
-    <property name="asm"                value="${ext.lib}/asm.jar" />
-    <property name="asm-attrs"          value="${ext.lib}/asm-attrs.jar" />
-    <property name="cglib"              value="${ext.lib}/cglib.jar" />
-    <property name="commons-logging"    value="${ext.lib}/commons-logging.jar" />
-    <property name="easyMock"           value="${ext.dev}/easymock.jar" />
-    <property name="easyMock"           value="${ext.dev}/easymock.jar" />
-    <property name="junit"              value="${ext.dev}/junit.jar" />
-    <property name="xerces"             value="${ext.lib}/xerces.jar" />
-    <property name="gson"               value="${ext.lib}/gson.jar" />
-
-    <property name="testingJars"        value="${test.jdbc.drivers}:${asm}:${asm-attrs}:${cglib}:${commons-logging}:${easyMock}:${ext.dev}/objenesis.jar:${junit}:${xerces}:${gson}" />
+    <property name="dev.junit" value="${ext.dev}/junit.jar" />
+    <property name="servlet" value="${ext.lib}/servlet-api.jar" />
+    <property name="log" value="${ext.lib}/commons-logging.jar" />
+    <property name="juli" value="${ext.lib}/tomcat-juli.jar" />
+    <property name="tomcatUtil" value="${ext.lib}/tomcat-util.jar" />
+    <property name="test" value="${build}/tmp/test.jar" />
+    <property name="testingJars" value="${dev.junit}:${servlet}:${log}:${juli}:${tomcatUtil}:${test}" />
     
-    <target name="setup-test">
-        <copy file="test/src/resources/foo.xsd" todir="${build}/test/class"/>
-        <copy file="test/src/resources/bar.xsd" todir="${build}/test/class"/>
-        <copy file="src/resources/UWS-v1.0.xsd" todir="${build}/test/class"/>
-        <copy file="src/resources/XLINK.xsd" todir="${build}/test/class"/>
-    </target>
-    
-    <target name="misc-test" depends="compile-test">
+    <!-- Run the test suite -->
+    <target name="test" depends="compile-test,test-resources">
+        <echo message="Running test" />
+
+        <!-- Run the junit test suite -->
+        <echo message="Running test suite..." />
         <junit printsummary="yes" haltonfailure="yes" fork="yes">
             <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${build}/test/src"/>
-                <pathelement path="${jars}:${testingJars}"/>
+                <pathelement path="${build}/test/class" />
+                <pathelement path="${build}/class" />
+                <pathelement path="${jars}:${testingJars}" />
             </classpath>
 
-            <test name="ca.nrc.cadc.uws.server.RandomStringGeneratorTest" />
-            <test name="ca.nrc.cadc.uws.web.restlet.RestletPrincipalExtractorTest" />
-            <test name="ca.nrc.cadc.uws.web.ResourceTestSuite" />
-
-            <formatter type="plain" usefile="false" />
-        </junit>
-
-    </target>
-    
-    <target name="log-test" depends="compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${build}/test/src"/>
-                <pathelement path="${jars}:${testingJars}"/>
-            </classpath>
-
-            <test name="ca.nrc.cadc.uws.util.JobLogInfoTest" />
-            <test name="ca.nrc.cadc.uws.util.RestletLogInfoTest" />
-
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
-
-    <target name="xml-test" depends="compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${build}/test/src"/>
-                <pathelement path="${jars}:${testingJars}"/>
-            </classpath>
-
-            <test name="ca.nrc.cadc.uws.JobReaderWriterTest" />
-            <test name="ca.nrc.cadc.uws.JobListReaderWriterTest" />
-
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
-
-    <target name="dao-test" depends="build,compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${build}/test/src"/>
-                <pathelement path="${jars}:${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.uws.server.SybaseJobDAOTest" />
-            <test name="ca.nrc.cadc.uws.server.PostgresJobDAOTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
-
-    <target name="exec-test" depends="compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-          <classpath>
-              <pathelement path="."/>
-              <pathelement path="src"/>
-              <pathelement path="test/src"/>
-              <pathelement path="${build}/class"/>
-              <pathelement path="${build}/test/class"/>
-              <pathelement path="${jars}:${testingJars}"/>
-          </classpath>
-          <formatter type="plain" usefile="false"/>
-          <test name="ca.nrc.cadc.uws.server.ThreadExecutorTest"/>
-          <test name="ca.nrc.cadc.uws.server.ThreadPoolExecutorTest"/>
+            <test name="ca.nrc.cadc.tomcat.CadcBasicAuthenticatorTest"/>
+            <test name="ca.nrc.cadc.tomcat.RealmRegistryClientTest"/>
+            <formatter type="plain" usefile="false"/>
         </junit>
     </target>
     
-    <target name="util-test" depends="compile-test">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-          <classpath>
-              <pathelement path="."/>
-              <pathelement path="src"/>
-              <pathelement path="test/src"/>
-              <pathelement path="${build}/class"/>
-              <pathelement path="${build}/test/class"/>
-              <pathelement path="${jars}:${testingJars}"/>
-          </classpath>
-          <formatter type="plain" usefile="false"/>
-          <test name="ca.nrc.cadc.uws.util.IterableContentTest"/>
-        </junit>
-    </target>
-
 </project>
