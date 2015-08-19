@@ -66,96 +66,102 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+package ca.nrc.cadc.ac.json;
+
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.xml.JsonInputter;
+import org.jdom2.Document;
+import org.json.JSONException;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.security.Principal;
+import java.util.Scanner;
 
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.auth.AuthenticationUtil;
-
-public class GroupsServlet extends HttpServlet
+public class JsonUserRequestReader extends UserRequestReader
 {
-    private static final Logger log = Logger.getLogger(GroupsServlet.class);
+    /**
+     * Construct a User from a InputStream.
+     *
+     * @param in InputStream.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    @Override
+    public UserRequest<Principal> read(InputStream in)
+            throws IOException
+    {
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+
+        Scanner s = new Scanner(in).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
 
     /**
-     * Create a GroupAction and run the action safely.
+     * Construct a User from a Reader.
+     *
+     * @param reader Reader.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
      */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    @Override
+    public UserRequest<Principal> read(Reader reader)
+            throws IOException
     {
-        long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
-        try
+        if (reader == null)
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-            GroupsAction action = GroupsActionFactory.getGroupsAction(request, logInfo);
-            action.doAction(subject, response);
+            throw new IllegalArgumentException("reader must not be null");
         }
-        catch (IllegalArgumentException e)
+
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
+
+    /**
+     * Construct a UserRequest from an JSON String source.
+     *
+     * @param json String of the JSON.
+     * @return UserRequest UserRequest.
+     * @throws IOException
+     */
+    @Override
+    public UserRequest<Principal> read(String json)
+        throws IOException
+    {
+        if (json == null)
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
+            throw new IllegalArgumentException("JSON must not be null");
         }
-        catch (Throwable t)
+        else
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
+            try
+            {
+                JsonInputter jsonInputter = new JsonInputter();
+                jsonInputter.getListElementMap().put("identities", "identity");
+                jsonInputter.getListElementMap().put("details", "userDetails");
+
+                Document document = jsonInputter.input(json);
+                return UserRequestReader.parseUserRequest(document.getRootElement());
+            }
+            catch (JSONException e)
+            {
+                String error = "Unable to parse JSON to User because " +
+                    e.getMessage();
+                throw new ReaderException(error, e);
+            }
         }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
-    }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(request, response);
     }
 
 }

@@ -66,125 +66,108 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.xml.XmlUtil;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.xml.JsonInputter;
+import org.jdom2.Document;
+import org.json.JSONException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
+import java.util.Scanner;
 
-public class GroupsReader
+public class JsonGroupReader extends GroupReader
 {
     /**
-     * Construct a list of Group's from an XML String source.
-     * 
-     * @param xml String of the XML.
-     * @return Groups List of Group.
-     * @throws ReaderException
-     * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
-     */
-    public static List<Group> read(String xml)
-        throws ReaderException, IOException, URISyntaxException
-    {
-        if (xml == null)
-        {
-            throw new IllegalArgumentException("XML must not be null");
-        }
-        return read(new StringReader(xml));
-    }
-
-    /**
-     * Construct a list of Group's from a InputStream.
-     * 
+     * Construct a Group from a InputStream.
+     *
      * @param in InputStream.
-     * @return Groups List of Group.
+     * @return Group Group.
      * @throws ReaderException
-     * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
+     * @throws IOException
      */
-    public static List<Group> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+    @Override
+    public Group read(InputStream in)
+        throws ReaderException, IOException
     {
         if (in == null)
         {
             throw new IOException("stream closed");
         }
         InputStreamReader reader;
-        try
-        {
-            reader = new InputStreamReader(in, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported");
-        }
-        return read(reader);
+
+        Scanner s = new Scanner(in).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
     }
 
     /**
-     * Construct a List of Group's from a Reader.
-     * 
+     * Construct a Group from a Reader.
+     *
      * @param reader Reader.
-     * @return Groups List of Group.
+     * @return Group Group.
      * @throws ReaderException
-     * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
+     * @throws IOException
      */
-    public static List<Group> read(Reader reader)
-        throws ReaderException, IOException, URISyntaxException
+    @Override
+    public Group read(Reader reader)
+        throws ReaderException, IOException
     {
         if (reader == null)
         {
             throw new IllegalArgumentException("reader must not be null");
         }
 
-        Document document;
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
+    }
+
+    /**
+     * Construct a Group from an JSON String source.
+     *
+     * @param json String of JSON.
+     * @return Group Group.
+     * @throws ReaderException
+     * @throws IOException
+     */
+    @Override
+    public Group read(String json)
+        throws ReaderException, IOException
+    {
+        if (json == null)
+        {
+            throw new IllegalArgumentException("JSON must not be null");
+        }
+
+        // Create a JSONObject from the JSON
         try
         {
-            document = XmlUtil.buildDocument(reader);
+            JsonInputter jsonInputter = new JsonInputter();
+            jsonInputter.getListElementMap().put("identities", "identity");
+            jsonInputter.getListElementMap().put("properties", "property");
+            jsonInputter.getListElementMap().put("details", "userDetails");
+            jsonInputter.getListElementMap().put("groupMembers", "group");
+            jsonInputter.getListElementMap().put("groupAdmins", "group");
+            jsonInputter.getListElementMap().put("userMembers", "user");
+            jsonInputter.getListElementMap().put("userAdmins", "user");
+
+            Document document = jsonInputter.input(json);
+            return GroupReader.parseGroup(document.getRootElement());
         }
-        catch (JDOMException jde)
+        catch (JSONException e)
         {
-            String error = "XML failed validation: " + jde.getMessage();
-            throw new ReaderException(error, jde);
+            String error = "Unable to parse JSON to Group because " +
+                           e.getMessage();
+            throw new ReaderException(error, e);
         }
-
-        Element root = document.getRootElement();
-
-        String groupElemName = root.getName();
-
-        if (!groupElemName.equalsIgnoreCase("groups"))
-        {
-            String error = "Expected groups element, found " + groupElemName;
-            throw new ReaderException(error);
-        }
-
-        return parseGroups(root);
     }
 
-    protected static List<Group> parseGroups(Element groupsElement)
-            throws URISyntaxException, ReaderException
-    {
-        List<Group> groups = new ArrayList<Group>();
-
-        List<Element> groupElements = groupsElement.getChildren("group");
-        for (Element groupElement : groupElements)
-        {
-            groups.add(ca.nrc.cadc.ac.xml.GroupReader.parseGroup(groupElement));
-        }
-
-        return groups;
-    }
 }

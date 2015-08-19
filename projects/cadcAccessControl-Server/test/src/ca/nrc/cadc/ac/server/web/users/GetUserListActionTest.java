@@ -70,7 +70,10 @@ package ca.nrc.cadc.ac.server.web.users;
 
 
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Level;
 
@@ -82,12 +85,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.easymock.EasyMock.*;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
@@ -97,7 +99,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
  *
  * @author adriand
  */
-public class GetUsersActionTest
+public class GetUserListActionTest
 {
     @BeforeClass
     public static void setUpClass()
@@ -109,8 +111,8 @@ public class GetUsersActionTest
     @SuppressWarnings("unchecked")
     public void testWriteUsersJSON() throws Exception
     {
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
         final Map<String, PersonalDetails> userEntries =
@@ -122,7 +124,7 @@ public class GetUsersActionTest
                             new PersonalDetails("USER", Integer.toString(i)));
         }
 
-        final GetUsersAction testSubject = new GetUsersAction(null)
+        final GetUserListAction testSubject = new GetUserListAction()
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -131,34 +133,38 @@ public class GetUsersActionTest
             }
         };
 
-        testSubject.setAcceptedContentType(UsersAction.JSON_CONTENT_TYPE);
+        testSubject.setAcceptedContentType(AbstractUserAction.JSON_CONTENT_TYPE);
 
-        final Writer writer = new StringWriter();
-        final PrintWriter printWriter = new PrintWriter(writer);
+        final Writer actualWriter = new StringWriter();
+        final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
 
         expect(mockUserPersistence.getUsers()).andReturn(
                 userEntries).once();
-        expect(mockResponse.getWriter()).andReturn(printWriter).once();
-        mockResponse.setContentType("application/json");
+        expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
+        mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
 
-        replay(mockResponse, mockUserPersistence);
-        testSubject.doAction(null, mockResponse);
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
 
-        final JSONArray expected =
-                new JSONArray("[{\"id\":\"USER_1\",\"firstName\":\"USER\",\"lastName\":\"1\"},{\"id\":\"USER_3\",\"firstName\":\"USER\",\"lastName\":\"3\"},{\"id\":\"USER_2\",\"firstName\":\"USER\",\"lastName\":\"2\"},{\"id\":\"USER_4\",\"firstName\":\"USER\",\"lastName\":\"4\"},{\"id\":\"USER_5\",\"firstName\":\"USER\",\"lastName\":\"5\"}]");
-        final JSONArray result = new JSONArray(writer.toString());
+        final Writer expectedWriter = new StringWriter();
+        final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
+        JsonUserListWriter userListWriter = new JsonUserListWriter();
+        userListWriter.write(userEntries, expectedPrintWriter);
+        JSONAssert.assertEquals(expectedWriter.toString(), actualWriter.toString(), false);
 
-        JSONAssert.assertEquals(expected, result, true);
-        verify(mockResponse, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testWriteUsersXML() throws Exception
     {
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
         final Map<String, PersonalDetails> userEntries =
@@ -170,7 +176,7 @@ public class GetUsersActionTest
                             new PersonalDetails("USER", Integer.toString(i)));
         }
 
-        final GetUsersAction testSubject = new GetUsersAction(null)
+        final GetUserListAction testSubject = new GetUserListAction()
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -179,44 +185,27 @@ public class GetUsersActionTest
             }
         };
 
-        final Writer writer = new StringWriter();
-        final PrintWriter printWriter = new PrintWriter(writer);
+        final Writer actualWriter = new StringWriter();
+        final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
 
         expect(mockUserPersistence.getUsers()).andReturn(
                 userEntries).once();
-        expect(mockResponse.getWriter()).andReturn(printWriter).once();
-        mockResponse.setContentType("text/xml");
+        expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
+        mockSyncOut.setHeader("Content-Type", "text/xml");
         expectLastCall().once();
 
-        replay(mockResponse, mockUserPersistence);
-        testSubject.doAction(null, mockResponse);
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
 
-        final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
-                                "<users>\r\n" +
-                                "  <user id=\"USER_1\">\r\n" +
-                                "    <firstName>USER</firstName>\r\n" +
-                                "    <lastName>1</lastName>\r\n" +
-                                "  </user>\r\n" +
-                                "  <user id=\"USER_3\">\r\n" +
-                                "    <firstName>USER</firstName>\r\n" +
-                                "    <lastName>3</lastName>\r\n" +
-                                "  </user>\r\n" +
-                                "  <user id=\"USER_2\">\r\n" +
-                                "    <firstName>USER</firstName>\r\n" +
-                                "    <lastName>2</lastName>\r\n" +
-                                "  </user>\r\n" +
-                                "  <user id=\"USER_4\">\r\n" +
-                                "    <firstName>USER</firstName>\r\n" +
-                                "    <lastName>4</lastName>\r\n" +
-                                "  </user>\r\n" +
-                                "  <user id=\"USER_5\">\r\n" +
-                                "    <firstName>USER</firstName>\r\n" +
-                                "    <lastName>5</lastName>\r\n" +
-                                "  </user>\r\n" +
-                                "</users>\r\n";
-        final String result = writer.toString();
+        final Writer expectedWriter = new StringWriter();
+        final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
+        UserListWriter userListWriter = new UserListWriter();
+        userListWriter.write(userEntries, expectedPrintWriter);
+        assertEquals("Wrong XML", expectedWriter.toString(), actualWriter.toString());
 
-        assertEquals("Wrong XML", expected, result);
-        verify(mockResponse, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 }

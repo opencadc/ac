@@ -66,18 +66,21 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
+package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
+import java.security.Principal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -88,9 +91,9 @@ import static org.junit.Assert.fail;
  *
  * @author jburke
  */
-public class GroupsReaderWriterTest
+public class JsonUserReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
+    private static Logger log = Logger.getLogger(JsonUserReaderWriterTest.class);
 
     @Test
     public void testReaderExceptions()
@@ -99,8 +102,8 @@ public class GroupsReaderWriterTest
         try
         {
             String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
+            JsonUserReader reader = new JsonUserReader();
+            User<? extends Principal> u = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -108,8 +111,8 @@ public class GroupsReaderWriterTest
         try
         {
             InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
+            JsonUserReader reader = new JsonUserReader();
+            User<? extends Principal> u = reader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -117,9 +120,9 @@ public class GroupsReaderWriterTest
         try
         {
             Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
+            JsonUserReader reader = new JsonUserReader();
+            User<? extends Principal> u = reader.read(r);
+            fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
     }
@@ -130,32 +133,31 @@ public class GroupsReaderWriterTest
     {
         try
         {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
+            JsonUserWriter writer = new JsonUserWriter();
+            writer.write(null, new StringBuilder());
+            fail("null User should throw WriterException");
         }
         catch (WriterException e) {}
     }
      
     @Test
-    public void testMinimalReadWrite()
+    public void testReadWrite()
         throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
+    {
+        User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.details.add(new PersonalDetails("firstname", "lastname"));
+        expected.details.add(new PosixDetails(123l, 456l, "foo"));
 
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
+        StringBuilder json = new StringBuilder();
+        JsonUserWriter writer = new JsonUserWriter();
+        writer.write(expected, json);
+        assertFalse(json.toString().isEmpty());
+
+        JsonUserReader reader = new JsonUserReader();
+        User<Principal> actual = reader.read(json.toString());
         assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
+        assertEquals(expected, actual);
     }
-
+    
 }

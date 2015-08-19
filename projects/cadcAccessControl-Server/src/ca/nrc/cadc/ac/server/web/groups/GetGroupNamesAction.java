@@ -76,25 +76,24 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
 
-public class GetGroupNamesAction extends GroupsAction
+public class GetGroupNamesAction extends AbstractGroupAction
 {
-    
+
     private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
 
-    GetGroupNamesAction(GroupLogInfo logInfo)
+    GetGroupNamesAction()
     {
-        super(logInfo);
+        super();
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Collection<String> groups = groupPersistence.getGroupNames();
         log.debug("Found " + groups.size() + " group names");
-        response.setContentType("text/plain");
+        syncOut.setHeader("Content-Type", "text/plain");
         log.debug("Set content-type to text/plain");
-        Writer writer = response.getWriter();
+        Writer writer = syncOut.getWriter();
         boolean start = true;
         for (final String group : groups)
         {
@@ -105,7 +104,5 @@ public class GetGroupNamesAction extends GroupsAction
             writer.write(group);
             start = false;
         }
-        
-        return null;
     }
 }

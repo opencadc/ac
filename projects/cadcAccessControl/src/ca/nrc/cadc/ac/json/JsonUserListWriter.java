@@ -66,89 +66,60 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.client;
+package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.net.InputStreamWrapper;
-import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
-import org.json.JSONObject;
+import org.json.JSONException;
+import org.json.JSONWriter;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.List;
+import java.io.Writer;
+import java.util.Map;
 
-public class JSONUserListInputStreamWrapper implements InputStreamWrapper
+
+/**
+ * Class to write out, as JSON, a list of user entries.
+ */
+public class JsonUserListWriter
 {
-    private static final Logger LOGGER = Logger
-            .getLogger(JSONUserListInputStreamWrapper.class);
-    private final List<User<HttpPrincipal>> output;
-
-
-    public JSONUserListInputStreamWrapper(
-            final List<User<HttpPrincipal>> output)
+    public static void write(final Map<String, PersonalDetails> users,
+                             final Writer writer) throws IOException
     {
-        this.output = output;
-    }
-
-
-    /**
-     * Read the stream in.
-     *
-     * @param inputStream The stream to read from.
-     * @throws IOException Any reading exceptions.
-     */
-    @Override
-    public void read(final InputStream inputStream) throws IOException
-    {
-        String line = null;
+        final JSONWriter jsonWriter = new JSONWriter(writer);
 
         try
         {
-            final InputStreamReader inReader =
-                    new InputStreamReader(inputStream);
-            final BufferedReader reader = new BufferedReader(inReader);
+            jsonWriter.array();
 
-            while (StringUtil.hasText(line = reader.readLine()))
+            for (final Map.Entry<String, PersonalDetails> entry
+                    : users.entrySet())
             {
-                // Deal with arrays stuff.
-                while (line.startsWith("[") || line.startsWith(","))
-                {
-                    line = line.substring(1);
-                }
+                jsonWriter.object();
 
-                while (line.endsWith("]") || line.endsWith(","))
-                {
-                    line = line.substring(0, (line.length() - 1));
-                }
+                jsonWriter.key("id").value(entry.getKey());
+                jsonWriter.key("firstName").value(entry.getValue().
+                        getFirstName());
+                jsonWriter.key("lastName").value(entry.getValue().
+                        getLastName());
 
-                if (StringUtil.hasText(line))
-                {
-                    LOGGER.debug(String.format("Reading: %s", line));
-
-                    final JSONObject jsonObject = new JSONObject(line);
-                    final User<HttpPrincipal> webUser =
-                            new User<HttpPrincipal>(
-                                    new HttpPrincipal(jsonObject
-                                                              .getString("id")));
-                    final String firstName = jsonObject.getString("firstName");
-                    final String lastName = jsonObject.getString("lastName");
-
-                    webUser.details
-                            .add(new PersonalDetails(firstName, lastName));
-
-                    output.add(webUser);
-                }
+                jsonWriter.endObject();
+                writer.write("\n");
             }
         }
-        catch (Exception bug)
+        catch (JSONException e)
         {
-            throw new IOException(bug + (StringUtil.hasText(line)
-                                         ? "Error line is " + line : ""));
+            throw new IOException(e);
+        }
+        finally
+        {
+            try
+            {
+                jsonWriter.endArray();
+            }
+            catch (JSONException e)
+            {
+                // Do nothing.
+            }
         }
     }
 }

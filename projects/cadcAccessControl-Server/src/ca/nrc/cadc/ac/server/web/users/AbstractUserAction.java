@@ -72,65 +72,75 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.json.JsonUserReader;
+import ca.nrc.cadc.ac.json.JsonUserRequestReader;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.xml.UserListWriter;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
-import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
-public abstract class UsersAction
-    implements PrivilegedExceptionAction<Object>
+public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(UsersAction.class);
+    private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     static final String DEFAULT_CONTENT_TYPE = "text/xml";
     static final String JSON_CONTENT_TYPE = "application/json";
 
+    protected String augmentUserDN;
     protected UserLogInfo logInfo;
-    protected HttpServletResponse response;
+    protected SyncOutput syncOut;
+
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
-    UsersAction(UserLogInfo logInfo)
+    AbstractUserAction()
+    {
+    }
+
+    public abstract void doAction() throws Exception;
+
+    public void setAugmentUserDN(final String dn)
+    {
+    	this.augmentUserDN = dn;
+    }
+    
+    public String getAugmentUserDN()
+    {
+    	return this.augmentUserDN;
+    }
+    
+    public void setLogInfo(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    public void doAction(Subject subject, HttpServletResponse response)
-        throws IOException
+    public void setSyncOut(SyncOutput syncOut)
+    {
+        this.syncOut = syncOut;
+    }
+
+    public Object run() throws IOException
     {
         try
         {
-            try
-            {
-                this.response = response;
-
-                if (subject == null)
-                {
-                    run();
-                }
-                else
-                {
-                    Subject.doAs(subject, this);
-                }
-            }
-            catch (PrivilegedActionException e)
-            {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                throw e;
-            }
+            doAction();
         }
         catch (AccessControlException e)
         {
@@ -175,6 +185,7 @@ public abstract class UsersAction
             log.error(message, t);
             sendError(500, message);
         }
+        return null;
     }
 
     private void sendError(int responseCode)
@@ -184,21 +195,20 @@ public abstract class UsersAction
     }
 
     private void sendError(int responseCode, String message)
-        throws IOException
     {
-        if (!this.response.isCommitted())
+        syncOut.setHeader("Content-Type", "text/plain");
+        if (message != null)
         {
-            this.response.setContentType("text/plain");
-            if (message != null)
+            try
             {
-                this.response.getWriter().write(message);
+                syncOut.getWriter() .write(message);
             }
-            this.response.setStatus(responseCode);
+            catch (IOException e)
+            {
+                log.warn("Could not write error message to output stream");
+            }
         }
-        else
-        {
-            log.warn("Could not send error " + responseCode + " (" + message + ") because the response is already committed.");
-        }
+        syncOut.setCode(responseCode);
     }
 
     @SuppressWarnings("unchecked")
@@ -233,12 +243,13 @@ public abstract class UsersAction
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            userRequest = ca.nrc.cadc.ac.xml.UserRequestReader.read(inputStream);
+            UserRequestReader requestReader = new UserRequestReader();
+            userRequest = requestReader.read(inputStream);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            userRequest =
-                    ca.nrc.cadc.ac.json.UserRequestReader.read(inputStream);
+            JsonUserRequestReader requestReader = new JsonUserRequestReader();
+            userRequest = requestReader.read(inputStream);
         }
         else
         {
@@ -251,6 +262,40 @@ public abstract class UsersAction
     }
 
     /**
+     * Read the user from the given stream of marshalled data.
+     *
+     * @param inputStream       The stream to read in.
+     * @return                  User instance, never null.
+     *
+     * @throws IOException      Any errors in reading the stream.
+     */
+    protected final User<Principal> readUser(final InputStream inputStream)
+            throws IOException
+    {
+        syncOut.setHeader("Content-Type", acceptedContentType);
+        final User<Principal> user;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            UserReader userReader = new UserReader();
+            user = userReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            JsonUserReader userReader = new JsonUserReader();
+            user = userReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+
+        return user;
+    }
+
+    /**
      * Write a user to the response's writer.
      *
      * @param user              The user object to marshall and write out.
@@ -259,16 +304,18 @@ public abstract class UsersAction
     protected final <T extends Principal> void writeUser(final User<T> user)
             throws IOException
     {
-        response.setContentType(acceptedContentType);
-        final Writer writer = response.getWriter();
+        syncOut.setHeader("Content-Type", acceptedContentType);
+        final Writer writer = syncOut.getWriter();
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.xml.UserWriter.write(user, writer);
+            UserWriter userWriter = new UserWriter();
+            userWriter.write(user, writer);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.json.UserWriter.write(user, writer);
+            JsonUserWriter userWriter = new JsonUserWriter();
+            userWriter.write(user, writer);
         }
     }
 
@@ -280,16 +327,43 @@ public abstract class UsersAction
     protected final void writeUsers(final Map<String, PersonalDetails> users)
             throws IOException
     {
-        response.setContentType(acceptedContentType);
-        final Writer writer = response.getWriter();
+        syncOut.setHeader("Content-Type", acceptedContentType);
+        final Writer writer = syncOut.getWriter();
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.xml.UsersWriter.write(users, writer);
+            UserListWriter userListWriter = new UserListWriter();
+            userListWriter.write(users, writer);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            ca.nrc.cadc.ac.json.UsersWriter.write(users, writer);
+            JsonUserListWriter userListWriter = new JsonUserListWriter();
+            userListWriter.write(users, writer);
         }
+    }
+
+    void redirectGet(User<?> user) throws Exception
+    {
+        final Set<Principal> httpPrincipals =  user.getIdentities();
+
+        String id = null;
+        String idType = null;
+        Iterator<Principal> i = httpPrincipals.iterator();
+        Principal next = null;
+        while (idType == null && i.hasNext())
+        {
+            next = i.next();
+            idType = AuthenticationUtil.getPrincipalType(next);
+            id = next.getName();
+        }
+
+        if (idType == null)
+        {
+            throw new IllegalStateException("No identities found.");
+        }
+
+        final String redirectURL = "/" + id + "?idType=" + idType;
+        syncOut.setHeader("Location", redirectURL);
+        syncOut.setCode(303);
     }
 }

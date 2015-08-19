@@ -66,36 +66,34 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
 
-import java.io.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.AccessControlException;
-import java.security.Principal;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
-import static org.easymock.EasyMock.*;
+import org.easymock.EasyMock;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 /**
+ *
  * @author jburke
  */
-public class UsersActionTest
+public class AbstractGroupActionTest
 {
-    private final static Logger log = Logger.getLogger(UsersActionTest.class);
+    private final static Logger log = Logger.getLogger(AbstractGroupActionTest.class);
 
     @BeforeClass
     public static void setUpClass()
@@ -122,11 +120,47 @@ public class UsersActionTest
     }
 
     @Test
+    public void testDoActionMemberNotFoundException() throws Exception
+    {
+        String message = "Member not found: foo";
+        int responseCode = 404;
+        Exception e = new MemberNotFoundException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionGroupNotFoundException() throws Exception
+    {
+        String message = "Group not found: foo";
+        int responseCode = 404;
+        Exception e = new GroupNotFoundException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
     public void testDoActionUserNotFoundException() throws Exception
     {
         String message = "User not found: foo";
         int responseCode = 404;
         Exception e = new UserNotFoundException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionMemberAlreadyExistsException() throws Exception
+    {
+        String message = "Member already exists: foo";
+        int responseCode = 409;
+        Exception e = new MemberAlreadyExistsException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionGroupAlreadyExistsException() throws Exception
+    {
+        String message = "Group already exists: foo";
+        int responseCode = 409;
+        Exception e = new GroupAlreadyExistsException("foo");
         testDoAction(message, responseCode, e);
     }
 
@@ -142,64 +176,65 @@ public class UsersActionTest
     @Test
     public void testDoActionTransientException() throws Exception
     {
-        HttpServletResponse response = createMock(HttpServletResponse.class);
-        expect(response.isCommitted()).andReturn(Boolean.FALSE);
-        response.setContentType("text/plain");
-        expectLastCall().once();
-        expect(response.getWriter())
-                .andReturn(new PrintWriter(new StringWriter())).once();
+        try
+        {
+            HttpServletResponse response = EasyMock.createMock(HttpServletResponse.class);
+            EasyMock.expect(response.isCommitted()).andReturn(Boolean.FALSE);
+            response.setContentType("text/plain");
+            EasyMock.expectLastCall().once();
+            EasyMock.expect(response.getWriter()).andReturn(new PrintWriter(new StringWriter()));
+            EasyMock.expectLastCall().once();
+            response.setStatus(503);
+            EasyMock.expectLastCall().once();
+            EasyMock.replay(response);
 
-        response.setStatus(503);
-        expectLastCall().once();
-        replay(response);
-
-        UserLogInfo logInfo = createMock(UserLogInfo.class);
-        logInfo.setSuccess(false);
-        expectLastCall().once();
-        logInfo.setMessage("Internal Transient Error: foo");
-        expectLastCall().once();
-        replay(logInfo);
-
-        UsersActionImpl action = new UsersActionImpl(logInfo);
-        action.setException(new TransientException("foo"));
-        action.doAction(null, response);
+            GroupsActionImpl action = new GroupsActionImpl();
+            action.setException(new TransientException("foo"));
+            action.doAction();
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
 
     private void testDoAction(String message, int responseCode, Exception e)
-            throws Exception
+        throws Exception
     {
-        HttpServletResponse response =
-                createMock(HttpServletResponse.class);
-        expect(response.isCommitted()).andReturn(Boolean.FALSE);
-        response.setContentType("text/plain");
-        expectLastCall().once();
-        expect(response.getWriter())
-                .andReturn(new PrintWriter(new StringWriter())).once();
+        try
+        {
+            HttpServletResponse response = EasyMock.createMock(HttpServletResponse.class);
+            EasyMock.expect(response.isCommitted()).andReturn(Boolean.FALSE);
+            response.setContentType("text/plain");
+            EasyMock.expectLastCall().once();
+            EasyMock.expect(response.getWriter()).andReturn(new PrintWriter(new StringWriter()));
+            EasyMock.expectLastCall().once();
+            response.setStatus(responseCode);
+            EasyMock.expectLastCall().once();
+            EasyMock.replay(response);
 
-        response.setStatus(responseCode);
-        expectLastCall().once();
-        replay(response);
-
-        UserLogInfo logInfo = createMock(UserLogInfo.class);
-        logInfo.setMessage(message);
-        expectLastCall().once();
-        replay(logInfo);
-
-        UsersActionImpl action = new UsersActionImpl(logInfo);
-        action.setException(e);
-        action.doAction(null, response);
+            GroupsActionImpl action = new GroupsActionImpl();
+            action.setException(e);
+            action.doAction();
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            fail("unexpected error: " + t.getMessage());
+        }
     }
 
-    public class UsersActionImpl extends UsersAction
+    public class GroupsActionImpl extends AbstractGroupAction
     {
         Exception exception;
 
-        public UsersActionImpl(UserLogInfo logInfo)
+        public GroupsActionImpl()
         {
-            super(logInfo);
+            super();
         }
 
-        public Object run() throws Exception
+        public void doAction() throws Exception
         {
             throw exception;
         }

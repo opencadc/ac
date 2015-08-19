@@ -78,24 +78,25 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 
-public class CreateGroupAction extends GroupsAction
+public class CreateGroupAction extends AbstractGroupAction
 {
     private final InputStream inputStream;
 
-    CreateGroupAction(GroupLogInfo logInfo, InputStream inputStream)
+    CreateGroupAction(InputStream inputStream)
     {
-        super(logInfo);
+        super();
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
+        GroupReader groupReader = new GroupReader();
+        Group group = groupReader.read(this.inputStream);
         Group newGroup = groupPersistence.addGroup(group);
-        this.response.setContentType("application/xml");
-        GroupWriter.write(newGroup, this.response.getOutputStream());
+        syncOut.setHeader("Content-Type", "application/xml");
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(newGroup, syncOut.getWriter());
 
         List<String> addedMembers = null;
         if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
@@ -111,7 +112,6 @@ public class CreateGroupAction extends GroupsAction
             }
         }
         logGroupInfo(newGroup.getID(), null, addedMembers);
-        return null;
     }
 
 }

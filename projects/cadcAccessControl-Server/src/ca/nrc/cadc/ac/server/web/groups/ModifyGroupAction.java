@@ -77,26 +77,25 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupReader;
 
-public class ModifyGroupAction extends GroupsAction
+public class ModifyGroupAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String request;
     private final InputStream inputStream;
 
-    ModifyGroupAction(GroupLogInfo logInfo, String groupName,
-                      final String request, InputStream inputStream)
+    ModifyGroupAction(String groupName, final String request, InputStream inputStream)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
         this.request = request;
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
-        Group group = GroupReader.read(this.inputStream);
+        GroupReader groupReader = new GroupReader();
+        Group group = groupReader.read(this.inputStream);
         Group oldGroup = groupPersistence.getGroup(this.groupName);
         groupPersistence.modifyGroup(group);
 
@@ -134,9 +133,8 @@ public class ModifyGroupAction extends GroupsAction
         }
         logGroupInfo(group.getID(), deletedMembers, addedMembers);
 
-        this.response.sendRedirect(request);
-
-        return null;
+        syncOut.setHeader("Location", "/" + group.getID());
+        syncOut.setCode(303);
     }
 
 }

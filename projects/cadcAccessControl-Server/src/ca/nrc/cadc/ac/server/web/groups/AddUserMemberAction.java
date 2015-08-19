@@ -77,24 +77,23 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AddUserMemberAction extends GroupsAction
+public class AddUserMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String userID;
     private final String userIDType;
 
-    AddUserMemberAction(GroupLogInfo logInfo, String groupName, String userID,
+    AddUserMemberAction(String groupName, String userID,
                         String userIDType)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
         this.userID = userID;
         this.userIDType = userIDType;
     }
 
     @SuppressWarnings("unchecked")
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
@@ -104,13 +103,12 @@ public class AddUserMemberAction extends GroupsAction
         {
             throw new MemberAlreadyExistsException();
         }
-        
+
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<String>();
         addedMembers.add(toAdd.getUserID().getName());
         logGroupInfo(group.getID(), null, addedMembers);
-        return null;
     }
 
 }

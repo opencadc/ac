@@ -76,6 +76,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
 import javax.security.auth.Subject;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
@@ -88,47 +89,42 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.net.TransientException;
 
-public abstract class GroupsAction
-    implements PrivilegedExceptionAction<Object>
+public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(GroupsAction.class);
+    private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
     protected GroupLogInfo logInfo;
-    protected HttpServletResponse response;
+    protected HttpServletRequest request;
+    protected SyncOutput syncOut;
 
-    GroupsAction(GroupLogInfo logInfo)
+    public AbstractGroupAction()
+    {
+    }
+
+    abstract void doAction() throws Exception;
+
+    void setLogInfo(GroupLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    public void doAction(Subject subject, HttpServletResponse response)
-        throws IOException
+    void setHttpServletRequest(HttpServletRequest request)
+    {
+        this.request = request;
+    }
+
+    void setSyncOut(SyncOutput syncOut)
+    {
+        this.syncOut = syncOut;
+    }
+
+    public Object run() throws PrivilegedActionException
     {
         try
         {
-            try
-            {
-                this.response = response;
-
-                if (subject == null)
-                {
-                    run();
-                }
-                else
-                {
-                    Subject.doAs(subject, this);
-                }
-            }
-            catch (PrivilegedActionException e)
-            {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                throw e;
-            }
+            doAction();
         }
         catch (AccessControlException e)
         {
@@ -201,30 +197,29 @@ public abstract class GroupsAction
             log.error(message, t);
             sendError(500, message);
         }
+        return null;
     }
 
     private void sendError(int responseCode)
-        throws IOException
     {
         sendError(responseCode, null);
     }
 
     private void sendError(int responseCode, String message)
-        throws IOException
     {
-        if (!this.response.isCommitted())
+        syncOut.setHeader("Content-Type", "text/plain");
+        if (message != null)
         {
-            this.response.setContentType("text/plain");
-            if (message != null)
+            try
             {
-                this.response.getWriter().write(message);
+                syncOut.getWriter() .write(message);
             }
-            this.response.setStatus(responseCode);
+            catch (IOException e)
+            {
+                log.warn("Could not write error message to output stream");
+            }
         }
-        else
-        {
-            log.warn("Could not send error " + responseCode + " (" + message + ") because the response is already committed.");
-        }
+        syncOut.setCode(responseCode);
     }
 
     <T extends Principal> GroupPersistence<T> getGroupPersistence()

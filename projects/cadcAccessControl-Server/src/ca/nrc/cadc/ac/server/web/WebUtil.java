@@ -66,130 +66,35 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.security.Principal;
-import java.util.Scanner;
+import ca.nrc.cadc.util.StringUtil;
 
-public class UserReader
+/**
+ * Utility methods for the ac web classes.
+ */
+public class WebUtil
 {
-    /**
-     * Construct a User from a InputStream.
-     *
-     * @param in InputStream.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    public static User<Principal> read(InputStream in)
-        throws IOException
+    public static String[] getPathSegments(String path)
     {
-        if (in == null)
+        String[] segments = new String[0];
+        if (path == null)
         {
-            throw new IOException("stream closed");
+            return segments;
         }
-
-        Scanner s = new Scanner(in).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
+        if (path.startsWith("/"))
+        {
+            path = path.substring(1);
+        }
+        if (path.endsWith("/"))
+        {
+            path = path.substring(0, path.length() - 1);
+        }
+        if (StringUtil.hasText(path))
+        {
+            segments = path.split("/");
+        }
+        return segments;
     }
-
-    /**
-     * Construct a User from a Reader.
-     *
-     * @param reader Reader.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    public static User<Principal> read(Reader reader)
-        throws IOException
-    {
-        if (reader == null)
-        {
-            throw new IllegalArgumentException("reader must not be null");
-        }
-
-        Scanner s = new Scanner(reader).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
-    }
-
-    /**
-     * Construct a User from an JSON String source.
-     *
-     * @param json String of JSON.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    public static User<Principal> read(String json)
-        throws IOException
-    {
-        if (json == null || json.isEmpty())
-        {
-            throw new IllegalArgumentException("JSON must not be null or empty");
-        }
-
-        // Create a JSONObject from the JSON
-        try
-        {
-            return parseUser(new JSONObject(json).getJSONObject("user"));
-        }
-        catch (JSONException e)
-        {
-            String error = "Unable to parse JSON to User because " +
-                           e.getMessage();
-            throw new ReaderException(error, e);
-        }
-    }
-
-    protected static User<Principal> parseUser(JSONObject userObject)
-        throws ReaderException, JSONException
-    {
-        JSONObject userIDObject = userObject.getJSONObject("userID");
-        JSONObject userIDIdentityObject = userIDObject.getJSONObject("identity");
-
-        Principal userID = IdentityReader.read(userIDIdentityObject);
-        User<Principal> user = new User<Principal>(userID);
-
-        // identities
-        if (userObject.has("identities"))
-        {
-            JSONArray identitiesArray = userObject.getJSONArray("identities");
-            for (int i = 0; i < identitiesArray.length(); i++)
-            {
-                JSONObject identitiesObject = identitiesArray.getJSONObject(i);
-                JSONObject identityObject = identitiesObject.getJSONObject(("identity"));
-                user.getIdentities().add(IdentityReader.read(identityObject));
-            }
-        }
-
-        // details
-        if (userObject.has("details"))
-        {
-            JSONArray detailsArray = userObject.getJSONArray("details");
-            for (int i = 0; i < detailsArray.length(); i++)
-            {
-                JSONObject detailsObject = detailsArray.getJSONObject(i);
-                JSONObject userDetailsObject = detailsObject.getJSONObject(UserDetails.NAME);
-                user.details.add(UserDetailsReader.read(userDetailsObject));
-            }
-        }
-
-        return user;
-    }
-
 }

@@ -69,27 +69,49 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.util.StringUtil;
+
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 
-public class UsersServlet extends HttpServlet
+public class UserServlet extends HttpServlet
 {
-    private static final Logger log = Logger.getLogger(UsersServlet.class);
 
+    private static final long serialVersionUID = 5289130885807305288L;
+    private static final Logger log = Logger.getLogger(UserServlet.class);
+    private String augmentUserDN;
+    
+    @Override
+    public void init(final ServletConfig config) throws ServletException
+    {
+        super.init(config);
+
+        try
+        {
+        	this.augmentUserDN = config.getInitParameter(UserServlet.class.getName() + ".augmentUserDN");
+            log.info("augmentUserDN: " + augmentUserDN);
+        }
+        catch(Exception ex)
+        {
+            log.error("failed to init: " + ex);
+        }
+    }
 
     /**
      * Create a UserAction and run the action safely.
      */
-    private void doAction(HttpServletRequest request, HttpServletResponse response)
+    private void doAction(UserActionFactory factory, HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
         long start = System.currentTimeMillis();
@@ -100,9 +122,40 @@ public class UsersServlet extends HttpServlet
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
-            UsersAction action = UsersActionFactory.getUsersAction(request, logInfo);
+
+            AbstractUserAction action = factory.createAction(request);
+            SyncOutput syncOut = new SyncOutput(response);
+
+            action.setAugmentUserDN(this.augmentUserDN);
+            action.setLogInfo(logInfo);
+            action.setSyncOut(syncOut);
             action.setAcceptedContentType(getAcceptedContentType(request));
-            action.doAction(subject, response);
+
+            try
+            {
+                if (subject == null)
+                {
+                    action.run();
+                }
+                else
+                {
+                    Subject.doAs(subject, action);
+                }
+            }
+            catch (PrivilegedActionException e)
+            {
+                Throwable cause = e.getCause();
+                if (cause != null)
+                {
+                    throw cause;
+                }
+                Exception exception = e.getException();
+                if (exception != null)
+                {
+                    throw exception;
+                }
+                throw e;
+            }
         }
         catch (IllegalArgumentException e)
         {
@@ -132,35 +185,35 @@ public class UsersServlet extends HttpServlet
     public void doGet(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UserActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UserActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UserActionFactory.httpDeleteFactory(), request, response);
     }
 
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UserActionFactory.httpPutFactory(), request, response);
     }
 
     @Override
     public void doHead(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(request, response);
+        doAction(UserActionFactory.httpHeadFactory(), request, response);
     }
 
     /**
@@ -174,13 +227,13 @@ public class UsersServlet extends HttpServlet
         final String requestedContentType = request.getHeader("Accept");
 
         if (StringUtil.hasText(requestedContentType)
-            && requestedContentType.contains(UsersAction.JSON_CONTENT_TYPE))
+            && requestedContentType.contains(AbstractUserAction.JSON_CONTENT_TYPE))
         {
-            return UsersAction.JSON_CONTENT_TYPE;
+            return AbstractUserAction.JSON_CONTENT_TYPE;
         }
         else
         {
-            return UsersAction.DEFAULT_CONTENT_TYPE;
+            return AbstractUserAction.DEFAULT_CONTENT_TYPE;
         }
     }
 }

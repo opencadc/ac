@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,100 +62,105 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
+package ca.nrc.cadc.ac.server.web.users;
+
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import org.junit.Test;
 
-import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
+import java.security.Principal;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
-/**
- *
- * @author jburke
- */
-public class GroupsReaderWriterTest
+
+public class ModifyUserActionTest
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
-
     @Test
-    public void testReaderExceptions()
-        throws Exception
+    public void run() throws Exception
     {
-        try
-        {
-            String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
+        final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
+        User<Principal> expected = new User<Principal>(httpPrincipal);
+        expected.getIdentities().add(httpPrincipal);
+        final PersonalDetails pd = new PersonalDetails("CADC", "Test");
+        pd.email = "CADC.Test@nrc-cnrc.gc.ca";
+        expected.details.add(pd);
 
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
-    }
+        final StringBuilder sb = new StringBuilder();
+        final JsonUserWriter userWriter = new JsonUserWriter();
+        userWriter.write(expected, sb);
 
+        final byte[] input = sb.toString().getBytes();
+        final InputStream inputStream = new ByteArrayInputStream(input);
+
+        // Should match the JSON above, without the e-mail modification.
+        Principal principal = new HttpPrincipal("CADCtest");
+        final User<Principal> userObject =
+                new User<Principal>(principal);
+        userObject.getIdentities().add(principal);
+        final PersonalDetails personalDetail =
+                new PersonalDetails("CADC", "Test");
+        personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
+        userObject.details.add(personalDetail);
+
+        final HttpServletRequest mockRequest =
+                createMock(HttpServletRequest.class);
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
+
+        @SuppressWarnings("unchecked")
+        final UserPersistence<Principal> mockUserPersistence =
+                createMock(UserPersistence.class);
+
+        expect(mockUserPersistence.modifyUser(userObject)).andReturn(
+                userObject).once();
+//
+//        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
+//                once();
+
+        mockSyncOut.setHeader("Location", "/CADCtest?idType=http");
+        expectLastCall().once();
+
+        mockSyncOut.setCode(303);
+        expectLastCall().once();
+
+        mockSyncOut.setHeader("Content-Type", "application/json");
+        expectLastCall().once();
+
+        replay(mockRequest, mockSyncOut, mockUserPersistence);
+
+        final ModifyUserAction testSubject = new ModifyUserAction(inputStream)
+        {
+            @Override
+            @SuppressWarnings("unchecked")
+            UserPersistence<Principal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+
+        testSubject.setAcceptedContentType("application/json");
+        testSubject.syncOut = mockSyncOut;
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
+
+        verify(mockRequest, mockSyncOut, mockUserPersistence);
+    }
 }

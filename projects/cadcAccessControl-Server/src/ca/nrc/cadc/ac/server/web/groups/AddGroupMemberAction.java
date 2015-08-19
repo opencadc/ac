@@ -74,21 +74,20 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AddGroupMemberAction extends GroupsAction
+public class AddGroupMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String groupMemberName;
 
-    AddGroupMemberAction(GroupLogInfo logInfo, String groupName,
+    AddGroupMemberAction(String groupName,
                          String groupMemberName)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
         this.groupMemberName = groupMemberName;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
@@ -102,7 +101,6 @@ public class AddGroupMemberAction extends GroupsAction
         List<String> addedMembers = new ArrayList<String>();
         addedMembers.add(toAdd.getID());
         logGroupInfo(group.getID(), null, addedMembers);
-        return null;
     }
 
 }

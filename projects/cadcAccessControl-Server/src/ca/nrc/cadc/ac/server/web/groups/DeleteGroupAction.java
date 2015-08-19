@@ -74,18 +74,17 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 
-public class DeleteGroupAction extends GroupsAction
+public class DeleteGroupAction extends AbstractGroupAction
 {
     private final String groupName;
 
-    DeleteGroupAction(GroupLogInfo logInfo, String groupName)
+    DeleteGroupAction(String groupName)
     {
-        super(logInfo);
+        super();
         this.groupName = groupName;
     }
 
-    public Object run()
-        throws Exception
+    public void doAction() throws Exception
     {
         GroupPersistence groupPersistence = getGroupPersistence();
         Group deletedGroup = groupPersistence.getGroup(this.groupName);
@@ -102,7 +101,6 @@ public class DeleteGroupAction extends GroupsAction
                 this.logInfo.deletedMembers.add(usr.getUserID().getName());
             }
         }
-        return null;
     }
 
 }

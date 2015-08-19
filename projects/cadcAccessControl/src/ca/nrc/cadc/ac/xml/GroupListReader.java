@@ -69,93 +69,126 @@
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.xml.XmlUtil;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 /**
- *
- * @author jburke
+ * Class to read an XML representation of a list of Groups
+ * into a List of Group objects.
  */
-public class GroupsReaderWriterTest
+public class GroupListReader
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
-
-    @Test
-    public void testReaderExceptions()
-        throws Exception
+    /**
+     * Construct a list of Group's from an XML String source.
+     * 
+     * @param xml String of the XML.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public List<Group> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
     {
-        try
+        if (xml == null)
         {
-            String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
-            fail("null String should throw IllegalArgumentException");
+            throw new IllegalArgumentException("XML must not be null");
         }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
+        return read(new StringReader(xml));
     }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
+
+    /**
+     * Construct a list of Group's from a InputStream.
+     * 
+     * @param in InputStream.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public List<Group> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
     {
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+        InputStreamReader reader;
         try
         {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
+            reader = new InputStreamReader(in, "UTF-8");
         }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
-
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported");
+        }
+        return read(reader);
     }
 
+    /**
+     * Construct a List of Group's from a Reader.
+     * 
+     * @param reader Reader.
+     * @return Groups List of Group.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
+     */
+    public List<Group> read(Reader reader)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        Document document;
+        try
+        {
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        Element root = document.getRootElement();
+
+        String groupElemName = root.getName();
+
+        if (!groupElemName.equalsIgnoreCase("groups"))
+        {
+            String error = "Expected groups element, found " + groupElemName;
+            throw new ReaderException(error);
+        }
+
+        return parseGroups(root);
+    }
+
+    protected static List<Group> parseGroups(Element groupsElement)
+            throws URISyntaxException, ReaderException
+    {
+        List<Group> groups = new ArrayList<Group>();
+
+        List<Element> groupElements = groupsElement.getChildren("group");
+        for (Element groupElement : groupElements)
+        {
+            groups.add(GroupReader.parseGroup(groupElement));
+        }
+
+        return groups;
+    }
 }

@@ -70,9 +70,7 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.InputStream;
 
-import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
 
@@ -80,42 +78,25 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 
 
-public class CreateUserAction extends UsersAction
+public class CreateUserAction extends AbstractUserAction
 {
     private final InputStream inputStream;
 
-    CreateUserAction(UserLogInfo logInfo, InputStream inputStream)
+    CreateUserAction(final InputStream inputStream)
     {
-        super(logInfo);
+        super();
         this.inputStream = inputStream;
     }
 
-    public Object run()
-        throws Exception
+
+    public void doAction() throws Exception
     {
-        try
-        {
-            final UserPersistence<Principal> userPersistence =
-                    getUserPersistence();
-            final UserRequest<Principal> userRequest =
-                    readUserRequest(this.inputStream);
-            final User<Principal> newUser =
-                    userPersistence.addUser(userRequest);
+        final UserPersistence<Principal> userPersistence = getUserPersistence();
+        final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
+        final User<Principal> newUser = userPersistence.addUser(userRequest);
 
-            writeUser(newUser);
-            logUserInfo(newUser.getUserID().getName());
-        }
-        catch (UserAlreadyExistsException e)
-        {
-            response.setStatus(HttpServletResponse.SC_CONFLICT);
-            response.getWriter().write("User already exists");
-        }
-        catch (ReaderException e)
-        {
-            throw new IllegalArgumentException("Invalid input", e);
-        }
-
-        return null;
+        syncOut.setCode(201);
+        logUserInfo(newUser.getUserID().getName());
     }
 
 }

@@ -72,6 +72,10 @@ import ca.nrc.cadc.log.ServletLogInfo;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
+/**
+ * Extension of regular servlet log info that tracks
+ * group membership changes.
+ */
 public class GroupLogInfo extends ServletLogInfo
 {
     public String groupID;

@@ -76,126 +76,206 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.util.StringUtil;
 
-public class GroupsActionFactory
+/**
+ * This class provides static methods for each of the http methods for
+ * creating a factory object that will in turn create the correct group
+ * action.
+ *
+ * @author majorb
+ */
+public abstract class GroupsActionFactory
 {
     private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
 
-    static GroupsAction getGroupsAction(HttpServletRequest request, GroupLogInfo logInfo)
-        throws IOException
+    public abstract AbstractGroupAction createAction(HttpServletRequest request)
+        throws IllegalArgumentException, IOException;
+
+    public static GroupsActionFactory httpGetFactory()
     {
-        GroupsAction action = null;
-        String method = request.getMethod();
-        String path = request.getPathInfo();
-        log.debug("method: " + method);
-        log.debug("path: " + path);
-
-        if (path == null)
+        return new GroupsActionFactory()
         {
-            path = "";
-        }
-
-        if (path.startsWith("/"))
-        {
-            path = path.substring(1);
-        }
-
-        if (path.endsWith("/"))
-        {
-            path = path.substring(0, path.length() - 1);
-        }
-
-        String[] segments = new String[0];
-        if (StringUtil.hasText(path))
-        {
-            segments = path.split("/");
-        }
-
-        if (segments.length == 0)
-        {
-            if (method.equals("GET"))
+            public AbstractGroupAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
             {
-                action = new GetGroupNamesAction(logInfo);
-            }
-            else if (method.equals("PUT"))
-            {
-                action = new CreateGroupAction(logInfo, request.getInputStream());
-            }
+                AbstractGroupAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
 
-        }
-        else if (segments.length == 1)
-        {
-            String groupName = segments[0];
-            if (method.equals("GET"))
-            {
-                action = new GetGroupAction(logInfo, groupName);
-            }
-            else if (method.equals("DELETE"))
-            {
-                action = new DeleteGroupAction(logInfo, groupName);
-            }
-            else if (method.equals("POST"))
-            {
-                final URL requestURL = new URL(request.getRequestURL().toString());
-                final StringBuilder sb = new StringBuilder();
-                sb.append(requestURL.getProtocol());
-                sb.append("://");
-                sb.append(requestURL.getHost());
-                if (requestURL.getPort() > 0)
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 0)
                 {
-                    sb.append(":");
-                    sb.append(requestURL.getPort());
+                    action = new GetGroupNamesAction();
                 }
-                sb.append(request.getContextPath());
-                sb.append(request.getServletPath());
-                sb.append("/");
-                sb.append(path);
+                else if (segments.length == 1)
+                {
+                    String groupName = segments[0];
+                    action = new GetGroupAction(groupName);
+                }
 
-                action = new ModifyGroupAction(logInfo, groupName, sb.toString(),
-                                               request.getInputStream());
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+                throw new IllegalArgumentException("Bad GET request to " + path);
             }
-        }
-        else if (segments.length == 3)
-        {
-            String groupName = segments[0];
-            String memberCategory = segments[1];
-            if (method.equals("PUT"))
-            {
-                if (memberCategory.equals("groupMembers"))
-                {
-                    String groupMemberName = segments[2];
-                    action = new AddGroupMemberAction(logInfo, groupName, groupMemberName);
-                }
-                else if (memberCategory.equals("userMembers"))
-                {
-                    String userMemberID = URLDecoder.decode(segments[2], "UTF-8");
-                    String userMemberIDType = request.getParameter("idType");
-                    action = new AddUserMemberAction(logInfo, groupName, userMemberID, userMemberIDType);
-                }
-            }
-            else if (method.equals("DELETE"))
-            {
-                if (memberCategory.equals("groupMembers"))
-                {
-                    String groupMemberName = segments[2];
-                    action = new RemoveGroupMemberAction(logInfo, groupName, groupMemberName);
-                }
-                else if (memberCategory.equals("userMembers"))
-                {
-                    String memberUserID = URLDecoder.decode(segments[2], "UTF-8");
-                    String memberUserIDType = request.getParameter("idType");
-                    action = new RemoveUserMemberAction(logInfo, groupName, memberUserID, memberUserIDType);
-                }
-            }
-        }
-
-        if (action != null)
-        {
-            log.debug("Returning action: " + action.getClass());
-            return action;
-        }
-        throw new IllegalArgumentException("Bad groups request: " + method + " on " + path);
+        };
     }
 
+    public static GroupsActionFactory httpPutFactory()
+    {
+        return new GroupsActionFactory()
+        {
+            public AbstractGroupAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                AbstractGroupAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
+
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 0)
+                {
+                    action = new CreateGroupAction(request.getInputStream());
+                }
+                else if (segments.length == 3)
+                {
+                    String groupName = segments[0];
+                    String memberCategory = segments[1];
+                    if (memberCategory.equals("groupMembers"))
+                    {
+                        String groupMemberName = segments[2];
+                        action = new AddGroupMemberAction(groupName, groupMemberName);
+                    }
+                    else if (memberCategory.equals("userMembers"))
+                    {
+                        String userMemberID = segments[2];
+                        String userMemberIDType = request.getParameter("idType");
+                        action = new AddUserMemberAction(groupName, userMemberID, userMemberIDType);
+                    }
+                }
+
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+                throw new IllegalArgumentException("Bad PUT request to " + path);
+            }
+        };
+    }
+
+    public static GroupsActionFactory httpPostFactory()
+    {
+        return new GroupsActionFactory()
+        {
+            public AbstractGroupAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                AbstractGroupAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
+
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 1)
+                {
+
+
+                    String groupName = segments[0];
+
+                    final URL requestURL = new URL(request.getRequestURL().toString());
+                    final StringBuilder sb = new StringBuilder();
+                    sb.append(requestURL.getProtocol());
+                    sb.append("://");
+                    sb.append(requestURL.getHost());
+                    if (requestURL.getPort() > 0)
+                    {
+                        sb.append(":");
+                        sb.append(requestURL.getPort());
+                    }
+                    sb.append(request.getContextPath());
+                    sb.append(request.getServletPath());
+                    sb.append("/");
+                    sb.append(path);
+
+                    action = new ModifyGroupAction(groupName, sb.toString(), request.getInputStream());
+                }
+
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+                throw new IllegalArgumentException("Bad POST request to " + path);
+            }
+        };
+
+    }
+
+    public static GroupsActionFactory httpDeleteFactory()
+    {
+        return new GroupsActionFactory()
+        {
+            public AbstractGroupAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                AbstractGroupAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
+
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 1)
+                {
+                    String groupName = segments[0];
+                    action = new DeleteGroupAction(groupName);
+                }
+                else if (segments.length == 3)
+                {
+                    String groupName = segments[0];
+                    String memberCategory = segments[1];
+
+                    if (memberCategory.equals("groupMembers"))
+                    {
+                        String groupMemberName = segments[2];
+                        action = new RemoveGroupMemberAction(groupName, groupMemberName);
+                    }
+                    else if (memberCategory.equals("userMembers"))
+                    {
+                        String memberUserID = segments[2];
+                        String memberUserIDType = request.getParameter("idType");
+                        action = new RemoveUserMemberAction(groupName, memberUserID, memberUserIDType);
+                    }
+                }
+
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+                throw new IllegalArgumentException("Bad DELETE request to " + path);
+            }
+        };
+
+    }
+
+    public static GroupsActionFactory httpHeadFactory()
+    {
+        return new GroupsActionFactory()
+        {
+            public AbstractGroupAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                // http head not supported
+                throw new UnsupportedOperationException();
+            }
+        };
+
+    }
 }

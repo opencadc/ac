@@ -79,7 +79,7 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 
-public abstract interface GroupPersistence<T extends Principal>
+public interface GroupPersistence<T extends Principal>
 {
     /**
      * Get all group names.
@@ -88,7 +88,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<String> getGroupNames()
+    Collection<String> getGroupNames()
             throws TransientException, AccessControlException;
     
     /**
@@ -102,7 +102,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Group getGroup(String groupID)
+    Group getGroup(String groupID)
         throws GroupNotFoundException, TransientException,
                AccessControlException;
 
@@ -121,7 +121,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws GroupNotFoundException if one of the groups in group members or
      * group admins does not exist in the server.
      */
-    public abstract Group addGroup(Group group)
+    Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
                AccessControlException, UserNotFoundException, 
                GroupNotFoundException;
@@ -135,7 +135,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract void deleteGroup(String groupID)
+    void deleteGroup(String groupID)
         throws GroupNotFoundException, TransientException,
                AccessControlException;
 
@@ -151,7 +151,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserNotFoundException If owner or group members not valid users.
      */
-    public abstract Group modifyGroup(Group group)
+    Group modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException;
 
@@ -170,9 +170,24 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Collection<Group> getGroups(T userID, Role role, 
-                                                String groupID)
+    Collection<Group> getGroups(T userID, Role role, String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
     
+    /**
+     * Check whether the user is a member of the group.
+     *
+     * @param userID The userID.
+     * @param groupID The groupID.
+     *
+     * @return true or false
+     *
+     * @throws UserNotFoundException If the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    boolean isMember(T userID, String groupID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+  
 }

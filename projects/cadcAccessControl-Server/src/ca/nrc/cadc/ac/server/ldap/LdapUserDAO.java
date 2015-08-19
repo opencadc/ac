@@ -127,6 +127,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
     // Returned User attributes
     protected static final String LDAP_OBJECT_CLASS = "objectClass";
+    protected static final String LDAP_INET_USER = "inetuser";
     protected static final String LDAP_INET_ORG_PERSON = "inetOrgPerson";
     protected static final String LDAP_CADC_ACCOUNT = "cadcaccount";
     protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
@@ -150,7 +151,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
                     LDAP_COUNTRY,
-                    LDAP_EMAIL, LDAP_INSTITUTE, LDAP_UID
+                    LDAP_EMAIL, LDAP_INSTITUTE
             };
     private String[] memberAttribs = new String[]
             {
@@ -189,7 +190,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException
      * @throws UserNotFoundException
      */
-    public Boolean loginUser(final String username, final String password)
+    public Boolean doLogin(final String username, final String password)
         throws TransientException, UserNotFoundException
     {
         try
@@ -208,7 +209,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (LDAPException e)
         {
-            logger.debug("loginUser Exception: " + e, e);
+            logger.debug("doLogin Exception: " + e, e);
 
             if (e.getResultCode() == ResultCode.INVALID_CREDENTIALS)
             {
@@ -362,11 +363,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             DN userX500DN = getUserRequestsDN(user.getUserID().getName());
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_COMMON_NAME, user.getUserID()
                 .getName());
-            addAttribute(attributes, LADP_USER_PASSWORD, userRequest
-                    .getPassword());
+            addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest
+                    .getPassword()));
             addAttribute(attributes, LDAP_NUMERICID, 
                     String.valueOf(genNextNumericId()));
             for (Principal princ : user.getIdentities())
@@ -414,7 +416,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      *
      * @param userID The userID.
      * @return User instance.
-     * @throws UserNotFoundException  when the user is not found.
+     * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
@@ -423,6 +425,23 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                    AccessControlException
     {
         return getUser(userID, config.getUsersDN());
+    }
+
+    /**
+     * Obtain a user who is awaiting approval.
+     *
+     * @param userID        The user ID of the pending user.
+     * @return              A User instance awaiting approval.
+     *
+     * @throws UserNotFoundException  when the user is not found in the user request tree.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> getPendingUser(final T userID)
+            throws UserNotFoundException, TransientException,
+                   AccessControlException
+    {
+        return getUser(userID, config.getUserRequestsDN());
     }
 
 
@@ -447,7 +466,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField = "(&(objectclass=inetorgperson)(" +
+        searchField = "(&(objectclass=inetorgperson)(objectclass=cadcaccount)(" +
                       searchField + "=" + userID.getName() + "))";
         logger.debug(searchField);
 
@@ -697,7 +716,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Get all groups the user specified by userID belongs to.
+     * Get all groups the user specified by userID belongs to. This method is created
+     * to provide optimization for the LDAP server.
      *
      * @param userID  The userID.
      * @param isAdmin
@@ -706,7 +726,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred., e.getMessage(
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
+    protected Collection<DN> getUserGroups(final T userID, final boolean isAdmin)
             throws UserNotFoundException, TransientException,
                    AccessControlException
     {
@@ -773,7 +793,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Check whether the user is a member of the group.
+     * Check whether the user is a member of the group. This method is created
+     * to provide optimization for the LDAP server.
      *
      * @param userID  The userID.
      * @param groupID The groupID.
@@ -832,7 +853,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException
      * @throws LDAPException
      */
-    User<X500Principal> getMember(DN userDN)
+    User<X500Principal> getX500User(DN userDN)
             throws UserNotFoundException, LDAPException
     {
         Filter filter =

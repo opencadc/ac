@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,57 +62,133 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.users;
 
-package ca.nrc.cadc.ac.xml;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.Log4jInit;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
+import java.io.*;
+import java.security.AccessControlException;
+import javax.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
-public class UsersWriter
+import static org.easymock.EasyMock.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+/**
+ * @author jburke
+ */
+public class AbstractUserActionTest
 {
-    /**
-     * Write the Map of User entries as XML.
-     *
-     * @param users             The Map of User IDs to Names.
-     * @param writer            The Writer to output to.
-     * @throws IOException      Any writing errors.
-     */
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    private final static Logger log = Logger.getLogger(AbstractUserActionTest.class);
+
+    @BeforeClass
+    public static void setUpClass()
     {
-        // Create the root users Element.
-        final Element usersElement = new Element("users");
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
 
-        for (final Map.Entry<String, PersonalDetails> entry : users.entrySet())
+    @Test
+    public void testDoActionAccessControlException() throws Exception
+    {
+        String message = "Permission Denied";
+        int responseCode = 403;
+        Exception e = new AccessControlException("");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionIllegalArgumentException() throws Exception
+    {
+        String message = "message";
+        int responseCode = 400;
+        Exception e = new IllegalArgumentException("message");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionUserNotFoundException() throws Exception
+    {
+        String message = "User not found: foo";
+        int responseCode = 404;
+        Exception e = new UserNotFoundException("foo");
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionUnsupportedOperationException() throws Exception
+    {
+        String message = "Not yet implemented.";
+        int responseCode = 501;
+        Exception e = new UnsupportedOperationException();
+        testDoAction(message, responseCode, e);
+    }
+
+    @Test
+    public void testDoActionTransientException() throws Exception
+    {
+        HttpServletResponse response = createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
+
+        response.setStatus(503);
+        expectLastCall().once();
+        replay(response);
+
+        UsersActionImpl action = new UsersActionImpl();
+        action.setException(new TransientException("foo"));
+        action.doAction();
+    }
+
+    private void testDoAction(String message, int responseCode, Exception e)
+            throws Exception
+    {
+        HttpServletResponse response =
+                createMock(HttpServletResponse.class);
+        expect(response.isCommitted()).andReturn(Boolean.FALSE);
+        response.setContentType("text/plain");
+        expectLastCall().once();
+        expect(response.getWriter())
+                .andReturn(new PrintWriter(new StringWriter())).once();
+
+        response.setStatus(responseCode);
+        expectLastCall().once();
+        replay(response);
+
+        UsersActionImpl action = new UsersActionImpl();
+        action.setException(e);
+        action.doAction();
+    }
+
+    public class UsersActionImpl extends AbstractUserAction
+    {
+        Exception exception;
+
+        public UsersActionImpl()
         {
-            final Element userEntryElement = new Element("user");
-            final Element firstNameElement = new Element("firstName");
-            final Element lastNameElement = new Element("lastName");
-
-            userEntryElement.setAttribute("id", entry.getKey());
-
-            firstNameElement.setText(entry.getValue().getFirstName());
-            userEntryElement.addContent(firstNameElement);
-
-            lastNameElement.setText(entry.getValue().getLastName());
-            userEntryElement.addContent(lastNameElement);
-
-            usersElement.addContent(userEntryElement);
+            super();
         }
 
-        final XMLOutputter output = new XMLOutputter();
+        public void doAction() throws Exception
+        {
+            throw exception;
+        }
 
-        output.setFormat(Format.getPrettyFormat());
-        output.output(new Document(usersElement), writer);
+        public void setException(Exception e)
+        {
+            this.exception = e;
+        }
     }
+
 }

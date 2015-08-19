@@ -66,31 +66,135 @@
  *
  ************************************************************************
  */
+package ca.nrc.cadc.ac.server.web.groups;
 
-package ca.nrc.cadc.ac.server.web.users;
+import java.io.IOException;
+import java.security.PrivilegedActionException;
 
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.util.StringUtil;
 
-
-public class GetUsersAction extends UsersAction
+/**
+ * Servlet for handling all requests to /groups
+ *
+ * @author majorb
+ */
+public class GroupServlet extends HttpServlet
 {
-    
-    private static final Logger log = Logger.getLogger(GetUsersAction.class);
+    private static final long serialVersionUID = 7854660717655869213L;
+    private static final Logger log = Logger.getLogger(GroupServlet.class);
 
-    GetUsersAction(UserLogInfo logInfo)
+    /**
+     * Create a GroupAction and run the action safely.
+     */
+    private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        super(logInfo);
+        long start = System.currentTimeMillis();
+        GroupLogInfo logInfo = new GroupLogInfo(request);
+        try
+        {
+            log.info(logInfo.start());
+            Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
+
+            AbstractGroupAction action = factory.createAction(request);
+
+            action.setLogInfo(logInfo);
+            action.setHttpServletRequest(request);
+            SyncOutput syncOut = new SyncOutput(response);
+            action.setSyncOut(syncOut);
+
+            try
+            {
+                if (subject == null)
+                {
+                    action.run();
+                }
+                else
+                {
+                    Subject.doAs(subject, action);
+                }
+            }
+            catch (PrivilegedActionException e)
+            {
+                Throwable cause = e.getCause();
+                if (cause != null)
+                {
+                    throw cause;
+                }
+                Exception exception = e.getException();
+                if (exception != null)
+                {
+                    throw exception;
+                }
+                throw e;
+            }
+        }
+        catch (IllegalArgumentException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
+        }
+        catch (Throwable t)
+        {
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.getWriter().write(message);
+            response.setStatus(500);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
+        }
     }
 
-    public Object run()
-        throws Exception
+    @Override
+    public void doGet(final HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        final UserPersistence userPersistence = getUserPersistence();
-
-        writeUsers(userPersistence.getUsers());
-        return null;
+        doAction(GroupsActionFactory.httpGetFactory(), request, response);
     }
+
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpPostFactory(), request, response);
+    }
+
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
+    }
+
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpPutFactory(), request, response);
+    }
+
+    @Override
+    public void doHead(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
+    {
+        doAction(GroupsActionFactory.httpHeadFactory(), request, response);
+    }
+
 }

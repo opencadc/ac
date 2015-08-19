@@ -90,6 +90,9 @@ import java.io.Writer;
 import java.security.Principal;
 import java.text.DateFormat;
 
+/**
+ * Class to write a XML representation of a Group object.
+ */
 public class GroupWriter
 {
     /**
@@ -99,7 +102,7 @@ public class GroupWriter
      * @throws java.io.IOException
      * @throws WriterException
      */
-    public static void write(Group group, StringBuilder builder)
+    public void write(Group group, StringBuilder builder)
         throws IOException, WriterException
     {
         write(group, new StringBuilderWriter(builder));
@@ -113,7 +116,7 @@ public class GroupWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(Group group, OutputStream out)
+    public void write(Group group, OutputStream out)
         throws IOException, WriterException
     {
         OutputStreamWriter outWriter;
@@ -136,7 +139,7 @@ public class GroupWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(Group group, Writer writer)
+    public void write(Group group, Writer writer)
         throws IOException, WriterException
     {
         if (group == null)

@@ -78,6 +78,8 @@ import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.*;
 
 /**
@@ -87,7 +89,7 @@ import static org.junit.Assert.*;
 public class RemoveGroupMemberActionTest
 {
     private final static Logger log = Logger.getLogger(RemoveGroupMemberActionTest.class);
-    
+
     @BeforeClass
     public static void setUpClass()
     {
@@ -101,15 +103,13 @@ public class RemoveGroupMemberActionTest
         {
             Group group = new Group("group", null);
             Group member = new Group("member", null);
-            
+
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
             EasyMock.replay(groupPersistence);
-            
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
-            
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction(logInfo, "group", "member")
+
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member")
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
@@ -117,10 +117,10 @@ public class RemoveGroupMemberActionTest
                     return groupPersistence;
                 };
             };
-            
+
             try
             {
-                action.run();
+                action.doAction();
                 fail("unknown group member should throw GroupNotFoundException");
             }
             catch (GroupNotFoundException ignore) {}
@@ -131,7 +131,7 @@ public class RemoveGroupMemberActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
     @Test
     public void testRun() throws Exception
     {
@@ -140,19 +140,17 @@ public class RemoveGroupMemberActionTest
             Group member = new Group("member", null);
             Group group = new Group("group", null);
             group.getGroupMembers().add(member);
-            
+
             Group modified = new Group("group", null);
             modified.getGroupMembers().add(member);
-            
+
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
             EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
             EasyMock.replay(groupPersistence);
-            
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
-            
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction(logInfo, "group", "member")
+
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member")
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
@@ -161,7 +159,9 @@ public class RemoveGroupMemberActionTest
                 };
             };
 
-            action.run();
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+            action.setLogInfo(logInfo);
+            action.doAction();
         }
         catch (Throwable t)
         {

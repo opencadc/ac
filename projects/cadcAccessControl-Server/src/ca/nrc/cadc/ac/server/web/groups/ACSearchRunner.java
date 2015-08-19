@@ -74,7 +74,7 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.RequestValidator;
-import ca.nrc.cadc.ac.xml.GroupsWriter;
+import ca.nrc.cadc.ac.xml.GroupListWriter;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
@@ -236,7 +236,8 @@ public class ACSearchRunner implements JobRunner
                 groups = new ArrayList<Group>();
             }
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
-            GroupsWriter.write(groups, syncOut.getOutputStream());
+            GroupListWriter groupListWriter = new GroupListWriter();
+            groupListWriter.write(groups, syncOut.getOutputStream());
             
             // Mark the Job as completed.
 //            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, 

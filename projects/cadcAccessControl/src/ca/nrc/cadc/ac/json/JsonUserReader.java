@@ -68,134 +68,100 @@
  */
 package ca.nrc.cadc.ac.json;
 
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.util.StringBuilderWriter;
-import org.json.JSONArray;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.xml.JsonInputter;
+import org.jdom2.Document;
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
+import java.io.InputStream;
+import java.io.Reader;
 import java.security.Principal;
-import java.util.Set;
+import java.util.Scanner;
 
-public class UserWriter
+public class JsonUserReader extends UserReader
 {
     /**
-     * Write a User as a JSON string to a StringBuilder.
-     * 
-     * @param user User to write.
-     * @param builder StringBuilder to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
+     * Construct a User from a InputStream.
+     *
+     * @param in InputStream.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
      */
-    public static void write(User<? extends Principal> user, StringBuilder builder)
-        throws IOException, WriterException
+    @Override
+    public User<Principal> read(InputStream in)
+        throws IOException
     {
-        write(user, new StringBuilderWriter(builder));
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+
+        Scanner s = new Scanner(in).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
     }
 
     /**
-     * Write a User as a JSON string to an OutputStream.
+     * Construct a User from a Reader.
      *
-     * @param user User to write.
-     * @param out OutputStream to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
+     * @param reader Reader.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
      */
-    public static void write(User<? extends Principal> user, OutputStream out)
-        throws IOException, WriterException
-    {                
-        OutputStreamWriter outWriter;
-        try
+    @Override
+    public User<Principal> read(Reader reader)
+        throws IOException
+    {
+        if (reader == null)
         {
-            outWriter = new OutputStreamWriter(out, "UTF-8");
+            throw new IllegalArgumentException("reader must not be null");
         }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported", e);
-        }
-        write(user, new BufferedWriter(outWriter));
+
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        return read(json);
     }
 
     /**
-     * Write a User as a JSON string to a Writer.
+     * Construct a User from an JSON String source.
      *
-     * @param user User to write.
-     * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
+     * @param json String of JSON.
+     * @return User User.
+     * @throws ReaderException
+     * @throws IOException
      */
-    public static void write(User<? extends Principal> user, Writer writer)
-        throws IOException, WriterException
+    @Override
+    public User<Principal> read(String json)
+        throws IOException
     {
-        if (user == null)
+        if (json == null || json.isEmpty())
         {
-            throw new WriterException("null User");
+            throw new IllegalArgumentException("JSON must not be null or empty");
         }
 
+        // Create a JSONObject from the JSON
         try
         {
-            getUserObject(user).write(writer);
+            JsonInputter jsonInputter = new JsonInputter();
+            jsonInputter.getListElementMap().put("identities", "identity");
+            jsonInputter.getListElementMap().put("details", "userDetails");
+
+            Document document = jsonInputter.input(json);
+            return UserReader.parseUser(document.getRootElement());
         }
         catch (JSONException e)
         {
-            final String error = "Unable to create JSON for User " +
-                                 " because " + e.getMessage();
-            throw new WriterException(error, e);
+            String error = "Unable to parse JSON to User because " +
+                e.getMessage();
+            throw new ReaderException(error, e);
         }
-    }
-
-    /**
-     * Build a User JSONObject from a User.
-     *
-     * @param user User.
-     * @return JSONObject.
-     * @throws WriterException
-     */
-    public static JSONObject getUserObject(User<? extends Principal> user)
-        throws WriterException, JSONException
-    {
-        JSONObject userObject = new JSONObject();
-        JSONObject userIDIdentityObject = new JSONObject();
-        userIDIdentityObject.put("identity", IdentityWriter.write(user.getUserID()));
-        userObject.put("userID", userIDIdentityObject);
-
-        // identities
-        Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty())
-        {
-            JSONArray identityArray = new JSONArray();
-            for (Principal identity : identities)
-            {
-                JSONObject identityObject = new JSONObject();
-                identityObject.put("identity" , IdentityWriter.write(identity));
-                identityArray.put(identityObject);
-            }
-            userObject.put("identities", identityArray);
-        }
-
-        // details
-        if (!user.details.isEmpty())
-        {
-            JSONArray detailsArray = new JSONArray();
-            Set<UserDetails> userDetails = user.details;
-            for (UserDetails userDetail : userDetails)
-            {
-                JSONObject detailsObject = new JSONObject();
-                detailsObject.put(UserDetails.NAME , UserDetailsWriter.write(userDetail));
-                detailsArray.put(detailsObject);
-            }
-            userObject.put("details", detailsArray);
-        }
-
-        return new JSONObject().put("user", userObject);
     }
 
 }

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,64 +62,99 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
-
 package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.util.StringBuilderWriter;
+import ca.nrc.cadc.xml.JsonOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.util.Map;
 
-
-/**
- * Class to write out, as JSON, a list of user entries.
- */
-public class UsersWriter
+public class JsonGroupWriter extends GroupWriter
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    /**
+     * Write a Group to a StringBuilder.
+     * @param group
+     * @param builder
+     * @throws IOException
+     * @throws WriterException
+     */
+    public void write(Group group, StringBuilder builder)
+        throws IOException, WriterException
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
+        write(group, new StringBuilderWriter(builder));
+    }
 
+    /**
+     * Write a Group to an OutputStream.
+     *
+     * @param group Group to write.
+     * @param out OutputStream to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws WriterException
+     */
+    @Override
+    public void write(Group group, OutputStream out)
+        throws IOException, WriterException
+    {
+        OutputStreamWriter outWriter;
         try
         {
-            jsonWriter.array();
-
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
-            {
-                jsonWriter.object();
-
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
-
-                jsonWriter.endObject();
-                writer.write("\n");
-            }
+            outWriter = new OutputStreamWriter(out, "UTF-8");
         }
-        catch (JSONException e)
+        catch (UnsupportedEncodingException e)
         {
-            throw new IOException(e);
+            throw new RuntimeException("UTF-8 encoding not supported", e);
         }
-        finally
-        {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
-        }
+        write(group, new BufferedWriter(outWriter));
     }
+
+    /**
+     * Write a Group to a Writer.
+     *
+     * @param group Group to write.
+     * @param writer  Writer to write to.
+     * @throws IOException if the writer fails to write.
+     * @throws WriterException
+     */
+    @Override
+    public void write(Group group, Writer writer)
+        throws IOException, WriterException
+    {
+        if (group == null)
+        {
+            throw new WriterException("null group");
+        }
+
+        Element children = GroupWriter.getGroupElement(group);
+        Element groupElement = new Element("group");
+        groupElement.addContent(children);
+        Document document = new Document();
+        document.setRootElement(groupElement);
+
+        JsonOutputter jsonOutputter = new JsonOutputter();
+        jsonOutputter.getListElementNames().add("properties");
+        jsonOutputter.getListElementNames().add("userMembers");
+        jsonOutputter.getListElementNames().add("groupMembers");
+        jsonOutputter.getListElementNames().add("userAdmins");
+        jsonOutputter.getListElementNames().add("groupAdmins");
+        jsonOutputter.getListElementNames().add("identities");
+        jsonOutputter.getListElementNames().add("details");
+
+        jsonOutputter.output(document, writer);
+    }
+
 }

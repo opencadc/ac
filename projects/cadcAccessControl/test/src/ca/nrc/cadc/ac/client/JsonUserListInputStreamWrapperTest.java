@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,100 +62,41 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+package ca.nrc.cadc.ac.client;
 
-import java.io.IOException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-/**
- *
- * @author jburke
- */
-public class GroupsReaderWriterTest
+
+public class JsonUserListInputStreamWrapperTest
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
-
     @Test
-    public void testReaderExceptions()
-        throws Exception
+    public void readInputStream() throws Exception
     {
-        try
-        {
-            String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
+        final List<User<HttpPrincipal>> output =
+                new ArrayList<User<HttpPrincipal>>();
+        final JsonUserListInputStreamWrapper testSubject =
+                new JsonUserListInputStreamWrapper(output);
+        final InputStream inputStream =
+                new ByteArrayInputStream("[{\"id\":\"CADCTest\",\"firstName\":\"CADCtest\",\"lastName\":\"USER\"}\n,{\"id\":\"User_2\",\"firstName\":\"User\",\"lastName\":\"2\"}]".getBytes());
 
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
-    }
+        testSubject.read(inputStream);
 
+        assertEquals("First item is wrong.", "CADCTest",
+                     output.get(0).getUserID().getName());
+        assertEquals("First item is wrong.", "User_2",
+                     output.get(1).getUserID().getName());
+    }
 }

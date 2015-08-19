@@ -82,6 +82,8 @@ import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.*;
 
 /**
@@ -91,7 +93,7 @@ import static org.junit.Assert.*;
 public class AddUserMemberActionTest
 {
     private final static Logger log = Logger.getLogger(AddUserMemberActionTest.class);
-    
+
     @BeforeClass
     public static void setUpClass()
     {
@@ -103,43 +105,42 @@ public class AddUserMemberActionTest
     public void testExceptions()
     {
         try
-        {   
+        {
             String userID = "foo";
             String userIDType = AuthenticationUtil.AUTH_TYPE_HTTP;
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
             User<Principal> user = new User<Principal>(userPrincipal);
-            
+
             Group group = new Group("group", null);
             group.getUserMembers().add(user);
-            
+
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             EasyMock.replay(groupPersistence);
-            
+
             final UserPersistence userPersistence = EasyMock.createMock(UserPersistence.class);
             EasyMock.expect(userPersistence.getUser(userPrincipal)).andReturn(user);
             EasyMock.replay(userPersistence);
-            
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
-            
-            AddUserMemberAction action = new AddUserMemberAction(logInfo, "group", userID, userIDType)
+
+
+            AddUserMemberAction action = new AddUserMemberAction("group", userID, userIDType)
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
                 {
                     return groupPersistence;
                 };
-                
+
                 @Override
                 <T extends Principal> UserPersistence<T> getUserPersistence()
                 {
                     return userPersistence;
                 };
             };
-            
+
             try
             {
-                action.run();
+                action.doAction();
                 fail("duplicate group member should throw MemberAlreadyExistsException");
             }
             catch (MemberAlreadyExistsException ignore) {}
@@ -150,7 +151,7 @@ public class AddUserMemberActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
     @Test
     @SuppressWarnings("unchecked")
     public void testRun() throws Exception
@@ -161,38 +162,38 @@ public class AddUserMemberActionTest
             String userIDType = AuthenticationUtil.AUTH_TYPE_HTTP;
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
             User<Principal> user = new User<Principal>(userPrincipal);
-            
+
             Group group = new Group("group", null);
             Group modified = new Group("group", null);
             modified.getUserMembers().add(user);
-            
+
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
             EasyMock.replay(groupPersistence);
-            
+
             final UserPersistence userPersistence = EasyMock.createMock(UserPersistence.class);
             EasyMock.expect(userPersistence.getUser(userPrincipal)).andReturn(user);
             EasyMock.replay(userPersistence);
-            
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
-            
-            AddUserMemberAction action = new AddUserMemberAction(logInfo, "group", userID, userIDType)
+
+            AddUserMemberAction action = new AddUserMemberAction("group", userID, userIDType)
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
                 {
                     return groupPersistence;
                 };
-                
+
                 @Override
                 <T extends Principal> UserPersistence<T> getUserPersistence()
                 {
                     return userPersistence;
                 };
             };
-            
-            action.run();
+
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+            action.setLogInfo(logInfo);
+            action.doAction();
         }
         catch (Throwable t)
         {
@@ -200,5 +201,5 @@ public class AddUserMemberActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
 }

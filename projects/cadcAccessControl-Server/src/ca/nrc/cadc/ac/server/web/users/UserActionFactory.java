@@ -70,14 +70,13 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
-import ca.nrc.cadc.util.StringUtil;
 
 import java.io.IOException;
-import java.net.URL;
 import java.security.Principal;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
@@ -85,102 +84,150 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 
 
-public class UsersActionFactory
+public abstract class UserActionFactory
 {
-    private static final Logger log = Logger
-            .getLogger(UsersActionFactory.class);
+    private static final Logger log = Logger.getLogger(UserActionFactory.class);
 
-    static UsersAction getUsersAction(HttpServletRequest request, UserLogInfo logInfo)
-            throws IOException
+    public abstract AbstractUserAction createAction(HttpServletRequest request)
+        throws IllegalArgumentException, IOException;
+
+    public static UserActionFactory httpGetFactory()
     {
-        UsersAction action = null;
-        String method = request.getMethod();
-        String path = request.getPathInfo();
-        log.debug("method: " + method);
-        log.debug("path: " + path);
-
-        if (path == null)
+        return new UserActionFactory()
         {
-            path = "";
-        }
-
-        if (path.startsWith("/"))
-        {
-            path = path.substring(1);
-        }
-
-        if (path.endsWith("/"))
-        {
-            path = path.substring(0, path.length() - 1);
-        }
-
-        String[] segments = new String[0];
-        if (StringUtil.hasText(path))
-        {
-            segments = path.split("/");
-        }
-
-        if (segments.length == 0)
-        {
-            if (method.equals("GET"))
+            public AbstractUserAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
             {
-                action = new GetUsersAction(logInfo);
-            }
-            else if (method.equals("PUT"))
-            {
-                action = new CreateUserAction(logInfo, request
-                        .getInputStream());
-            }
+                AbstractUserAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
 
-        }
-        else
-        {
-            User user = getUser(segments[0], request.getParameter("idType"),
-                                method, path);
-            if (method.equals("GET"))
-            {
-                action = new GetUserAction(logInfo, user.getUserID());
-            }
-            else if (method.equals("DELETE"))
-            {
-                action = new DeleteUserAction(logInfo, user.getUserID());
-            }
-            else if (method.equals("POST"))
-            {
-                final URL requestURL = new URL(request.getRequestURL()
-                                                       .toString());
-                final StringBuilder sb = new StringBuilder();
-                sb.append(requestURL.getProtocol());
-                sb.append("://");
-                sb.append(requestURL.getHost());
-                if (requestURL.getPort() > 0)
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 0)
                 {
-                    sb.append(":");
-                    sb.append(requestURL.getPort());
+                    action = new GetUserListAction();
                 }
-                sb.append(request.getContextPath());
-                sb.append(request.getServletPath());
-                sb.append("/");
-                sb.append(path);
+                else if (segments.length == 1)
+                {
+                    User user = getUser(segments[0], request.getParameter("idType"), path);
+                        action = new GetUserAction(user.getUserID());
+                }
 
-                action = new ModifyUserAction(logInfo, user.getUserID(), sb
-                        .toString(),
-                                              request.getInputStream());
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+
+                 throw new IllegalArgumentException("Bad GET request to " + path);
             }
-        }
+        };
+    }
 
-        if (action != null)
+    public static UserActionFactory httpPutFactory()
+    {
+        return new UserActionFactory()
         {
-            log.debug("Returning action: " + action.getClass());
-            return action;
-        }
-        final String error = "Bad users request: " + method + " on " + path;
-        throw new IllegalArgumentException(error);
+            public AbstractUserAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                AbstractUserAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
+
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 0)
+                {
+                    action = new CreateUserAction(request.getInputStream());
+                }
+
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+
+                 throw new IllegalArgumentException("Bad PUT request to " + path);
+            }
+        };
+    }
+
+    public static UserActionFactory httpPostFactory()
+    {
+        return new UserActionFactory()
+        {
+            public AbstractUserAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                AbstractUserAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
+
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 1)
+                {
+                    action = new ModifyUserAction(request.getInputStream());
+                }
+
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+
+                 throw new IllegalArgumentException("Bad POST request to " + path);
+            }
+        };
+    }
+
+    public static UserActionFactory httpDeleteFactory()
+    {
+        return new UserActionFactory()
+        {
+            public AbstractUserAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                AbstractUserAction action = null;
+                String path = request.getPathInfo();
+                log.debug("path: " + path);
+
+                String[] segments = WebUtil.getPathSegments(path);
+
+                if (segments.length == 1)
+                {
+                    User user = getUser(segments[0], request.getParameter("idType"), path);
+                    action = new DeleteUserAction(user.getUserID());
+                }
+
+                if (action != null)
+                {
+                    log.debug("Returning action: " + action.getClass());
+                    return action;
+                }
+
+                 throw new IllegalArgumentException("Bad DELETE request to " + path);
+            }
+        };
+    }
+
+    public static UserActionFactory httpHeadFactory()
+    {
+        return new UserActionFactory()
+        {
+            public AbstractUserAction createAction(HttpServletRequest request)
+                throws IllegalArgumentException, IOException
+            {
+                // http head not supported
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     private static User<? extends Principal> getUser(final String userName,
                                                      final String idType,
-                                                     final String method,
                                                      final String path)
     {
         if (idType == null || idType.isEmpty())
@@ -210,9 +257,7 @@ public class UsersActionFactory
         }
         else
         {
-            final String error = "Bad users request: " + method + " on " + path +
-                                 " because of unknown principal type " + idType;
-            throw new IllegalArgumentException(error);
+            throw new IllegalArgumentException("Unregonized userid");
         }
     }
 

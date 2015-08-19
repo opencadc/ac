@@ -88,7 +88,7 @@ import static org.junit.Assert.*;
 public class AddGroupMemberActionTest
 {
     private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
-    
+
     @BeforeClass
     public static void setUpClass()
     {
@@ -103,15 +103,13 @@ public class AddGroupMemberActionTest
             Group group = new Group("group", null);
             Group member = new Group("member", null);
             group.getGroupMembers().add(member);
-            
+
             final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
             expect(groupPersistence.getGroup("group")).andReturn(group);
             expect(groupPersistence.getGroup("member")).andReturn(member);
             replay(groupPersistence);
-            
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            
-            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
+
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
@@ -119,10 +117,10 @@ public class AddGroupMemberActionTest
                     return groupPersistence;
                 };
             };
-            
+
             try
             {
-                action.run();
+                action.doAction();
                 fail("duplicate group member should throw GroupAlreadyExistsException");
             }
             catch (GroupAlreadyExistsException ignore) {}
@@ -133,7 +131,7 @@ public class AddGroupMemberActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
     @Test
     public void testRun() throws Exception
     {
@@ -152,10 +150,8 @@ public class AddGroupMemberActionTest
             expect(groupPersistence.modifyGroup(group)).andReturn(modified);
 
             replay(groupPersistence);
-            
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            
-            AddGroupMemberAction action = new AddGroupMemberAction(logInfo, "group", "member")
+
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
@@ -164,7 +160,11 @@ public class AddGroupMemberActionTest
                 };
             };
 
-            action.run();
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+            action.setLogInfo(logInfo);
+
+            action.doAction();
+
         }
         catch (Throwable t)
         {
@@ -172,5 +172,5 @@ public class AddGroupMemberActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
 }

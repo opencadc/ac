@@ -77,6 +77,8 @@ import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.*;
 
 /**
@@ -86,7 +88,7 @@ import static org.junit.Assert.*;
 public class DeleteGroupActionTest
 {
    private final static Logger log = Logger.getLogger(DeleteGroupActionTest.class);
-    
+
     @BeforeClass
     public static void setUpClass()
     {
@@ -97,18 +99,16 @@ public class DeleteGroupActionTest
     public void testRun()
     {
         try
-        {   
+        {
             Group group = new Group("group", null);
-            
+
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             groupPersistence.deleteGroup("group");
             EasyMock.expectLastCall().once();
             EasyMock.replay(groupPersistence);
-            
-            GroupLogInfo logInfo = EasyMock.createMock(GroupLogInfo.class);
-            
-            DeleteGroupAction action = new DeleteGroupAction(logInfo, "group")
+
+            DeleteGroupAction action = new DeleteGroupAction("group")
             {
                 @Override
                 <T extends Principal> GroupPersistence<T> getGroupPersistence()
@@ -117,7 +117,9 @@ public class DeleteGroupActionTest
                 };
             };
 
-            action.run();
+            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+            action.setLogInfo(logInfo);
+            action.doAction();
         }
         catch (Throwable t)
         {
@@ -125,5 +127,5 @@ public class DeleteGroupActionTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
 }

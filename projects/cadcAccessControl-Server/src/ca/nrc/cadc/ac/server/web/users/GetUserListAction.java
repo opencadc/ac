@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,41 +62,31 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.client;
-
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.HttpPrincipal;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Test;
-import static org.junit.Assert.*;
+package ca.nrc.cadc.ac.server.web.users;
 
 
-public class JSONUserListInputStreamWrapperTest
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.server.UserPersistence;
+
+
+public class GetUserListAction extends AbstractUserAction
 {
-    @Test
-    public void readInputStream() throws Exception
+
+    private static final Logger log = Logger.getLogger(GetUserListAction.class);
+
+    GetUserListAction()
     {
-        final List<User<HttpPrincipal>> output =
-                new ArrayList<User<HttpPrincipal>>();
-        final JSONUserListInputStreamWrapper testSubject =
-                new JSONUserListInputStreamWrapper(output);
-        final InputStream inputStream =
-                new ByteArrayInputStream("[{\"id\":\"CADCTest\",\"firstName\":\"CADCtest\",\"lastName\":\"USER\"}\n,{\"id\":\"User_2\",\"firstName\":\"User\",\"lastName\":\"2\"}]".getBytes());
+    }
 
-        testSubject.read(inputStream);
-
-        assertEquals("First item is wrong.", "CADCTest",
-                     output.get(0).getUserID().getName());
-        assertEquals("First item is wrong.", "User_2",
-                     output.get(1).getUserID().getName());
+    public void doAction() throws Exception
+    {
+        final UserPersistence userPersistence = getUserPersistence();
+        writeUsers(userPersistence.getUsers());
     }
 }

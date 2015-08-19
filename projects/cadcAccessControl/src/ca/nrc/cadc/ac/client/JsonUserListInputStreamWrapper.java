@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,100 +62,93 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
+package ca.nrc.cadc.ac.client;
+
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
-import org.junit.Test;
+import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
-import java.util.ArrayList;
+import java.io.InputStreamReader;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-/**
- *
- * @author jburke
- */
-public class GroupsReaderWriterTest
+public class JsonUserListInputStreamWrapper implements InputStreamWrapper
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
+    private static final Logger LOGGER = Logger
+            .getLogger(JsonUserListInputStreamWrapper.class);
+    private final List<User<HttpPrincipal>> output;
 
-    @Test
-    public void testReaderExceptions()
-        throws Exception
+
+    public JsonUserListInputStreamWrapper(
+        final List<User<HttpPrincipal>> output)
     {
-        try
-        {
-            String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
+        this.output = output;
     }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
+
+
+    /**
+     * Read the stream in.
+     *
+     * @param inputStream The stream to read from.
+     * @throws IOException Any reading exceptions.
+     */
+    @Override
+    public void read(final InputStream inputStream) throws IOException
     {
+        String line = null;
+
         try
         {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
+            final InputStreamReader inReader =
+                    new InputStreamReader(inputStream);
+            final BufferedReader reader = new BufferedReader(inReader);
+
+            while (StringUtil.hasText(line = reader.readLine()))
+            {
+                // Deal with arrays stuff.
+                while (line.startsWith("[") || line.startsWith(","))
+                {
+                    line = line.substring(1);
+                }
+
+                while (line.endsWith("]") || line.endsWith(","))
+                {
+                    line = line.substring(0, (line.length() - 1));
+                }
+
+                if (StringUtil.hasText(line))
+                {
+                    LOGGER.debug(String.format("Reading: %s", line));
+
+                    final JSONObject jsonObject = new JSONObject(line);
+                    final User<HttpPrincipal> webUser =
+                            new User<HttpPrincipal>(
+                                    new HttpPrincipal(jsonObject
+                                                              .getString("id")));
+                    final String firstName = jsonObject.getString("firstName");
+                    final String lastName = jsonObject.getString("lastName");
+
+                    webUser.details
+                            .add(new PersonalDetails(firstName, lastName));
+
+                    output.add(webUser);
+                }
+            }
         }
-        catch (WriterException e) {}
+        catch (Exception bug)
+        {
+            throw new IOException(bug + (StringUtil.hasText(line)
+                                         ? "Error line is " + line : ""));
+        }
     }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
-
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
-    }
-
 }

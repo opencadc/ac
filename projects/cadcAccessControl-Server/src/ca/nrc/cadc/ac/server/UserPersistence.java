@@ -70,13 +70,10 @@ package ca.nrc.cadc.ac.server;
 
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Collection;
 import java.util.Map;
 
 import ca.nrc.cadc.ac.*;
 import ca.nrc.cadc.net.TransientException;
-
-import com.unboundid.ldap.sdk.DN;
 
 
 public interface UserPersistence<T extends Principal>
@@ -94,7 +91,7 @@ public interface UserPersistence<T extends Principal>
     /**
      * Add the new user.
      *
-     * @param user
+     * @param user      The user request to put into the request tree.
      *
      * @return User instance.
      * 
@@ -119,6 +116,21 @@ public interface UserPersistence<T extends Principal>
     User<T> getUser(T userID)
         throws UserNotFoundException, TransientException, 
                AccessControlException;
+
+    /**
+     * Get the user specified by userID whose account is pending approval.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User<T> getPendingUser(T userID)
+            throws UserNotFoundException, TransientException,
+                   AccessControlException;
     
     /**
      * Attempt to login the specified user.
@@ -132,14 +144,14 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Boolean loginUser(String userID, String password)
+    Boolean doLogin(String userID, String password)
             throws UserNotFoundException, TransientException, 
             AccessControlException;
    
     /**
      * Updated the user specified by User.
      *
-     * @param user
+     * @param user      The user instance to modify.
      *
      * @return User instance.
      * 
@@ -162,38 +174,5 @@ public interface UserPersistence<T extends Principal>
      */
     void deleteUser(T userID)
         throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Get all groups the user specified by userID belongs to.
-     * 
-     * @param userID The userID.
-     * @param isAdmin return only admin Groups when true, else return non-admin
-     *                Groups.
-     * 
-     * @return Collection of group DN.
-     * 
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<DN> getUserGroups(T userID, boolean isAdmin)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
-    
-    /**
-     * Check whether the user is a member of the group.
-     *
-     * @param userID The userID.
-     * @param groupID The groupID.
-     *
-     * @return true or false
-     *
-     * @throws UserNotFoundException If the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    boolean isMember(T userID, String groupID)
-        throws UserNotFoundException, TransientException,
                AccessControlException;
 }

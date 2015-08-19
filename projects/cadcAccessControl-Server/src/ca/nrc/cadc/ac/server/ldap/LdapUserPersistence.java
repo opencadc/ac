@@ -134,8 +134,7 @@ public class LdapUserPersistence<T extends Principal>
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            User<T> ret = userDAO.addUser(user);
-            return ret;
+            return userDAO.addUser(user);
         }
         finally
         {
@@ -164,8 +163,36 @@ public class LdapUserPersistence<T extends Principal>
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            User<T> ret = userDAO.getUser(userID);
-            return ret;
+            return userDAO.getUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+    * Get the user specified by userID whose account is pending approval.
+    *
+    * @param userID The userID.
+    * @return User instance.
+    * @throws UserNotFoundException  when the user is not found.
+    * @throws TransientException     If an temporary, unexpected problem occurred.
+    * @throws AccessControlException If the operation is not permitted.
+    */
+    @Override
+    public User<T> getPendingUser(final T userID) throws UserNotFoundException,
+                                                         TransientException,
+                                                         AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.getPendingUser(userID);
         }
         finally
         {
@@ -187,14 +214,14 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Boolean loginUser(String userID, String password)
+    public Boolean doLogin(String userID, String password)
             throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            return userDAO.loginUser(userID, password);
+            return userDAO.doLogin(userID, password);
         }
         finally
         {
@@ -204,11 +231,11 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-       
+
     /**
      * Updated the user specified by User.
      *
-     * @param user
+     * @param user          The user to update.
      *
      * @return User instance.
      * 
@@ -224,8 +251,35 @@ public class LdapUserPersistence<T extends Principal>
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            User<T> ret = userDAO.modifyUser(user);
-            return ret;
+            return userDAO.modifyUser(user);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Update a user's password. The given user and authenticating user must match.
+     *
+     * @param user
+     * @param oldPassword   current password.
+     * @param newPassword   new password.
+     * @throws UserNotFoundException If the given user does not exist.
+     * @throws TransientException   If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void setPassword(User<T> user, final String oldPassword, final String newPassword)
+            throws UserNotFoundException, TransientException, AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO.setPassword(user, oldPassword, newPassword);
         }
         finally
         {
@@ -265,7 +319,8 @@ public class LdapUserPersistence<T extends Principal>
     }
     
     /**
-     * Get all groups the user specified by userID belongs to.
+     * Get all groups the user specified by userID belongs to. This method is created
+     * to provide optimization for the LDAP server.
      * 
      * @param userID The userID.
      * @param isAdmin return only admin Groups when true, else return non-admin
@@ -277,15 +332,14 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<DN> getUserGroups(T userID, boolean isAdmin)
+    Collection<DN> getUserGroups(T userID, boolean isAdmin)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            Collection<DN> ret = userDAO.getUserGroups(userID, isAdmin);
-            return ret;
+            return userDAO.getUserGroups(userID, isAdmin);
         }
         finally
         {
@@ -297,7 +351,8 @@ public class LdapUserPersistence<T extends Principal>
     }
     
     /**
-     * Check whether the user is a member of the group.
+     * Check whether the user is a member of the group. This method is created
+     * to provide optimization for the LDAP server.
      *
      * @param userID The userID.
      * @param groupID The groupID.
@@ -308,7 +363,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public boolean isMember(T userID, String groupID)
+    boolean isMember(T userID, String groupID)
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
@@ -316,8 +371,7 @@ public class LdapUserPersistence<T extends Principal>
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            boolean ret = userDAO.isMember(userID, groupID);
-            return ret;
+            return userDAO.isMember(userID, groupID);
         }
         finally
         {
@@ -327,5 +381,4 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-
 }

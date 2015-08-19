@@ -68,19 +68,26 @@
  */
 package ca.nrc.cadc.ac.json;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
+import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -91,9 +98,15 @@ import static org.junit.Assert.fail;
  *
  * @author jburke
  */
-public class UserReaderWriterTest
+public class JsonGroupReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
+    private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
+
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac.json", Level.INFO);
+    }
 
     @Test
     public void testReaderExceptions()
@@ -102,7 +115,8 @@ public class UserReaderWriterTest
         try
         {
             String s = null;
-            User<? extends Principal> u = UserReader.read(s);
+            JsonGroupReader reader = new JsonGroupReader();
+            Group g = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -110,7 +124,8 @@ public class UserReaderWriterTest
         try
         {
             InputStream in = null;
-            User<? extends Principal> u = UserReader.read(in);
+            JsonGroupReader reader = new JsonGroupReader();
+            Group g = reader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -118,8 +133,9 @@ public class UserReaderWriterTest
         try
         {
             Reader r = null;
-            User<? extends Principal> u = UserReader.read(r);
-            fail("null Reader should throw IllegalArgumentException");
+            JsonGroupReader reader = new JsonGroupReader();
+            Group g = reader.read(r);
+            fail("null element should throw ReaderException");
         }
         catch (IllegalArgumentException e) {}
     }
@@ -130,28 +146,81 @@ public class UserReaderWriterTest
     {
         try
         {
-            UserWriter.write(null, new StringBuilder());
-            fail("null User should throw WriterException");
+            JsonGroupWriter writer = new JsonGroupWriter();
+            writer.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
         }
         catch (WriterException e) {}
     }
      
     @Test
-    public void testReadWrite()
+    public void testMinimalReadWrite()
         throws Exception
     {
-        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
-        expected.getIdentities().add(new NumericPrincipal(123l));
-        expected.details.add(new PersonalDetails("firstname", "lastname"));
-        expected.details.add(new PosixDetails(123l, 456l, "foo"));
-
+        Group expected = new Group("groupID");
+                
         StringBuilder json = new StringBuilder();
-        UserWriter.write(expected, json);
+        JsonGroupWriter writer = new JsonGroupWriter();
+        writer.write(expected, json);
         assertFalse(json.toString().isEmpty());
-        
-        User<? extends Principal> actual = UserReader.read(json.toString());
+
+        JsonGroupReader reader = new JsonGroupReader();
+        Group actual = reader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testMaximalReadWrite()
+        throws Exception
+    {
+        User<Principal> owner = new User<Principal>(new HttpPrincipal("foo"));
+        X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
+        owner.getIdentities().add(x500Principal);
+        PersonalDetails personalDetails = new PersonalDetails("foo", "bar");
+        personalDetails.address = "address";
+        personalDetails.email = "email";
+        personalDetails.institute = "institute";
+        personalDetails.city = "city";
+        personalDetails.country = "country";
+        owner.details.add(personalDetails);
+        PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
+        owner.details.add(posixDetails);
+
+        Group expected = new Group("groupID", owner);
+        expected.description = "description";
+        expected.lastModified = new Date();
+        expected.getProperties().add(new GroupProperty("key1", "value1", true));
+        expected.getProperties().add(new GroupProperty("key2", "value2", true));
+        expected.getProperties().add(new GroupProperty("key3", "value3", true));
+
+        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
+        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
+        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
+        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
+
+        expected.getGroupMembers().add(groupMember);
+        expected.getUserMembers().add(userMember);
+        expected.getGroupAdmins().add(groupAdmin);
+        expected.getUserAdmins().add(userAdmin);
+
+        JsonGroupWriter writer = new JsonGroupWriter();
+        StringBuilder sb = new StringBuilder();
+        writer.write(expected, sb);
+
+        String json = sb.toString();
+        log.debug(json);
+
+        JsonGroupReader reader = new JsonGroupReader();
+        Group actual = reader.read(json);
+
+        assertNotNull(actual);
+        assertEquals(expected, actual);
+        assertEquals(expected.description, actual.description);
+        assertEquals(expected.lastModified, actual.lastModified);
+        assertEquals(expected.getProperties(), actual.getProperties());
+        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
+        assertEquals(expected.getUserMembers(), actual.getUserMembers());
     }
     
 }

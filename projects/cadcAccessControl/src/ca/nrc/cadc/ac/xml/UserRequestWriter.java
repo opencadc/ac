@@ -81,6 +81,9 @@ import java.io.IOException;
 import java.io.Writer;
 import java.security.Principal;
 
+/**
+ * Class to write a XML representation of a UserRequest object.
+ */
 public class UserRequestWriter
 {
     /**
@@ -91,7 +94,7 @@ public class UserRequestWriter
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(UserRequest<? extends Principal> userRequest, StringBuilder builder)
+    public void write(UserRequest<? extends Principal> userRequest, StringBuilder builder)
         throws IOException, WriterException
     {
         write(userRequest, new StringBuilderWriter(builder));
@@ -135,7 +138,7 @@ public class UserRequestWriter
 
         // password element
         Element passwordElement = new Element("password");
-        passwordElement.setText(userRequest.getPassword());
+        passwordElement.setText(String.valueOf(userRequest.getPassword()));
         userRequestElement.addContent(passwordElement);
 
         return userRequestElement;

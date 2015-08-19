@@ -66,124 +66,114 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.json;
+package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.security.Principal;
-import java.util.Date;
+import java.security.AccessControlException;
+import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.util.StringUtil;
+
 
 /**
- *
- * @author jburke
+ * Servlet to handle password changes.  Passwords are an integral part of the
+ * access control system and are handled differently to accommodate stricter
+ * guidelines.
+ * <p/>
+ * This servlet handles POST only.  It relies on the Subject being set higher
+ * up by the AccessControlFilter as configured in the web descriptor.
  */
-public class GroupReaderWriterTest
+public class PasswordServlet extends HttpServlet
 {
-    private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
+    private static final Logger log = Logger.getLogger(PasswordServlet.class);
 
-    @Test
-    public void testReaderExceptions()
-        throws Exception
-    {
-        try
-        {
-            String s = null;
-            Group g = GroupReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            Group g = GroupReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            Group g = GroupReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            GroupWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {
-        Group expected = new Group("groupID", null);
-                
-        StringBuilder json = new StringBuilder();
-        GroupWriter.write(expected, json);
-        assertFalse(json.toString().isEmpty());
-        
-        Group actual = GroupReader.read(json.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-    }
-    
-    @Test
-    public void testMaximalReadWrite()
-        throws Exception
-    {
-        Group expected = new Group("groupID", new User<Principal>(new HttpPrincipal("foo")));
-        expected.description = "description";
-        expected.lastModified = new Date();
-        expected.getProperties().add(new GroupProperty("key", "value", true));
-        
-        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
-        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
-        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
-        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
-        
-        expected.getGroupMembers().add(groupMember);
-        expected.getUserMembers().add(userMember);
-        expected.getGroupAdmins().add(groupAdmin);
-        expected.getUserAdmins().add(userAdmin);
-        
-        StringBuilder json = new StringBuilder();
-        GroupWriter.write(expected, json);
-        assertFalse(json.toString().isEmpty());
 
-        Group actual = GroupReader.read(json.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-        assertEquals(expected.description, actual.description);
-        assertEquals(expected.lastModified, actual.lastModified);
-        assertEquals(expected.getProperties(), actual.getProperties());
-        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
-        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+    /**
+     * Attempt to change password.
+     *
+     * @param request  The HTTP Request.
+     * @param response The HTTP Response.
+     * @throws IOException Any errors that are not expected.
+     */
+    public void doPost(final HttpServletRequest request,
+                       final HttpServletResponse response)
+            throws IOException
+    {
+        final long start = System.currentTimeMillis();
+        final ServletLogInfo logInfo = new ServletLogInfo(request);
+        log.info(logInfo.start());
+        try
+        {
+            final Subject subject = AuthenticationUtil.getSubject(request);
+            if ((subject == null)
+                || (subject.getPrincipals(HttpPrincipal.class).isEmpty()))
+            {
+                logInfo.setMessage("Unauthorized subject");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+            else
+            {
+                logInfo.setSubject(subject);
+                final Set<HttpPrincipal> webPrincipals =
+                    subject.getPrincipals(HttpPrincipal.class);
+                final User<HttpPrincipal> user =
+                    new User<HttpPrincipal>(webPrincipals.iterator().next());
+                String oldPassword = request.getParameter("old_password");
+                String newPassword = request.getParameter("new_password");
+                if (StringUtil.hasText(oldPassword))
+                {
+                    if (StringUtil.hasText(newPassword))
+                    {
+                        (new LdapUserPersistence<HttpPrincipal>())
+                            .setPassword(user, oldPassword, newPassword);
+                    }
+                    else
+                    {
+                        throw new IllegalArgumentException("Missing new password");
+                    }
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Missing old password");
+                }
+            }
+        }
+        catch (IllegalArgumentException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
+        catch (AccessControlException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
+        catch (Throwable t)
+        {
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
+        }
     }
-    
 }

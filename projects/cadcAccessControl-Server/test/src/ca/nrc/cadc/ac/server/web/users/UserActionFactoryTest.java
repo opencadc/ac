@@ -92,10 +92,9 @@ public class UserActionFactoryTest
         {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("");
-            EasyMock.expect(request.getMethod()).andReturn("PUT");
             EasyMock.expect(request.getInputStream()).andReturn(null);
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.httpPutFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof CreateUserAction);
         }
@@ -113,10 +112,9 @@ public class UserActionFactoryTest
         {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
-            EasyMock.expect(request.getMethod()).andReturn("DELETE");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.httpDeleteFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof DeleteUserAction);
         }
@@ -134,10 +132,9 @@ public class UserActionFactoryTest
         {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
-            EasyMock.expect(request.getMethod()).andReturn("GET");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof GetUserAction);
         }
@@ -155,11 +152,10 @@ public class UserActionFactoryTest
         {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("");
-            EasyMock.expect(request.getMethod()).andReturn("GET");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
-            Assert.assertTrue("Wrong action", action instanceof GetUsersAction);
+            Assert.assertTrue("Wrong action", action instanceof GetUserListAction);
         }
         catch (Throwable t)
         {
@@ -178,14 +174,13 @@ public class UserActionFactoryTest
 
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
-            EasyMock.expect(request.getMethod()).andReturn("POST");
-            EasyMock.expect(request.getRequestURL()).andReturn(sb);
-            EasyMock.expect(request.getContextPath()).andReturn("");
-            EasyMock.expect(request.getServletPath()).andReturn("");
+            //EasyMock.expect(request.getRequestURL()).andReturn(sb);
+            //EasyMock.expect(request.getContextPath()).andReturn("");
+            //EasyMock.expect(request.getServletPath()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
-            EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
+            //EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
-            UsersAction action = UsersActionFactory.getUsersAction(request, null);
+            AbstractUserAction action = UserActionFactory.httpPostFactory().createAction(request);
             EasyMock.verify(request);
             Assert.assertTrue("Wrong action", action instanceof ModifyUserAction);
         }
@@ -197,41 +192,23 @@ public class UserActionFactoryTest
     }
 
     @Test
-    public void testBadRequests()
+    public void testBadPostRequest()
     {
         try
         {
-            TestRequest[] testRequests =
+            HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
+            EasyMock.expect(request.getPathInfo()).andReturn("");
+            EasyMock.replay(request);
+            try
             {
-                new TestRequest("", "POST"),
-                new TestRequest("", "DELETE"),
-                new TestRequest("", "HEAD"),
-            };
-
-            for (TestRequest testRequest : testRequests)
-            {
-
-                log.debug("Testing: " + testRequest);
-
-                HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
-                EasyMock.expect(request.getPathInfo()).andReturn(testRequest.path);
-                EasyMock.expect(request.getMethod()).andReturn(testRequest.method);
-                if (testRequest.paramName != null)
-                {
-                    EasyMock.expect(request.getParameter(testRequest.paramName)).andReturn(testRequest.paramValue);
-                }
-                EasyMock.replay(request);
-                try
-                {
-                    UsersActionFactory.getUsersAction(request, null);
-                    Assert.fail("Should have been a bad request: " + testRequest.method + " on " + testRequest.path);
-                }
-                catch (IllegalArgumentException e)
-                {
-                    // expected
-                }
-                EasyMock.verify(request);
+                UserActionFactory.httpPostFactory().createAction(request);
+                Assert.fail("Should have been a bad request");
             }
+            catch (IllegalArgumentException e)
+            {
+                // expected
+            }
+            EasyMock.verify(request);
         }
         catch (Throwable t)
         {
@@ -240,31 +217,56 @@ public class UserActionFactoryTest
         }
     }
 
-    private class TestRequest
+    @Test
+    public void testBadDeleteRequest()
     {
-        public String path;
-        public String method;
-        public String paramName;
-        public String paramValue;
-
-        public TestRequest(String path, String method)
+        try
         {
-            this(path, method, null, null);
+            HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
+            EasyMock.expect(request.getPathInfo()).andReturn("");
+            EasyMock.replay(request);
+            try
+            {
+                UserActionFactory.httpDeleteFactory().createAction(request);
+                Assert.fail("Should have been a bad request");
+            }
+            catch (IllegalArgumentException e)
+            {
+                // expected
+            }
+            EasyMock.verify(request);
         }
-        public TestRequest(String path, String method, String paramName, String paramValue)
+        catch (Throwable t)
         {
-            this.path = path;
-            this.method = method;
-            this.paramName = paramName;
-            this.paramValue = paramValue;
+            log.error(t.getMessage(), t);
+            Assert.fail("unexpected error: " + t.getMessage());
         }
-        @Override
-        public String toString()
-        {
-            return method + " on path " + path +
-                ((paramName == null) ? "" : "?" + paramName + "=" + paramValue);
-        }
-
     }
+
+    @Test
+    public void testBadHeadRequest()
+    {
+        try
+        {
+            HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
+            EasyMock.replay(request);
+            try
+            {
+                UserActionFactory.httpHeadFactory().createAction(request);
+                Assert.fail("Should have been a bad request");
+            }
+            catch (UnsupportedOperationException e)
+            {
+                // expected
+            }
+            EasyMock.verify(request);
+        }
+        catch (Throwable t)
+        {
+            log.error(t.getMessage(), t);
+            Assert.fail("unexpected error: " + t.getMessage());
+        }
+    }
+
 
 }
