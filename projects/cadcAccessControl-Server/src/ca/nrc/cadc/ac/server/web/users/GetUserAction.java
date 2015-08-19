@@ -71,11 +71,19 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
 
+import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
 
 
 public class GetUserAction extends AbstractUserAction
 {
+    private static final Logger log = Logger.getLogger(GetUserAction.class);
     private final Principal userID;
 
     GetUserAction(Principal userID)
@@ -84,22 +92,64 @@ public class GetUserAction extends AbstractUserAction
         this.userID = userID;
     }
 
-    public void doAction() throws Exception
+	public void doAction() throws Exception
     {
-        final UserPersistence<Principal> userPersistence = getUserPersistence();
-
         User<Principal> user;
-
-        try
+ 
+        if (isServops())
         {
-            user = userPersistence.getUser(userID);
+        	Subject subject = new Subject();
+        	subject.getPrincipals().add(this.userID);
+        	user = (User<Principal>) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        	{
+				@Override
+				public Object run() throws Exception 
+				{
+					return getUser(userID);
+				}
+        		
+        	});
         }
-        catch (UserNotFoundException e)
+        else
         {
-            user = userPersistence.getPendingUser(userID);
+        	user = getUser(this.userID);
         }
 
         writeUser(user);
     }
 
+    protected User<Principal> getUser(Principal principal) throws Exception
+    {
+        final UserPersistence<Principal> userPersistence = getUserPersistence();
+    	User<Principal> user;
+    	
+    	try
+        {
+            user = userPersistence.getUser(principal);
+        }
+        catch (UserNotFoundException e)
+        {
+            user = userPersistence.getPendingUser(principal);
+        }
+    	
+    	return user;
+    }
+    
+    protected boolean isServops()
+    {
+    	log.debug("alinga-- isServops(): augmentUserDN = " + this.augmentUserDN);
+    	boolean isServops = false;
+        AccessControlContext acc = AccessController.getContext();
+        Subject subject = Subject.getSubject(acc);
+        for (Principal principal : subject.getPrincipals())
+        {
+        	if (principal.getName().equals(this.getAugmentUserDN()))
+        	{
+        		isServops = true;
+        		break;
+        	}
+        }
+        
+        return isServops;
+    }
 }

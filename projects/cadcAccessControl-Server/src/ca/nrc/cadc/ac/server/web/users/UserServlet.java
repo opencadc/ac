@@ -72,11 +72,14 @@ import java.io.IOException;
 import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import ca.nrc.cadc.util.StringUtil;
+
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -86,6 +89,23 @@ public class UserServlet extends HttpServlet
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
+    private String augmentUserDN;
+    
+    @Override
+    public void init(final ServletConfig config) throws ServletException
+    {
+        super.init(config);
+
+        try
+        {
+        	this.augmentUserDN = config.getInitParameter(UserServlet.class.getName() + ".augmentUserDN");
+            log.info("augmentUserDN: " + augmentUserDN);
+        }
+        catch(Exception ex)
+        {
+            log.error("failed to init: " + ex);
+        }
+    }
 
     /**
      * Create a UserAction and run the action safely.
@@ -104,6 +124,7 @@ public class UserServlet extends HttpServlet
 
             AbstractUserAction action = factory.createAction(request);
 
+            action.setAugmentUserDN(this.augmentUserDN);
             action.setLogInfo(logInfo);
             action.setResponse(response);
             action.setAcceptedContentType(getAcceptedContentType(request));

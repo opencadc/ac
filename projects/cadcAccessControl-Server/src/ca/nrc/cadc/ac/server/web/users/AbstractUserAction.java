@@ -103,6 +103,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     static final String DEFAULT_CONTENT_TYPE = "text/xml";
     static final String JSON_CONTENT_TYPE = "application/json";
 
+    protected String augmentUserDN;
     protected UserLogInfo logInfo;
     protected HttpServletResponse response;
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
@@ -113,6 +114,16 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     public abstract void doAction() throws Exception;
 
+    public void setAugmentUserDN(final String dn)
+    {
+    	this.augmentUserDN = dn;
+    }
+    
+    public String getAugmentUserDN()
+    {
+    	return this.augmentUserDN;
+    }
+    
     public void setLogInfo(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
