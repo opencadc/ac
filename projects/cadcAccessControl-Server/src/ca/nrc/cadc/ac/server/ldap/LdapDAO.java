@@ -208,7 +208,8 @@ public abstract class LdapDAO
 
             SearchResult searchResult =
                     getConnection().search(config.getUsersDN(), SearchScope.ONE,
-                                           ldapField, "entrydn");
+                            "(&(objectclass=cadcaccount)" + ldapField + ")", 
+                            "entrydn");
 
             if (searchResult.getEntryCount() < 1)
             {
