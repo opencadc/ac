@@ -140,12 +140,15 @@ public class GetUserAction extends AbstractUserAction
     	boolean isServops = false;
         AccessControlContext acc = AccessController.getContext();
         Subject subject = Subject.getSubject(acc);
-        for (Principal principal : subject.getPrincipals())
+        if (subject != null)
         {
-        	if (principal.getName().equals(this.getAugmentUserDN()))
+        	for (Principal principal : subject.getPrincipals())
         	{
-        		isServops = true;
-        		break;
+        		if (principal.getName().equals(this.getAugmentUserDN()))
+        		{
+        			isServops = true;
+        			break;
+        		}
         	}
         }
         
