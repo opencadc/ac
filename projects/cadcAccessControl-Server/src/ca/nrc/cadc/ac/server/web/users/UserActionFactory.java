@@ -111,7 +111,7 @@ public abstract class UserActionFactory
                 else if (segments.length == 1)
                 {
                     User user = getUser(segments[0], request.getParameter("idType"), path);
-                        action = new GetUserAction(user.getUserID());
+                    action = new GetUserAction(user.getUserID(), request.getParameter("detail"));
                 }
 
                 if (action != null)
@@ -234,24 +234,24 @@ public abstract class UserActionFactory
         {
             throw new IllegalArgumentException("User endpoint missing idType parameter");
         }
-        else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue()))
+        else if (idType.equals(IdentityType.USERNAME.getValue()))
         {
             return new User<HttpPrincipal>(new HttpPrincipal(userName));
         }
-        else if (idType.equalsIgnoreCase(IdentityType.X500.getValue()))
+        else if (idType.equals(IdentityType.X500.getValue()))
         {
             return new User<X500Principal>(new X500Principal(userName));
         }
-        else if (idType.equalsIgnoreCase(IdentityType.UID.getValue()))
+        else if (idType.equals(IdentityType.UID.getValue()))
         {
             return new User<NumericPrincipal>(new NumericPrincipal(
                     Long.parseLong(userName)));
         }
-        else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue()))
+        else if (idType.equals(IdentityType.OPENID.getValue()))
         {
             return new User<OpenIdPrincipal>(new OpenIdPrincipal(userName));
         }
-        else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue()))
+        else if (idType.equals(IdentityType.COOKIE.getValue()))
         {
             return new User<CookiePrincipal>(new CookiePrincipal(userName));
         }

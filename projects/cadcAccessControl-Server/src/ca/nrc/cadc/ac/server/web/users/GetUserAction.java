@@ -67,6 +67,7 @@
  ************************************************************************
  */package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
@@ -75,6 +76,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 
@@ -85,11 +87,13 @@ public class GetUserAction extends AbstractUserAction
 {
     private static final Logger log = Logger.getLogger(GetUserAction.class);
     private final Principal userID;
+    private final String detail;
 
-    GetUserAction(Principal userID)
+    GetUserAction(Principal userID, String detail)
     {
         super();
         this.userID = userID;
+        this.detail = detail;
     }
 
 	public void doAction() throws Exception
@@ -126,6 +130,32 @@ public class GetUserAction extends AbstractUserAction
     	try
         {
             user = userPersistence.getUser(principal);
+            if (detail != null)
+            {
+                // Only return user principals
+                if (detail.equals("identity"))
+                {
+                    user.details.clear();
+                }
+                // Only return user profile info, first and last name.
+                else if (detail.equals("display"))
+                {
+                    user.getIdentities().clear();
+                    Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
+                    if (details.isEmpty())
+                    {
+                        String error = principal.getName() + " missing required PersonalDetails";
+                        throw new IllegalStateException(error);
+                    }
+                    PersonalDetails pd = details.iterator().next();
+                    user.details.clear();
+                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Illegal detail parameter " + detail);
+                }
+            }
         }
         catch (UserNotFoundException e)
         {
