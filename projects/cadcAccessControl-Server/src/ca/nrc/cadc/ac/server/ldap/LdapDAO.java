@@ -186,7 +186,7 @@ public abstract class LdapDAO
                 }
                 if (p instanceof NumericPrincipal)
                 {
-                    ldapField = "(entryid=" + p.getName() + ")";
+                    ldapField = "(numericid=" + p.getName() + ")";
                     break;
                 }
                 if (p instanceof X500Principal)
