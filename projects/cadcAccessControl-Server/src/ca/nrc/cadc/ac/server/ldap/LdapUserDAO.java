@@ -68,6 +68,20 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
@@ -77,6 +91,7 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
@@ -100,17 +115,7 @@ import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
-import org.apache.log4j.Logger;
 
-import javax.security.auth.x500.X500Principal;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 
 
 public class LdapUserDAO<T extends Principal> extends LdapDAO
@@ -130,6 +135,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_ENTRYDN = "entrydn";
     protected static final String LDAP_COMMON_NAME = "cn";
     protected static final String LDAP_DISTINGUISHED_NAME = "distinguishedName";
+    protected static final String LDAP_NUMERICID = "numericid";
     protected static final String LADP_USER_PASSWORD = "userPassword";
     protected static final String LDAP_FIRST_NAME = "givenName";
     protected static final String LDAP_LAST_NAME = "sn";
@@ -140,11 +146,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
 
+    
     private String[] userAttribs = new String[]
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
                     LDAP_COUNTRY,
-                    LDAP_EMAIL, LDAP_INSTITUTE, LDAP_UID
+                    LDAP_EMAIL, LDAP_INSTITUTE
             };
     private String[] memberAttribs = new String[]
             {
@@ -156,6 +163,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         super(config);
         this.userLdapAttrib.put(HttpPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(X500Principal.class, LDAP_DISTINGUISHED_NAME);
+        this.userLdapAttrib.put(NumericPrincipal.class, LDAP_NUMERICID);
 
         // add the id attributes to user and member attributes
         String[] princs = userLdapAttrib.values()
@@ -351,17 +359,26 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             // add new user
+        	
+            DN userX500DN = getUserRequestsDN(user.getUserID().getName());        	
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_COMMON_NAME, user.getUserID()
                 .getName());
-            addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userDN
-                .toNormalizedString());
-            addAttribute(attributes, LADP_USER_PASSWORD,
-                String.valueOf(userRequest.getPassword()));
-
+            addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest
+                    .getPassword()));
+            addAttribute(attributes, LDAP_NUMERICID, 
+                    String.valueOf(genNextNumericId()));
+            for (Principal princ : user.getIdentities())
+            {
+                if (princ instanceof X500Principal)
+                {
+                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME, 
+                            princ.getName());
+                }
+            }
             for (UserDetails details : user.details)
             {
                 if (details.getClass() == PersonalDetails.class)
@@ -449,7 +466,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField = "(&(objectclass=inetorgperson)(" +
+        searchField = "(&(objectclass=inetorgperson)(objectclass=cadcaccount)(" +
                       searchField + "=" + userID.getName() + "))";
         logger.debug(searchField);
 
@@ -459,7 +476,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.SUB,
                                       searchField, userAttribs);
-
             if (isSecure(usersDN))
             {
                 searchRequest.addControl(
@@ -480,10 +496,17 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
-        User<T> user = new User<T>(userID);
-        user.getIdentities().add(new HttpPrincipal(searchResult.getAttributeValue(
-            userLdapAttrib.get(HttpPrincipal.class))));
 
+        User<T> user = new User<T>(userID);
+        user.getIdentities().add(new HttpPrincipal(
+                searchResult.getAttributeValue(
+                       userLdapAttrib.get(HttpPrincipal.class))));
+        user.getIdentities().add(new NumericPrincipal(
+                searchResult.getAttributeValueAsLong(
+                        userLdapAttrib.get(NumericPrincipal.class))));
+        user.getIdentities().add(new X500Principal(
+                searchResult.getAttributeValue(
+                        userLdapAttrib.get(X500Principal.class))));
         String fname = searchResult.getAttributeValue(LDAP_FIRST_NAME);
         String lname = searchResult.getAttributeValue(LDAP_LAST_NAME);
         PersonalDetails personaDetails = new PersonalDetails(fname, lname);
@@ -793,10 +816,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         "Unsupported principal type " + userID.getClass());
             }
 
-            User<T> user = getUser(userID);
             Filter filter = Filter.createANDFilter(
                     Filter.createEqualityFilter(searchField,
-                                                user.getUserID().getName()),
+                                                userID.getName()),
                     Filter.createEqualityFilter(LDAP_MEMBEROF, groupID));
 
             SearchRequest searchRequest =
@@ -992,5 +1014,18 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             LdapDAO.checkLdapResult(code);
         }
+    }
+    
+    /**
+     * Method to return a randomly generated user numeric ID. The default 
+     * implementation returns a value between 10000 and Integer.MAX_VALUE.
+     * Services that support a different mechanism for generating numeric
+     * IDs overide this method.
+     * @return
+     */
+    protected int genNextNumericId()
+    {
+        Random rand = new Random();
+        return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
     }
 }
