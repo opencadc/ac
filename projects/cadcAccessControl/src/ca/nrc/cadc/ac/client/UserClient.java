@@ -173,23 +173,19 @@ public class UserClient
     	{
     		if (principal instanceof HttpPrincipal)
     		{
-    			subject.getPrincipals(HttpPrincipal.class)
-    				.add((HttpPrincipal)principal);
+    			subject.getPrincipals().add((HttpPrincipal)principal);
     		}
     		else if (principal instanceof X500Principal)
     		{
-    			subject.getPrincipals(X500Principal.class)
-    				.add((X500Principal)principal);
+    			subject.getPrincipals().add((X500Principal)principal);
     		}
     		else if (principal instanceof NumericPrincipal)
     		{
-    			subject.getPrincipals(NumericPrincipal.class)
-    				.add((NumericPrincipal)principal);
+    			subject.getPrincipals().add((NumericPrincipal)principal);
     		}
     		else if (principal instanceof CookiePrincipal)
     		{
-    			subject.getPrincipals(CookiePrincipal.class)
-    				.add((CookiePrincipal)principal);
+    			subject.getPrincipals().add((CookiePrincipal)principal);
     		}
             else
             {
