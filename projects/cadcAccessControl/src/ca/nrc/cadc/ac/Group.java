@@ -153,6 +153,11 @@ public class Group
         return owner;
     }
 
+    public void setOwner(User<? extends Principal> owner)
+    {
+        this.owner = owner;
+    }
+
     /**
      * 
      * @return a set of properties associated with a group
