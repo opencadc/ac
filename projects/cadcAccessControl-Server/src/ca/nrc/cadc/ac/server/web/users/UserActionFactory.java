@@ -111,7 +111,7 @@ public abstract class UserActionFactory
                 else if (segments.length == 1)
                 {
                     User user = getUser(segments[0], request.getParameter("idType"), path);
-                        action = new GetUserAction(user.getUserID());
+                    action = new GetUserAction(user.getUserID(), request.getParameter("detail"));
                 }
 
                 if (action != null)

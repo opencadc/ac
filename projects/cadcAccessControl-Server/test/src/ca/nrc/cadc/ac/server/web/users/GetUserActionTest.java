@@ -67,25 +67,32 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import org.junit.Test;
 
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
 
 public class GetUserActionTest
 {
-    @Test
+//    @Test
     public void writeUserXML() throws Exception
     {
         final SyncOutput mockSyncOut =
@@ -94,7 +101,7 @@ public class GetUserActionTest
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(userID)
+        final GetUserAction testSubject = new GetUserAction(userID, null)
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
@@ -126,6 +133,61 @@ public class GetUserActionTest
     }
 
     @Test
+    public void writeUserWithDetailIdentity() throws Exception
+    {
+        final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+            createMock(UserPersistence.class);
+        final HttpPrincipal userID = new HttpPrincipal("CADCtest");
+
+        final GetUserAction testSubject = new GetUserAction(userID, "identity")
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+
+        final User<HttpPrincipal> expected = new User<HttpPrincipal>(userID);
+        expected.getIdentities().add(new NumericPrincipal(789));
+        expected.getIdentities().add(new X500Principal("cn=foo,o=bar"));
+
+        StringBuilder sb = new StringBuilder();
+        UserWriter userWriter = new UserWriter();
+        userWriter.write(expected, sb);
+        String expectedUser = sb.toString();
+
+        final PersonalDetails personalDetails = new PersonalDetails("cadc", "test");
+        personalDetails.city = "city";
+        expected.details.add(personalDetails);
+
+        final PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
+        expected.details.add(posixDetails);
+
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getUser(userID)).andReturn(expected).once();
+        mockResponse.setHeader("Content-Type", "text/xml");
+        expectLastCall().once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+
+        replay(mockUserPersistence, mockResponse);
+
+        SyncOutput syncOutput = new SyncOutput(mockResponse);
+        testSubject.setSyncOut(syncOutput);
+        testSubject.doAction();
+
+        sb = new StringBuilder();
+        userWriter.write(expected, sb);
+        String actualUser = sb.toString();
+        assertEquals(expectedUser, actualUser);
+
+        verify(mockUserPersistence, mockResponse);
+    }
+
+//    @Test
     public void writeUserJSON() throws Exception
     {
         final SyncOutput mockSyncOut =
@@ -134,7 +196,7 @@ public class GetUserActionTest
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(userID)
+        final GetUserAction testSubject = new GetUserAction(userID, null)
         {
             @Override
             UserPersistence<HttpPrincipal> getUserPersistence()
