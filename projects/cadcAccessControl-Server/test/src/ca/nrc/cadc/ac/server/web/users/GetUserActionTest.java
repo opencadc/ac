@@ -89,10 +89,11 @@ import java.util.Set;
 
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class GetUserActionTest
 {
-//    @Test
+    @Test
     public void writeUserXML() throws Exception
     {
         final SyncOutput mockSyncOut =
@@ -179,15 +180,72 @@ public class GetUserActionTest
         testSubject.setSyncOut(syncOutput);
         testSubject.doAction();
 
-        sb = new StringBuilder();
-        userWriter.write(expected, sb);
-        String actualUser = sb.toString();
+        String actualUser = writer.toString();
+
         assertEquals(expectedUser, actualUser);
 
         verify(mockUserPersistence, mockResponse);
     }
 
-//    @Test
+    @Test
+    public void writeUserWithDetailDisplay() throws Exception
+    {
+        final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
+        final UserPersistence<HttpPrincipal> mockUserPersistence =
+            createMock(UserPersistence.class);
+        final HttpPrincipal userID = new HttpPrincipal("CADCtest");
+
+        final GetUserAction testSubject = new GetUserAction(userID, "display")
+        {
+            @Override
+            UserPersistence<HttpPrincipal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+
+        final User<HttpPrincipal> expected = new User<HttpPrincipal>(userID);
+
+        final PersonalDetails personalDetails = new PersonalDetails("cadc", "test");
+        expected.details.add(personalDetails);
+
+        StringBuilder sb = new StringBuilder();
+        UserWriter userWriter = new UserWriter();
+        userWriter.write(expected, sb);
+        String expectedUser = sb.toString();
+
+        Set<PersonalDetails> details = expected.getDetails(PersonalDetails.class);
+        PersonalDetails pd = details.iterator().next();
+        pd.city = "city";
+
+        expected.getIdentities().add(new NumericPrincipal(789));
+        expected.getIdentities().add(new X500Principal("cn=foo,o=bar"));
+
+        final PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
+        expected.details.add(posixDetails);
+
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getUser(userID)).andReturn(expected).once();
+        mockResponse.setHeader("Content-Type", "text/xml");
+        expectLastCall().once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+
+        replay(mockUserPersistence, mockResponse);
+
+        SyncOutput syncOutput = new SyncOutput(mockResponse);
+        testSubject.setSyncOut(syncOutput);
+        testSubject.doAction();
+
+        String actualUser = writer.toString();
+
+        assertEquals(expectedUser, actualUser);
+
+        verify(mockUserPersistence, mockResponse);
+    }
+
+    @Test
     public void writeUserJSON() throws Exception
     {
         final SyncOutput mockSyncOut =

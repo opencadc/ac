@@ -149,7 +149,7 @@ public class GetUserAction extends AbstractUserAction
                     }
                     PersonalDetails pd = details.iterator().next();
                     user.details.clear();
-                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getFirstName()));
+                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
                 }
                 else
                 {
@@ -167,16 +167,18 @@ public class GetUserAction extends AbstractUserAction
     
     protected boolean isServops()
     {
-    	log.debug("isServops(): augmentUserDN = " + this.augmentUserDN);
     	boolean isServops = false;
         AccessControlContext acc = AccessController.getContext();
         Subject subject = Subject.getSubject(acc);
-        for (Principal principal : subject.getPrincipals())
+        if (subject != null)
         {
-        	if (principal.getName().equals(this.getAugmentUserDN()))
+        	for (Principal principal : subject.getPrincipals())
         	{
-        		isServops = true;
-        		break;
+        		if (principal.getName().equals(this.getAugmentUserDN()))
+        		{
+        			isServops = true;
+        			break;
+        		}
         	}
         }
         
