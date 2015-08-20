@@ -181,17 +181,17 @@ public abstract class LdapDAO
             {
                 if (p instanceof HttpPrincipal)
                 {
-                    ldapField = "(uid=" + p.getName() + ")";
+                    ldapField = "(&(objectclass=inetorgperson)(uid=" + p.getName() + "))";
                     break;
                 }
                 if (p instanceof NumericPrincipal)
                 {
-                    ldapField = "(numericid=" + p.getName() + ")";
+                    ldapField = "(&(objectclass=cadcaccount)(numericid=" + p.getName() + "))";
                     break;
                 }
                 if (p instanceof X500Principal)
                 {
-                    ldapField = "(distinguishedname=" + p.getName() + ")";
+                    ldapField = "(&(objectclass=cadcaccount)(distinguishedname=" + p.getName() + "))";
                     break;
                 }
                 if (p instanceof OpenIdPrincipal)
@@ -208,9 +208,7 @@ public abstract class LdapDAO
 
             SearchResult searchResult =
                     getConnection().search(config.getUsersDN(), SearchScope.ONE,
-                            "(&(objectclass=cadcaccount)(objectclass=inetorgperson)" 
-                            + ldapField + ")", 
-                            "entrydn");
+                            ldapField, "entrydn");
 
             if (searchResult.getEntryCount() < 1)
             {
