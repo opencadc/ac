@@ -202,7 +202,7 @@ public class UserClient
     	try
     	{
 	        String userXML = new String(out.toByteArray(), "UTF-8");
-	        log.debug("userXML Input to getPrinciplas(): " + userXML);
+	        log.debug("userXML Input to getPrincipals(): " + userXML);
 	        
 	        User<Principal> user = new UserReader().read(userXML);
 	        return user.getIdentities();
