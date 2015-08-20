@@ -496,11 +496,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     for (Group group : groups)
                     {
                         log.debug("admin group: " + group.getID());
-                        if (group.getID().equals(testGroup1ID))
+                        if (group.getID().equalsIgnoreCase(testGroup1ID))
                         {
                             found1 = true;
                         }
-                        if (group.getID().equals(testGroup2ID))
+                        if (group.getID().equalsIgnoreCase(testGroup2ID))
                         {
                             found2 = true;
                         }

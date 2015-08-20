@@ -87,6 +87,7 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
 
@@ -106,7 +107,6 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import javax.naming.ldap.Rdn;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -773,9 +773,13 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     }
                     try
                     {
-                        Group g = getGroup(groupDN, null, GROUP_ATTRS);
-                        logger.debug("found group: " + g.getID());
-                        ret.add(g);
+                        Group g = createGroupFromDN(groupDN);
+                        if (isDetailedSearch(g, role))
+                        {
+                            g = getGroup(groupDN, null, GROUP_ATTRS);
+                        }
+                            logger.debug("found group: " + g.getID());
+                            ret.add(g);
                     }
                     catch (GroupNotFoundException e)
                     {
@@ -795,6 +799,28 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         logger.debug("found: " + ret.size() + "groups matching " + userID + "," + role + "," + groupID);
         return ret;
     }
+    
+    // some pretty horrible hacks to avoid querying LDAP for group details...
+    private Group createGroupFromDN(DN groupDN)
+    {
+        String cn = groupDN.getRDNString();
+        String[] parts = cn.split("=");
+        if (parts.length == 2 && parts[0].equals("cn"))
+        {
+            return new Group(parts[1]);
+        }
+        throw new RuntimeException("BUG: failed to extract group name from " + groupDN.toString());
+    }
+    // this gets filled by the LdapgroupPersistence
+    GroupDetailSelector searchDetailSelector;
+    
+    private boolean isDetailedSearch(Group g, Role r)
+    {
+        if (searchDetailSelector == null)
+            return true;
+        return searchDetailSelector.isDetailedSearch(g, r);
+    }
+    // end of horribleness
     
     protected Collection<Group> getOwnerGroups(final User<T> user, 
                                             final DN userDN,
