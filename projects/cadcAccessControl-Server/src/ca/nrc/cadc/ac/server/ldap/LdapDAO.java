@@ -181,7 +181,7 @@ public abstract class LdapDAO
             {
                 if (p instanceof HttpPrincipal)
                 {
-                    ldapField = "(&(objectclass=inetorgperson)(uid=" + p.getName() + "))";
+                    ldapField = "(uid=" + p.getName() + ")";
                     break;
                 }
                 if (p instanceof NumericPrincipal)
