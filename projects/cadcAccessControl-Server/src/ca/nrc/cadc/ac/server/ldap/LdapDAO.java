@@ -186,12 +186,12 @@ public abstract class LdapDAO
                 }
                 if (p instanceof NumericPrincipal)
                 {
-                    ldapField = "(&(objectclass=cadcaccount)(numericid=" + p.getName() + "))";
+                    ldapField = "(numericid=" + p.getName() + ")";
                     break;
                 }
                 if (p instanceof X500Principal)
                 {
-                    ldapField = "(&(objectclass=cadcaccount)(distinguishedname=" + p.getName() + "))";
+                    ldapField = "(distinguishedname=" + p.getName() + ")";
                     break;
                 }
                 if (p instanceof OpenIdPrincipal)
