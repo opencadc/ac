@@ -998,7 +998,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            Group g = getGroup(getGroupDN(groupID), groupID, GROUP_ATTRS);
+            Group g = getGroup(getGroupDN(groupID), groupID, PUB_GROUP_ATTRS);
             return true;
         }
         catch(GroupNotFoundException ex)
