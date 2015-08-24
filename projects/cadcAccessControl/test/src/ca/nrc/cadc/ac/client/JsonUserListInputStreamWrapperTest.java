@@ -80,15 +80,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 
-public class JsonUserListInputStreamWrapperTest
+public class JSONUserListInputStreamWrapperTest
 {
     @Test
     public void readInputStream() throws Exception
     {
         final List<User<HttpPrincipal>> output =
                 new ArrayList<User<HttpPrincipal>>();
-        final JsonUserListInputStreamWrapper testSubject =
-                new JsonUserListInputStreamWrapper(output);
+        final JSONUserListInputStreamWrapper testSubject =
+                new JSONUserListInputStreamWrapper(output);
         final InputStream inputStream =
                 new ByteArrayInputStream("[{\"id\":\"CADCTest\",\"firstName\":\"CADCtest\",\"lastName\":\"USER\"}\n,{\"id\":\"User_2\",\"firstName\":\"User\",\"lastName\":\"2\"}]".getBytes());
 

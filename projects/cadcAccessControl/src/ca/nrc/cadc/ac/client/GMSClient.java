@@ -84,7 +84,6 @@ import java.security.AccessController;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,13 +92,10 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.ac.*;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.xml.GroupListReader;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
@@ -181,6 +177,68 @@ public class GMSClient implements TransferListener
     public List<Group> getGroups()
     {
         throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * Obtain all of the users as userID - name in JSON format.
+     *
+     * @return List of HTTP Principal users.
+     * @throws IOException Any errors in reading.
+     */
+    public List<User<HttpPrincipal>> getDisplayUsers() throws IOException
+    {
+        final List<User<HttpPrincipal>> webUsers =
+                new ArrayList<User<HttpPrincipal>>();
+        final HttpDownload httpDownload =
+                    createDisplayUsersHTTPDownload(webUsers);
+
+        httpDownload.setRequestProperty("Accept", "application/json");
+        httpDownload.run();
+
+        final Throwable error = httpDownload.getThrowable();
+
+        if (error != null)
+        {
+            final String errMessage = error.getMessage();
+            final int responseCode = httpDownload.getResponseCode();
+            log.debug("getDisplayUsers response " + responseCode + ": "
+                      + errMessage);
+            if ((responseCode == 401) || (responseCode == 403)
+                || (responseCode == -1))
+            {
+                throw new AccessControlException(errMessage);
+            }
+            else if (responseCode == 400)
+            {
+                throw new IllegalArgumentException(errMessage);
+            }
+            else
+            {
+                throw new IOException("HttpResponse (" + responseCode + ") - "
+                                      + errMessage);
+            }
+        }
+
+        log.debug("Content-Length: " + httpDownload.getContentLength());
+        log.debug("Content-Type: " + httpDownload.getContentType());
+
+        return webUsers;
+    }
+
+
+    /**
+     * Create a new HTTPDownload instance.  Testers can override as needed.
+     *
+     * @param webUsers          The User objects.
+     * @return                  HttpDownload instance.  Never null.
+     * @throws IOException      Any writing/reading errors.
+     */
+    HttpDownload createDisplayUsersHTTPDownload(
+            final List<User<HttpPrincipal>> webUsers) throws IOException
+    {
+        final URL usersListURL = new URL(this.baseURL + "/users");
+        return new HttpDownload(usersListURL,
+                                new JSONUserListInputStreamWrapper(webUsers));
     }
 
     /**
