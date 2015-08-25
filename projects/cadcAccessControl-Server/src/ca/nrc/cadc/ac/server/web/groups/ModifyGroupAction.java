@@ -133,7 +133,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         }
         logGroupInfo(group.getID(), deletedMembers, addedMembers);
 
-        syncOut.setHeader("Location", "/" + group.getID());
+        syncOut.setHeader("Location", request);
         syncOut.setCode(303);
     }
 

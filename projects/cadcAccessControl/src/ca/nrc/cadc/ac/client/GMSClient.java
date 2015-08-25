@@ -68,28 +68,6 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.xml.GroupListReader;
-import ca.nrc.cadc.ac.xml.GroupReader;
-import ca.nrc.cadc.ac.xml.GroupWriter;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.InputStreamWrapper;
-import ca.nrc.cadc.net.NetUtil;
-import org.apache.log4j.Logger;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -107,17 +85,37 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import javax.security.auth.Subject;
+
+import ca.nrc.cadc.ac.*;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.xml.GroupListReader;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.net.event.TransferEvent;
+import ca.nrc.cadc.net.event.TransferListener;
 
 
 /**
  * Client class for performing group searching and group actions
  * with the access control web service.
  */
-public class GMSClient
+public class GMSClient implements TransferListener
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
 
@@ -131,10 +129,10 @@ public class GMSClient
      * Constructor.
      *
      * @param baseURL The URL of the supporting access control web service
-     *                obtained from the registry.
+     * obtained from the registry.
      */
-    public GMSClient(final String baseURL)
-            throws IllegalArgumentException
+    public GMSClient(String baseURL)
+        throws IllegalArgumentException
     {
         if (baseURL == null)
         {
@@ -160,6 +158,18 @@ public class GMSClient
         }
     }
 
+    public void transferEvent(TransferEvent te)
+    {
+        if ( TransferEvent.RETRYING == te.getState() )
+            log.debug("retry after request failed, reason: "  + te.getError());
+    }
+
+    public String getEventHeader()
+    {
+        return null; // no custom eventID header
+    }
+
+
     /**
      * Get a list of groups.
      *
@@ -169,8 +179,6 @@ public class GMSClient
     {
         throw new UnsupportedOperationException("Not yet implemented");
     }
-
-
 
     /**
      * Obtain all of the users as userID - name in JSON format.
@@ -182,9 +190,8 @@ public class GMSClient
     {
         final List<User<HttpPrincipal>> webUsers =
                 new ArrayList<User<HttpPrincipal>>();
-
         final HttpDownload httpDownload =
-                createDisplayUsersHTTPDownload(webUsers);
+                    createDisplayUsersHTTPDownload(webUsers);
 
         httpDownload.setRequestProperty("Accept", "application/json");
         httpDownload.run();
@@ -195,12 +202,10 @@ public class GMSClient
         {
             final String errMessage = error.getMessage();
             final int responseCode = httpDownload.getResponseCode();
-
-            log.debug("getDisplayUsers response " + responseCode + ": " +
-                      errMessage);
-
-            if ((responseCode == 401) || (responseCode == 403) ||
-                (responseCode == -1))
+            log.debug("getDisplayUsers response " + responseCode + ": "
+                      + errMessage);
+            if ((responseCode == 401) || (responseCode == 403)
+                || (responseCode == -1))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -208,9 +213,11 @@ public class GMSClient
             {
                 throw new IllegalArgumentException(errMessage);
             }
-
-            throw new IOException("HttpResponse (" + responseCode + ") - "
-                                  + errMessage);
+            else
+            {
+                throw new IOException("HttpResponse (" + responseCode + ") - "
+                                      + errMessage);
+            }
         }
 
         log.debug("Content-Length: " + httpDownload.getContentLength());
@@ -219,12 +226,20 @@ public class GMSClient
         return webUsers;
     }
 
+
+    /**
+     * Create a new HTTPDownload instance.  Testers can override as needed.
+     *
+     * @param webUsers          The User objects.
+     * @return                  HttpDownload instance.  Never null.
+     * @throws IOException      Any writing/reading errors.
+     */
     HttpDownload createDisplayUsersHTTPDownload(
             final List<User<HttpPrincipal>> webUsers) throws IOException
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
-                                new JsonUserListInputStreamWrapper(webUsers));
+                                new JSONUserListInputStreamWrapper(webUsers));
     }
 
     /**
@@ -234,13 +249,13 @@ public class GMSClient
      * @return The newly created group will all the information.
      * @throws GroupAlreadyExistsException If a group with the same name already
      *                                     exists.
-     * @throws AccessControlException      If unauthorized to perform this operation.
+     * @throws AccessControlException If unauthorized to perform this operation.
      * @throws UserNotFoundException
      * @throws IOException
      */
     public Group createGroup(Group group)
-            throws GroupAlreadyExistsException, AccessControlException,
-                   UserNotFoundException, IOException
+        throws GroupAlreadyExistsException, AccessControlException,
+               UserNotFoundException, IOException
     {
         URL createGroupURL = new URL(this.baseURL + "/groups");
         log.debug("createGroupURL request to " + createGroupURL.toString());
@@ -311,7 +326,7 @@ public class GMSClient
      * @throws java.io.IOException
      */
     public Group getGroup(String groupName)
-            throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, AccessControlException, IOException
     {
         URL getGroupURL = new URL(this.baseURL + "/groups/" + groupName);
         log.debug("getGroup request to " + getGroupURL.toString());
@@ -324,8 +339,7 @@ public class GMSClient
         Throwable error = transfer.getThrowable();
         if (error != null)
         {
-            log.debug("getGroup throwable (" + transfer
-                    .getResponseCode() + ")", error);
+            log.debug("getGroup throwable (" + transfer.getResponseCode() + ")", error);
             // transfer returns a -1 code for anonymous access.
             if ((transfer.getResponseCode() == -1) ||
                 (transfer.getResponseCode() == 401) ||
@@ -366,7 +380,7 @@ public class GMSClient
      * @throws java.io.IOException
      */
     public List<String> getGroupNames()
-            throws AccessControlException, IOException
+        throws AccessControlException, IOException
     {
         final URL getGroupNamesURL = new URL(this.baseURL + "/groups");
         log.debug("getGroupNames request to " + getGroupNamesURL.toString());
@@ -374,28 +388,26 @@ public class GMSClient
         final List<String> groupNames = new ArrayList<String>();
         final HttpDownload httpDownload =
                 new HttpDownload(getGroupNamesURL, new InputStreamWrapper()
+        {
+            @Override
+            public void read(final InputStream inputStream) throws IOException
+            {
+                try
                 {
-                    @Override
-                    public void read(final InputStream inputStream) throws
-                                                                    IOException
-                    {
-                        try
-                        {
-                            InputStreamReader inReader = new InputStreamReader(inputStream);
-                            BufferedReader reader = new BufferedReader(inReader);
-                            String line;
-                            while ((line = reader.readLine()) != null)
-                            {
-                                groupNames.add(line);
-                            }
-                        }
-                        catch (Exception bug)
-                        {
-                            log.error("Unexpected exception", bug);
-                            throw new RuntimeException(bug);
-                        }
+                    InputStreamReader inReader = new InputStreamReader(inputStream);
+                    BufferedReader reader = new BufferedReader(inReader);
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        groupNames.add(line);
                     }
-                });
+                }
+                catch (Exception bug)
+                {
+                    log.error("Unexpected exception", bug);
+                    throw new RuntimeException(bug);
+                }
+            }
+        });
 
         httpDownload.setSSLSocketFactory(getSSLSocketFactory());
         httpDownload.run();
@@ -411,7 +423,7 @@ public class GMSClient
                       errMessage);
 
             if ((responseCode == 401) || (responseCode == 403) ||
-                (responseCode == -1))
+                    (responseCode == -1))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -434,15 +446,14 @@ public class GMSClient
      * @param group The update group object.
      * @return The group after update.
      * @throws IllegalArgumentException If cyclical membership is detected.
-     * @throws GroupNotFoundException   If the group was not found.
-     * @throws UserNotFoundException    If a member was not found.
-     * @throws AccessControlException   If unauthorized to perform this operation.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws UserNotFoundException If a member was not found.
+     * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
     public Group updateGroup(Group group)
-            throws IllegalArgumentException, GroupNotFoundException,
-                   UserNotFoundException,
-                   AccessControlException, IOException
+        throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
+               AccessControlException, IOException
     {
         URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
         log.debug("updateGroup request to " + updateGroupURL.toString());
@@ -458,7 +469,9 @@ public class GMSClient
         HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(),
                                          "application/xml", true);
         transfer.setSSLSocketFactory(getSSLSocketFactory());
+        transfer.setTransferListener(this);
         transfer.run();
+
 
         Throwable error = transfer.getThrowable();
         if (error != null)
@@ -476,15 +489,10 @@ public class GMSClient
             }
             if (transfer.getResponseCode() == 404)
             {
-                if (error.getMessage() != null && error.getMessage()
-                        .toLowerCase().contains("user"))
-                {
+                if (error.getMessage() != null && error.getMessage().toLowerCase().contains("user"))
                     throw new UserNotFoundException(error.getMessage());
-                }
                 else
-                {
                     throw new GroupNotFoundException(error.getMessage());
-                }
             }
             throw new IOException(error);
         }
@@ -512,7 +520,7 @@ public class GMSClient
      * @throws java.io.IOException
      */
     public void deleteGroup(String groupName)
-            throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, AccessControlException, IOException
     {
         URL deleteGroupURL = new URL(this.baseURL + "/groups/" + groupName);
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
@@ -537,7 +545,7 @@ public class GMSClient
         {
             responseCode = conn.getResponseCode();
         }
-        catch (Exception e)
+        catch(Exception e)
         {
             throw new AccessControlException(e.getMessage());
         }
@@ -549,7 +557,7 @@ public class GMSClient
                       errMessage);
 
             if ((responseCode == 401) || (responseCode == 403) ||
-                (responseCode == -1))
+                    (responseCode == -1))
             {
                 throw new AccessControlException(errMessage);
             }
@@ -571,13 +579,13 @@ public class GMSClient
      * @param targetGroupName The group in which to add the group member.
      * @param groupMemberName The group member to add.
      * @throws IllegalArgumentException If cyclical membership is detected.
-     * @throws GroupNotFoundException   If the group was not found.
-     * @throws AccessControlException   If unauthorized to perform this operation.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
     public void addGroupMember(String targetGroupName, String groupMemberName)
-            throws IllegalArgumentException, GroupNotFoundException,
-                   AccessControlException, IOException
+        throws IllegalArgumentException, GroupNotFoundException,
+               AccessControlException, IOException
     {
         URL addGroupMemberURL = new URL(this.baseURL + "/groups/" +
                                         targetGroupName + "/groupMembers/" +
@@ -621,15 +629,14 @@ public class GMSClient
      * Add a user as a member of a group.
      *
      * @param targetGroupName The group in which to add the group member.
-     * @param userID          The user to add.
+     * @param userID The user to add.
      * @throws GroupNotFoundException If the group was not found.
-     * @throws UserNotFoundException  If the member was not found.
+     * @throws UserNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void addUserMember(String targetGroupName, Principal userID)
-            throws GroupNotFoundException, UserNotFoundException,
-                   AccessControlException, IOException
+        throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.getName(), "UTF-8");
@@ -666,15 +673,10 @@ public class GMSClient
             }
             if (responseCode == 404)
             {
-                if (errMessage != null && errMessage.toLowerCase()
-                        .contains("user"))
-                {
+                if (errMessage != null && errMessage.toLowerCase().contains("user"))
                     throw new UserNotFoundException(errMessage);
-                }
                 else
-                {
                     throw new GroupNotFoundException(errMessage);
-                }
             }
             throw new IOException(errMessage);
         }
@@ -691,7 +693,7 @@ public class GMSClient
      */
     public void removeGroupMember(String targetGroupName,
                                   String groupMemberName)
-            throws GroupNotFoundException, AccessControlException, IOException
+        throws GroupNotFoundException, AccessControlException, IOException
     {
         URL removeGroupMemberURL = new URL(this.baseURL + "/groups/" +
                                            targetGroupName + "/groupMembers/" +
@@ -713,15 +715,13 @@ public class GMSClient
                     .setSSLSocketFactory(getSSLSocketFactory());
         }
 
-        // Try to handle anonymous access and throw AccessControlException 
+        // Try to handle anonymous access and throw AccessControlException
         int responseCode = -1;
         try
         {
             responseCode = conn.getResponseCode();
         }
-        catch (Exception ignore)
-        {
-        }
+        catch (Exception ignore) {}
 
         if (responseCode != 200)
         {
@@ -751,15 +751,14 @@ public class GMSClient
      * Remove a user as a member of a group.
      *
      * @param targetGroupName The group from which to remove the group member.
-     * @param userID          The user to remove.
+     * @param userID The user to remove.
      * @throws GroupNotFoundException If the group was not found.
-     * @throws UserNotFoundException  If the member was not found.
+     * @throws UserNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void removeUserMember(String targetGroupName, Principal userID)
-            throws GroupNotFoundException, UserNotFoundException,
-                   AccessControlException, IOException
+        throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
@@ -785,15 +784,13 @@ public class GMSClient
                     .setSSLSocketFactory(getSSLSocketFactory());
         }
 
-        // Try to handle anonymous access and throw AccessControlException 
+        // Try to handle anonymous access and throw AccessControlException
         int responseCode = -1;
         try
         {
             responseCode = conn.getResponseCode();
         }
-        catch (Exception ignore)
-        {
-        }
+        catch (Exception ignore) {}
 
         if (responseCode != 200)
         {
@@ -813,15 +810,10 @@ public class GMSClient
             }
             if (responseCode == 404)
             {
-                if (errMessage != null && errMessage.toLowerCase()
-                        .contains("user"))
-                {
+                if (errMessage != null && errMessage.toLowerCase().contains("user"))
                     throw new UserNotFoundException(errMessage);
-                }
                 else
-                {
                     throw new GroupNotFoundException(errMessage);
-                }
             }
             throw new IOException(errMessage);
         }
@@ -831,22 +823,22 @@ public class GMSClient
      * Get all the memberships of the user of a certain role.
      *
      * @param userID Identifies the user.
-     * @param role   The role to look up.
+     * @param role The role to look up.
      * @return A list of groups for which the user has the role.
-     * @throws UserNotFoundException    If the user does not exist.
-     * @throws AccessControlException   If not allowed to peform the search.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException              If an unknown error occured.
+     * @throws IOException If an unknown error occured.
      */
     public List<Group> getMemberships(Principal userID, Role role)
-            throws UserNotFoundException, AccessControlException, IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         if (userID == null || role == null)
         {
             throw new IllegalArgumentException("userID and role are required.");
         }
 
-        List<Group> cachedGroups = getCachedGroups(userID, role);
+        List<Group> cachedGroups = getCachedGroups(userID, role, true);
         if (cachedGroups != null)
         {
             return cachedGroups;
@@ -915,19 +907,19 @@ public class GMSClient
      * Return the group, specified by paramter groupName, if the user,
      * identified by userID, is a member of that group.  Return null
      * otherwise.
-     * <p/>
+     *
      * This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
      *
-     * @param userID    Identifies the user.
+     * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @return The group or null of the user is not a member.
-     * @throws UserNotFoundException    If the user does not exist.
-     * @throws AccessControlException   If not allowed to peform the search.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException              If an unknown error occured.
+     * @throws IOException If an unknown error occured.
      */
     public Group getMembership(Principal userID, String groupName)
-            throws UserNotFoundException, AccessControlException, IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         return getMembership(userID, groupName, Role.MEMBER);
     }
@@ -937,35 +929,27 @@ public class GMSClient
      * identified by userID, is a member (of type role) of that group.
      * Return null otherwise.
      *
-     * @param userID    Identifies the user.
+     * @param userID Identifies the user.
      * @param groupName Identifies the group.
-     * @param role      The membership role to search.
+     * @param role The membership role to search.
      * @return The group or null of the user is not a member.
-     * @throws UserNotFoundException    If the user does not exist.
-     * @throws AccessControlException   If not allowed to peform the search.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException              If an unknown error occured.
+     * @throws IOException If an unknown error occured.
      */
     public Group getMembership(Principal userID, String groupName, Role role)
-            throws UserNotFoundException, AccessControlException, IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         if (userID == null || groupName == null || role == null)
         {
             throw new IllegalArgumentException("userID and role are required.");
         }
 
-        List<Group> cachedGroups = getCachedGroups(userID, role);
-        if (cachedGroups != null)
+        Group cachedGroup = getCachedGroup(userID, groupName, role);
+        if (cachedGroup != null)
         {
-            int index = cachedGroups.indexOf(new Group(groupName));
-            if (index != -1)
-            {
-                return cachedGroups.get(index);
-            }
-            else
-            {
-                return null;
-            }
+            return cachedGroup;
         }
 
         String idType = AuthenticationUtil.getPrincipalType(userID);
@@ -1025,9 +1009,9 @@ public class GMSClient
             }
             if (groups.size() == 1)
             {
-                // don't cache these results as it is not a complete
-                // list of memberships--it only applies to one group.
-                return groups.get(0);
+                Group ret = groups.get(0);
+                addCachedGroup(userID, ret, role);
+                return ret;
             }
             throw new IllegalStateException(
                     "Duplicate membership for " + id + " in group " + groupName);
@@ -1041,19 +1025,19 @@ public class GMSClient
 
     /**
      * Check if userID is a member of groupName.
-     * <p/>
+     *
      * This is equivalent to isMember(userID, groupName, Role.MEMBER)
      *
-     * @param userID    Identifies the user.
+     * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @return True if the user is a member of the group
-     * @throws UserNotFoundException    If the user does not exist.
-     * @throws AccessControlException   If not allowed to peform the search.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException              If an unknown error occured.
+     * @throws IOException If an unknown error occured.
      */
     public boolean isMember(Principal userID, String groupName)
-            throws UserNotFoundException, AccessControlException, IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         return isMember(userID, groupName, Role.MEMBER);
     }
@@ -1061,17 +1045,17 @@ public class GMSClient
     /**
      * Check if userID is a member (of type role) of groupName.
      *
-     * @param userID    Identifies the user.
+     * @param userID Identifies the user.
      * @param groupName Identifies the group.
-     * @param role      The type of membership.
+     * @param role The type of membership.
      * @return True if the user is a member of the group
-     * @throws UserNotFoundException    If the user does not exist.
-     * @throws AccessControlException   If not allowed to peform the search.
+     * @throws UserNotFoundException If the user does not exist.
+     * @throws AccessControlException If not allowed to peform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException              If an unknown error occured.
+     * @throws IOException If an unknown error occured.
      */
     public boolean isMember(Principal userID, String groupName, Role role)
-            throws UserNotFoundException, AccessControlException, IOException
+        throws UserNotFoundException, AccessControlException, IOException
     {
         Group group = getMembership(userID, groupName, role);
         return group != null;
@@ -1083,16 +1067,13 @@ public class GMSClient
     public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
     {
         if (mySocketFactory != null)
-        {
             throw new IllegalStateException("Illegal use of GMSClient: "
-                                            + "cannot set SSLSocketFactory after using one created from Subject");
-        }
+                    + "cannot set SSLSocketFactory after using one created from Subject");
         this.sslSocketFactory = sslSocketFactory;
         clearCache();
     }
 
     private int subjectHashCode = 0;
-
     private SSLSocketFactory getSSLSocketFactory()
     {
         AccessControlContext ac = AccessController.getContext();
@@ -1115,12 +1096,9 @@ public class GMSClient
         {
             int c = s.hashCode();
             if (c != subjectHashCode)
-            {
                 throw new IllegalStateException("Illegal use of "
-                                                + this.getClass()
-                                                        .getSimpleName()
-                                                + ": subject change not supported for internal SSLSocketFactory");
-            }
+                        + this.getClass().getSimpleName()
+                        + ": subject change not supported for internal SSLSocketFactory");
         }
         return this.mySocketFactory;
     }
@@ -1129,15 +1107,13 @@ public class GMSClient
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
-
         if (subject != null)
         {
-            log.debug("Clearing cache");
-            subject.getPrivateCredentials().clear();
+            subject.getPrivateCredentials().remove(new GroupMemberships());
         }
     }
 
-    protected List<Group> getCachedGroups(Principal userID, Role role)
+    protected GroupMemberships getGroupCache(Principal userID)
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
@@ -1145,46 +1121,81 @@ public class GMSClient
         // only consult cache if the userID is of the calling subject
         if (userIsSubject(userID, subject))
         {
-            Set groupCredentialSet = subject
-                    .getPrivateCredentials(GroupMemberships.class);
-            if ((groupCredentialSet != null) &&
-                (groupCredentialSet.size() == 1))
+            Set<GroupMemberships> gset = subject.getPrivateCredentials(GroupMemberships.class);
+            if (gset == null || gset.isEmpty())
             {
-                Iterator i = groupCredentialSet.iterator();
-                GroupMemberships groupMemberships = ((GroupMemberships) i
-                        .next());
-                return groupMemberships.memberships.get(role);
+                GroupMemberships mems = new GroupMemberships();
+                subject.getPrivateCredentials().add(mems);
+                return mems;
             }
+            GroupMemberships mems = gset.iterator().next();
+            return mems;
+        }
+        return null; // no cache
+    }
+
+    protected Group getCachedGroup(Principal userID, String groupID, Role role)
+    {
+        List<Group> groups = getCachedGroups(userID, role, false);
+        if (groups == null)
+            return null; // no cache
+        for (Group g : groups)
+        {
+            if (g.getID().equals(groupID))
+                return g;
         }
         return null;
+    }
+    protected List<Group> getCachedGroups(Principal userID, Role role, boolean complete)
+    {
+        GroupMemberships mems = getGroupCache(userID);
+        if (mems == null)
+            return null; // no cache
+
+        Boolean cacheState = mems.complete.get(role);
+        if (!complete || Boolean.TRUE.equals(cacheState))
+            return mems.memberships.get(role);
+
+        // caller wanted complete and we don't have that
+        return null;
+    }
+
+    protected void addCachedGroup(Principal userID, Group group, Role role)
+    {
+        GroupMemberships mems = getGroupCache(userID);
+        if (mems == null)
+            return; // no cache
+
+        List<Group> groups = mems.memberships.get(role);
+        if (groups == null)
+        {
+            groups = new ArrayList<Group>();
+            mems.complete.put(role, Boolean.FALSE);
+            mems.memberships.put(role, groups);
+        }
+        if (!groups.contains(group))
+            groups.add(group);
     }
 
     protected void setCachedGroups(Principal userID, List<Group> groups, Role role)
     {
-        AccessControlContext acContext = AccessController.getContext();
-        Subject subject = Subject.getSubject(acContext);
+        GroupMemberships mems = getGroupCache(userID);
+        if (mems == null)
+            return; // no cache
 
-        // only save to cache if the userID is of the calling subject
-        if (userIsSubject(userID, subject))
+        log.debug("Caching groups for " + userID + ", role " + role);
+        List<Group> cur = mems.memberships.get(role);
+        if (cur == null)
         {
-            log.debug("Caching groups for " + userID + ", role " + role);
-
-            final GroupMemberships groupCredentials;
-            Set groupCredentialSet = subject
-                    .getPrivateCredentials(GroupMemberships.class);
-            if ((groupCredentialSet != null) &&
-                (groupCredentialSet.size() == 1))
-            {
-                Iterator i = groupCredentialSet.iterator();
-                groupCredentials = ((GroupMemberships) i.next());
-            }
-            else
-            {
-                groupCredentials = new GroupMemberships();
-                subject.getPrivateCredentials().add(groupCredentials);
-            }
-
-            groupCredentials.memberships.put(role, groups);
+            cur = new ArrayList<Group>();
+            mems.complete.put(role, Boolean.FALSE);
+            mems.memberships.put(role, cur);
+        }
+        for (Group group : groups)
+        {
+            if (!cur.contains(group))
+                cur.add(group);
+            mems.complete.put(role, Boolean.TRUE);
         }
     }
 
@@ -1197,7 +1208,7 @@ public class GMSClient
 
         for (Principal subjectPrincipal : subject.getPrincipals())
         {
-            if (subjectPrincipal.equals(userID))
+            if (AuthenticationUtil.equals(subjectPrincipal, userID))
             {
                 return true;
             }
@@ -1206,17 +1217,31 @@ public class GMSClient
     }
 
     /**
-     * Class used to hold list of groups in which
-     * a user is a member.
+     * Class used to hold list of groups in which a user is known to be a member.
      */
-    protected class GroupMemberships
+    protected class GroupMemberships implements Comparable
     {
         Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
+        Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
 
         protected GroupMemberships()
         {
         }
 
+        // only allow one in a set - makes clearCache simple too
+        public boolean equals(Object rhs)
+        {
+            if (rhs != null && rhs instanceof GroupMemberships)
+                return true;
+            return false;
+        }
+
+        public int compareTo(Object t)
+        {
+            if (this.equals(t))
+                return 0;
+            return -1; // wonder if this is sketchy
+        }
     }
 
 }

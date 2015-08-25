@@ -66,183 +66,61 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+package ca.nrc.cadc.ac.client;
 
-public class Group
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import ca.nrc.cadc.ac.client.UserClient;
+import ca.nrc.cadc.util.Log4jInit;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+
+public class UserClientTest
 {
-    private String groupID;
     
-    private User<? extends Principal> owner;
+    private static final Logger log = Logger.getLogger(UserClientTest.class);
     
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
-
-    // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-    
-    // group's user admins
-    private Set<User<? extends Principal>> userAdmins = new HashSet<User<? extends Principal>>();
-    
-    // group's group admins
-    private Set<Group> groupAdmins = new HashSet<Group>();
-    
-    public String description;
-    public Date lastModified;
-
-    public Group() {}
-    
-    /**
-     * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
-     *                  and "-", ".","_","~" characters.
-     */
-    public Group(String groupID)
+    public UserClientTest()
     {
-        this(groupID, null);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
     }
 
-    /**
-     * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
-     *                  and "-", ".","_","~" characters.
-     * @param owner     Owner/Creator of the group.
-     */
-    public Group(String groupID, User<? extends Principal> owner)
+
+    @Test
+    public void testConstructor()
     {
-        if (groupID == null)
+    	// case 1: test construction with a null URL
+        try
         {
-            throw new IllegalArgumentException("Null groupID");
+            new UserClient(null);            
+            Assert.fail("Null base URL should throw an illegalArgumentException.");
         }
-
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
+        catch (IllegalArgumentException iae)
         {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
+            Assert.assertEquals("baseURL is required", iae.getMessage());
         }
-
-        this.groupID = groupID;
-        this.owner = owner;
-    }
-
-    /**
-     * Obtain this Group's unique id.
-     * 
-     * @return String group ID.
-     */
-    public String getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User<? extends Principal> getOwner()
-    {
-        return owner;
-    }
-
-    public void setOwner(User<? extends Principal> owner)
-    {
-        this.owner = owner;
-    }
-
-    /**
-     * 
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     * 
-     * @return individual user members of this group
-     */
-    public Set<User<? extends Principal>> getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     * 
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-    
-    /**
-     * 
-     * @return individual user admins of this group
-     */
-    public Set<User<? extends Principal>> getUserAdmins()
-    {
-        return userAdmins;
-    }
-
-    /**
-     * 
-     * @return group admins of this group
-     */
-    public Set<Group> getGroupAdmins()
-    {
-        return groupAdmins;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.toLowerCase().hashCode();
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
+        catch (Throwable t)
         {
-            return true;
+        	Assert.fail("Unexpected exception: " + t.getMessage());
         }
-        if (obj == null)
+        
+        // case 2: test construction with a malformed URL
+        try
         {
-            return false;
+            new UserClient("noSuchProtocol://localhost");            
+            Assert.fail("Malformed URL should throw an illegalArgumentException.");
         }
-        if (!(obj instanceof Group))
+        catch (IllegalArgumentException iae)
         {
-            return false;
+            Assert.assertTrue("Expecting 'URL is malformed'", 
+            		iae.getMessage().contains("URL is malformed"));
         }
-        Group other = (Group) obj;
-        if (!groupID.equalsIgnoreCase(other.groupID))
+        catch (Throwable t)
         {
-            return false;
+        	Assert.fail("Unexpected exception: " + t.getMessage());
         }
-        return true;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
     }
 }

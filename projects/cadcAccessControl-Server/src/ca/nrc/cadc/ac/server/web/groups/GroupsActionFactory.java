@@ -201,7 +201,6 @@ public abstract class GroupsActionFactory
                     }
                     sb.append(request.getContextPath());
                     sb.append(request.getServletPath());
-                    sb.append("/");
                     sb.append(path);
 
                     action = new ModifyGroupAction(groupName, sb.toString(), request.getInputStream());

@@ -494,11 +494,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     for (Group group : groups)
                     {
                         log.debug("admin group: " + group.getID());
-                        if (group.getID().equals(testGroup1ID))
+                        if (group.getID().equalsIgnoreCase(testGroup1ID))
                         {
                             found1 = true;
                         }
-                        if (group.getID().equals(testGroup2ID))
+                        if (group.getID().equalsIgnoreCase(testGroup2ID))
                         {
                             found2 = true;
                         }
@@ -861,18 +861,10 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     getGroupDAO().getGroups(unknownPrincipal, Role.OWNER, 
                                                groupID);
                     fail("searchGroups with unknown user should throw " + 
-                         "UserNotFoundException");
+                         "AccessControlException");
                 }
                 catch (AccessControlException ignore) {}
                 
-                try
-                {
-                    getGroupDAO().getGroups(daoTestPrincipal1, Role.OWNER, 
-                                               "foo");
-                    fail("searchGroups with unknown user should throw " + 
-                         "GroupNotFoundException");
-                }
-                catch (GroupNotFoundException ignore) {}
                 return null;
             }
         });

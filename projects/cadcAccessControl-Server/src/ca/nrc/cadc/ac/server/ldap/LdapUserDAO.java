@@ -465,8 +465,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField = "(&(objectclass=inetorgperson)(objectclass=cadcaccount)(" +
-                      searchField + "=" + userID.getName() + "))";
+        searchField = "(" + searchField + "=" + userID.getName() + ")";
         logger.debug(searchField);
 
         SearchResultEntry searchResult = null;
