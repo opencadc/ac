@@ -1,9 +1,9 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2011.                            (c) 2011.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,87 +62,28 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
--->
+*/
 
+package ca.nrc.cadc.ac.server;
 
-<!DOCTYPE project>
-<project name="cadcAccessControl-Server" default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
-
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
-
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
-
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
-
-    <property name="project" value="cadcAccessControl-Server" />
-
-    <property name="cadcAccessControl"   value="${lib}/cadcAccessControl.jar" />
-    <property name="cadcLog"             value="${lib}/cadcLog.jar" />
-    <property name="cadcRegistry"        value="${lib}/cadcRegistryClient.jar" />
-    <property name="cadcUtil"            value="${lib}/cadcUtil.jar" />
-    <property name="cadcUWS"             value="${lib}/cadcUWS.jar" />
-    <property name="wsUtil"              value="${lib}/wsUtil.jar" />
-
-    <property name="javacsv"             value="${ext.lib}/javacsv.jar" />
-    <property name="jdom2"               value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"               value="${ext.lib}/log4j.jar" />
-    <property name="servlet"             value="${ext.lib}/servlet-api.jar" />
-    <property name="unboundid"           value="${ext.lib}/unboundid-ldapsdk-se.jar" />
-    <property name="xerces"              value="${ext.lib}/xerces.jar" />
-
-    <property name="jars" value="${javacsv}:${jdom2}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${wsUtil}" />
-
-    <target name="build" depends="compile">
-        <jar jarfile="${build}/lib/${project}.jar"
-             basedir="${build}/class"
-             update="no">
-            <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
-
-    <!-- JAR files needed to run the test suite -->
-    <property name="gson"           value="${ext.lib}/gson.jar" />
-    <property name="easyMock"       value="${ext.dev}/easymock.jar" />
-    <property name="junit"          value="${ext.dev}/junit.jar" />
-    <property name="xmlunit"        value="${ext.dev}/xmlunit.jar" />
-    <property name="xerces"         value="${ext.lib}/xerces.jar" />
-    <property name="cglib"          value="${ext.dev}/cglib.jar" />
-    <property name="objenesis"      value="${ext.dev}/objenesis.jar" />
-    <property name="asm"            value="${ext.dev}/asm.jar" />
-
-    <property name="testingJars"    value="${jars}:${gson}:${easyMock}:${junit}:${xmlunit}:${xerces}:${cglib}:${asm}:${objenesis}" />
-
-    <target name="resources">
-        <copy todir="${build}/class">
-            <fileset dir="config">
-                <include name="**.properties" />
-            </fileset>
-        </copy>
-    </target>
-
-    <!--
-    <target name="group-dao-test" depends="compile,compile-test,resources">
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
-    -->
-</project>
+/**
+ *
+ * @author pdowler
+ */
+public interface GroupDetailSelector 
+{
+    /** 
+     * Check if group details should be filled in for the group when
+     * querying for role.
+     * @param g
+     * @param r
+     * @return true if group details should be filled
+     */
+    boolean isDetailedSearch(Group g, Role r);
+}
