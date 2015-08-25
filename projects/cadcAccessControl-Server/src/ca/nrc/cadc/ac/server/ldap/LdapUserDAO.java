@@ -150,8 +150,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     private String[] userAttribs = new String[]
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
-                    LDAP_COUNTRY,
-                    LDAP_EMAIL, LDAP_INSTITUTE
+                    LDAP_COUNTRY, LDAP_EMAIL, LDAP_INSTITUTE
             };
     private String[] memberAttribs = new String[]
             {
@@ -539,11 +538,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @return A map of string keys to string values.
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Map<String, PersonalDetails> getUsers()
+    public Collection<User<Principal>> getUsers()
             throws TransientException
     {
-        final Map<String, PersonalDetails> users =
-                new HashMap<String, PersonalDetails>();
+        final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
         try
         {
@@ -566,16 +564,15 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 {
                     if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
                     {
-                        final String trimmedFirstName =
+                        final String firstName =
                                 next.getAttributeValue(LDAP_FIRST_NAME).trim();
-                        final String trimmedLastName =
+                        final String lastName =
                                 next.getAttributeValue(LDAP_LAST_NAME).trim();
-                        final String trimmedUID =
-                                next.getAttributeValue(LDAP_UID).trim();
-
-                        users.put(trimmedUID,
-                                  new PersonalDetails(trimmedFirstName,
-                                                      trimmedLastName));
+                        final String uid =  next.getAttributeValue(LDAP_UID).trim();
+                        User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
+                        PersonalDetails pd = new PersonalDetails(firstName, lastName);
+                        user.details.add(pd);
+                        users.add(user);
                     }
                 }
             }

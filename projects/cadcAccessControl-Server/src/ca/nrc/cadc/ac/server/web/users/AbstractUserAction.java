@@ -94,7 +94,9 @@ import java.io.Writer;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -324,7 +326,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
      *
      * @param users         The Map of user IDs to names.
      */
-    protected final void writeUsers(final Map<String, PersonalDetails> users)
+    protected final <T extends Principal> void writeUsers(final Collection<User<T>> users)
             throws IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);

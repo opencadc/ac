@@ -68,58 +68,54 @@
 
 package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.UserListWriter;
+import ca.nrc.cadc.xml.JsonOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Map;
-
+import java.security.Principal;
+import java.util.Collection;
 
 /**
  * Class to write out, as JSON, a list of user entries.
  */
-public class JsonUserListWriter
+public class JsonUserListWriter extends UserListWriter
 {
-    public static void write(final Map<String, PersonalDetails> users,
-                             final Writer writer) throws IOException
+    /**
+     * Write a Collection of Users to a Writer.
+     *
+     * @param users  Users to write.
+     * @param writer Writer to write to.
+     * @throws IOException     if the writer fails to write.
+     * @throws WriterException
+     */
+    @Override
+    public <T extends Principal> void write(Collection<User<T>> users, Writer writer)
+        throws IOException, WriterException
     {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
-
-        try
+        if (users == null)
         {
-            jsonWriter.array();
-
-            for (final Map.Entry<String, PersonalDetails> entry
-                    : users.entrySet())
-            {
-                jsonWriter.object();
-
-                jsonWriter.key("id").value(entry.getKey());
-                jsonWriter.key("firstName").value(entry.getValue().
-                        getFirstName());
-                jsonWriter.key("lastName").value(entry.getValue().
-                        getLastName());
-
-                jsonWriter.endObject();
-                writer.write("\n");
-            }
+            throw new WriterException("null users");
         }
-        catch (JSONException e)
+
+        Element usersElement = new Element("users");
+        for (User<? extends Principal> user : users)
         {
-            throw new IOException(e);
+            Element userElement = new Element(("user"));
+            userElement.addContent(getElement(user));
         }
-        finally
-        {
-            try
-            {
-                jsonWriter.endArray();
-            }
-            catch (JSONException e)
-            {
-                // Do nothing.
-            }
-        }
+        Document document = new Document();
+        document.setRootElement(usersElement);
+
+        JsonOutputter jsonOutputter = new JsonOutputter();
+        jsonOutputter.getListElementNames().add("identities");
+        jsonOutputter.getListElementNames().add("details");
+
+        jsonOutputter.output(document, writer);
     }
+
 }

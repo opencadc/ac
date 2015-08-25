@@ -68,19 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.io.IOException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.List;
-
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
@@ -91,6 +78,15 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.net.TransientException;
+import org.apache.log4j.Logger;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.List;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
 {
@@ -208,18 +204,18 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
     private void sendError(int responseCode, String message)
     {
         syncOut.setHeader("Content-Type", "text/plain");
+        syncOut.setCode(responseCode);
         if (message != null)
         {
             try
             {
-                syncOut.getWriter() .write(message);
+                syncOut.getWriter().write(message);
             }
             catch (IOException e)
             {
                 log.warn("Could not write error message to output stream");
             }
         }
-        syncOut.setCode(responseCode);
     }
 
     <T extends Principal> GroupPersistence<T> getGroupPersistence()

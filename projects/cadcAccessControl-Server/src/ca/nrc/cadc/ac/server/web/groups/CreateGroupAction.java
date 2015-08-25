@@ -99,7 +99,8 @@ public class CreateGroupAction extends AbstractGroupAction
         groupWriter.write(newGroup, syncOut.getWriter());
 
         List<String> addedMembers = null;
-        if ((newGroup.getUserMembers().size() > 0) || (newGroup.getGroupMembers().size() > 0))
+        if ((newGroup.getUserMembers().size() > 0) ||
+            (newGroup.getGroupMembers().size() > 0))
         {
             addedMembers = new ArrayList<String>();
             for (Group gr : newGroup.getGroupMembers())

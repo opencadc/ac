@@ -69,68 +69,21 @@
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.ac.xml.UserWriter;
-import ca.nrc.cadc.util.StringBuilderWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
 import org.jdom2.Document;
 import org.jdom2.Element;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
-import java.util.Set;
 
+/**
+ * Class to write a JSON representation of a User object.
+ */
 public class JsonUserWriter extends UserWriter
 {
-    /**
-     * Write a User as a JSON string to a StringBuilder.
-     * 
-     * @param user User to write.
-     * @param builder StringBuilder to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
-     */
-    @Override
-    public void write(User<? extends Principal> user, StringBuilder builder)
-        throws IOException, WriterException
-    {
-        write(user, new StringBuilderWriter(builder));
-    }
-
-    /**
-     * Write a User as a JSON string to an OutputStream.
-     *
-     * @param user User to write.
-     * @param out OutputStream to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
-     */
-    @Override
-    public void write(User<? extends Principal> user, OutputStream out)
-        throws IOException, WriterException
-    {                
-        OutputStreamWriter outWriter;
-        try
-        {
-            outWriter = new OutputStreamWriter(out, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported", e);
-        }
-        write(user, new BufferedWriter(outWriter));
-    }
-
     /**
      * Write a User as a JSON string to a Writer.
      *
@@ -140,7 +93,7 @@ public class JsonUserWriter extends UserWriter
      * @throws WriterException
      */
     @Override
-    public void write(User<? extends Principal> user, Writer writer)
+    public<T extends Principal> void write(User<T> user, Writer writer)
         throws IOException, WriterException
     {
         if (user == null)
@@ -148,7 +101,7 @@ public class JsonUserWriter extends UserWriter
             throw new WriterException("null User");
         }
 
-        Element children = UserWriter.getUserElement(user);
+        Element children = getElement(user);
         Element userElement = new Element("user");
         userElement.addContent(children);
         Document document = new Document();

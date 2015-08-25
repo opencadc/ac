@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,119 +62,143 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
 
+package ca.nrc.cadc.ac.xml;
+
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.xml.XmlUtil;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
-import java.security.AccessControlException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.security.Principal;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface UserPersistence<T extends Principal>
+/**
+ * Class to read an XML representation of a List of Users
+ * into a List of User objects.
+ */
+public class UserListReader extends AbstractXML
 {
     /**
-     * Get all user names.
-     * 
-     * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * Construct a List of Users from an XML String source.
+     *
+     * @param xml String of the XML.
+     * @return List of users.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    Collection<User<Principal>> getUsers()
-            throws TransientException, AccessControlException;
-    
-    /**
-     * Add the new user.
-     *
-     * @param user      The user request to put into the request tree.
-     *
-     * @return User instance.
-     * 
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> addUser(UserRequest<T> user)
-        throws TransientException, AccessControlException,
-               UserAlreadyExistsException;
-    
-    /**
-     * Get the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> getUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
+    public List<User<Principal>> read(String xml)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (xml == null)
+        {
+            throw new IllegalArgumentException("XML must not be null");
+        }
+        return read(new StringReader(xml));
+    }
 
     /**
-     * Get the user specified by userID whose account is pending approval.
+     * Construct a List of Users from a InputStream.
      *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * @param in InputStream.
+     * @return List of Users.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    User<T> getPendingUser(T userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException;
-    
+    public List<User<Principal>> read(InputStream in)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (in == null)
+        {
+            throw new IOException("stream closed");
+        }
+        InputStreamReader reader;
+        try
+        {
+            reader = new InputStreamReader(in, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported");
+        }
+        return read(reader);
+    }
+
     /**
-     * Attempt to login the specified user.
+     * Construct a List of Users from a Reader.
      *
-     * @param userID The userID.
-     * @param password The password.
-     *
-     * @return Boolean
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * @param reader Reader.
+     * @return List of Users.
+     * @throws ReaderException
+     * @throws java.io.IOException
+     * @throws java.net.URISyntaxException
      */
-    Boolean doLogin(String userID, String password)
-            throws UserNotFoundException, TransientException, 
-            AccessControlException;
-   
+    public List<User<Principal>> read(Reader reader)
+        throws ReaderException, IOException, URISyntaxException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
+
+        Document document;
+        try
+        {
+            document = XmlUtil.buildDocument(reader);
+        }
+        catch (JDOMException jde)
+        {
+            String error = "XML failed validation: " + jde.getMessage();
+            throw new ReaderException(error, jde);
+        }
+
+        Element root = document.getRootElement();
+
+        String userElemName = root.getName();
+
+        if (!userElemName.equalsIgnoreCase("users"))
+        {
+            String error = "Expected users element, found " + userElemName;
+            throw new ReaderException(error);
+        }
+
+        return getUserList(root);
+    }
+
     /**
-     * Updated the user specified by User.
+     * Get a List of Users from a JDOM element.
      *
-     * @param user      The user instance to modify.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * @param element The Users JDOM element.
+     * @return A List of User objects.
+     * @throws URISyntaxException
+     * @throws ReaderException
      */
-    User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Delete the user specified by userID.
-     *
-     * @param userID The userID.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    void deleteUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
+    protected final List<User<Principal>> getUserList(Element element)
+        throws URISyntaxException, ReaderException
+    {
+        List<User<Principal>> users = new ArrayList<User<Principal>>();
+
+        List<Element> userElements = element.getChildren("user");
+        for (Element userElement : userElements)
+        {
+            users.add(getUser(userElement));
+        }
+
+        return users;
+    }
 }

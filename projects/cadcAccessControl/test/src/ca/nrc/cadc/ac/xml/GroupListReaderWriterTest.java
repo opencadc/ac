@@ -66,115 +66,96 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
+package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface UserPersistence<T extends Principal>
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+/**
+ *
+ * @author jburke
+ */
+public class GroupListReaderWriterTest
 {
-    /**
-     * Get all user names.
-     * 
-     * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<User<Principal>> getUsers()
-            throws TransientException, AccessControlException;
-    
-    /**
-     * Add the new user.
-     *
-     * @param user      The user request to put into the request tree.
-     *
-     * @return User instance.
-     * 
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> addUser(UserRequest<T> user)
-        throws TransientException, AccessControlException,
-               UserAlreadyExistsException;
-    
-    /**
-     * Get the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> getUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
+    private static Logger log = Logger.getLogger(GroupListReaderWriterTest.class);
 
-    /**
-     * Get the user specified by userID whose account is pending approval.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> getPendingUser(T userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException;
-    
-    /**
-     * Attempt to login the specified user.
-     *
-     * @param userID The userID.
-     * @param password The password.
-     *
-     * @return Boolean
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Boolean doLogin(String userID, String password)
-            throws UserNotFoundException, TransientException, 
-            AccessControlException;
-   
-    /**
-     * Updated the user specified by User.
-     *
-     * @param user      The user instance to modify.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Delete the user specified by userID.
-     *
-     * @param userID The userID.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    void deleteUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
+    @Test
+    public void testReaderExceptions()
+        throws Exception
+    {
+        try
+        {
+            String s = null;
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> g = groupListReader.read(s);
+            fail("null String should throw IllegalArgumentException");
+        }
+        catch (IllegalArgumentException e) {}
+        
+        try
+        {
+            InputStream in = null;
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> g = groupListReader.read(in);
+            fail("null InputStream should throw IOException");
+        }
+        catch (IOException e) {}
+        
+        try
+        {
+            Reader r = null;
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> g = groupListReader.read(r);
+            fail("null element should throw ReaderException");
+        }
+        catch (IllegalArgumentException e) {}
+    }
+     
+    @Test
+    public void testWriterExceptions()
+        throws Exception
+    {
+        try
+        {
+            GroupListWriter groupListWriter = new GroupListWriter();
+            groupListWriter.write(null, new StringBuilder());
+            fail("null Group should throw WriterException");
+        }
+        catch (WriterException e) {}
+    }
+     
+    @Test
+    public void testMinimalReadWrite()
+        throws Exception
+    {        
+        List<Group> expected = new ArrayList<Group>();
+        expected.add(new Group("group1", null));
+        expected.add(new Group("group2", null));
+        
+        StringBuilder xml = new StringBuilder();
+        GroupListWriter groupListWriter = new GroupListWriter();
+        groupListWriter.write(expected, xml);
+        assertFalse(xml.toString().isEmpty());
+
+        GroupListReader groupListReader = new GroupListReader();
+        List<Group> actual = groupListReader.read(xml.toString());
+        assertNotNull(actual);
+        assertEquals(expected.size(), actual.size());
+        assertEquals(expected.get(0), actual.get(0));
+        assertEquals(expected.get(1), actual.get(1));
+    }
+
 }

@@ -72,10 +72,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -84,7 +80,7 @@ import java.security.Principal;
 /**
  * Class to write a XML representation of a UserRequest object.
  */
-public class UserRequestWriter
+public class UserRequestWriter extends AbstractXML
 {
     /**
      * Write a UserRequest to a StringBuilder.
@@ -94,7 +90,7 @@ public class UserRequestWriter
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
-    public void write(UserRequest<? extends Principal> userRequest, StringBuilder builder)
+    public <T extends Principal> void write(UserRequest<T> userRequest, StringBuilder builder)
         throws IOException, WriterException
     {
         write(userRequest, new StringBuilderWriter(builder));
@@ -108,7 +104,7 @@ public class UserRequestWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public static void write(UserRequest<? extends Principal> userRequest, Writer writer)
+    public <T extends Principal> void write(UserRequest<T> userRequest, Writer writer)
         throws IOException, WriterException
     {
         if (userRequest == null)
@@ -116,46 +112,7 @@ public class UserRequestWriter
             throw new WriterException("null UserRequest");
         }
 
-        write(getUserRequestElement(userRequest), writer);
+        write(getElement(userRequest), writer);
     }
 
-    /**
-     * Build the UserRequest element.
-     *
-     * @param userRequest UserRequest.
-     * @return member Element.
-     * @throws WriterException
-     */
-    public static Element getUserRequestElement(UserRequest<? extends Principal> userRequest)
-        throws WriterException
-    {
-        // Create the userRequest Element.
-        Element userRequestElement = new Element("userRequest");
-
-        // user element
-        Element userElement = UserWriter.getUserElement(userRequest.getUser());
-        userRequestElement.addContent(userElement);
-
-        // password element
-        Element passwordElement = new Element("password");
-        passwordElement.setText(String.valueOf(userRequest.getPassword()));
-        userRequestElement.addContent(passwordElement);
-
-        return userRequestElement;
-    }
-
-    /**
-     * Write to root Element to a writer.
-     *
-     * @param root Root Element to write.
-     * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
-     */
-    private static void write(Element root, Writer writer)
-        throws IOException
-    {
-        XMLOutputter outputter = new XMLOutputter();
-        outputter.setFormat(Format.getPrettyFormat());
-        outputter.output(new Document(root), writer);
-    }
 }

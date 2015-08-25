@@ -103,7 +103,7 @@ public class JsonUserReaderWriterTest
         {
             String s = null;
             JsonUserReader reader = new JsonUserReader();
-            User<? extends Principal> u = reader.read(s);
+            User<Principal> u = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -112,7 +112,7 @@ public class JsonUserReaderWriterTest
         {
             InputStream in = null;
             JsonUserReader reader = new JsonUserReader();
-            User<? extends Principal> u = reader.read(in);
+            User<Principal> u = reader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -121,7 +121,7 @@ public class JsonUserReaderWriterTest
         {
             Reader r = null;
             JsonUserReader reader = new JsonUserReader();
-            User<? extends Principal> u = reader.read(r);
+            User<Principal> u = reader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -144,7 +144,7 @@ public class JsonUserReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
         expected.getIdentities().add(new NumericPrincipal(123l));
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         expected.details.add(new PosixDetails(123l, 456l, "foo"));

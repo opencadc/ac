@@ -105,6 +105,7 @@ import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;

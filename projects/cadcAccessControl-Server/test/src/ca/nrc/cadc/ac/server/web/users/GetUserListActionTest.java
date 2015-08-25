@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.web.users;
 
 
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
@@ -85,7 +86,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.security.Principal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.easymock.EasyMock.*;
@@ -115,13 +119,14 @@ public class GetUserListActionTest
                 createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
-        final Map<String, PersonalDetails> userEntries =
-                new HashMap<String, PersonalDetails>();
+        List<User<Principal>> expectedUsers = new ArrayList<User<Principal>>();
 
         for (int i = 1; i <= 5; i++)
         {
-            userEntries.put("USER_" + i,
-                            new PersonalDetails("USER", Integer.toString(i)));
+            User<Principal> user = new User<Principal>(new HttpPrincipal("USER_" + i));
+            PersonalDetails pd = new PersonalDetails("USER", Integer.toString(i));
+            user.details.add(pd);
+            expectedUsers.add(user);
         }
 
         final GetUserListAction testSubject = new GetUserListAction()
@@ -138,8 +143,7 @@ public class GetUserListActionTest
         final Writer actualWriter = new StringWriter();
         final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
 
-        expect(mockUserPersistence.getUsers()).andReturn(
-                userEntries).once();
+        expect(mockUserPersistence.getUsers()).andReturn(expectedUsers).once();
         expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
         mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
@@ -153,7 +157,7 @@ public class GetUserListActionTest
         final Writer expectedWriter = new StringWriter();
         final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
         JsonUserListWriter userListWriter = new JsonUserListWriter();
-        userListWriter.write(userEntries, expectedPrintWriter);
+        userListWriter.write(expectedUsers, expectedPrintWriter);
         JSONAssert.assertEquals(expectedWriter.toString(), actualWriter.toString(), false);
 
         verify(mockSyncOut, mockUserPersistence);
@@ -167,13 +171,14 @@ public class GetUserListActionTest
                 createMock(SyncOutput.class);
         final UserPersistence<HttpPrincipal> mockUserPersistence =
                 createMock(UserPersistence.class);
-        final Map<String, PersonalDetails> userEntries =
-                new HashMap<String, PersonalDetails>();
+        List<User<Principal>> expectedUsers = new ArrayList<User<Principal>>();
 
         for (int i = 1; i <= 5; i++)
         {
-            userEntries.put("USER_" + i,
-                            new PersonalDetails("USER", Integer.toString(i)));
+            User<Principal> user = new User<Principal>(new HttpPrincipal("USER_" + i));
+            PersonalDetails pd = new PersonalDetails("USER", Integer.toString(i));
+            user.details.add(pd);
+            expectedUsers.add(user);
         }
 
         final GetUserListAction testSubject = new GetUserListAction()
@@ -188,8 +193,7 @@ public class GetUserListActionTest
         final Writer actualWriter = new StringWriter();
         final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
 
-        expect(mockUserPersistence.getUsers()).andReturn(
-                userEntries).once();
+        expect(mockUserPersistence.getUsers()).andReturn(expectedUsers).once();
         expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
         mockSyncOut.setHeader("Content-Type", "text/xml");
         expectLastCall().once();
@@ -203,7 +207,7 @@ public class GetUserListActionTest
         final Writer expectedWriter = new StringWriter();
         final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
         UserListWriter userListWriter = new UserListWriter();
-        userListWriter.write(userEntries, expectedPrintWriter);
+        userListWriter.write(expectedUsers, expectedPrintWriter);
         assertEquals("Wrong XML", expectedWriter.toString(), actualWriter.toString());
 
         verify(mockSyncOut, mockUserPersistence);

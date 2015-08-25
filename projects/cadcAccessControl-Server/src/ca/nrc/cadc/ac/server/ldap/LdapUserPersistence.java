@@ -75,6 +75,7 @@ import com.unboundid.ldap.sdk.DN;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -96,8 +97,8 @@ public class LdapUserPersistence<T extends Principal>
             logger.error("test/config/LdapConfig.properties file required.", e);
         }
     }
-    
-    public Map<String, PersonalDetails> getUsers()
+
+    public Collection<User<Principal>> getUsers()
         throws TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
@@ -125,7 +126,6 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    @Override
     public User<T> addUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
                UserAlreadyExistsException
@@ -183,7 +183,6 @@ public class LdapUserPersistence<T extends Principal>
     * @throws TransientException     If an temporary, unexpected problem occurred.
     * @throws AccessControlException If the operation is not permitted.
     */
-    @Override
     public User<T> getPendingUser(final T userID) throws UserNotFoundException,
                                                          TransientException,
                                                          AccessControlException

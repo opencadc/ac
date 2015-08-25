@@ -83,7 +83,7 @@ import static org.junit.Assert.*;
  *
  * @author jburke
  */
-public class GroupPropertyReaderWriterTest
+public class GroupPropertyReaderWriterTest extends AbstractXML
 {
     private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
@@ -100,7 +100,7 @@ public class GroupPropertyReaderWriterTest
         Element element = null;
         try
         {
-            GroupProperty gp = GroupPropertyReader.read(element);
+            GroupProperty gp = getGroupProperty(element);
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -108,7 +108,7 @@ public class GroupPropertyReaderWriterTest
         element = new Element("foo");
         try
         {
-            GroupProperty gp = GroupPropertyReader.read(element);
+            GroupProperty gp = getGroupProperty(element);
             fail("element not named 'property' should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -116,7 +116,7 @@ public class GroupPropertyReaderWriterTest
         element = new Element("property");
         try
         {
-            GroupProperty gp = GroupPropertyReader.read(element);
+            GroupProperty gp = getGroupProperty(element);
             fail("element without 'key' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -124,7 +124,7 @@ public class GroupPropertyReaderWriterTest
         element.setAttribute("key", "foo");
         try
         {
-            GroupProperty gp = GroupPropertyReader.read(element);
+            GroupProperty gp = getGroupProperty(element);
             fail("element without 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -132,7 +132,7 @@ public class GroupPropertyReaderWriterTest
         element.setAttribute("type", "Double");
         try
         {
-            GroupProperty gp = GroupPropertyReader.read(element);
+            GroupProperty gp = getGroupProperty(element);
             fail("Unsupported 'type' should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -144,15 +144,16 @@ public class GroupPropertyReaderWriterTest
     {
         try
         {
-            Element element = GroupPropertyWriter.write(null);
+            GroupProperty groupProperty = null;
+            Element element = getElement(groupProperty);
             fail("null GroupProperty should throw WriterException");
         }
         catch (WriterException e) {}
          
-        GroupProperty gp = new GroupProperty("key", new Double(1.0), true);
+        GroupProperty groupProperty = new GroupProperty("key", new Double(1.0), true);
         try
         {
-            Element element = GroupPropertyWriter.write(gp);
+            Element element = getElement(groupProperty);
             fail("Unsupported GroupProperty type should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -164,20 +165,20 @@ public class GroupPropertyReaderWriterTest
     {
         // String type
         GroupProperty expected = new GroupProperty("key", "value", true);
-        Element element = GroupPropertyWriter.write(expected);
+        Element element = getElement(expected);
         assertNotNull(element);
          
-        GroupProperty actual = GroupPropertyReader.read(element);
+        GroupProperty actual = getGroupProperty(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);
          
         // Integer tuype
         expected = new GroupProperty("key", new Integer(1), false);
-        element = GroupPropertyWriter.write(expected);
+        element = getElement(expected);
         assertNotNull(element);
          
-        actual = GroupPropertyReader.read(element);
+        actual = getGroupProperty(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);

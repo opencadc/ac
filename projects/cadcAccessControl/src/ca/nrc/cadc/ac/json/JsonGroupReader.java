@@ -76,37 +76,15 @@ import org.jdom2.Document;
 import org.json.JSONException;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Scanner;
 
+/**
+ * Class to read an JSON representation of a list of Groups
+ * into a list of Group objects.
+ */
 public class JsonGroupReader extends GroupReader
 {
-    /**
-     * Construct a Group from a InputStream.
-     *
-     * @param in InputStream.
-     * @return Group Group.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    @Override
-    public Group read(InputStream in)
-        throws ReaderException, IOException
-    {
-        if (in == null)
-        {
-            throw new IOException("stream closed");
-        }
-        InputStreamReader reader;
-
-        Scanner s = new Scanner(in).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
-    }
-
     /**
      * Construct a Group from a Reader.
      *
@@ -127,27 +105,6 @@ public class JsonGroupReader extends GroupReader
         Scanner s = new Scanner(reader).useDelimiter("\\A");
         String json = s.hasNext() ? s.next() : "";
 
-        return read(json);
-    }
-
-    /**
-     * Construct a Group from an JSON String source.
-     *
-     * @param json String of JSON.
-     * @return Group Group.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    @Override
-    public Group read(String json)
-        throws ReaderException, IOException
-    {
-        if (json == null)
-        {
-            throw new IllegalArgumentException("JSON must not be null");
-        }
-
-        // Create a JSONObject from the JSON
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
@@ -160,12 +117,12 @@ public class JsonGroupReader extends GroupReader
             jsonInputter.getListElementMap().put("userAdmins", "user");
 
             Document document = jsonInputter.input(json);
-            return GroupReader.parseGroup(document.getRootElement());
+            return getGroup(document.getRootElement());
         }
         catch (JSONException e)
         {
             String error = "Unable to parse JSON to Group because " +
-                           e.getMessage();
+                e.getMessage();
             throw new ReaderException(error, e);
         }
     }

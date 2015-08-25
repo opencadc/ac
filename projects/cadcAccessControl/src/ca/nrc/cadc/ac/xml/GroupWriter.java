@@ -68,18 +68,9 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.util.StringBuilderWriter;
-import org.jdom2.Attribute;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -87,13 +78,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.security.Principal;
-import java.text.DateFormat;
 
 /**
  * Class to write a XML representation of a Group object.
  */
-public class GroupWriter
+public class GroupWriter extends AbstractXML
 {
     /**
      * Write a Group to a StringBuilder.
@@ -147,129 +136,7 @@ public class GroupWriter
             throw new WriterException("null group");
         }
 
-        write(getGroupElement(group), writer);
+        write(getElement(group), writer);
     }
 
-    /**
-     * 
-     * @param group
-     * @return 
-     * @throws WriterException
-     */
-    public static Element getGroupElement(Group group)
-        throws WriterException
-    {
-        return getGroupElement(group, true);
-    }
-
-    public static Element getGroupElement(Group group, boolean deepCopy)
-        throws WriterException
-    {
-        // Create the root group element.
-        Element groupElement = new Element("group");
-        String groupURI = AC.GROUP_URI + group.getID();
-        groupElement.setAttribute(new Attribute("uri", groupURI));
-
-        // Group owner
-        if (group.getOwner() != null)
-        {
-            Element ownerElement = new Element("owner");
-            Element userElement = UserWriter.getUserElement(group.getOwner());
-            ownerElement.addContent(userElement);
-            groupElement.addContent(ownerElement);
-        }
-
-        if (deepCopy)
-        {
-            // Group description
-            if (group.description != null)
-            {
-                Element descriptionElement = new Element("description");
-                descriptionElement.setText(group.description);
-                groupElement.addContent(descriptionElement);
-            }
-
-            // lastModified
-            if (group.lastModified != null)
-            {
-                Element lastModifiedElement = new Element("lastModified");
-                DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-                lastModifiedElement.setText(df.format(group.lastModified));
-                groupElement.addContent(lastModifiedElement);
-            }
-
-            // Group properties
-            if (!group.getProperties().isEmpty())
-            {
-                Element propertiesElement = new Element("properties");
-                for (GroupProperty property : group.getProperties())
-                {
-                    propertiesElement.addContent(ca.nrc.cadc.ac.xml.GroupPropertyWriter.write(property));
-                }
-                groupElement.addContent(propertiesElement);
-            }
-
-            // Group groupMembers.
-            if ((group.getGroupMembers() != null) && (!group.getGroupMembers().isEmpty()))
-            {
-                Element groupMembersElement = new Element("groupMembers");
-                for (Group groupMember : group.getGroupMembers())
-                {
-                    groupMembersElement.addContent(getGroupElement(groupMember, false));
-                }
-                groupElement.addContent(groupMembersElement);
-            }
-
-            // Group userMembers
-            if ((group.getUserMembers() != null) && (!group.getUserMembers().isEmpty()))
-            {
-                Element userMembersElement = new Element("userMembers");
-                for (User<? extends Principal> userMember : group.getUserMembers())
-                {
-                    userMembersElement.addContent(UserWriter.getUserElement(userMember));
-                }
-                groupElement.addContent(userMembersElement);
-            }
-            
-            // Group groupAdmins.
-            if ((group.getGroupAdmins() != null) && (!group.getGroupAdmins().isEmpty()))
-            {
-                Element groupAdminsElement = new Element("groupAdmins");
-                for (Group groupMember : group.getGroupAdmins())
-                {
-                    groupAdminsElement.addContent(getGroupElement(groupMember, false));
-                }
-                groupElement.addContent(groupAdminsElement);
-            }
-
-            // Group userAdmins
-            if ((group.getUserAdmins() != null) && (!group.getUserAdmins().isEmpty()))
-            {
-                Element userAdminsElement = new Element("userAdmins");
-                for (User<? extends Principal> userMember : group.getUserAdmins())
-                {
-                    userAdminsElement.addContent(UserWriter.getUserElement(userMember));
-                }
-                groupElement.addContent(userAdminsElement);
-            }
-        }
-
-        return groupElement;
-    }
-
-    /**
-     * Write to root Element to a writer.
-     * 
-     * @param root Root Element to write.
-     * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
-     */
-    private static void write(Element root, Writer writer)
-        throws IOException
-    {
-        XMLOutputter outputter = new XMLOutputter();
-        outputter.setFormat(Format.getPrettyFormat());
-        outputter.output(new Document(root), writer);
-    }
-    
 }
