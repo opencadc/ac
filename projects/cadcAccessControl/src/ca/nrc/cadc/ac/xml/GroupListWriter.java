@@ -85,7 +85,7 @@ import java.util.Collection;
 /**
  * Class to write a XML representation from a Collection of Groups objects.
  */
-public class GroupListWriter extends AbstractXML
+public class GroupListWriter extends AbstractReaderWriter
 {
     /**
      * Write a Collection of Group's to a StringBuilder.

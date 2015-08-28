@@ -285,7 +285,16 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         DN userDN;
         try
         {
-            userDN = getUserRequestsDN(userRequest.getUser().getUserID().getName());
+            T userID = userRequest.getUser().getUserID();
+            try
+            {
+                getUser(userID, config.getUsersDN(), false);
+                throw new UserAlreadyExistsException(userID.getName() + " found in " +
+                                                     config.getUsersDN());
+            }
+            catch (UserNotFoundException ignore) {}
+
+            userDN = getUserRequestsDN(userID.getName());
             addUser(userRequest, userDN);
 
             // AD: Search results sometimes come incomplete if
@@ -293,7 +302,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             getConnection().reconnect();
             try
             {
-                return getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN());
+                return getUser(userID, config.getUserRequestsDN());
             }
             catch (UserNotFoundException e)
             {
@@ -443,7 +452,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         return getUser(userID, config.getUserRequestsDN());
     }
 
-
     /**
      * Get the user specified by userID.
      *
@@ -455,6 +463,24 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      */
     private User<T> getUser(final T userID, final String usersDN)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        return getUser(userID, usersDN, true);
+    }
+
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID  The userID.
+     * @param usersDN The LDAP tree to search.
+     * @param proxy   If true proxy the request as the calling user.
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    private User<T> getUser(final T userID, final String usersDN, boolean proxy)
             throws UserNotFoundException, TransientException,
                    AccessControlException
     {
@@ -474,7 +500,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.SUB,
                                       searchField, userAttribs);
-            if (isSecure(usersDN))
+            if (proxy && isSecure(usersDN))
             {
                 searchRequest.addControl(
                         new ProxiedAuthorizationV2RequestControl(

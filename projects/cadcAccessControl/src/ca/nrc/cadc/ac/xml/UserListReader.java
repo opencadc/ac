@@ -90,7 +90,7 @@ import java.util.List;
  * Class to read an XML representation of a List of Users
  * into a List of User objects.
  */
-public class UserListReader extends AbstractXML
+public class UserListReader extends AbstractReaderWriter
 {
     /**
      * Construct a List of Users from an XML String source.

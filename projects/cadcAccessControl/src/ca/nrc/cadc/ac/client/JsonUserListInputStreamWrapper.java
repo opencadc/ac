@@ -82,15 +82,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 
-public class JSONUserListInputStreamWrapper implements InputStreamWrapper
+public class JsonUserListInputStreamWrapper implements InputStreamWrapper
 {
     private static final Logger LOGGER = Logger
-            .getLogger(JSONUserListInputStreamWrapper.class);
+            .getLogger(JsonUserListInputStreamWrapper.class);
     private final List<User<HttpPrincipal>> output;
 
 
-    public JSONUserListInputStreamWrapper(
-            final List<User<HttpPrincipal>> output)
+    public JsonUserListInputStreamWrapper(
+        final List<User<HttpPrincipal>> output)
     {
         this.output = output;
     }

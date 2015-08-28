@@ -83,7 +83,7 @@ import java.security.Principal;
 /**
  * Class to write a XML representation of a User object.
  */
-public class UserWriter extends AbstractXML
+public class UserWriter extends AbstractReaderWriter
 {
     /**
      * Write a User to a StringBuilder.

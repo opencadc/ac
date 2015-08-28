@@ -86,7 +86,7 @@ import java.net.URISyntaxException;
 /**
  * Class to read a XML representation of a Group to a Group object.
  */
-public class GroupReader extends AbstractXML
+public class GroupReader extends AbstractReaderWriter
 {
 
     /**

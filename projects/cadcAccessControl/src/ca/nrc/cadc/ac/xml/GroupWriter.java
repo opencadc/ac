@@ -82,7 +82,7 @@ import java.io.Writer;
 /**
  * Class to write a XML representation of a Group object.
  */
-public class GroupWriter extends AbstractXML
+public class GroupWriter extends AbstractReaderWriter
 {
     /**
      * Write a Group to a StringBuilder.

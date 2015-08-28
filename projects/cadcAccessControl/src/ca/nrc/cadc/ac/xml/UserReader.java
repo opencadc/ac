@@ -87,7 +87,7 @@ import java.security.Principal;
 /**
  * Class to read a XML representation of a User to a User object.
  */
-public class UserReader extends AbstractXML
+public class UserReader extends AbstractReaderWriter
 {
     /**
      * Construct a User from an XML String source.

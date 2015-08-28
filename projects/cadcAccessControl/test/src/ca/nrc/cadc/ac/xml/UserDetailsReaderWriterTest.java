@@ -85,7 +85,7 @@ import static org.junit.Assert.fail;
  *
  * @author jburke
  */
-public class UserDetailsReaderWriterTest extends AbstractXML
+public class UserDetailsReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
 

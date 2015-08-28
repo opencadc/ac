@@ -83,7 +83,6 @@ import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -239,7 +238,7 @@ public class GMSClient implements TransferListener
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
-                                new JSONUserListInputStreamWrapper(webUsers));
+                                new JsonUserListInputStreamWrapper(webUsers));
     }
 
     /**

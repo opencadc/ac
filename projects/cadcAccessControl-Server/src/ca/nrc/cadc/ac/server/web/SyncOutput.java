@@ -97,16 +97,18 @@ public class SyncOutput
 
     public void setCode(int code)
     {
+        log.debug("setting code");
         if (writer != null)
-            return;
+            throw new IllegalStateException("attempted to set code after writer has been opened");
 
         response.setStatus(code);
+        log.debug("set code " + code);
     }
 
     public void setHeader(String key, Object value)
     {
         if (writer != null)
-            return;
+            throw new IllegalStateException("attempted to set header after writer has been opened");
 
         if (value == null)
             response.setHeader(key, null);

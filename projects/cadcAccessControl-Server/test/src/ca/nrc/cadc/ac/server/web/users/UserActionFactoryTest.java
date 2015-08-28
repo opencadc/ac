@@ -175,11 +175,12 @@ public class UserActionFactoryTest
 
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
-            //EasyMock.expect(request.getRequestURL()).andReturn(sb);
-            //EasyMock.expect(request.getContextPath()).andReturn("");
-            //EasyMock.expect(request.getServletPath()).andReturn("");
+            EasyMock.expect(request.getRequestURL()).andReturn(sb);
+            EasyMock.expect(request.getContextPath()).andReturn("");
+            EasyMock.expect(request.getServletPath()).andReturn("");
+            EasyMock.expect(request.getQueryString()).andReturn("");
             EasyMock.expect(request.getInputStream()).andReturn(null);
-            //EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
+//            EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.replay(request);
             AbstractUserAction action = UserActionFactory.httpPostFactory().createAction(request);
             EasyMock.verify(request);

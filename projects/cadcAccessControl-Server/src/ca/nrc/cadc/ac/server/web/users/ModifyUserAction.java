@@ -84,13 +84,15 @@ import java.util.Set;
 public class ModifyUserAction extends AbstractUserAction
 {
     private final InputStream inputStream;
+    private final String request;
 
 
-    ModifyUserAction(final InputStream inputStream)
+    ModifyUserAction(final InputStream inputStream, final String request)
     {
         super();
 
         this.inputStream = inputStream;
+        this.request = request;
     }
 
 
@@ -100,7 +102,8 @@ public class ModifyUserAction extends AbstractUserAction
         final User<Principal> modifiedUser = modifyUser(user);
         logUserInfo(modifiedUser.getUserID().getName());
 
-        redirectGet(modifiedUser);
+        syncOut.setHeader("Location", request);
+        syncOut.setCode(303);
     }
 
     /**

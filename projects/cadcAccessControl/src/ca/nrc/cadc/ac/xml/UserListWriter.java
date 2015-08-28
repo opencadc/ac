@@ -81,12 +81,11 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Class to write a XML representation of a List of User's.
  */
-public class UserListWriter extends AbstractXML
+public class UserListWriter extends AbstractReaderWriter
 {
     /**
      * Write a Collection of User's to a StringBuilder.

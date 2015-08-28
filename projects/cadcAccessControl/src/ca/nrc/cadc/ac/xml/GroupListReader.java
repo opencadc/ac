@@ -89,7 +89,7 @@ import java.util.List;
  * Class to read an XML representation of a List of Groups
  * into a Collection of Group objects.
  */
-public class GroupListReader extends AbstractXML
+public class GroupListReader extends AbstractReaderWriter
 {
     /**
      * Construct a list of Group's from an XML String source.

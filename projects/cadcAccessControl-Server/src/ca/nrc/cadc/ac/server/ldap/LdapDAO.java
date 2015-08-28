@@ -260,6 +260,10 @@ public abstract class LdapDAO
         {
             throw new TransientException("ldap timeout");
         }
+        else if (code == ResultCode.INVALID_DN_SYNTAX)
+        {
+            throw new IllegalArgumentException("Invalid DN syntax");
+        }
 
         throw new RuntimeException("Ldap error (" + code.getName() + ")");
     }

@@ -89,7 +89,7 @@ import static org.junit.Assert.fail;
  *
  * @author jburke
  */
-public class IdentityReaderWriterTest extends AbstractXML
+public class IdentityReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
 
@@ -165,7 +165,7 @@ public class IdentityReaderWriterTest extends AbstractXML
          
         assertEquals(expected, actual);
 
-        // UID
+        // CADC
         expected = new NumericPrincipal(123l);
         element = getElement(expected);
         assertNotNull(element);

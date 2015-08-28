@@ -80,7 +80,7 @@ import java.security.Principal;
 /**
  * Class to write a XML representation of a UserRequest object.
  */
-public class UserRequestWriter extends AbstractXML
+public class UserRequestWriter extends AbstractReaderWriter
 {
     /**
      * Write a UserRequest to a StringBuilder.

@@ -69,7 +69,9 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
@@ -158,12 +160,26 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             this.logInfo.setMessage(message);
             sendError(400, message);
         }
+        catch (ReaderException e)
+        {
+            log.debug(e.getMessage(), e);
+            String message = e.getMessage();
+            this.logInfo.setMessage(message);
+            sendError(400, message);
+        }
         catch (UserNotFoundException e)
         {
             log.debug(e.getMessage(), e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
+        }
+        catch (UserAlreadyExistsException e)
+        {
+            log.debug(e.getMessage(), e);
+            String message = "User not found: " + e.getMessage();
+            this.logInfo.setMessage(message);
+            sendError(409, message);
         }
         catch (UnsupportedOperationException e)
         {
@@ -198,19 +214,19 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     private void sendError(int responseCode, String message)
     {
+        syncOut.setCode(responseCode);
         syncOut.setHeader("Content-Type", "text/plain");
         if (message != null)
         {
             try
             {
-                syncOut.getWriter() .write(message);
+                syncOut.getWriter().write(message);
             }
             catch (IOException e)
             {
                 log.warn("Could not write error message to output stream");
             }
         }
-        syncOut.setCode(responseCode);
     }
 
     @SuppressWarnings("unchecked")
@@ -344,28 +360,4 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
         }
     }
 
-    void redirectGet(User<?> user) throws Exception
-    {
-        final Set<Principal> httpPrincipals =  user.getIdentities();
-
-        String id = null;
-        String idType = null;
-        Iterator<Principal> i = httpPrincipals.iterator();
-        Principal next = null;
-        while (idType == null && i.hasNext())
-        {
-            next = i.next();
-            idType = AuthenticationUtil.getPrincipalType(next);
-            id = next.getName();
-        }
-
-        if (idType == null)
-        {
-            throw new IllegalStateException("No identities found.");
-        }
-
-        final String redirectURL = "/" + id + "?idType=" + idType;
-        syncOut.setHeader("Location", redirectURL);
-        syncOut.setCode(303);
-    }
 }

@@ -83,7 +83,7 @@ import static org.junit.Assert.*;
  *
  * @author jburke
  */
-public class GroupPropertyReaderWriterTest extends AbstractXML
+public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
