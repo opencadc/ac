@@ -336,6 +336,23 @@ public class ACSearchRunner implements JobRunner
 //            }
         }
         */
+        catch(IllegalArgumentException ex)
+        {
+            logInfo.setSuccess(true);
+            logInfo.setMessage(ex.getMessage());
+            log.debug("FAIL", ex);
+            
+            syncOut.setResponseCode(400);
+            syncOut.setHeader("Content-Type", "text/plain");
+            try
+            {
+                syncOut.getOutputStream().write(ex.getMessage().getBytes());
+            }
+            catch (IOException e)
+            {
+                log.warn("Could not write response to output stream", e);
+            }
+        }
         catch (AccessControlException t)
         {
             logInfo.setSuccess(true);
