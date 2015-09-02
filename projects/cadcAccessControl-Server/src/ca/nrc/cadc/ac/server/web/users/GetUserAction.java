@@ -81,10 +81,10 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Set;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import com.sun.security.auth.X500Principal;
 
 
 public class GetUserAction extends AbstractUserAction
@@ -102,12 +102,10 @@ public class GetUserAction extends AbstractUserAction
 
 	public void doAction() throws Exception
     {
-		log.debug("alinga-- GetUserAction.doAction(): enter");
         User<Principal> user;
  
         if (isAugmentUser())
         {
-    		log.debug("alinga-- GetUserAction.doAction(): is an augment user");
     		Subject subject = new Subject();
         	subject.getPrincipals().add(this.userID);
         	user = Subject.doAs(subject, new PrivilegedExceptionAction<User<Principal>>()
@@ -122,12 +120,10 @@ public class GetUserAction extends AbstractUserAction
         }
         else
         {
-    		log.debug("alinga-- GetUserAction.doAction(): is not an augment user");
         	user = getUser(this.userID);
         }
 
         writeUser(user);
-		log.debug("alinga-- GetUserAction.doAction(): exit");
     }
 
     protected User<Principal> getUser(Principal principal) throws Exception
@@ -180,29 +176,8 @@ public class GetUserAction extends AbstractUserAction
         Subject subject = Subject.getSubject(acc);
         if (subject != null)
         {
-        	log.debug("alinga-- GetUserAction.isAugmentUser(): subject is not null.");        	
-        	for (Principal principal : subject.getPrincipals(X500Principal.class))
+        	for (Principal principal : subject.getPrincipals(HttpPrincipal.class))
         	{
-        		log.debug("alinga-- GetUserAction.isAugmentUser(): principal = " + principal);
-        		log.debug("alinga-- GetUserAction.isAugmentUser(): principal name = " + principal.getName());
-        		log.debug("alinga-- GetUserAction.isAugmentUser(): augmentUserDN = " + this.getAugmentUserDN());
-            	if (principal instanceof X500Principal)
-            	{
-            		log.debug("alinga-- UserClientTest constructor(): servops is X500Principal.");
-            	}
-            	else if (principal instanceof HttpPrincipal)
-            	{
-            		log.debug("alinga-- UserClientTest constructor(): servops is X500Principal.");
-            	}
-            	else if (principal instanceof NumericPrincipal)
-            	{
-            		log.debug("alinga-- UserClientTest constructor(): servops is X500Principal.");
-            	}
-            	else
-            	{
-            		log.debug("alinga-- UserClientTest constructor(): servops is unknown principal.");
-            	}
-
             	if (principal.getName().equals(this.getAugmentUserDN()))
         		{
         			return true;
