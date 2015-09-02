@@ -152,6 +152,18 @@ public class User<T extends Principal>
         return getClass().getSimpleName() + "[" + userID.getName() + "]";
     }
 
+    public <S extends UserDetails>S getUserDetail(final Class<S> userDetailsClass)
+    {
+        for (final UserDetails ud : details)
+        {
+            if (ud.getClass() == userDetailsClass)
+            {
+                return (S) ud;
+            }
+        }
+        return null;
+    }
+
     public <S extends UserDetails> Set<S> getDetails(
             final Class<S> userDetailsClass)
     {

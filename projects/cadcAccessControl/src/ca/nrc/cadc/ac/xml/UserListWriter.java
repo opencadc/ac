@@ -68,54 +68,100 @@
 
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import org.jdom2.Document;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.util.StringBuilderWriter;
 import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.util.Map;
+import java.security.Principal;
+import java.util.Collection;
 
 /**
- * Class to write a XML representation of a Collection of User's.
+ * Class to write a XML representation of a List of User's.
  */
-public class UserListWriter
+public class UserListWriter extends AbstractReaderWriter
 {
     /**
-     * Write the Map of User entries as XML.
+     * Write a Collection of User's to a StringBuilder.
      *
-     * @param users             The Map of User IDs to Names.
-     * @param writer            The Writer to output to.
-     * @throws IOException      Any writing errors.
+     * @param users   Collection of User's to write.
+     * @param builder The StringBuilder.
+     * @throws java.io.IOException
+     * @throws WriterException
      */
-    public void write(final Map<String, PersonalDetails> users,
-                      final Writer writer) throws IOException
+    public <T extends Principal> void write(Collection<User<T>> users, StringBuilder builder)
+        throws IOException, WriterException
     {
-        // Create the root users Element.
-        final Element usersElement = new Element("users");
+        write(users, new StringBuilderWriter(builder));
+    }
 
-        for (final Map.Entry<String, PersonalDetails> entry : users.entrySet())
+    /**
+     * Write a Collection of User's to an OutputStream.
+     *
+     * @param users Collection of User's to write.
+     * @param out   OutputStream to write to.
+     * @throws IOException     if the writer fails to write.
+     * @throws WriterException
+     */
+    public <T extends Principal> void write(Collection<User<T>> users, OutputStream out)
+        throws IOException, WriterException
+    {
+        OutputStreamWriter outWriter;
+        try
         {
-            final Element userEntryElement = new Element("user");
-            final Element firstNameElement = new Element("firstName");
-            final Element lastNameElement = new Element("lastName");
+            outWriter = new OutputStreamWriter(out, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported", e);
+        }
+        write(users, new BufferedWriter(outWriter));
+    }
 
-            userEntryElement.setAttribute("id", entry.getKey());
-
-            firstNameElement.setText(entry.getValue().getFirstName());
-            userEntryElement.addContent(firstNameElement);
-
-            lastNameElement.setText(entry.getValue().getLastName());
-            userEntryElement.addContent(lastNameElement);
-
-            usersElement.addContent(userEntryElement);
+    /**
+     * Write a Collection of Users to a Writer.
+     *
+     * @param users  Users to write.
+     * @param writer Writer to write to.
+     * @throws IOException     if the writer fails to write.
+     * @throws WriterException
+     */
+    public <T extends Principal> void write(Collection<User<T>> users, Writer writer)
+        throws IOException, WriterException
+    {
+        if (users == null)
+        {
+            throw new WriterException("null users");
         }
 
-        final XMLOutputter output = new XMLOutputter();
-
-        output.setFormat(Format.getPrettyFormat());
-        output.output(new Document(usersElement), writer);
+        write(getElement(users), writer);
     }
+
+
+    /**
+     * Get a JDOM element from a Collection of User objects.
+     *
+     * @param users Collection of User's to write.
+     * @return A JDOM Group list representation.
+     * @throws WriterException
+     */
+    protected final <T extends Principal> Element getElement(Collection<User<T>> users)
+        throws WriterException
+    {
+        Element usersElement = new Element("users");
+
+        for (User<T> user : users)
+        {
+            usersElement.addContent(getElement(user));
+        }
+
+        return usersElement;
+    }
+
 }

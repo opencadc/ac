@@ -264,7 +264,7 @@ public class UserClient
             }
             else if (principal instanceof NumericPrincipal)
             {
-            	idTypeStr = IdentityType.UID.getValue();
+            	idTypeStr = IdentityType.CADC.getValue();
             }
             else if (principal instanceof CookiePrincipal)
             {

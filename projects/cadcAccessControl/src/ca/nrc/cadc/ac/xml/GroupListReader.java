@@ -71,6 +71,10 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.xml.XmlUtil;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -80,15 +84,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
 
 /**
- * Class to read an XML representation of a list of Groups
- * into a List of Group objects.
+ * Class to read an XML representation of a List of Groups
+ * into a Collection of Group objects.
  */
-public class GroupListReader
+public class GroupListReader extends AbstractReaderWriter
 {
     /**
      * Construct a list of Group's from an XML String source.
@@ -110,7 +111,7 @@ public class GroupListReader
     }
 
     /**
-     * Construct a list of Group's from a InputStream.
+     * Construct a List of Group's from a InputStream.
      * 
      * @param in InputStream.
      * @return Groups List of Group.
@@ -175,20 +176,29 @@ public class GroupListReader
             throw new ReaderException(error);
         }
 
-        return parseGroups(root);
+        return getGroupList(root);
     }
 
-    protected static List<Group> parseGroups(Element groupsElement)
-            throws URISyntaxException, ReaderException
-    {
+    /**
+     * Get a List of Groups from a JDOM element.
+     *
+     * @param element The Group's JDOM element.
+     * @return A List of Group objects.
+     * @throws URISyntaxException
+     * @throws ReaderException
+     */
+    protected final List<Group> getGroupList(Element element)
+        throws URISyntaxException, ReaderException
+    {;
         List<Group> groups = new ArrayList<Group>();
 
-        List<Element> groupElements = groupsElement.getChildren("group");
+        List<Element> groupElements = element.getChildren("group");
         for (Element groupElement : groupElements)
         {
-            groups.add(GroupReader.parseGroup(groupElement));
+            groups.add(getGroup(groupElement));
         }
 
         return groups;
     }
+
 }

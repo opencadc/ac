@@ -71,57 +71,18 @@ package ca.nrc.cadc.ac.json;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
-import ca.nrc.cadc.util.StringBuilderWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
 import org.jdom2.Document;
 import org.jdom2.Element;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
+/**
+ * Class to write a JSON representation of a Group object.
+ */
 public class JsonGroupWriter extends GroupWriter
 {
-    /**
-     * Write a Group to a StringBuilder.
-     * @param group
-     * @param builder
-     * @throws IOException
-     * @throws WriterException
-     */
-    public void write(Group group, StringBuilder builder)
-        throws IOException, WriterException
-    {
-        write(group, new StringBuilderWriter(builder));
-    }
-
-    /**
-     * Write a Group to an OutputStream.
-     *
-     * @param group Group to write.
-     * @param out OutputStream to write to.
-     * @throws IOException if the writer fails to write.
-     * @throws WriterException
-     */
-    @Override
-    public void write(Group group, OutputStream out)
-        throws IOException, WriterException
-    {
-        OutputStreamWriter outWriter;
-        try
-        {
-            outWriter = new OutputStreamWriter(out, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported", e);
-        }
-        write(group, new BufferedWriter(outWriter));
-    }
-
     /**
      * Write a Group to a Writer.
      *
@@ -139,7 +100,7 @@ public class JsonGroupWriter extends GroupWriter
             throw new WriterException("null group");
         }
 
-        Element children = GroupWriter.getGroupElement(group);
+        Element children = getElement(group);
         Element groupElement = new Element("group");
         groupElement.addContent(children);
         Document document = new Document();

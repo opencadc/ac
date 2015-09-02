@@ -85,7 +85,7 @@ import static org.junit.Assert.fail;
  *
  * @author jburke
  */
-public class UserDetailsReaderWriterTest
+public class UserDetailsReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
 
@@ -96,7 +96,7 @@ public class UserDetailsReaderWriterTest
         Element element = null;
         try
         {
-            UserDetails ud = UserDetailsReader.read(element);
+            UserDetails ud = getUserDetails(element);
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -104,7 +104,7 @@ public class UserDetailsReaderWriterTest
         element = new Element("foo");
         try
         {
-            UserDetails ud = UserDetailsReader.read(element);
+            UserDetails ud = getUserDetails(element);
             fail("element not named 'userDetails' should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -112,7 +112,7 @@ public class UserDetailsReaderWriterTest
         element = new Element(UserDetails.NAME);
         try
         {
-            UserDetails ud = UserDetailsReader.read(element);
+            UserDetails ud = getUserDetails(element);
             fail("element without 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -120,7 +120,7 @@ public class UserDetailsReaderWriterTest
         element.setAttribute("type", "foo");
         try
         {
-            UserDetails ud = UserDetailsReader.read(element);
+            UserDetails ud = getUserDetails(element);
             fail("element with unknown 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -132,7 +132,8 @@ public class UserDetailsReaderWriterTest
     {
         try
         {
-            Element element = UserDetailsWriter.write(null);
+            UserDetails ud = null;
+            Element element = getElement(ud);
             fail("null UserDetails should throw WriterException");
         }
         catch (WriterException e) {}
@@ -148,10 +149,10 @@ public class UserDetailsReaderWriterTest
         expected.country = "country";
         expected.email = "email";
         expected.institute = "institute";
-        Element element = UserDetailsWriter.write(expected);
+        Element element = getElement(expected);
         assertNotNull(element);
         
-        PersonalDetails actual = (PersonalDetails) UserDetailsReader.read(element);
+        PersonalDetails actual = (PersonalDetails) getUserDetails(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.address, actual.address);
@@ -166,10 +167,10 @@ public class UserDetailsReaderWriterTest
         throws Exception
     {
         UserDetails expected = new PosixDetails(123l, 456, "/dev/null");
-        Element element = UserDetailsWriter.write(expected);
+        Element element = getElement(expected);
         assertNotNull(element);
         
-        UserDetails actual = UserDetailsReader.read(element);
+        UserDetails actual = getUserDetails(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

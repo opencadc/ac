@@ -192,7 +192,7 @@ public class UserServlet extends HttpServlet
     public void doPost(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(UserActionFactory.httpGetFactory(), request, response);
+        doAction(UserActionFactory.httpPostFactory(), request, response);
     }
 
     @Override

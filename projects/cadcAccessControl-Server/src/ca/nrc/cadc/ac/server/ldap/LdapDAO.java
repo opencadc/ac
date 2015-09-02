@@ -94,7 +94,7 @@ import java.util.Set;
 public abstract class LdapDAO
 {
 	private static final Logger logger = Logger.getLogger(LdapDAO.class);
-	
+
     private LDAPConnection conn;
 
     LdapConfig config;
@@ -186,12 +186,12 @@ public abstract class LdapDAO
                 }
                 if (p instanceof NumericPrincipal)
                 {
-                    ldapField = "(&(objectclass=cadcaccount)(numericid=" + p.getName() + "))";
+                    ldapField = "(numericid=" + p.getName() + ")";
                     break;
                 }
                 if (p instanceof X500Principal)
                 {
-                    ldapField = "(&(objectclass=cadcaccount)(distinguishedname=" + p.getName() + "))";
+                    ldapField = "(distinguishedname=" + p.getName() + ")";
                     break;
                 }
                 if (p instanceof OpenIdPrincipal)
@@ -234,7 +234,11 @@ public abstract class LdapDAO
             throws TransientException
     {
     	logger.debug("Ldap result: " + code);
-        System.out.println("Ldap result: " + code);
+
+    	if (code == ResultCode.SUCCESS || code == ResultCode.NO_SUCH_OBJECT)
+        {
+            return;
+        }
 
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
         {
@@ -244,10 +248,6 @@ public abstract class LdapDAO
         {
             throw new AccessControlException("Invalid credentials ");
         }
-        else if ((code == ResultCode.SUCCESS) || (code == ResultCode.NO_SUCH_OBJECT))
-        {
-            // all good. nothing to do
-        }
         else if (code == ResultCode.PARAM_ERROR)
         {
             throw new IllegalArgumentException("Error in Ldap parameters ");
@@ -256,10 +256,16 @@ public abstract class LdapDAO
         {
             throw new TransientException("Connection problems ");
         }
-        else
+        else if (code == ResultCode.TIMEOUT || code == ResultCode.TIME_LIMIT_EXCEEDED)
         {
-            throw new RuntimeException("Ldap error (" + code.getName() + ")");
+            throw new TransientException("ldap timeout");
         }
+        else if (code == ResultCode.INVALID_DN_SYNTAX)
+        {
+            throw new IllegalArgumentException("Invalid DN syntax");
+        }
+
+        throw new RuntimeException("Ldap error (" + code.getName() + ")");
     }
 
 }

@@ -102,7 +102,7 @@ public class UserReaderWriterTest
         {
             String s = null;
             UserReader userReader = new UserReader();
-            User<? extends Principal> u = userReader.read(s);
+            User<Principal> u = userReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -111,7 +111,7 @@ public class UserReaderWriterTest
         {
             InputStream in = null;
             UserReader userReader = new UserReader();
-            User<? extends Principal> u = userReader.read(in);
+            User<Principal> u = userReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -120,7 +120,7 @@ public class UserReaderWriterTest
         {
             Reader r = null;
             UserReader userReader = new UserReader();
-            User<? extends Principal> u = userReader.read(r);
+            User<Principal> u = userReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -143,7 +143,7 @@ public class UserReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
+        User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
         expected.getIdentities().add(new NumericPrincipal(123l));
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         

@@ -108,6 +108,7 @@ public class ModifyUserActionTest
 
         final byte[] input = sb.toString().getBytes();
         final InputStream inputStream = new ByteArrayInputStream(input);
+        final String request = "/CADCtest?idType=http";
 
         // Should match the JSON above, without the e-mail modification.
         Principal principal = new HttpPrincipal("CADCtest");
@@ -119,8 +120,6 @@ public class ModifyUserActionTest
         personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
         userObject.details.add(personalDetail);
 
-        final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
         final SyncOutput mockSyncOut =
                 createMock(SyncOutput.class);
 
@@ -130,11 +129,9 @@ public class ModifyUserActionTest
 
         expect(mockUserPersistence.modifyUser(userObject)).andReturn(
                 userObject).once();
-//
-//        expect(mockRequest.getRemoteAddr()).andReturn(requestURL).
-//                once();
 
-        mockSyncOut.setHeader("Location", "/CADCtest?idType=http");
+
+        mockSyncOut.setHeader("Location", request);
         expectLastCall().once();
 
         mockSyncOut.setCode(303);
@@ -143,9 +140,9 @@ public class ModifyUserActionTest
         mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
 
-        replay(mockRequest, mockSyncOut, mockUserPersistence);
+        replay(mockSyncOut, mockUserPersistence);
 
-        final ModifyUserAction testSubject = new ModifyUserAction(inputStream)
+        final ModifyUserAction testSubject = new ModifyUserAction(inputStream, request)
         {
             @Override
             @SuppressWarnings("unchecked")
@@ -161,6 +158,6 @@ public class ModifyUserActionTest
         testSubject.setLogInfo(logInfo);
         testSubject.doAction();
 
-        verify(mockRequest, mockSyncOut, mockUserPersistence);
+        verify(mockSyncOut, mockUserPersistence);
     }
 }

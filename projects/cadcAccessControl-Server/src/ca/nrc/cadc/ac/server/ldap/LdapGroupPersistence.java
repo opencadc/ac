@@ -79,6 +79,7 @@ import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.net.TransientException;
 
@@ -88,10 +89,17 @@ public class LdapGroupPersistence<T extends Principal>
     private static final Logger log = 
             Logger.getLogger(LdapGroupPersistence.class);
     private final LdapConfig config;
+    
+    private GroupDetailSelector detailSelector;
 
     public LdapGroupPersistence()
     {
         config = LdapConfig.getLdapConfig();
+    }
+    
+    protected void setDetailSelector(GroupDetailSelector gds)
+    {
+        this.detailSelector = gds;
     }
     
     public Collection<String> getGroupNames()
@@ -233,6 +241,7 @@ public class LdapGroupPersistence<T extends Principal>
         {
             userDAO = new LdapUserDAO<T>(config);
             groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            groupDAO.searchDetailSelector = detailSelector;
             Collection<Group> ret = groupDAO.getGroups(userID, role, groupID);
             return ret;
         }

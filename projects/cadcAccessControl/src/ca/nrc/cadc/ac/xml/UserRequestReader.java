@@ -69,9 +69,12 @@
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.xml.XmlUtil;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -80,14 +83,10 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-
 /**
  * Class to read a XML representation of a UserRequest to a UserRequest object.
  */
-public class UserRequestReader
+public class UserRequestReader extends AbstractReaderWriter
 {
     /**
      * Construct a UserRequest from an XML String source.
@@ -164,31 +163,7 @@ public class UserRequestReader
         // Root element and namespace of the Document
         Element root = document.getRootElement();
 
-        return parseUserRequest(root);
+        return getUserRequest(root);
     }
 
-    protected static UserRequest<Principal> parseUserRequest(
-            Element userRequestElement)
-        throws ReaderException
-    {
-        // user element of the UserRequest element
-        Element userElement = userRequestElement.getChild("user");
-        if (userElement == null)
-        {
-            String error = "user element not found in userRequest element";
-            throw new ReaderException(error);
-        }
-        User<Principal> user = ca.nrc.cadc.ac.xml.UserReader.parseUser(userElement);
-
-        // password element of the userRequest element
-        Element passwordElement = userRequestElement.getChild("password");
-        if (passwordElement == null)
-        {
-            String error = "password element not found in userRequest element";
-            throw new ReaderException(error);
-        }
-        String password = passwordElement.getText();
-
-        return new UserRequest<Principal>(user, password.toCharArray());
-    }
 }

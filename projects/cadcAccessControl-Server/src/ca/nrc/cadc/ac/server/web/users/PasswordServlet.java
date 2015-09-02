@@ -70,13 +70,19 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.ldap.LdapUserDAO;
+import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;
@@ -85,6 +91,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.util.StringUtil;
+import org.omg.CORBA.UserException;
 
 
 /**
@@ -117,37 +124,53 @@ public class PasswordServlet extends HttpServlet
         try
         {
             final Subject subject = AuthenticationUtil.getSubject(request);
-            if ((subject == null)
-                || (subject.getPrincipals(HttpPrincipal.class).isEmpty()))
+            if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
                 logInfo.setMessage("Unauthorized subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             else
             {
-                logInfo.setSubject(subject);
-                final Set<HttpPrincipal> webPrincipals =
-                    subject.getPrincipals(HttpPrincipal.class);
-                final User<HttpPrincipal> user =
-                    new User<HttpPrincipal>(webPrincipals.iterator().next());
-                String oldPassword = request.getParameter("old_password");
-                String newPassword = request.getParameter("new_password");
-                if (StringUtil.hasText(oldPassword))
+                Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
                 {
-                    if (StringUtil.hasText(newPassword))
+                    public Object run() throws Exception
                     {
-                        (new LdapUserPersistence<HttpPrincipal>())
-                            .setPassword(user, oldPassword, newPassword);
+                        LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
+                        User<Principal> user;
+                        try
+                        {
+                            user = dao.getUser(subject.getPrincipals().iterator().next());
+                        }
+                        catch (UserNotFoundException e)
+                        {
+                            throw new AccessControlException("User not found");
+                        }
+
+                        Subject logSubject = new Subject(false, user.getIdentities(),
+                                                         new TreeSet(), new TreeSet());
+
+                        logInfo.setSubject(logSubject);
+
+                        String oldPassword = request.getParameter("old_password");
+                        String newPassword = request.getParameter("new_password");
+                        if (StringUtil.hasText(oldPassword))
+                        {
+                            if (StringUtil.hasText(newPassword))
+                            {
+                                dao.setPassword(user, oldPassword, newPassword);
+                            }
+                            else
+                            {
+                                throw new IllegalArgumentException("Missing new password");
+                            }
+                        }
+                        else
+                        {
+                            throw new IllegalArgumentException("Missing old password");
+                        }
+                        return null;
                     }
-                    else
-                    {
-                        throw new IllegalArgumentException("Missing new password");
-                    }
-                }
-                else
-                {
-                    throw new IllegalArgumentException("Missing old password");
-                }
+                });
             }
         }
         catch (IllegalArgumentException e)

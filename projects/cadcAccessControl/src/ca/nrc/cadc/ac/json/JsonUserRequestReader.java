@@ -76,36 +76,15 @@ import org.jdom2.Document;
 import org.json.JSONException;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
 import java.util.Scanner;
 
+/**
+ * Class to read a JSON representation of a UserRequest to a UserRequest object.
+ */
 public class JsonUserRequestReader extends UserRequestReader
 {
-    /**
-     * Construct a User from a InputStream.
-     *
-     * @param in InputStream.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    @Override
-    public UserRequest<Principal> read(InputStream in)
-            throws IOException
-    {
-        if (in == null)
-        {
-            throw new IOException("stream closed");
-        }
-
-        Scanner s = new Scanner(in).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
-    }
-
     /**
      * Construct a User from a Reader.
      *
@@ -126,41 +105,20 @@ public class JsonUserRequestReader extends UserRequestReader
         Scanner s = new Scanner(reader).useDelimiter("\\A");
         String json = s.hasNext() ? s.next() : "";
 
-        return read(json);
-    }
-
-    /**
-     * Construct a UserRequest from an JSON String source.
-     *
-     * @param json String of the JSON.
-     * @return UserRequest UserRequest.
-     * @throws IOException
-     */
-    @Override
-    public UserRequest<Principal> read(String json)
-        throws IOException
-    {
-        if (json == null)
+        try
         {
-            throw new IllegalArgumentException("JSON must not be null");
+            JsonInputter jsonInputter = new JsonInputter();
+            jsonInputter.getListElementMap().put("identities", "identity");
+            jsonInputter.getListElementMap().put("details", "userDetails");
+
+            Document document = jsonInputter.input(json);
+            return getUserRequest(document.getRootElement());
         }
-        else
+        catch (JSONException e)
         {
-            try
-            {
-                JsonInputter jsonInputter = new JsonInputter();
-                jsonInputter.getListElementMap().put("identities", "identity");
-                jsonInputter.getListElementMap().put("details", "userDetails");
-
-                Document document = jsonInputter.input(json);
-                return UserRequestReader.parseUserRequest(document.getRootElement());
-            }
-            catch (JSONException e)
-            {
-                String error = "Unable to parse JSON to User because " +
-                    e.getMessage();
-                throw new ReaderException(error, e);
-            }
+            String error = "Unable to parse JSON to User because " +
+                e.getMessage();
+            throw new ReaderException(error, e);
         }
     }
 

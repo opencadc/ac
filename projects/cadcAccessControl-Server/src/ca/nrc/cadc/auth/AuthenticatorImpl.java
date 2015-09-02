@@ -66,96 +66,91 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
+package ca.nrc.cadc.auth;
+
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.profiler.Profiler;
 import org.apache.log4j.Logger;
-import org.junit.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import javax.security.auth.Subject;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
 /**
+ * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
+ * This class augments the subject with additional identities using the
+ * access control library.
  *
- * @author jburke
+ * @author pdowler
  */
-public class GroupsReaderWriterTest
+public class AuthenticatorImpl implements Authenticator
 {
-    private static Logger log = Logger.getLogger(GroupsReaderWriterTest.class);
+    private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
 
-    @Test
-    public void testReaderExceptions()
-        throws Exception
+    public AuthenticatorImpl() { }
+
+    /**
+     * @param subject
+     * @return the possibly modified subject
+     */
+    public Subject getSubject(Subject subject)
+    {
+        AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
+        if (am == null || AuthMethod.ANON.equals(am))
+            return subject;
+
+        if (subject != null && subject.getPrincipals().size() > 0)
+        {
+            Profiler prof = new Profiler(AuthenticatorImpl.class);
+            this.augmentSubject(subject);
+            prof.checkpoint("userDAO.augmentSubject()");
+
+            // if the caller had an invalid or forged CADC_SSO cookie, we could get
+            // in here and then not match any known identity: drop to anon
+            if ( subject.getPrincipals(HttpPrincipal.class).isEmpty() ) // no matching cadc account
+            {
+                log.debug("HttpPrincipal not found - dropping to anon: " + subject);
+                subject = AuthenticationUtil.getAnonSubject();
+            }
+        }
+
+        return subject;
+    }
+
+    protected void augmentSubject(final Subject subject)
     {
         try
         {
-            String s = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
-        
-        try
-        {
-            InputStream in = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(in);
-            fail("null InputStream should throw IOException");
-        }
-        catch (IOException e) {}
-        
-        try
-        {
-            Reader r = null;
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> g = groupListReader.read(r);
-            fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e) {}
-    }
-     
-    @Test
-    public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(null, new StringBuilder());
-            fail("null Group should throw WriterException");
-        }
-        catch (WriterException e) {}
-    }
-     
-    @Test
-    public void testMinimalReadWrite()
-        throws Exception
-    {        
-        List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
-        
-        StringBuilder xml = new StringBuilder();
-        GroupListWriter groupListWriter = new GroupListWriter();
-        groupListWriter.write(expected, xml);
-        assertFalse(xml.toString().isEmpty());
+            PrivilegedExceptionAction<Object> action =
+                new PrivilegedExceptionAction<Object>()
+                {
+                    public Object run() throws Exception
+                    {
+                        try
+                        {
+                            LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
+                            User<Principal> user = dao.getUser(subject.getPrincipals().iterator().next());
+                            subject.getPrincipals().addAll(user.getIdentities());
+                        }
+                        catch (UserNotFoundException e)
+                        {
+                            // ignore, could be an anonymous user
+                        }
+                        return null;
+                    }
+                };
 
-        GroupListReader groupListReader = new GroupListReader();
-        List<Group> actual = groupListReader.read(xml.toString());
-        assertNotNull(actual);
-        assertEquals(expected.size(), actual.size());
-        assertEquals(expected.get(0), actual.get(0));
-        assertEquals(expected.get(1), actual.get(1));
+            Subject.doAs(subject, action);
+        }
+        catch (PrivilegedActionException e)
+        {
+            String msg = "Error augmenting subject " + subject;
+            throw new RuntimeException(msg, e);
+        }
     }
 
 }

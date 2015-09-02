@@ -80,7 +80,6 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.util.StringUtil;
 
 /**
  * Servlet for handling all requests to /groups

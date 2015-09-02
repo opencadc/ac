@@ -69,13 +69,8 @@
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -84,12 +79,11 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
-import java.util.Set;
 
 /**
  * Class to write a XML representation of a User object.
  */
-public class UserWriter
+public class UserWriter extends AbstractReaderWriter
 {
     /**
      * Write a User to a StringBuilder.
@@ -99,7 +93,7 @@ public class UserWriter
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
-    public void write(User<? extends Principal> user, StringBuilder builder)
+    public <T extends Principal> void write(User<T> user, StringBuilder builder)
         throws IOException, WriterException
     {
         write(user, new StringBuilderWriter(builder));
@@ -113,7 +107,7 @@ public class UserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public void write(User<? extends Principal> user, OutputStream out)
+    public <T extends Principal> void write(User<T> user, OutputStream out)
         throws IOException, WriterException
     {                
         OutputStreamWriter outWriter;
@@ -136,7 +130,7 @@ public class UserWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public void write(User<? extends Principal> user, Writer writer)
+    public <T extends Principal> void write(User<T> user, Writer writer)
         throws IOException, WriterException
     {
         if (user == null)
@@ -144,69 +138,7 @@ public class UserWriter
             throw new WriterException("null User");
         }
         
-        write(getUserElement(user), writer);
-    }
-
-    /**
-     * Build the member Element of a User.
-     *
-     * @param user User.
-     * @return member Element.
-     * @throws WriterException
-     */
-    public static Element getUserElement(User<? extends Principal> user)
-        throws WriterException
-    {
-        // Create the user Element.
-        Element userElement = new Element("user");
-
-        // userID element
-        IdentityWriter identityWriter = new IdentityWriter();
-        Element userIDElement = new Element("userID");
-        userIDElement.addContent(identityWriter.write(user.getUserID()));
-        userElement.addContent(userIDElement);
-
-        // identities
-        Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty())
-        {
-            Element identitiesElement = new Element("identities");
-            for (Principal identity : identities)
-            {
-                identitiesElement.addContent(identityWriter.write(identity));
-            }
-            userElement.addContent(identitiesElement);
-        }
-
-        // details
-        if (!user.details.isEmpty())
-        {
-            UserDetailsWriter userDetailsWriter = new UserDetailsWriter();
-            Element detailsElement = new Element("details");
-            Set<UserDetails> userDetails = user.details;
-            for (UserDetails userDetail : userDetails)
-            {
-                detailsElement.addContent(userDetailsWriter.write(userDetail));
-            }
-            userElement.addContent(detailsElement);
-        }
-
-        return userElement;
-    }
-
-    /**
-     * Write to root Element to a writer.
-     *
-     * @param root Root Element to write.
-     * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
-     */
-    private static void write(Element root, Writer writer)
-        throws IOException
-    {
-        XMLOutputter outputter = new XMLOutputter();
-        outputter.setFormat(Format.getPrettyFormat());
-        outputter.output(new Document(root), writer);
+        write(getElement(user), writer);
     }
 
 }

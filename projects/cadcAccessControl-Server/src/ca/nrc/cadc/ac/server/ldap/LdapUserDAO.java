@@ -150,8 +150,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     private String[] userAttribs = new String[]
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
-                    LDAP_COUNTRY,
-                    LDAP_EMAIL, LDAP_INSTITUTE
+                    LDAP_COUNTRY, LDAP_EMAIL, LDAP_INSTITUTE
             };
     private String[] memberAttribs = new String[]
             {
@@ -286,7 +285,16 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         DN userDN;
         try
         {
-            userDN = getUserRequestsDN(userRequest.getUser().getUserID().getName());
+            T userID = userRequest.getUser().getUserID();
+            try
+            {
+                getUser(userID, config.getUsersDN(), false);
+                throw new UserAlreadyExistsException(userID.getName() + " found in " +
+                                                     config.getUsersDN());
+            }
+            catch (UserNotFoundException ignore) {}
+
+            userDN = getUserRequestsDN(userID.getName());
             addUser(userRequest, userDN);
 
             // AD: Search results sometimes come incomplete if
@@ -294,7 +302,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             getConnection().reconnect();
             try
             {
-                return getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN());
+                return getUser(userID, config.getUserRequestsDN());
             }
             catch (UserNotFoundException e)
             {
@@ -444,7 +452,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         return getUser(userID, config.getUserRequestsDN());
     }
 
-
     /**
      * Get the user specified by userID.
      *
@@ -456,6 +463,24 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      */
     private User<T> getUser(final T userID, final String usersDN)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        return getUser(userID, usersDN, true);
+    }
+
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID  The userID.
+     * @param usersDN The LDAP tree to search.
+     * @param proxy   If true proxy the request as the calling user.
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    private User<T> getUser(final T userID, final String usersDN, boolean proxy)
             throws UserNotFoundException, TransientException,
                    AccessControlException
     {
@@ -466,8 +491,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     "Unsupported principal type " + userID.getClass());
         }
 
-        searchField = "(&(objectclass=inetorgperson)(objectclass=cadcaccount)(" +
-                      searchField + "=" + userID.getName() + "))";
+        searchField = "(" + searchField + "=" + userID.getName() + ")";
         logger.debug(searchField);
 
         SearchResultEntry searchResult = null;
@@ -476,7 +500,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.SUB,
                                       searchField, userAttribs);
-            if (isSecure(usersDN))
+            if (proxy && isSecure(usersDN))
             {
                 searchRequest.addControl(
                         new ProxiedAuthorizationV2RequestControl(
@@ -539,11 +563,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @return A map of string keys to string values.
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Map<String, PersonalDetails> getUsers()
+    public Collection<User<Principal>> getUsers()
             throws TransientException
     {
-        final Map<String, PersonalDetails> users =
-                new HashMap<String, PersonalDetails>();
+        final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
         try
         {
@@ -566,16 +589,15 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 {
                     if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
                     {
-                        final String trimmedFirstName =
+                        final String firstName =
                                 next.getAttributeValue(LDAP_FIRST_NAME).trim();
-                        final String trimmedLastName =
+                        final String lastName =
                                 next.getAttributeValue(LDAP_LAST_NAME).trim();
-                        final String trimmedUID =
-                                next.getAttributeValue(LDAP_UID).trim();
-
-                        users.put(trimmedUID,
-                                  new PersonalDetails(trimmedFirstName,
-                                                      trimmedLastName));
+                        final String uid =  next.getAttributeValue(LDAP_UID).trim();
+                        User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
+                        PersonalDetails pd = new PersonalDetails(firstName, lastName);
+                        user.details.add(pd);
+                        users.add(user);
                     }
                 }
             }

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,119 +62,66 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
 
+package ca.nrc.cadc.ac.json;
+
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.ac.xml.UserListReader;
+import ca.nrc.cadc.xml.JsonInputter;
+import org.jdom2.Document;
+import org.json.JSONException;
 
-import java.security.AccessControlException;
+import java.io.Reader;
+import java.net.URISyntaxException;
 import java.security.Principal;
-import java.util.Collection;
+import java.util.List;
+import java.util.Scanner;
 
-public interface UserPersistence<T extends Principal>
+/**
+ * Class to read an JSON representation of a Collection of Users
+ * into a list of User objects.
+ */
+public class JsonUserListReader extends UserListReader
 {
     /**
-     * Get all user names.
-     * 
-     * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * Construct a list of Users from a Reader.
+     *
+     * @param reader Reader.
+     * @return users List of Users.
+     * @throws ReaderException
+     * @throws URISyntaxException
      */
-    Collection<User<Principal>> getUsers()
-            throws TransientException, AccessControlException;
-    
-    /**
-     * Add the new user.
-     *
-     * @param user      The user request to put into the request tree.
-     *
-     * @return User instance.
-     * 
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> addUser(UserRequest<T> user)
-        throws TransientException, AccessControlException,
-               UserAlreadyExistsException;
-    
-    /**
-     * Get the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> getUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
+    @Override
+    public List<User<Principal>> read(Reader reader)
+        throws URISyntaxException, ReaderException
+    {
+        if (reader == null)
+        {
+            throw new IllegalArgumentException("reader must not be null");
+        }
 
-    /**
-     * Get the user specified by userID whose account is pending approval.
-     *
-     * @param userID The userID.
-     *
-     * @return User instance.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> getPendingUser(T userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException;
-    
-    /**
-     * Attempt to login the specified user.
-     *
-     * @param userID The userID.
-     * @param password The password.
-     *
-     * @return Boolean
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Boolean doLogin(String userID, String password)
-            throws UserNotFoundException, TransientException, 
-            AccessControlException;
-   
-    /**
-     * Updated the user specified by User.
-     *
-     * @param user      The user instance to modify.
-     *
-     * @return User instance.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
-    
-    /**
-     * Delete the user specified by userID.
-     *
-     * @param userID The userID.
-     * 
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    void deleteUser(T userID)
-        throws UserNotFoundException, TransientException, 
-               AccessControlException;
+        Scanner s = new Scanner(reader).useDelimiter("\\A");
+        String json = s.hasNext() ? s.next() : "";
+
+        try
+        {
+            JsonInputter jsonInputter = new JsonInputter();
+            jsonInputter.getListElementMap().put("identities", "identity");
+            jsonInputter.getListElementMap().put("details", "userDetails");
+
+            Document document = jsonInputter.input(json);
+            return getUserList(document.getRootElement());
+        }
+        catch (JSONException e)
+        {
+            String error = "Unable to parse JSON to list of Users because " +
+                e.getMessage();
+            throw new ReaderException(error, e);
+        }
+    }
+
 }

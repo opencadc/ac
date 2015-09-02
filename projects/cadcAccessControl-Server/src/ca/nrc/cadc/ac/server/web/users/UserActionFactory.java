@@ -77,6 +77,7 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 
 import java.io.IOException;
+import java.net.URL;
 import java.security.Principal;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
@@ -169,7 +170,23 @@ public abstract class UserActionFactory
 
                 if (segments.length == 1)
                 {
-                    action = new ModifyUserAction(request.getInputStream());
+                    final URL requestURL = new URL(request.getRequestURL().toString());
+                    final StringBuilder sb = new StringBuilder();
+                    sb.append(requestURL.getProtocol());
+                    sb.append("://");
+                    sb.append(requestURL.getHost());
+                    if (requestURL.getPort() > 0)
+                    {
+                        sb.append(":");
+                        sb.append(requestURL.getPort());
+                    }
+                    sb.append(request.getContextPath());
+                    sb.append(request.getServletPath());
+                    sb.append(path);
+                    sb.append("?");
+                    sb.append(request.getQueryString());
+
+                    action = new ModifyUserAction(request.getInputStream(), sb.toString());
                 }
 
                 if (action != null)
@@ -242,7 +259,7 @@ public abstract class UserActionFactory
         {
             return new User<X500Principal>(new X500Principal(userName));
         }
-        else if (idType.equalsIgnoreCase(IdentityType.UID.getValue()))
+        else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
         {
             return new User<NumericPrincipal>(new NumericPrincipal(
                     Long.parseLong(userName)));

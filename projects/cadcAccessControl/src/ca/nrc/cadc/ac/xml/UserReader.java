@@ -83,16 +83,15 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.Principal;
-import java.util.List;
 
 /**
  * Class to read a XML representation of a User to a User object.
  */
-public class UserReader
+public class UserReader extends AbstractReaderWriter
 {
     /**
      * Construct a User from an XML String source.
-     * 
+     *
      * @param xml String of the XML.
      * @return User User.
      * @throws ReaderException
@@ -111,7 +110,7 @@ public class UserReader
 
     /**
      * Construct a User from a InputStream.
-     * 
+     *
      * @param in InputStream.
      * @return User User.
      * @throws java.io.IOException
@@ -137,7 +136,7 @@ public class UserReader
 
     /**
      * Construct a User from a Reader.
-     * 
+     *
      * @param reader Reader.
      * @return User User.
      * @throws ReaderException
@@ -166,58 +165,7 @@ public class UserReader
         // Root element and namespace of the Document
         Element root = document.getRootElement();
 
-        return parseUser(root);
-    }
-
-    public static User<Principal> parseUser(Element userElement)
-        throws ReaderException
-    {
-        // userID element of the User element
-        Element userIDElement = userElement.getChild("userID");
-        if (userIDElement == null)
-        {
-            String error = "userID element not found in user element";
-            throw new ReaderException(error);
-        }
-
-        // identity element of the userID element
-        Element userIDIdentityElement = userIDElement.getChild("identity");
-        if (userIDIdentityElement == null)
-        {
-            String error = "identity element not found in userID element";
-            throw new ReaderException(error);
-        }
-
-        IdentityReader identityReader = new IdentityReader();
-        Principal userID = identityReader.read(userIDIdentityElement);
-
-        User<Principal> user = new User<Principal>(userID);
-
-        // identities
-        Element identitiesElement = userElement.getChild("identities");
-        if (identitiesElement != null)
-        {
-            List<Element> identityElements = identitiesElement.getChildren("identity");
-            for (Element identityElement : identityElements)
-            {
-                user.getIdentities().add(identityReader.read(identityElement));
-            }
-
-        }
-
-        // details
-        Element detailsElement = userElement.getChild("details");
-        if (detailsElement != null)
-        {
-            UserDetailsReader userDetailsReader = new UserDetailsReader();
-            List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
-            for (Element userDetailsElement : userDetailsElements)
-            {
-                user.details.add(userDetailsReader.read(userDetailsElement));
-            }
-        }
-
-        return user;
+        return getUser(root);
     }
 
 }

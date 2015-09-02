@@ -67,63 +67,23 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.server.web;
+package ca.nrc.cadc.ac.server;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
 
 /**
  *
- * @author majorb
+ * @author pdowler
  */
-public class SyncOutput
+public interface GroupDetailSelector 
 {
-    private static final Logger log = Logger.getLogger(SyncOutput.class);
-
-    protected HttpServletResponse response;
-    protected PrintWriter writer;
-
-    public SyncOutput(HttpServletResponse response)
-    {
-        this.response = response;
-    }
-
-    public boolean isOpen()
-    {
-        return (writer != null);
-    }
-
-    public void setCode(int code)
-    {
-        log.debug("setting code");
-        if (writer != null)
-            throw new IllegalStateException("attempted to set code after writer has been opened");
-
-        response.setStatus(code);
-        log.debug("set code " + code);
-    }
-
-    public void setHeader(String key, Object value)
-    {
-        if (writer != null)
-            throw new IllegalStateException("attempted to set header after writer has been opened");
-
-        if (value == null)
-            response.setHeader(key, null);
-        else
-            response.setHeader(key, value.toString());
-    }
-
-    public PrintWriter getWriter()
-        throws IOException
-    {
-        if (writer == null)
-        {
-            log.debug("opening writer");
-            writer = response.getWriter();
-        }
-        return writer;
-    }
+    /** 
+     * Check if group details should be filled in for the group when
+     * querying for role.
+     * @param g
+     * @param r
+     * @return true if group details should be filled
+     */
+    boolean isDetailedSearch(Group g, Role r);
 }

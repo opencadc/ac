@@ -89,7 +89,7 @@ import static org.junit.Assert.fail;
  *
  * @author jburke
  */
-public class IdentityReaderWriterTest
+public class IdentityReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
 
@@ -100,7 +100,7 @@ public class IdentityReaderWriterTest
         Element element = null;
         try
         {
-            Principal p = IdentityReader.read(element);
+            Principal p = getPrincipal(element);
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -108,7 +108,7 @@ public class IdentityReaderWriterTest
         element = new Element("foo");
         try
         {
-            Principal p = IdentityReader.read(element);
+            Principal p = getPrincipal(element);
             fail("element not named 'identity' should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -116,7 +116,7 @@ public class IdentityReaderWriterTest
         element = new Element("identity");
         try
         {
-            Principal p = IdentityReader.read(element);
+            Principal p = getPrincipal(element);
             fail("element without 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -124,7 +124,7 @@ public class IdentityReaderWriterTest
         element.setAttribute("type", "foo");
         try
         {
-            Principal p = IdentityReader.read(element);
+            Principal p = getPrincipal(element);
             fail("element with unknown 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -134,17 +134,18 @@ public class IdentityReaderWriterTest
     public void testWriterExceptions()
         throws Exception
     {
+        Principal p = null;
         try
         {
-            Element element = IdentityWriter.write(null);
+            Element element = getElement(p);
             fail("null Identity should throw WriterException");
         }
         catch (WriterException e) {}
          
-        Principal p = new JMXPrincipal("foo");
+        p = new JMXPrincipal("foo");
         try
         {
-            Element element = IdentityWriter.write(p);
+            Element element = getElement(p);
             fail("Unsupported Principal type should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -156,40 +157,40 @@ public class IdentityReaderWriterTest
     {
         // X500
         Principal expected = new X500Principal("cn=foo,o=bar");
-        Element element = IdentityWriter.write(expected);
+        Element element = getElement(expected);
         assertNotNull(element);
          
-        Principal actual = IdentityReader.read(element);
+        Principal actual = getPrincipal(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);
-         
-        // UID
+
+        // CADC
         expected = new NumericPrincipal(123l);
-        element = IdentityWriter.write(expected);
+        element = getElement(expected);
         assertNotNull(element);
          
-        actual = IdentityReader.read(element);
+        actual = getPrincipal(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);
         
         // OpenID
         expected = new OpenIdPrincipal("bar");
-        element = IdentityWriter.write(expected);
+        element = getElement(expected);
         assertNotNull(element);
          
-        actual = IdentityReader.read(element);
+        actual = getPrincipal(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);
         
         // HTTP
         expected = new HttpPrincipal("baz");
-        element = IdentityWriter.write(expected);
+        element = getElement(expected);
         assertNotNull(element);
          
-        actual = IdentityReader.read(element);
+        actual = getPrincipal(element);
         assertNotNull(actual);
          
         assertEquals(expected, actual);

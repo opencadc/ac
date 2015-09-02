@@ -76,36 +76,15 @@ import org.jdom2.Document;
 import org.json.JSONException;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
 import java.util.Scanner;
 
+/**
+ * Class to read a JSON representation of a User to a User object.
+ */
 public class JsonUserReader extends UserReader
 {
-    /**
-     * Construct a User from a InputStream.
-     *
-     * @param in InputStream.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    @Override
-    public User<Principal> read(InputStream in)
-        throws IOException
-    {
-        if (in == null)
-        {
-            throw new IOException("stream closed");
-        }
-
-        Scanner s = new Scanner(in).useDelimiter("\\A");
-        String json = s.hasNext() ? s.next() : "";
-
-        return read(json);
-    }
-
     /**
      * Construct a User from a Reader.
      *
@@ -126,27 +105,6 @@ public class JsonUserReader extends UserReader
         Scanner s = new Scanner(reader).useDelimiter("\\A");
         String json = s.hasNext() ? s.next() : "";
 
-        return read(json);
-    }
-
-    /**
-     * Construct a User from an JSON String source.
-     *
-     * @param json String of JSON.
-     * @return User User.
-     * @throws ReaderException
-     * @throws IOException
-     */
-    @Override
-    public User<Principal> read(String json)
-        throws IOException
-    {
-        if (json == null || json.isEmpty())
-        {
-            throw new IllegalArgumentException("JSON must not be null or empty");
-        }
-
-        // Create a JSONObject from the JSON
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
@@ -154,7 +112,7 @@ public class JsonUserReader extends UserReader
             jsonInputter.getListElementMap().put("details", "userDetails");
 
             Document document = jsonInputter.input(json);
-            return UserReader.parseUser(document.getRootElement());
+            return getUser(document.getRootElement());
         }
         catch (JSONException e)
         {
