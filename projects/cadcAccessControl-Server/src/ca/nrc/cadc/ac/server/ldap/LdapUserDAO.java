@@ -80,6 +80,7 @@ import java.util.Random;
 
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.auth.DNPrincipal;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -156,6 +157,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME
             };
+    private String[] identityAttribs = new String[]
+        {
+            LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_NUMERICID, LDAP_ENTRYDN
+        };
 
     public LdapUserDAO(LdapConfig config)
     {
@@ -543,6 +548,61 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         user.details.add(personaDetails);
 
         return user;
+    }
+
+    public User<T> getAugmentedUser(final T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        String searchField = userLdapAttrib.get(userID.getClass());
+        if (searchField == null)
+        {
+            throw new IllegalArgumentException(
+                "Unsupported principal type " + userID.getClass());
+        }
+
+        try
+        {
+            Filter filter =
+                Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
+            filter =
+                Filter.createANDFilter(filter,
+                    Filter.createEqualityFilter(searchField, userID.getName()));
+
+            SearchRequest searchRequest =
+                new SearchRequest(config.getUsersDN(), SearchScope.ONE,
+                    filter, identityAttribs);
+
+            searchRequest.addControl(
+                new ProxiedAuthorizationV2RequestControl(
+                    "dn:" + getSubjectDN().toNormalizedString()));
+
+            SearchResultEntry searchResult = getConnection().searchForEntry(searchRequest);
+
+            if (searchResult == null)
+            {
+                String msg = "User not found " + userID.toString();
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+
+            User<T> user = new User<T>(userID);
+            user.getIdentities().add(new HttpPrincipal(
+                searchResult.getAttributeValue(LDAP_UID)));
+            user.getIdentities().add(new NumericPrincipal(
+                searchResult.getAttributeValueAsLong(LDAP_NUMERICID)));
+            user.getIdentities().add(new X500Principal(
+                searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME)));
+            user.getIdentities().add(new DNPrincipal(
+                searchResult.getAttributeValue(LDAP_ENTRYDN)));
+            return user;
+        }
+        catch (LDAPException e)
+        {
+            logger.debug("getGroup Exception: " + e, e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+            throw new RuntimeException("BUG: checkLdapResult didn't throw an exception");
+        }
     }
 
     /**

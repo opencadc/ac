@@ -100,7 +100,7 @@ public class GetUserAction extends AbstractUserAction
     {
         User<Principal> user;
  
-        if (isServops())
+        if (isSubjectUser(this.augmentUserDN))
         {
         	Subject subject = new Subject();
         	subject.getPrincipals().add(this.userID);
@@ -124,64 +124,75 @@ public class GetUserAction extends AbstractUserAction
 
     protected User<Principal> getUser(Principal principal) throws Exception
     {
-        final UserPersistence<Principal> userPersistence = getUserPersistence();
-    	User<Principal> user;
-    	
-    	try
+        User<Principal> user;
+
+        // For detail=identity, if the calling user is the same as the requested user,
+        // the calling user already has all principals for that user.
+        if (detail != null && detail.equalsIgnoreCase("identity") &&
+            isSubjectUser(principal.getName()))
         {
-            user = userPersistence.getUser(principal);
-            if (detail != null)
+            Subject subject = Subject.getSubject(AccessController.getContext());
+            user = new User<Principal>(principal);
+            user.getIdentities().addAll(subject.getPrincipals());
+        }
+        else
+        {
+            final UserPersistence<Principal> userPersistence = getUserPersistence();
+            try
             {
-                // Only return user principals
-                if (detail.equals("identity"))
+                user = userPersistence.getUser(principal);
+                if (detail != null)
                 {
-                    user.details.clear();
-                }
-                // Only return user profile info, first and last name.
-                else if (detail.equals("display"))
-                {
-                    user.getIdentities().clear();
-                    Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
-                    if (details.isEmpty())
+                    // Only return user principals
+                    if (detail.equalsIgnoreCase("identity"))
                     {
-                        String error = principal.getName() + " missing required PersonalDetails";
-                        throw new IllegalStateException(error);
+                        user.details.clear();
                     }
-                    PersonalDetails pd = details.iterator().next();
-                    user.details.clear();
-                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
-                }
-                else
-                {
-                    throw new IllegalArgumentException("Illegal detail parameter " + detail);
+                    // Only return user profile info, first and last name.
+                    else if (detail.equalsIgnoreCase("display"))
+                    {
+                        user.getIdentities().clear();
+                        Set<PersonalDetails> details = user.getDetails(PersonalDetails.class);
+                        if (details.isEmpty())
+                        {
+                            String error = principal.getName() + " missing required PersonalDetails";
+                            throw new IllegalStateException(error);
+                        }
+                        PersonalDetails pd = details.iterator().next();
+                        user.details.clear();
+                        user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+                    }
+                    else
+                    {
+                        throw new IllegalArgumentException("Illegal detail parameter " + detail);
+                    }
                 }
             }
-        }
-        catch (UserNotFoundException e)
-        {
-            user = userPersistence.getPendingUser(principal);
+            catch (UserNotFoundException e)
+            {
+                user = userPersistence.getPendingUser(principal);
+            }
         }
     	
     	return user;
     }
-    
-    protected boolean isServops()
+
+    protected boolean isSubjectUser(String username)
     {
-    	boolean isServops = false;
-        AccessControlContext acc = AccessController.getContext();
-        Subject subject = Subject.getSubject(acc);
+        boolean found = false;
+        Subject subject = Subject.getSubject(AccessController.getContext());
         if (subject != null)
         {
-        	for (Principal principal : subject.getPrincipals())
-        	{
-        		if (principal.getName().equals(this.getAugmentUserDN()))
-        		{
-        			isServops = true;
-        			break;
-        		}
-        	}
+            for (Principal principal : subject.getPrincipals())
+            {
+                if (principal.getName().equals(username))
+                {
+                    found = true;
+                    break;
+                }
+            }
         }
-        
-        return isServops;
+
+        return found;
     }
 }

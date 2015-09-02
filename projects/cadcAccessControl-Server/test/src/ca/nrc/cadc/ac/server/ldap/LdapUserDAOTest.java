@@ -82,6 +82,7 @@ import java.util.Random;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.auth.DNPrincipal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
@@ -103,12 +104,16 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
 
     static final String testUserX509DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
+    static final String testUser1EntryDN = "uid=cadcdaotest1,ou=users,ou=ds,dc=testcanfar";
+    static final String testUser2EntryDN = "uid=cadcdaotest2,ou=users,ou=ds,dc=testcanfar";
     static int nextUserNumericID = 666;
 
     static String testUserDN;
     static User<X500Principal> testUser;
     static User<X500Principal> testMember;
     static User<HttpPrincipal> testPendingUser;
+    static DNPrincipal testUser1DNPrincipal;
+    static DNPrincipal testUser2DNPrincipal;
     static LdapConfig config;
     static Random ran = new Random(); // source of randomness for numeric ids
 
@@ -117,7 +122,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     public static void setUpBeforeClass()
             throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
         // get the configuration of the development server from and config files...
         config = getLdapConfig();
@@ -128,10 +133,10 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 new User<HttpPrincipal>(new HttpPrincipal("CADCtestRequest"));
         testPendingUser.details.add(new PersonalDetails("CADCtest", "Request"));
         testPendingUser.getIdentities().add(
-                new HttpPrincipal("CADCtestRequest"));
+            new HttpPrincipal("CADCtestRequest"));
         testPendingUser.getIdentities().add(
-                new X500Principal(
-                        "uid=CADCtestRequest,ou=userrequests,ou=ds,dc=testcanfar"));
+            new X500Principal(
+                "uid=CADCtestRequest,ou=userrequests,ou=ds,dc=testcanfar"));
         testPendingUser.getIdentities().add(new NumericPrincipal(66666));
 
         testUser.details.add(new PersonalDetails("CADC", "DAOTest1"));
@@ -147,7 +152,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         testMember = new User<X500Principal>(testUserX500Princ);
         testMember.details.add(new PersonalDetails("CADC", "DAOTest1"));
         testMember.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
-        
+
+        testUser1DNPrincipal = new DNPrincipal(testUser1EntryDN);
+        testUser2DNPrincipal = new DNPrincipal(testUser2EntryDN);
     }
 
     <T extends Principal> LdapUserDAO<T> getUserDAO() throws Exception
@@ -227,6 +234,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     {
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
+        subject.getPrincipals().add(testUser1DNPrincipal);
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -258,6 +266,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     {
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
+        subject.getPrincipals().add(testUser1DNPrincipal);
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -267,7 +276,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     Collection<DN> groups = getUserDAO().getUserGroups(testUser.getUserID(),
-                                                       false);
+                        false);
                     assertNotNull("Groups should not be null.", groups);
 
                     for (DN groupDN : groups)
@@ -301,6 +310,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     {
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
+        subject.getPrincipals().add(testUser1DNPrincipal);
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -314,7 +324,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
                     String  groupDN = "cn=cadcdaotestgroup1," + config.getGroupsDN();
                     isMember = getUserDAO().isMember(testUser.getUserID(),
-                                                     groupDN);
+                        groupDN);
                     assertTrue("Membership should exist.", isMember);
 
                     return null;
@@ -335,7 +345,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     {
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
-
+        subject.getPrincipals().add(testUser1DNPrincipal);
         
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -579,6 +589,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         // add the user
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser2.getUserID());
+        subject.getPrincipals().add(testUser2DNPrincipal);
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run()
@@ -633,6 +644,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
         // update the user
         subject.getPrincipals().add(testUser2.getUserID());
+        subject.getPrincipals().add(testUser2DNPrincipal);
         User<? extends Principal> updatedUser =
             (User<? extends Principal>) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -662,7 +674,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         assertEquals(user1, user2);
         assertEquals(user1.details, user2.details);
         assertEquals(user1.details.size(), user2.details.size());
-        assertEquals(user1.getIdentities().size(), user2.getIdentities().size());
+        assertEquals("# principals not equal", user1.getIdentities().size(), user2.getIdentities().size());
         for( Principal princ1 : user1.getIdentities())
         {
             boolean found = false;

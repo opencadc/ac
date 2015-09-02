@@ -133,7 +133,7 @@ public class AuthenticatorImpl implements Authenticator
                         try
                         {
                             LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
-                            User<Principal> user = dao.getUser(subject.getPrincipals().iterator().next());
+                            User<Principal> user = dao.getAugmentedUser(subject.getPrincipals().iterator().next());
                             subject.getPrincipals().addAll(user.getIdentities());
                         }
                         catch (UserNotFoundException e)

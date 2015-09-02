@@ -148,7 +148,7 @@
         <pathelement path="${jars}:${testingJars}"/>
       </classpath>
       <sysproperty key="ca.nrc.cadc.util.PropertiesReader.dir" value="test"/>
-      <test name="ca.nrc.cadc.ac.server.web.users.UserActionFactoryTest" />
+      <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
       <formatter type="plain" usefile="false" />
     </junit>
   </target>

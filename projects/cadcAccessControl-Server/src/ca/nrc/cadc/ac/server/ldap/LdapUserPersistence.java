@@ -203,6 +203,36 @@ public class LdapUserPersistence<T extends Principal>
     }
 
     /**
+     * Get the user specified by userID with all of the users identities.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> getAugmentedUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.getAugmentedUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
      * Get the user specified by userID.
      *
      * @param userID The userID.

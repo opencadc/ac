@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
@@ -104,7 +105,13 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     static String daoTestDN2 = "cn=" + daoTestUid2 + ",ou=cadc,o=hia,c=ca";
     static String daoTestDN3 = "cn=" + daoTestUid3 + ",ou=cadc,o=hia,c=ca";
     static String unknownDN = "cn=foo,ou=cadc,o=hia,c=ca";
-    
+
+    static String daoTestEntryDN1 = "uid=cadcdaotest1,ou=users,ou=ds,dc=testcanfar";
+    static String daoTestEntryDN2 = "uid=cadcdaotest2,ou=users,ou=ds,dc=testcanfar";
+
+    static DNPrincipal daoDNPrincipal1;
+    static DNPrincipal daoDNPrincipal2;
+
     static X500Principal daoTestPrincipal1;
     static X500Principal daoTestPrincipal2;
     static X500Principal daoTestPrincipal3;
@@ -135,6 +142,9 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         daoTestPrincipal3 = new X500Principal(daoTestDN3);
         unknownPrincipal = new X500Principal(unknownDN);
 
+        daoDNPrincipal1 = new DNPrincipal(daoTestEntryDN1);
+        daoDNPrincipal2 = new DNPrincipal(daoTestEntryDN2);
+
         daoTestUser1 = new User<X500Principal>(daoTestPrincipal1);
         daoTestUser2 = new User<X500Principal>(daoTestPrincipal2);
         daoTestUser3 = new User<X500Principal>(daoTestPrincipal3);
@@ -142,9 +152,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         
         daoTestUser1Subject = new Subject();
         daoTestUser1Subject.getPrincipals().add(daoTestUser1.getUserID());
+        daoTestUser1Subject.getPrincipals().add(daoDNPrincipal1);
         
         daoTestUser2Subject = new Subject();
         daoTestUser2Subject.getPrincipals().add(daoTestUser2.getUserID());
+        daoTestUser2Subject.getPrincipals().add(daoDNPrincipal2);
         
         anonSubject = new Subject();
         anonSubject.getPrincipals().add(unknownUser.getUserID());
