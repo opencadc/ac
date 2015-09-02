@@ -71,6 +71,8 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -81,6 +83,8 @@ import java.util.Set;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
+
+import com.sun.security.auth.X500Principal;
 
 
 public class GetUserAction extends AbstractUserAction
@@ -98,16 +102,18 @@ public class GetUserAction extends AbstractUserAction
 
 	public void doAction() throws Exception
     {
+		log.debug("alinga-- GetUserAction.doAction(): enter");
         User<Principal> user;
  
-        if (isServops())
+        if (isAugmentUser())
         {
-        	Subject subject = new Subject();
+    		log.debug("alinga-- GetUserAction.doAction(): is an augment user");
+    		Subject subject = new Subject();
         	subject.getPrincipals().add(this.userID);
-        	user = (User<Principal>) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        	user = Subject.doAs(subject, new PrivilegedExceptionAction<User<Principal>>()
         	{
 				@Override
-				public Object run() throws Exception 
+				public User<Principal> run() throws Exception 
 				{
 					return getUser(userID);
 				}
@@ -116,10 +122,12 @@ public class GetUserAction extends AbstractUserAction
         }
         else
         {
+    		log.debug("alinga-- GetUserAction.doAction(): is not an augment user");
         	user = getUser(this.userID);
         }
 
         writeUser(user);
+		log.debug("alinga-- GetUserAction.doAction(): exit");
     }
 
     protected User<Principal> getUser(Principal principal) throws Exception
@@ -130,58 +138,78 @@ public class GetUserAction extends AbstractUserAction
     	try
         {
             user = userPersistence.getUser(principal);
-            if (detail != null)
-            {
-                // Only return user principals
-                if (detail.equals("identity"))
-                {
-                    user.details.clear();
-                }
-                // Only return user profile info, first and last name.
-                else if (detail.equals("display"))
-                {
-                    user.getIdentities().clear();
-                    Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
-                    if (details.isEmpty())
-                    {
-                        String error = principal.getName() + " missing required PersonalDetails";
-                        throw new IllegalStateException(error);
-                    }
-                    PersonalDetails pd = details.iterator().next();
-                    user.details.clear();
-                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
-                }
-                else
-                {
-                    throw new IllegalArgumentException("Illegal detail parameter " + detail);
-                }
-            }
         }
         catch (UserNotFoundException e)
         {
             user = userPersistence.getPendingUser(principal);
         }
     	
-    	return user;
+        if (detail != null)
+        {
+            // Only return user principals
+            if (detail.equals("identity"))
+            {
+                user.details.clear();
+            }
+            // Only return user profile info, first and last name.
+            else if (detail.equals("display"))
+            {
+                user.getIdentities().clear();
+                Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
+                if (details.isEmpty())
+                {
+                    String error = principal.getName() + " missing required PersonalDetails";
+                    throw new IllegalStateException(error);
+                }
+                PersonalDetails pd = details.iterator().next();
+                user.details.clear();
+                user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+            }
+            else
+            {
+                throw new IllegalArgumentException("Illegal detail parameter " + detail);
+            }
+        }
+
+        return user;
     }
     
-    protected boolean isServops()
+    protected boolean isAugmentUser()
     {
-    	boolean isServops = false;
         AccessControlContext acc = AccessController.getContext();
         Subject subject = Subject.getSubject(acc);
         if (subject != null)
         {
-        	for (Principal principal : subject.getPrincipals())
+        	log.debug("alinga-- GetUserAction.isAugmentUser(): subject is not null.");        	
+        	for (Principal principal : subject.getPrincipals(X500Principal.class))
         	{
-        		if (principal.getName().equals(this.getAugmentUserDN()))
+        		log.debug("alinga-- GetUserAction.isAugmentUser(): principal = " + principal);
+        		log.debug("alinga-- GetUserAction.isAugmentUser(): principal name = " + principal.getName());
+        		log.debug("alinga-- GetUserAction.isAugmentUser(): augmentUserDN = " + this.getAugmentUserDN());
+            	if (principal instanceof X500Principal)
+            	{
+            		log.debug("alinga-- UserClientTest constructor(): servops is X500Principal.");
+            	}
+            	else if (principal instanceof HttpPrincipal)
+            	{
+            		log.debug("alinga-- UserClientTest constructor(): servops is X500Principal.");
+            	}
+            	else if (principal instanceof NumericPrincipal)
+            	{
+            		log.debug("alinga-- UserClientTest constructor(): servops is X500Principal.");
+            	}
+            	else
+            	{
+            		log.debug("alinga-- UserClientTest constructor(): servops is unknown principal.");
+            	}
+
+            	if (principal.getName().equals(this.getAugmentUserDN()))
         		{
-        			isServops = true;
-        			break;
+        			return true;
         		}
         	}
         }
         
-        return isServops;
+        return false;
     }
 }
