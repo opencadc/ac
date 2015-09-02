@@ -76,17 +76,13 @@ import java.util.Iterator;
 import java.util.Set;
 
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.ac.*;
-import ca.nrc.cadc.auth.HttpPrincipal;
 
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.CookiePrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 
 
@@ -144,50 +140,17 @@ public class UserClient
     public void augmentSubject(Subject subject)
     {
     	Principal principal = this.getPrincipal(subject);
-        URL url = this.getURL(principal);
-    	log.debug("augmentSubject request to " + url.toString());    	
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        HttpDownload download = new HttpDownload(url, out);
-        download.run();
-     
-        this.handleThrowable(download);
-        this.augmentSubject(subject, this.getPrincipals(out));
-    }
-    
-    protected void augmentSubject(Subject subject, Set<Principal> principals)
-    {
-        if (!principals.iterator().hasNext())
-        {
-        	String name = subject.getPrincipals().iterator().next().getName();
-        	String msg = "No UserIdentity in LDAP server for principal: " + name;
-        	throw new IllegalStateException(msg);
-        }
-        
-    	for (Principal principal : principals)
+    	if (principal != null)
     	{
-    		if (principal instanceof HttpPrincipal)
-    		{
-    			subject.getPrincipals().add((HttpPrincipal)principal);
-    		}
-    		else if (principal instanceof X500Principal)
-    		{
-    			subject.getPrincipals().add((X500Principal)principal);
-    		}
-    		else if (principal instanceof NumericPrincipal)
-    		{
-    			subject.getPrincipals().add((NumericPrincipal)principal);
-    		}
-    		else if (principal instanceof CookiePrincipal)
-    		{
-    			subject.getPrincipals().add((CookiePrincipal)principal);
-    		}
-            else
-            {
-        		final String msg = "Subject has unsupported principal " +
-        				principal.getName() + 
-        				", not one of (X500, Cookie, HTTP or Cadc).";
-		        throw new IllegalStateException(msg);
-            }
+	        URL url = this.getURL(principal);
+	    	log.debug("augmentSubject request to " + url.toString());    	
+	        ByteArrayOutputStream out = new ByteArrayOutputStream();
+	        HttpDownload download = new HttpDownload(url, out);
+	        download.run();
+	     
+	        this.handleThrowable(download);
+	        subject.getPrincipals().clear();
+	        subject.getPrincipals().addAll(this.getPrincipals(out));
     	}
     }
     
@@ -198,12 +161,8 @@ public class UserClient
     	if (iterator.hasNext())
     	{
     		Principal principal = iterator.next();
-    		log.debug("alinga-- UserClient.getPrincipal(): principal = " + principal);
     		if (iterator.hasNext())
     		{
-    			Principal principal1 = iterator.next();
-        		log.debug("alinga-- UserClient.getPrincipal(): principal1 = " + principal1);			
-    			log.debug("alinga-- UserClient.getPrincipal(): number of principals = " + principals.size());
     			// Should only have one principal
         		final String msg = "Subject has more than one principal.";
 		        throw new IllegalArgumentException(msg);
@@ -213,8 +172,7 @@ public class UserClient
     	}
     	else
     	{
-    		final String msg = "Subject has no principal.";
-    		throw new IllegalArgumentException(msg);
+    		return null;
     	}
     }
     

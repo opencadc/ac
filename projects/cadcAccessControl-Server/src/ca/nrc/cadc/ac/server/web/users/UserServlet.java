@@ -68,11 +68,10 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-import java.security.AccessControlContext;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.util.StringUtil;
+import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -81,13 +80,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import ca.nrc.cadc.util.StringUtil;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
 
 public class UserServlet extends HttpServlet
 {
@@ -95,7 +91,7 @@ public class UserServlet extends HttpServlet
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
     private String notAugmentedX500User;
-    
+
     @Override
     public void init(final ServletConfig config) throws ServletException
     {

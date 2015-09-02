@@ -71,16 +71,12 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
-
-import java.security.AccessControlContext;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Set;
+import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.Set;
 
 
 public class GetUserAction extends AbstractUserAction
