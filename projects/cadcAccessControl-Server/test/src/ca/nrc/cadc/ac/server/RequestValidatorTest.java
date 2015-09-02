@@ -71,15 +71,18 @@ package ca.nrc.cadc.ac.server;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 /**
@@ -152,7 +155,7 @@ public class RequestValidatorTest
             
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", AuthenticationUtil.AUTH_TYPE_HTTP));
+            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", "foo"));
             try
             {
@@ -163,7 +166,7 @@ public class RequestValidatorTest
             
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", AuthenticationUtil.AUTH_TYPE_HTTP));
+            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", "foo"));
             paramList.add(new Parameter("GROUPID", ""));
             try
@@ -175,7 +178,7 @@ public class RequestValidatorTest
             
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", AuthenticationUtil.AUTH_TYPE_HTTP));
+            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
             rv.validate(paramList);
             

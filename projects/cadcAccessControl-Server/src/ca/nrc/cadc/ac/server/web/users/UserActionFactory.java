@@ -68,17 +68,18 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 
 import java.io.IOException;
 import java.net.URL;
 import java.security.Principal;
+
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 

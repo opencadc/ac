@@ -71,13 +71,10 @@ package ca.nrc.cadc.ac.client;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.Principal;
+import java.util.Iterator;
 import java.util.Set;
 
-import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
@@ -87,9 +84,9 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpDownload;
 
 
@@ -102,8 +99,6 @@ public class UserClient
     private static final Logger log = Logger.getLogger(UserClient.class);
 
     // socket factory to use when connecting
-    private SSLSocketFactory sslSocketFactory;
-    private SSLSocketFactory mySocketFactory;
     private String baseURL;
 
     /**
@@ -148,12 +143,11 @@ public class UserClient
      */
     public void augmentSubject(Subject subject)
     {
-        URL url = this.getURL(subject);
+    	Principal principal = this.getPrincipal(subject);
+        URL url = this.getURL(principal);
     	log.debug("augmentSubject request to " + url.toString());    	
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HttpDownload download = new HttpDownload(url, out);
-
-        download.setSSLSocketFactory(getSSLSocketFactory());
         download.run();
      
         this.handleThrowable(download);
@@ -162,7 +156,7 @@ public class UserClient
     
     protected void augmentSubject(Subject subject, Set<Principal> principals)
     {
-        if (principals.isEmpty())
+        if (!principals.iterator().hasNext())
         {
         	String name = subject.getPrincipals().iterator().next().getName();
         	String msg = "No UserIdentity in LDAP server for principal: " + name;
@@ -197,6 +191,33 @@ public class UserClient
     	}
     }
     
+    protected Principal getPrincipal(final Subject subject)
+    {
+    	Set<Principal> principals = subject.getPrincipals();
+    	Iterator<Principal> iterator = principals.iterator();
+    	if (iterator.hasNext())
+    	{
+    		Principal principal = iterator.next();
+    		log.debug("alinga-- UserClient.getPrincipal(): principal = " + principal);
+    		if (iterator.hasNext())
+    		{
+    			Principal principal1 = iterator.next();
+        		log.debug("alinga-- UserClient.getPrincipal(): principal1 = " + principal1);			
+    			log.debug("alinga-- UserClient.getPrincipal(): number of principals = " + principals.size());
+    			// Should only have one principal
+        		final String msg = "Subject has more than one principal.";
+		        throw new IllegalArgumentException(msg);
+            }
+            
+            return principal;
+    	}
+    	else
+    	{
+    		final String msg = "Subject has no principal.";
+    		throw new IllegalArgumentException(msg);
+    	}
+    }
+    
     protected Set<Principal> getPrincipals(ByteArrayOutputStream out)
     {
     	try
@@ -224,127 +245,34 @@ public class UserClient
         }
     }
     
-    protected URL getURL(Subject subject)
+    protected URL getURL(Principal principal)
     {
 		try 
 		{
-		    String userID = subject.getPrincipals().iterator().next().getName();
-		    String encodedUserID = URLEncoder.encode(userID, "UTF-8");
-			URL url = new URL(this.baseURL + "/users/" + encodedUserID + 
-					"?idType=" + this.getIdType(subject) + "&detail=identity");
+		    String userID = principal.getName();
+			URL url = new URL(this.baseURL + "/users/" + userID + 
+					"?idType=" + this.getIdType(principal) + "&detail=identity");
 			log.debug("getURL(): returned url ="
 					+ ""
 					+ " " + url.toString());
 			return url;
 		} 
-		catch (UnsupportedEncodingException e) 
-		{
-			throw new RuntimeException(e);
-		}
 		catch (MalformedURLException e)
 		{
 			throw new RuntimeException(e);
 		}
     }
     
-    protected String getIdType(Subject subject)
+    protected String getIdType(Principal principal)
     {
-    	Set<Principal> principals = subject.getPrincipals();
-    	if (principals.size() > 0)
-    	{
-        	String idTypeStr = null;
-    		Principal principal = principals.iterator().next();
-            if (principal instanceof HttpPrincipal)
-            {
-            	idTypeStr = IdentityType.USERNAME.getValue();
-            }
-            else if (principal instanceof X500Principal)
-            {
-            	idTypeStr = IdentityType.X500.getValue();
-            }
-            else if (principal instanceof NumericPrincipal)
-            {
-            	idTypeStr = IdentityType.CADC.getValue();
-            }
-            else if (principal instanceof CookiePrincipal)
-            {
-            	idTypeStr = IdentityType.COOKIE.getValue();
-            }   		
-            else
-            {
-        		final String msg = "Subject has unsupported principal " +
-        				principal.getName() + 
-        				", not one of (X500, Cookie, HTTP or Cadc).";
-		        throw new IllegalArgumentException(msg);
-            }
-            
-            return idTypeStr;
-    	}
-    	else
-    	{
-    		final String msg = "Subject has no principal.";
-    		throw new IllegalArgumentException(msg);
-    	}
-    }
-
-    /**
-     * @param sslSocketFactory the sslSocketFactory to set
-     */
-    public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
-    {
-        if (mySocketFactory != null)
+		String idTypeStr = AuthenticationUtil.getPrincipalType(principal);
+        if (idTypeStr == null)
         {
-            throw new IllegalStateException(
-            		"Illegal use of GMSClient: cannot set SSLSocketFactory " +
-                    "after using one created from Subject");
+    		final String msg = "Subject has unsupported principal " +
+    				principal.getName();
+	        throw new IllegalArgumentException(msg);
         }
-        this.sslSocketFactory = sslSocketFactory;
-        clearCache();
-    }
-
-    private int subjectHashCode = 0;
-
-    private SSLSocketFactory getSSLSocketFactory()
-    {
-        AccessControlContext ac = AccessController.getContext();
-        Subject s = Subject.getSubject(ac);
-
-        // no real Subject: can only use the one from setSSLSocketFactory
-        if (s == null || s.getPrincipals().isEmpty())
-        {
-            return sslSocketFactory;
-        }
-
-        // lazy init
-        if (this.mySocketFactory == null)
-        {
-            log.debug("getSSLSocketFactory: " + s);
-            this.mySocketFactory = SSLUtil.getSocketFactory(s);
-            this.subjectHashCode = s.hashCode();
-        }
-        else
-        {
-            int c = s.hashCode();
-            if (c != subjectHashCode)
-            {
-                throw new IllegalStateException(
-                		"Illegal use of " + this.getClass().getSimpleName() +
-                		": subject change not supported for internal " +
-                		"SSLSocketFactory");
-            }
-        }
-        return this.mySocketFactory;
-    }
-
-    protected void clearCache()
-    {
-        AccessControlContext acContext = AccessController.getContext();
-        Subject subject = Subject.getSubject(acContext);
-
-        if (subject != null)
-        {
-            log.debug("Clearing cache");
-            subject.getPrivateCredentials().clear();
-        }
+        
+        return idTypeStr;
     }
 }

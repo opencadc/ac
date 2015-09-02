@@ -100,7 +100,7 @@ public class GetUserAction extends AbstractUserAction
     {
         User<Principal> user;
  
-        if (isSubjectUser(this.augmentUserDN))
+        if (isServops())
         {
         	Subject subject = new Subject();
         	subject.getPrincipals().add(this.userID);
@@ -176,21 +176,22 @@ public class GetUserAction extends AbstractUserAction
     	
     	return user;
     }
-
-    protected boolean isSubjectUser(String username)
+    
+    protected boolean isServops()
     {
-        boolean found = false;
-        Subject subject = Subject.getSubject(AccessController.getContext());
+    	boolean isServops = false;
+        AccessControlContext acc = AccessController.getContext();
+        Subject subject = Subject.getSubject(acc);
         if (subject != null)
         {
-            for (Principal principal : subject.getPrincipals())
-            {
-                if (principal.getName().equals(username))
-                {
-                    found = true;
-                    break;
-                }
-            }
+        	for (Principal principal : subject.getPrincipals())
+        	{
+        		if (principal.getName().equals(this.getAugmentUserDN()))
+        		{
+        			isServops = true;
+        			break;
+        		}
+        	}
         }
 
         return found;

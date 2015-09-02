@@ -74,7 +74,9 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
+
 import java.security.Principal;
 
 import org.apache.log4j.Level;
@@ -107,7 +109,7 @@ public class AddUserMemberActionTest
         try
         {
             String userID = "foo";
-            String userIDType = AuthenticationUtil.AUTH_TYPE_HTTP;
+            String userIDType = IdentityType.USERNAME.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
             User<Principal> user = new User<Principal>(userPrincipal);
 
@@ -159,7 +161,7 @@ public class AddUserMemberActionTest
         try
         {
             String userID = "foo";
-            String userIDType = AuthenticationUtil.AUTH_TYPE_HTTP;
+            String userIDType = IdentityType.USERNAME.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
             User<Principal> user = new User<Principal>(userPrincipal);
 
