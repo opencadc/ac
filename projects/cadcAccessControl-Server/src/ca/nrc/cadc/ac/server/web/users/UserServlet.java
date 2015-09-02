@@ -69,9 +69,13 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.Principal;
 import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -90,7 +94,7 @@ public class UserServlet extends HttpServlet
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
-    private String augmentUserDN;
+    private String notAugmentedX500User;
     
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -99,8 +103,8 @@ public class UserServlet extends HttpServlet
 
         try
         {
-        	this.augmentUserDN = config.getInitParameter(UserServlet.class.getName() + ".augmentUserDN");
-            log.info("augmentUserDN: " + augmentUserDN);
+        	this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
+            log.info("notAugmentedX500User: " + notAugmentedX500User);
         }
         catch(Exception ex)
         {
@@ -120,13 +124,23 @@ public class UserServlet extends HttpServlet
         try
         {
             log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-
             AbstractUserAction action = factory.createAction(request);
             SyncOutput syncOut = new SyncOutput(response);
 
-            action.setAugmentUserDN(this.augmentUserDN);
+            // Special case: if the calling subject has a servops X500Principal,
+            // AND it is a GET request, do not augment the subject.
+            Subject subject;
+            if (action instanceof GetUserAction && isNotAugmentedSubject())
+            {
+                subject = Subject.getSubject(AccessController.getContext());
+                action.setAugmentUser(true);
+            }
+            else
+            {
+                subject = AuthenticationUtil.getSubject(request);
+            }
+            logInfo.setSubject(subject);
+
             action.setLogInfo(logInfo);
             action.setSyncOut(syncOut);
             action.setAcceptedContentType(getAcceptedContentType(request));
@@ -235,5 +249,26 @@ public class UserServlet extends HttpServlet
         {
             return AbstractUserAction.DEFAULT_CONTENT_TYPE;
         }
+    }
+
+    protected boolean isNotAugmentedSubject()
+    {
+        boolean notAugmented = false;
+        Subject subject = Subject.getSubject(AccessController.getContext());
+        if (subject != null)
+        {
+            for (Principal principal : subject.getPrincipals())
+            {
+                if (principal instanceof X500Principal)
+                {
+                    if (principal.getName().equalsIgnoreCase(this.notAugmentedX500User))
+                    {
+                        notAugmented = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return notAugmented;
     }
 }

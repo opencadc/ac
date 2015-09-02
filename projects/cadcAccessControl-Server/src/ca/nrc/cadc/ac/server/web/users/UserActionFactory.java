@@ -75,15 +75,13 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
-
-import java.io.IOException;
-import java.net.URL;
-import java.security.Principal;
+import org.apache.log4j.Logger;
 
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
-
-import org.apache.log4j.Logger;
+import java.io.IOException;
+import java.net.URL;
+import java.security.Principal;
 
 
 public abstract class UserActionFactory
