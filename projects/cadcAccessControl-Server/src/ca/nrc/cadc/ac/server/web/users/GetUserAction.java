@@ -71,6 +71,8 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -79,8 +81,10 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Set;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
+
 
 
 public class GetUserAction extends AbstractUserAction
@@ -100,14 +104,14 @@ public class GetUserAction extends AbstractUserAction
     {
         User<Principal> user;
  
-        if (isServops())
+        if (isAugmentUser())
         {
-        	Subject subject = new Subject();
+    		Subject subject = new Subject();
         	subject.getPrincipals().add(this.userID);
-        	user = (User<Principal>) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        	user = Subject.doAs(subject, new PrivilegedExceptionAction<User<Principal>>()
         	{
 				@Override
-				public Object run() throws Exception 
+				public User<Principal> run() throws Exception 
 				{
 					return getUser(userID);
 				}
@@ -130,58 +134,57 @@ public class GetUserAction extends AbstractUserAction
     	try
         {
             user = userPersistence.getUser(principal);
-            if (detail != null)
-            {
-                // Only return user principals
-                if (detail.equals("identity"))
-                {
-                    user.details.clear();
-                }
-                // Only return user profile info, first and last name.
-                else if (detail.equals("display"))
-                {
-                    user.getIdentities().clear();
-                    Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
-                    if (details.isEmpty())
-                    {
-                        String error = principal.getName() + " missing required PersonalDetails";
-                        throw new IllegalStateException(error);
-                    }
-                    PersonalDetails pd = details.iterator().next();
-                    user.details.clear();
-                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
-                }
-                else
-                {
-                    throw new IllegalArgumentException("Illegal detail parameter " + detail);
-                }
-            }
         }
         catch (UserNotFoundException e)
         {
             user = userPersistence.getPendingUser(principal);
         }
     	
-    	return user;
+        if (detail != null)
+        {
+            // Only return user principals
+            if (detail.equals("identity"))
+            {
+                user.details.clear();
+            }
+            // Only return user profile info, first and last name.
+            else if (detail.equals("display"))
+            {
+                user.getIdentities().clear();
+                Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
+                if (details.isEmpty())
+                {
+                    String error = principal.getName() + " missing required PersonalDetails";
+                    throw new IllegalStateException(error);
+                }
+                PersonalDetails pd = details.iterator().next();
+                user.details.clear();
+                user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+            }
+            else
+            {
+                throw new IllegalArgumentException("Illegal detail parameter " + detail);
+            }
+        }
+
+        return user;
     }
     
-    protected boolean isServops()
+    protected boolean isAugmentUser()
     {
-    	boolean isServops = false;
         AccessControlContext acc = AccessController.getContext();
         Subject subject = Subject.getSubject(acc);
         if (subject != null)
         {
-        	for (Principal principal : subject.getPrincipals())
+        	for (Principal principal : subject.getPrincipals(HttpPrincipal.class))
         	{
-        		if (principal.getName().equals(this.getAugmentUserDN()))
+            	if (principal.getName().equals(this.getAugmentUserDN()))
         		{
-        			isServops = true;
-        			break;
+        			return true;
         		}
         	}
         }
         
-        return isServops;
+        return false;
     }
 }

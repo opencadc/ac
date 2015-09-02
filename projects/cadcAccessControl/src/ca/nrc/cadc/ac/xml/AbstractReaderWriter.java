@@ -72,7 +72,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.IdentityType;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.ReaderException;
@@ -81,9 +80,11 @@ import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.date.DateUtil;
+
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -91,6 +92,7 @@ import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
 import javax.security.auth.x500.X500Principal;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.security.Principal;

@@ -90,7 +90,7 @@ public class UserServlet extends HttpServlet
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
-    private String augmentUserDN;
+    private String augmentUser;
     
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -99,8 +99,8 @@ public class UserServlet extends HttpServlet
 
         try
         {
-        	this.augmentUserDN = config.getInitParameter(UserServlet.class.getName() + ".augmentUserDN");
-            log.info("augmentUserDN: " + augmentUserDN);
+        	this.augmentUser = config.getInitParameter(UserServlet.class.getName() + ".augmentUser");
+            log.info("augmentUser: " + augmentUser);
         }
         catch(Exception ex)
         {
@@ -126,7 +126,7 @@ public class UserServlet extends HttpServlet
             AbstractUserAction action = factory.createAction(request);
             SyncOutput syncOut = new SyncOutput(response);
 
-            action.setAugmentUserDN(this.augmentUserDN);
+            action.setAugmentUserDN(this.augmentUser);
             action.setLogInfo(logInfo);
             action.setSyncOut(syncOut);
             action.setAcceptedContentType(getAcceptedContentType(request));
