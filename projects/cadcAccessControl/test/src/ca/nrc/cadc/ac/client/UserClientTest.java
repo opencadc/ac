@@ -138,16 +138,23 @@ public class UserClientTest
     }
     
     @Test
-    public void testSubjectWithNoPrincipal() throws URISyntaxException, MalformedURLException
+    public void testSubjectWithNoPrincipal()
     {
-        // test subject augmentation given a subject with no principal
-    	Subject subject = new Subject();
-    	this.createUserClient().augmentSubject(subject);
-    	Assert.assertEquals("Should have no principal.", 0, subject.getPrincipals().size());
+    	try
+    	{
+	        // test subject augmentation given a subject with no principal
+	    	Subject subject = new Subject();
+	    	this.createUserClient().augmentSubject(subject);
+	    	Assert.assertEquals("Should have no principal.", 0, subject.getPrincipals().size());
+    	}
+    	catch(Throwable t)
+    	{
+    		Assert.fail("Unexpected exception: " + t.getMessage());
+    	}
     }
     
     @Test
-    public void testSubjectWithMultiplePrincipal() throws URISyntaxException, MalformedURLException
+    public void testSubjectWithMultiplePrincipal() 
     {
         try
         {
@@ -163,10 +170,14 @@ public class UserClientTest
             String expected = "Subject has more than one principal.";
             Assert.assertEquals(expected, e.getMessage());
         }
+    	catch(Throwable t)
+    	{
+    		Assert.fail("Unexpected exception: " + t.getMessage());
+    	}
     }
     
     @Test
-    public void testSubjectWithUnsupportedPrincipal() throws URISyntaxException, MalformedURLException
+    public void testSubjectWithUnsupportedPrincipal() 
     {
     	Principal principal = new JMXPrincipal("APIName");
         try
@@ -182,6 +193,10 @@ public class UserClientTest
             String expected = "Subject has unsupported principal " + principal.getName();
             Assert.assertEquals(expected, e.getMessage());
         }
+    	catch(Throwable t)
+    	{
+    		Assert.fail("Unexpected exception: " + t.getMessage());
+    	}
     }
    
     protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
