@@ -90,6 +90,7 @@ public class UserServlet extends HttpServlet
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
+
     private String notAugmentedX500User;
 
     @Override
@@ -121,7 +122,6 @@ public class UserServlet extends HttpServlet
         {
             log.info(logInfo.start());
             AbstractUserAction action = factory.createAction(request);
-            SyncOutput syncOut = new SyncOutput(response);
 
             // Special case: if the calling subject has a servops X500Principal,
             // AND it is a GET request, do not augment the subject.
@@ -129,14 +129,17 @@ public class UserServlet extends HttpServlet
             if (action instanceof GetUserAction && isNotAugmentedSubject())
             {
                 subject = Subject.getSubject(AccessController.getContext());
+                log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
             }
             else
             {
                 subject = AuthenticationUtil.getSubject(request);
+                log.debug("augmented subject: " + subject);
             }
             logInfo.setSubject(subject);
 
+            SyncOutput syncOut = new SyncOutput(response);
             action.setLogInfo(logInfo);
             action.setSyncOut(syncOut);
             action.setAcceptedContentType(getAcceptedContentType(request));
@@ -251,13 +254,16 @@ public class UserServlet extends HttpServlet
     {
         boolean notAugmented = false;
         Subject subject = Subject.getSubject(AccessController.getContext());
+        log.debug("subject: " + subject);
         if (subject != null)
         {
+            log.debug("notAugmentedX500User" + notAugmentedX500User);
             for (Principal principal : subject.getPrincipals())
             {
                 if (principal instanceof X500Principal)
                 {
-                    if (principal.getName().equalsIgnoreCase(this.notAugmentedX500User))
+                    log.debug("principal: " + principal.getName());
+                    if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
                     {
                         notAugmented = true;
                         break;

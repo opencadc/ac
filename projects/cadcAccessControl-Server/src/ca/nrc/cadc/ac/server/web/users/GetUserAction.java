@@ -82,6 +82,7 @@ import java.util.Set;
 public class GetUserAction extends AbstractUserAction
 {
     private static final Logger log = Logger.getLogger(GetUserAction.class);
+
     private final Principal userID;
     private final String detail;
 
@@ -105,30 +106,33 @@ public class GetUserAction extends AbstractUserAction
 
         /**
          * Special case 1
-         * If detail=identity, AND if the calling Subject user is the same as
-         * the requested User, then return the User with the principals from the
-         * Subject which has already been augmented.
+         * If the calling Subject user is the notAugmentedX500User, AND it is
+         * a GET, call the userDAO to get the User with all identities.
          */
-        if (detail != null &&
-            detail.equalsIgnoreCase("identity") &&
-            isSubjectUser(principal))
+        if (isAugmentUser())
         {
-            Subject subject = Subject.getSubject(AccessController.getContext());
-            user = new User<Principal>(principal);
-            user.getIdentities().addAll(subject.getPrincipals());
+            log.debug("getting augmented user " + principal.getName());
+            user = userPersistence.getAugmentedUser(principal);
         }
 
         /**
          * Special case 2
-         * If the calling Subject user is the notAugmentedX500User, AND it is
-         * a GET, call the userDAO to get the User with all identities.
+         * If detail=identity, AND if the calling Subject user is the same as
+         * the requested User, then return the User with the principals from the
+         * Subject which has already been augmented.
          */
-        else if (this.isAugmentUser)
+        else if (detail != null &&
+                 detail.equalsIgnoreCase("identity") &&
+                 isSubjectUser(principal))
         {
-            user = userPersistence.getAugmentedUser(principal);
+            log.debug("augmenting " + principal.getName() + " from subject");
+            Subject subject = Subject.getSubject(AccessController.getContext());
+            user = new User<Principal>(principal);
+            user.getIdentities().addAll(subject.getPrincipals());
         }
         else
         {
+            log.debug("getting user " + principal.getName());
             try
             {
                 user = userPersistence.getUser(principal);
