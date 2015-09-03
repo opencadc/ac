@@ -70,7 +70,10 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
+import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -79,8 +82,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
@@ -98,6 +103,8 @@ public class LoginServlet extends HttpServlet
     public static final String PROXY_USER_DELIM = " as ";
     String proxyGroup; // only users in this group can impersonate other users
     String nonImpersonGroup; // users in this group cannot be impersonated
+    
+    private static final String PROXY_ACCESS = "Proxy user access: ";
     
     
     @Override
@@ -171,16 +178,24 @@ public class LoginServlet extends HttpServlet
         }
         catch (IllegalArgumentException e)
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
+            String msg = e.getMessage();
+            if (msg.startsWith(PROXY_ACCESS))
+            {
+                log.warn(msg, e);
+            }
+            else
+            {
+                log.debug(msg, e);
+            }
+            logInfo.setMessage(msg);
     	    response.setContentType(CONTENT_TYPE);
-            response.getWriter().write(e.getMessage());
+            response.getWriter().write(msg);
             response.setStatus(400);
         }
         catch (AccessControlException e)
         {
             log.debug(e.getMessage(), e);
-            String message = "Invalid credentials";
+            String message = e.getMessage();
             logInfo.setMessage(message);
     	    response.setContentType(CONTENT_TYPE);
             response.getWriter().write(message);
@@ -206,25 +221,82 @@ public class LoginServlet extends HttpServlet
 	/**
 	 * Checks if user can impersonate another user
 	 */
-    private void checkCanImpersonate(final String userID, final String proxyUser)
+    protected void checkCanImpersonate(final String userID, final String proxyUser)
             throws AccessControlException, UserNotFoundException,
-            TransientException
+            TransientException, Throwable
     {
-        GroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
-
-        if (!gp.isMember(new HttpPrincipal(proxyUser), proxyGroup))
+        final LdapGroupPersistence<HttpPrincipal> gp = 
+                getLdapGroupPersistence();
+        
+        
+        Subject proxySubject = new Subject();
+        proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
+        try
         {
-            throw new AccessControlException(proxyUser + " as " + userID
-                    + " failed: not in proxyGroup");
-        }
-
-        if (gp.isMember(new HttpPrincipal(userID), nonImpersonGroup))
-        {
-            if (gp.isMember(new HttpPrincipal(proxyUser), proxyGroup))
+            Subject.doAs(proxySubject, new PrivilegedExceptionAction<Object>()
             {
-                throw new AccessControlException(proxyUser + " as " + userID
-                        + " failed: non impersonable");
-            }
+                @Override
+                public Object run() throws Exception
+                {
+                    if (gp.getGroups(new HttpPrincipal(proxyUser), Role.MEMBER,
+                            proxyGroup).size() == 0)
+                    {
+                        throw new AccessControlException(PROXY_ACCESS
+                                + proxyUser + " as " + userID
+                                + " failed - not allowed to impersonate ("
+                                + proxyUser + " not in " + proxyGroup
+                                + " group)");
+                    }
+                    return null;
+                }
+            });
+
+            Subject userSubject = new Subject();
+            userSubject.getPrincipals().add(new HttpPrincipal(userID));
+            Subject.doAs(userSubject, new PrivilegedExceptionAction<Object>()
+            {
+                @Override
+                public Object run() throws Exception
+                {
+                    if (gp.getGroups(new HttpPrincipal(userID), Role.MEMBER,
+                            nonImpersonGroup).size() != 0)
+                    {
+                        throw new AccessControlException(PROXY_ACCESS
+                                + proxyUser + " as " + userID
+                                + " failed - non impersonable (" + userID
+                                + " in " + nonImpersonGroup + " group)");
+                    }
+                    return null;
+                }
+            });
         }
+        catch (PrivilegedActionException e)
+        {
+            Throwable cause = e.getCause();
+            if (cause != null)
+            {
+                throw cause;
+            }
+            Exception exception = e.getException();
+            if (exception != null)
+            {
+                throw exception;
+            }
+            throw e;
+        }
+    }
+    
+    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence()
+    {
+        LdapGroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
+        gp.setDetailSelector(new GroupDetailSelector()
+        {
+            @Override
+            public boolean isDetailedSearch(Group g, Role r)
+            {
+                return false;
+            }
+        });
+        return gp;
     }
 }
