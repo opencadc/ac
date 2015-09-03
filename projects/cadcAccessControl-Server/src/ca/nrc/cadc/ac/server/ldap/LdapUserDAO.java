@@ -312,7 +312,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             catch (UserNotFoundException e)
             {
                 throw new RuntimeException("BUG: new user " + userDN.toNormalizedString() +
-                    " not found because " + e.getMessage());
+                    " not found");
             }
         }
         catch (LDAPException e)

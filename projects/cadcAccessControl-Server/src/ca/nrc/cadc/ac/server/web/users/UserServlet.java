@@ -262,12 +262,10 @@ public class UserServlet extends HttpServlet
         Set<Principal> principals = extractor.getPrincipals();
         log.debug("Principals: " + principals);
 
-        log.debug("notAugmentedX500User" + notAugmentedX500User);
         for (Principal principal : principals)
         {
             if (principal instanceof X500Principal)
             {
-                log.debug("principal: " + principal.getName());
                 if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
                 {
                     return true;
