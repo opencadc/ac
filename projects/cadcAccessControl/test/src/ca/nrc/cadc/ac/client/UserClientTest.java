@@ -69,9 +69,22 @@
 
 package ca.nrc.cadc.ac.client;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.Principal;
+
+import javax.management.remote.JMXPrincipal;
+import javax.security.auth.Subject;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import ca.nrc.cadc.ac.client.UserClient;
+
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
 
 import org.junit.Assert;
@@ -122,5 +135,61 @@ public class UserClientTest
         {
         	Assert.fail("Unexpected exception: " + t.getMessage());
         }
+    }
+    
+    @Test
+    public void testSubjectWithNoPrincipal() throws URISyntaxException, MalformedURLException
+    {
+        // test subject augmentation given a subject with no principal
+    	Subject subject = new Subject();
+    	this.createUserClient().augmentSubject(subject);
+    	Assert.assertEquals("Should have no principal.", 0, subject.getPrincipals().size());
+    }
+    
+    @Test
+    public void testSubjectWithMultiplePrincipal() throws URISyntaxException, MalformedURLException
+    {
+        try
+        {
+            // test subject augmentation given a subject with more than one principal
+            Subject subject = new Subject();
+            subject.getPrincipals().add(new NumericPrincipal(4));
+            subject.getPrincipals().add(new HttpPrincipal("cadcauthtest1"));
+            this.createUserClient().augmentSubject(subject);
+            Assert.fail("Expecting an IllegalArgumentException.");
+        }
+        catch(IllegalArgumentException e)
+        {
+            String expected = "Subject has more than one principal.";
+            Assert.assertEquals(expected, e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSubjectWithUnsupportedPrincipal() throws URISyntaxException, MalformedURLException
+    {
+    	Principal principal = new JMXPrincipal("APIName");
+        try
+        {
+            // test subject augmentation given a subject with more than one principal
+            Subject subject = new Subject();
+            subject.getPrincipals().add(principal);
+            this.createUserClient().augmentSubject(subject);
+            Assert.fail("Expecting an IllegalArgumentException.");
+        }
+        catch(IllegalArgumentException e)
+        {
+            String expected = "Subject has unsupported principal " + principal.getName();
+            Assert.assertEquals(expected, e.getMessage());
+        }
+    }
+   
+    protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
+    {
+    	RegistryClient regClient = new RegistryClient();
+    	URI serviceURI = new URI(AC.GMS_SERVICE_URI);
+    	URL baseURL = regClient.getServiceURL(serviceURI, "https");
+    	return new UserClient(baseURL.toString());
+
     }
 }
