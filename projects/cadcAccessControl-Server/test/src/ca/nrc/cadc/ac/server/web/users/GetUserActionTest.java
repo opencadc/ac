@@ -78,12 +78,14 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import org.junit.Test;
 
+import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -136,55 +138,73 @@ public class GetUserActionTest
     @Test
     public void writeUserWithDetailIdentity() throws Exception
     {
-        final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
-        final UserPersistence<HttpPrincipal> mockUserPersistence =
-            createMock(UserPersistence.class);
-        final HttpPrincipal userID = new HttpPrincipal("CADCtest");
+        final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
+        final NumericPrincipal numericPrincipal = new NumericPrincipal(789);
+        final X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
 
-        final GetUserAction testSubject = new GetUserAction(userID, "identity")
+        Subject testUser = new Subject();
+        testUser.getPrincipals().add(httpPrincipal);
+        testUser.getPrincipals().add(numericPrincipal);
+        testUser.getPrincipals().add(x500Principal);
+
+        Subject.doAs(testUser, new PrivilegedExceptionAction<Object>()
         {
-            @Override
-            UserPersistence<HttpPrincipal> getUserPersistence()
+            public Object run() throws Exception
             {
-                return mockUserPersistence;
+
+                final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
+                final UserPersistence<HttpPrincipal> mockUserPersistence =
+                    createMock(UserPersistence.class);
+
+
+                final GetUserAction testSubject = new GetUserAction(httpPrincipal, "identity")
+                {
+                    @Override
+                    UserPersistence<HttpPrincipal> getUserPersistence()
+                    {
+                        return mockUserPersistence;
+                    }
+                };
+
+                final User<HttpPrincipal> expected = new User<HttpPrincipal>(httpPrincipal);
+                expected.getIdentities().add(httpPrincipal);
+                expected.getIdentities().add(numericPrincipal);
+                expected.getIdentities().add(x500Principal);
+
+                StringBuilder sb = new StringBuilder();
+                UserWriter userWriter = new UserWriter();
+                userWriter.write(expected, sb);
+                String expectedUser = sb.toString();
+
+                final PersonalDetails personalDetails = new PersonalDetails("cadc", "test");
+                personalDetails.city = "city";
+                expected.details.add(personalDetails);
+
+                final PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
+                expected.details.add(posixDetails);
+
+                final Writer writer = new StringWriter();
+                final PrintWriter printWriter = new PrintWriter(writer);
+
+                mockResponse.setHeader("Content-Type", "text/xml");
+                expectLastCall().once();
+                expect(mockResponse.getWriter()).andReturn(printWriter).once();
+
+                replay(mockUserPersistence, mockResponse);
+
+                SyncOutput syncOutput = new SyncOutput(mockResponse);
+                testSubject.setSyncOut(syncOutput);
+                testSubject.doAction();
+
+                String actualUser = writer.toString();
+
+                assertEquals(expectedUser, actualUser);
+
+                verify(mockUserPersistence, mockResponse);
+
+                return null;
             }
-        };
-
-        final User<HttpPrincipal> expected = new User<HttpPrincipal>(userID);
-        expected.getIdentities().add(new NumericPrincipal(789));
-        expected.getIdentities().add(new X500Principal("cn=foo,o=bar"));
-
-        StringBuilder sb = new StringBuilder();
-        UserWriter userWriter = new UserWriter();
-        userWriter.write(expected, sb);
-        String expectedUser = sb.toString();
-
-        final PersonalDetails personalDetails = new PersonalDetails("cadc", "test");
-        personalDetails.city = "city";
-        expected.details.add(personalDetails);
-
-        final PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
-        expected.details.add(posixDetails);
-
-        final Writer writer = new StringWriter();
-        final PrintWriter printWriter = new PrintWriter(writer);
-
-        expect(mockUserPersistence.getUser(userID)).andReturn(expected).once();
-        mockResponse.setHeader("Content-Type", "text/xml");
-        expectLastCall().once();
-        expect(mockResponse.getWriter()).andReturn(printWriter).once();
-
-        replay(mockUserPersistence, mockResponse);
-
-        SyncOutput syncOutput = new SyncOutput(mockResponse);
-        testSubject.setSyncOut(syncOutput);
-        testSubject.doAction();
-
-        String actualUser = writer.toString();
-
-        assertEquals(expectedUser, actualUser);
-
-        verify(mockUserPersistence, mockResponse);
+        });
     }
 
     @Test
@@ -228,6 +248,58 @@ public class GetUserActionTest
         final PrintWriter printWriter = new PrintWriter(writer);
 
         expect(mockUserPersistence.getUser(userID)).andReturn(expected).once();
+        mockResponse.setHeader("Content-Type", "text/xml");
+        expectLastCall().once();
+        expect(mockResponse.getWriter()).andReturn(printWriter).once();
+
+        replay(mockUserPersistence, mockResponse);
+
+        SyncOutput syncOutput = new SyncOutput(mockResponse);
+        testSubject.setSyncOut(syncOutput);
+        testSubject.doAction();
+
+        String actualUser = writer.toString();
+
+        assertEquals(expectedUser, actualUser);
+
+        verify(mockUserPersistence, mockResponse);
+    }
+
+    @Test
+    public void writeAugmentedUser() throws Exception
+    {
+        final UserPersistence<Principal> mockUserPersistence =
+            createMock(UserPersistence.class);
+        final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
+
+        final HttpPrincipal userID = new HttpPrincipal("CADCtest");
+        final GetUserAction testSubject = new GetUserAction(userID, null)
+        {
+            @Override
+            UserPersistence<Principal> getUserPersistence()
+            {
+                return mockUserPersistence;
+            }
+        };
+        testSubject.setAugmentUser(true);
+
+        final NumericPrincipal numericPrincipal = new NumericPrincipal(789);
+        final X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
+
+        final User<Principal> expected = new User<Principal>(userID);
+        expected.getIdentities().add(userID);
+        expected.getIdentities().add(numericPrincipal);
+        expected.getIdentities().add(x500Principal);
+
+        StringBuilder sb = new StringBuilder();
+        UserWriter userWriter = new UserWriter();
+        userWriter.write(expected, sb);
+        String expectedUser = sb.toString();
+
+        final Writer writer = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(writer);
+
+        expect(mockUserPersistence.getAugmentedUser(userID)).andReturn(expected).once();
         mockResponse.setHeader("Content-Type", "text/xml");
         expectLastCall().once();
         expect(mockResponse.getWriter()).andReturn(printWriter).once();
