@@ -93,10 +93,10 @@ public class CreateUserAction extends AbstractUserAction
     {
         final UserPersistence<Principal> userPersistence = getUserPersistence();
         final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
-        final User<Principal> newUser = userPersistence.addUser(userRequest);
+        userPersistence.addUser(userRequest);
 
         syncOut.setCode(201);
-        logUserInfo(newUser.getUserID().getName());
+        logUserInfo(userRequest.getUser().getUserID().getName());
     }
 
 }

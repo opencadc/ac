@@ -145,8 +145,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         testUser.getIdentities().add(new NumericPrincipal(666));
 
         testUserDN = "uid=cadcdaotest1," + config.getUsersDN();
-        
-        
+
+
         // member returned by getMember contains only the fields required by
         // the GMS
         testMember = new User<X500Principal>(testUserX500Princ);
@@ -184,7 +184,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         expected.getIdentities().add(new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca"));
         nextUserNumericID = ran.nextInt(Integer.MAX_VALUE);
         expected.getIdentities().add(new NumericPrincipal(nextUserNumericID));
-        
+
         expected.details.add(new PersonalDetails("foo", "bar"));
 
         final UserRequest<HttpPrincipal> userRequest =
@@ -194,7 +194,10 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         subject.getPrincipals().add(testUser.getUserID());
 
         final LdapUserDAO<HttpPrincipal> userDAO = getUserDAO();
-        User<HttpPrincipal> actual = userDAO.addUser(userRequest);
+        userDAO.addUser(userRequest);
+
+        User<HttpPrincipal> actual = userDAO.getPendingUser(userRequest.getUser().getUserID());
+
         check(expected, actual);
     }
 
@@ -346,7 +349,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
         subject.getPrincipals().add(testUser1DNPrincipal);
-        
+
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
