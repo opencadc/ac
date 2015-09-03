@@ -115,14 +115,14 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-    
+
     /**
      * Add the new user.
      *
      * @param user
      *
      * @return User instance.
-     * 
+     *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
@@ -151,7 +151,7 @@ public class LdapUserPersistence<T extends Principal>
      * @param userID The userID.
      *
      * @return User instance.
-     * 
+     *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
@@ -203,12 +203,41 @@ public class LdapUserPersistence<T extends Principal>
     }
 
     /**
+     * Get the user specified by userID with all of the users identities.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> getAugmentedUser(T userID)
+        throws UserNotFoundException, TransientException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.getAugmentedUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
      * Get the user specified by userID.
      *
      * @param userID The userID.
      *
      * @return Boolean.
-     * 
+     *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
@@ -237,13 +266,13 @@ public class LdapUserPersistence<T extends Principal>
      * @param user          The user to update.
      *
      * @return User instance.
-     * 
+     *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     public User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException, 
+        throws UserNotFoundException, TransientException,
                AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
@@ -288,18 +317,18 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-    
+
     /**
      * Delete the user specified by userID.
      *
      * @param userID The userID.
-     * 
+     *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     public void deleteUser(T userID)
-        throws UserNotFoundException, TransientException, 
+        throws UserNotFoundException, TransientException,
                AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
@@ -316,17 +345,17 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-    
+
     /**
      * Get all groups the user specified by userID belongs to. This method is created
      * to provide optimization for the LDAP server.
-     * 
+     *
      * @param userID The userID.
      * @param isAdmin return only admin Groups when true, else return non-admin
      *                Groups.
-     * 
+     *
      * @return Collection of Group DN.
-     * 
+     *
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
@@ -348,7 +377,7 @@ public class LdapUserPersistence<T extends Principal>
             }
         }
     }
-    
+
     /**
      * Check whether the user is a member of the group. This method is created
      * to provide optimization for the LDAP server.

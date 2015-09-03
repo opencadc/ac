@@ -80,6 +80,7 @@ import java.util.Random;
 
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.auth.DNPrincipal;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -146,7 +147,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
 
-    
+
     private String[] userAttribs = new String[]
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
@@ -156,6 +157,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME
             };
+    private String[] identityAttribs = new String[]
+        {
+            LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_NUMERICID, LDAP_ENTRYDN
+        };
 
     public LdapUserDAO(LdapConfig config)
     {
@@ -307,7 +312,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             catch (UserNotFoundException e)
             {
                 throw new RuntimeException("BUG: new user " + userDN.toNormalizedString() +
-                    " not found because " + e.getMessage());
+                    " not found");
             }
         }
         catch (LDAPException e)
@@ -367,8 +372,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             // add new user
-        	
-            DN userX500DN = getUserRequestsDN(user.getUserID().getName());        	
+
+            DN userX500DN = getUserRequestsDN(user.getUserID().getName());
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
@@ -377,13 +382,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 .getName());
             addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest
                     .getPassword()));
-            addAttribute(attributes, LDAP_NUMERICID, 
+            addAttribute(attributes, LDAP_NUMERICID,
                     String.valueOf(genNextNumericId()));
             for (Principal princ : user.getIdentities())
             {
                 if (princ instanceof X500Principal)
                 {
-                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME, 
+                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME,
                             princ.getName());
                 }
             }
@@ -543,6 +548,57 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         user.details.add(personaDetails);
 
         return user;
+    }
+
+    public User<T> getAugmentedUser(final T userID)
+        throws UserNotFoundException, TransientException
+    {
+        String searchField = userLdapAttrib.get(userID.getClass());
+        if (searchField == null)
+        {
+            throw new IllegalArgumentException(
+                "Unsupported principal type " + userID.getClass());
+        }
+
+        try
+        {
+
+            searchField = "(" + searchField + "=" + userID.getName() + ")";
+
+            logger.debug("search field: " + searchField);
+
+            // TODO: Search must take into account deleted users (nsaccountlock attr)
+
+            SearchRequest searchRequest =
+                    new SearchRequest(config.getUsersDN(), SearchScope.ONE,
+                        searchField, identityAttribs);
+
+            SearchResultEntry searchResult = getConnection().searchForEntry(searchRequest);
+
+            if (searchResult == null)
+            {
+                String msg = "User not found " + userID.toString();
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+
+            User<T> user = new User<T>(userID);
+            user.getIdentities().add(new HttpPrincipal(
+                searchResult.getAttributeValue(LDAP_UID)));
+            user.getIdentities().add(new NumericPrincipal(
+                searchResult.getAttributeValueAsLong(LDAP_NUMERICID)));
+            user.getIdentities().add(new X500Principal(
+                searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME)));
+            user.getIdentities().add(new DNPrincipal(
+                searchResult.getAttributeValue(LDAP_ENTRYDN)));
+            return user;
+        }
+        catch (LDAPException e)
+        {
+            logger.debug("getGroup Exception: " + e, e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+            throw new RuntimeException("BUG: checkLdapResult didn't throw an exception");
+        }
     }
 
     /**
@@ -1037,9 +1093,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             LdapDAO.checkLdapResult(code);
         }
     }
-    
+
     /**
-     * Method to return a randomly generated user numeric ID. The default 
+     * Method to return a randomly generated user numeric ID. The default
      * implementation returns a value between 10000 and Integer.MAX_VALUE.
      * Services that support a different mechanism for generating numeric
      * IDs overide this method.

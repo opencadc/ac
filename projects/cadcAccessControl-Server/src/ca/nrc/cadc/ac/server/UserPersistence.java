@@ -133,7 +133,22 @@ public interface UserPersistence<T extends Principal>
     User<T> getPendingUser(T userID)
             throws UserNotFoundException, TransientException,
                    AccessControlException;
-    
+
+    /**
+     * Get the user specified by userID with all of the users identities.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User<T> getAugmentedUser(T userID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+
     /**
      * Attempt to login the specified user.
      *
@@ -148,7 +163,7 @@ public interface UserPersistence<T extends Principal>
      */
     Boolean doLogin(String userID, String password)
             throws UserNotFoundException, TransientException, 
-            AccessControlException;
+                   AccessControlException;
    
     /**
      * Updated the user specified by User.

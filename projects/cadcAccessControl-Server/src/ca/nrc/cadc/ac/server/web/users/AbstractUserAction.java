@@ -108,7 +108,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     static final String DEFAULT_CONTENT_TYPE = "text/xml";
     static final String JSON_CONTENT_TYPE = "application/json";
 
-    protected String augmentUserDN;
+    protected boolean isAugmentUser;
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
 
@@ -116,18 +116,19 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     AbstractUserAction()
     {
+        this.isAugmentUser = false;
     }
 
     public abstract void doAction() throws Exception;
 
-    public void setAugmentUserDN(final String dn)
+    public void setAugmentUser(final boolean isAugmentUser)
     {
-    	this.augmentUserDN = dn;
+    	this.isAugmentUser = isAugmentUser;
     }
     
-    public String getAugmentUserDN()
+    public boolean isAugmentUser()
     {
-    	return this.augmentUserDN;
+    	return this.isAugmentUser;
     }
     
     public void setLogInfo(UserLogInfo logInfo)

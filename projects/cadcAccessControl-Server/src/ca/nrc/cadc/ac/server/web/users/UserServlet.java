@@ -68,30 +68,37 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-import java.security.PrivilegedActionException;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import ca.nrc.cadc.auth.X509CertificateChain;
+import ca.nrc.cadc.util.ArrayUtil;
+import ca.nrc.cadc.util.StringUtil;
+import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import ca.nrc.cadc.util.StringUtil;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Set;
 
 public class UserServlet extends HttpServlet
 {
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
-    private String augmentUser;
-    
+
+    private String notAugmentedX500User;
+
     @Override
     public void init(final ServletConfig config) throws ServletException
     {
@@ -99,8 +106,8 @@ public class UserServlet extends HttpServlet
 
         try
         {
-        	this.augmentUser = config.getInitParameter(UserServlet.class.getName() + ".augmentUser");
-            log.info("augmentUser: " + augmentUser);
+        	this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
+            log.info("notAugmentedX500User: " + notAugmentedX500User);
         }
         catch(Exception ex)
         {
@@ -120,13 +127,25 @@ public class UserServlet extends HttpServlet
         try
         {
             log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
+            AbstractUserAction action = factory.createAction(request);
+
+            // Special case: if the calling subject has a servops X500Principal,
+            // AND it is a GET request, do not augment the subject.
+            Subject subject;
+            if (action instanceof GetUserAction && isNotAugmentedSubject(request))
+            {
+                subject = Subject.getSubject(AccessController.getContext());
+                log.debug("subject not augmented: " + subject);
+                action.setAugmentUser(true);
+            }
+            else
+            {
+                subject = AuthenticationUtil.getSubject(request);
+                log.debug("augmented subject: " + subject);
+            }
             logInfo.setSubject(subject);
 
-            AbstractUserAction action = factory.createAction(request);
             SyncOutput syncOut = new SyncOutput(response);
-
-            action.setAugmentUserDN(this.augmentUser);
             action.setLogInfo(logInfo);
             action.setSyncOut(syncOut);
             action.setAcceptedContentType(getAcceptedContentType(request));
@@ -235,5 +254,26 @@ public class UserServlet extends HttpServlet
         {
             return AbstractUserAction.DEFAULT_CONTENT_TYPE;
         }
+    }
+
+    protected boolean isNotAugmentedSubject(HttpServletRequest request)
+    {
+        ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
+        Set<Principal> principals = extractor.getPrincipals();
+        log.debug("Principals: " + principals);
+
+        for (Principal principal : principals)
+        {
+            if (principal instanceof X500Principal)
+            {
+                if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+
     }
 }

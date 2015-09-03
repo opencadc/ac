@@ -68,22 +68,23 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.security.PrivilegedExceptionAction;
-
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-
+import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
-
 import org.apache.log4j.Level;
-import org.junit.Test;
 import org.junit.BeforeClass;
-import static org.junit.Assert.*;
+import org.junit.Test;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import java.security.PrivilegedExceptionAction;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 
 public class LdapDAOTest extends AbstractLdapDAOTest
@@ -170,6 +171,31 @@ public class LdapDAOTest extends AbstractLdapDAOTest
             }
         });
 
+    }
+
+    @Test
+    public void testGetSubjectDN() throws Exception
+    {
+        DN expected = new DN("uid=foo,ou=bar,dc=net");
+        final DNPrincipal dnPrincipal = new DNPrincipal(expected.toNormalizedString());
+
+        LdapConfig config = LdapConfig.getLdapConfig("LdapConfig.test.properties");
+        LdapDAO ldapDAO = new LdapDAO(config)
+        {
+            @Override
+            protected Subject getSubject()
+            {
+                Subject subject = new Subject();
+                subject.getPrincipals().add(new HttpPrincipal("foo"));
+                subject.getPrincipals().add(new X500Principal("uid=foo,o=bar"));
+                subject.getPrincipals().add(dnPrincipal);
+                return subject;
+            }
+        };
+
+        DN actual = ldapDAO.getSubjectDN();
+        assertNotNull("DN is null", actual);
+        assertEquals("DN's do not match", expected.toNormalizedString(), actual.toNormalizedString());
     }
 
     private void testConnection(final LDAPConnection ldapCon)

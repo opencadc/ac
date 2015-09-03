@@ -68,22 +68,17 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
-import com.unboundid.ldap.sdk.SearchResult;
-import com.unboundid.ldap.sdk.SearchScope;
 import org.apache.log4j.Logger;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
@@ -159,12 +154,12 @@ public abstract class LdapDAO
         }
     }
 
-    protected DN getSubjectDN() throws LDAPException
+    protected DN getSubjectDN()
+        throws LDAPException
     {
         if (subjDN == null)
         {
-            Subject callerSubject =
-                    Subject.getSubject(AccessController.getContext());
+            Subject callerSubject = getSubject();
             if (callerSubject == null)
             {
                 throw new AccessControlException("Caller not authenticated.");
@@ -176,48 +171,18 @@ public abstract class LdapDAO
                 throw new AccessControlException("Caller not authenticated.");
             }
 
-            String ldapField = null;
             for (Principal p : principals)
             {
-                if (p instanceof HttpPrincipal)
+                if (p instanceof DNPrincipal)
                 {
-                    ldapField = "(uid=" + p.getName() + ")";
-                    break;
-                }
-                if (p instanceof NumericPrincipal)
-                {
-                    ldapField = "(numericid=" + p.getName() + ")";
-                    break;
-                }
-                if (p instanceof X500Principal)
-                {
-                    ldapField = "(distinguishedname=" + p.getName() + ")";
-                    break;
-                }
-                if (p instanceof OpenIdPrincipal)
-                {
-                    ldapField = "(openid=" + p.getName() + ")";
-                    break;
+                    subjDN = new DN(p.getName());
                 }
             }
 
-            if (ldapField == null)
+            if (subjDN == null)
             {
                 throw new AccessControlException("Identity of caller unknown.");
             }
-
-            SearchResult searchResult =
-                    getConnection().search(config.getUsersDN(), SearchScope.ONE,
-                            ldapField, "entrydn");
-
-            if (searchResult.getEntryCount() < 1)
-            {
-                throw new AccessControlException(
-                        "No LDAP account when search with rule " + ldapField);
-            }
-
-            subjDN = (searchResult.getSearchEntries().get(0))
-                    .getAttributeValueAsDN("entrydn");
         }
         return subjDN;
     }
@@ -266,6 +231,11 @@ public abstract class LdapDAO
         }
 
         throw new RuntimeException("Ldap error (" + code.getName() + ")");
+    }
+
+    protected Subject getSubject()
+    {
+        return Subject.getSubject(AccessController.getContext());
     }
 
 }

@@ -71,25 +71,18 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-
-import java.security.AccessControlContext;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Set;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Logger;
 
+import javax.security.auth.Subject;
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.Set;
 
 
 public class GetUserAction extends AbstractUserAction
 {
     private static final Logger log = Logger.getLogger(GetUserAction.class);
+
     private final Principal userID;
     private final String detail;
 
@@ -102,56 +95,58 @@ public class GetUserAction extends AbstractUserAction
 
 	public void doAction() throws Exception
     {
-        User<Principal> user;
- 
-        if (isAugmentUser())
-        {
-    		Subject subject = new Subject();
-        	subject.getPrincipals().add(this.userID);
-        	user = Subject.doAs(subject, new PrivilegedExceptionAction<User<Principal>>()
-        	{
-				@Override
-				public User<Principal> run() throws Exception 
-				{
-					return getUser(userID);
-				}
-        		
-        	});
-        }
-        else
-        {
-        	user = getUser(this.userID);
-        }
-
+        User<Principal> user = getUser(this.userID);
         writeUser(user);
     }
 
     protected User<Principal> getUser(Principal principal) throws Exception
     {
+        User<Principal> user;
         final UserPersistence<Principal> userPersistence = getUserPersistence();
-    	User<Principal> user;
-    	
-    	try
+
+        /**
+         * Special case 1
+         * If the calling Subject user is the notAugmentedX500User, AND it is
+         * a GET, call the userDAO to get the User with all identities.
+         */
+        if (isAugmentUser())
         {
-            user = userPersistence.getUser(principal);
+            log.debug("getting augmented user " + principal.getName());
+            user = userPersistence.getAugmentedUser(principal);
         }
-        catch (UserNotFoundException e)
+
+        /**
+         * Special case 2
+         * If detail=identity, AND if the calling Subject user is the same as
+         * the requested User, then return the User with the principals from the
+         * Subject which has already been augmented.
+         */
+        else if (detail != null &&
+                 detail.equalsIgnoreCase("identity") &&
+                 isSubjectUser(principal))
         {
-            user = userPersistence.getPendingUser(principal);
+            log.debug("augmenting " + principal.getName() + " from subject");
+            Subject subject = Subject.getSubject(AccessController.getContext());
+            user = new User<Principal>(principal);
+            user.getIdentities().addAll(subject.getPrincipals());
         }
-    	
-        if (detail != null)
+        else
         {
-            // Only return user principals
-            if (detail.equals("identity"))
+            log.debug("getting user " + principal.getName());
+            try
             {
-                user.details.clear();
+                user = userPersistence.getUser(principal);
             }
+            catch (UserNotFoundException e)
+            {
+                user = userPersistence.getPendingUser(principal);
+            }
+
             // Only return user profile info, first and last name.
-            else if (detail.equals("display"))
+            if (detail != null && detail.equalsIgnoreCase("display"))
             {
                 user.getIdentities().clear();
-                Set<PersonalDetails> details =  user.getDetails(PersonalDetails.class);
+                Set<PersonalDetails> details = user.getDetails(PersonalDetails.class);
                 if (details.isEmpty())
                 {
                     String error = principal.getName() + " missing required PersonalDetails";
@@ -161,30 +156,27 @@ public class GetUserAction extends AbstractUserAction
                 user.details.clear();
                 user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
             }
-            else
-            {
-                throw new IllegalArgumentException("Illegal detail parameter " + detail);
-            }
+
         }
 
-        return user;
+    	return user;
     }
-    
-    protected boolean isAugmentUser()
+
+    protected boolean isSubjectUser(Principal userPrincipal)
     {
-        AccessControlContext acc = AccessController.getContext();
-        Subject subject = Subject.getSubject(acc);
+    	boolean isSubjectUser = false;
+        Subject subject = Subject.getSubject(AccessController.getContext());
         if (subject != null)
         {
-        	for (Principal principal : subject.getPrincipals(HttpPrincipal.class))
+        	for (Principal subjectPrincipal : subject.getPrincipals())
         	{
-            	if (principal.getName().equals(this.getAugmentUserDN()))
+        		if (subjectPrincipal.getName().equals(userPrincipal.getName()))
         		{
-        			return true;
+                    isSubjectUser = true;
+        			break;
         		}
         	}
         }
-        
-        return false;
+        return isSubjectUser;
     }
 }
