@@ -72,10 +72,13 @@ package ca.nrc.cadc.auth;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
+
+import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -123,34 +126,31 @@ public class AuthenticatorImpl implements Authenticator
 
     protected void augmentSubject(final Subject subject)
     {
+
         try
         {
-            PrivilegedExceptionAction<Object> action =
-                new PrivilegedExceptionAction<Object>()
-                {
-                    public Object run() throws Exception
-                    {
-                        try
-                        {
-                            LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
-                            User<Principal> user = dao.getAugmentedUser(subject.getPrincipals().iterator().next());
-                            subject.getPrincipals().addAll(user.getIdentities());
-                        }
-                        catch (UserNotFoundException e)
-                        {
-                            // ignore, could be an anonymous user
-                        }
-                        return null;
-                    }
-                };
-
-            Subject.doAs(subject, action);
+            LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
+            User<Principal> user = dao.getAugmentedUser(subject.getPrincipals().iterator().next());
+            if (user.getIdentities() != null)
+            {
+                log.debug("Found " + user.getIdentities().size() + " principals after agument");
+            }
+            else
+            {
+                log.debug("Null identities after augment");
+            }
+            subject.getPrincipals().addAll(user.getIdentities());
         }
-        catch (PrivilegedActionException e)
+        catch (UserNotFoundException e)
         {
-            String msg = "Error augmenting subject " + subject;
-            throw new RuntimeException(msg, e);
+            // ignore, could be an anonymous user
+            log.debug("could not find user for augmenting", e);
         }
+        catch (TransientException e)
+        {
+            throw new IllegalStateException("Internal error", e);
+        }
+
     }
 
 }
