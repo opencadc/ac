@@ -89,6 +89,7 @@ import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.AuthenticatorImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.log.ServletLogInfo;
@@ -228,9 +229,10 @@ public class LoginServlet extends HttpServlet
         final LdapGroupPersistence<HttpPrincipal> gp = 
                 getLdapGroupPersistence();
         
-        
+        AuthenticatorImpl ai = new AuthenticatorImpl();
         Subject proxySubject = new Subject();
         proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
+        ai.augmentSubject(proxySubject);
         try
         {
             Subject.doAs(proxySubject, new PrivilegedExceptionAction<Object>()
@@ -238,6 +240,7 @@ public class LoginServlet extends HttpServlet
                 @Override
                 public Object run() throws Exception
                 {
+                    
                     if (gp.getGroups(new HttpPrincipal(proxyUser), Role.MEMBER,
                             proxyGroup).size() == 0)
                     {
@@ -253,6 +256,7 @@ public class LoginServlet extends HttpServlet
 
             Subject userSubject = new Subject();
             userSubject.getPrincipals().add(new HttpPrincipal(userID));
+            ai.augmentSubject(userSubject);
             Subject.doAs(userSubject, new PrivilegedExceptionAction<Object>()
             {
                 @Override

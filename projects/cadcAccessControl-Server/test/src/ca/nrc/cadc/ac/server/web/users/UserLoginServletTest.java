@@ -37,7 +37,10 @@ public class UserLoginServletTest
                 proxyGroups.add(new Group(proxyGroup));
                 Collection<Group> niGroups = new HashSet<Group>();
                 niGroups.add(new Group(nonImpersonGroup));
-                LdapGroupPersistence<HttpPrincipal> mockGp = EasyMock
+                // mock returns a shell instance
+                @SuppressWarnings("unchecked")
+                LdapGroupPersistence<HttpPrincipal> mockGp = 
+                    (LdapGroupPersistence<HttpPrincipal>)EasyMock
                         .createMock(LdapGroupPersistence.class);
                 mockGp.setDetailSelector(new GroupDetailSelector()
                 {
