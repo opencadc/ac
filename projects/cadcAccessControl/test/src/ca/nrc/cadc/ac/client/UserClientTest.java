@@ -73,7 +73,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.Principal;
 
+import javax.management.remote.JMXPrincipal;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Level;
@@ -163,6 +165,25 @@ public class UserClientTest
         }
     }
     
+    @Test
+    public void testSubjectWithUnsupportedPrincipal() throws URISyntaxException, MalformedURLException
+    {
+    	Principal principal = new JMXPrincipal("APIName");
+        try
+        {
+            // test subject augmentation given a subject with more than one principal
+            Subject subject = new Subject();
+            subject.getPrincipals().add(principal);
+            this.createUserClient().augmentSubject(subject);
+            Assert.fail("Expecting an IllegalArgumentException.");
+        }
+        catch(IllegalArgumentException e)
+        {
+            String expected = "Subject has unsupported principal " + principal.getName();
+            Assert.assertEquals(expected, e.getMessage());
+        }
+    }
+   
     protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
     {
     	RegistryClient regClient = new RegistryClient();
