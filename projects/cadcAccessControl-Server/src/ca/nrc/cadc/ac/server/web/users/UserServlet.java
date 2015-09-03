@@ -70,6 +70,9 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import ca.nrc.cadc.auth.X509CertificateChain;
+import ca.nrc.cadc.util.ArrayUtil;
 import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
@@ -84,6 +87,9 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Set;
 
 public class UserServlet extends HttpServlet
 {
@@ -126,7 +132,7 @@ public class UserServlet extends HttpServlet
             // Special case: if the calling subject has a servops X500Principal,
             // AND it is a GET request, do not augment the subject.
             Subject subject;
-            if (action instanceof GetUserAction && isNotAugmentedSubject())
+            if (action instanceof GetUserAction && isNotAugmentedSubject(request))
             {
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
@@ -250,27 +256,24 @@ public class UserServlet extends HttpServlet
         }
     }
 
-    protected boolean isNotAugmentedSubject()
+    protected boolean isNotAugmentedSubject(HttpServletRequest request)
     {
-        boolean notAugmented = false;
-        Subject subject = Subject.getSubject(AccessController.getContext());
-        log.debug("subject: " + subject);
-        if (subject != null)
+        ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
+        Set<Principal> principals = extractor.getPrincipals();
+        log.debug("Principals: " + principals);
+
+        for (Principal principal : principals)
         {
-            log.debug("notAugmentedX500User" + notAugmentedX500User);
-            for (Principal principal : subject.getPrincipals())
+            if (principal instanceof X500Principal)
             {
-                if (principal instanceof X500Principal)
+                if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
                 {
-                    log.debug("principal: " + principal.getName());
-                    if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
-                    {
-                        notAugmented = true;
-                        break;
-                    }
+                    return true;
                 }
             }
         }
-        return notAugmented;
+
+        return false;
+
     }
 }

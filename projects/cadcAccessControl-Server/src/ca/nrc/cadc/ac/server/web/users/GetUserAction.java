@@ -136,28 +136,29 @@ public class GetUserAction extends AbstractUserAction
             try
             {
                 user = userPersistence.getUser(principal);
-
-                // Only return user profile info, first and last name.
-                if (detail != null && detail.equalsIgnoreCase("display"))
-                {
-                    user.getIdentities().clear();
-                    Set<PersonalDetails> details = user.getDetails(PersonalDetails.class);
-                    if (details.isEmpty())
-                    {
-                        String error = principal.getName() + " missing required PersonalDetails";
-                        throw new IllegalStateException(error);
-                    }
-                    PersonalDetails pd = details.iterator().next();
-                    user.details.clear();
-                    user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
-                }
             }
             catch (UserNotFoundException e)
             {
                 user = userPersistence.getPendingUser(principal);
             }
+
+            // Only return user profile info, first and last name.
+            if (detail != null && detail.equalsIgnoreCase("display"))
+            {
+                user.getIdentities().clear();
+                Set<PersonalDetails> details = user.getDetails(PersonalDetails.class);
+                if (details.isEmpty())
+                {
+                    String error = principal.getName() + " missing required PersonalDetails";
+                    throw new IllegalStateException(error);
+                }
+                PersonalDetails pd = details.iterator().next();
+                user.details.clear();
+                user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+            }
+
         }
-    	
+
     	return user;
     }
 

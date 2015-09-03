@@ -147,7 +147,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
 
-    
+
     private String[] userAttribs = new String[]
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
@@ -312,7 +312,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             catch (UserNotFoundException e)
             {
                 throw new RuntimeException("BUG: new user " + userDN.toNormalizedString() +
-                    " not found because " + e.getMessage());
+                    " not found");
             }
         }
         catch (LDAPException e)
@@ -372,8 +372,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             // add new user
-        	
-            DN userX500DN = getUserRequestsDN(user.getUserID().getName());        	
+
+            DN userX500DN = getUserRequestsDN(user.getUserID().getName());
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
@@ -382,13 +382,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 .getName());
             addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest
                     .getPassword()));
-            addAttribute(attributes, LDAP_NUMERICID, 
+            addAttribute(attributes, LDAP_NUMERICID,
                     String.valueOf(genNextNumericId()));
             for (Principal princ : user.getIdentities())
             {
                 if (princ instanceof X500Principal)
                 {
-                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME, 
+                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME,
                             princ.getName());
                 }
             }
@@ -551,8 +551,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     public User<T> getAugmentedUser(final T userID)
-        throws UserNotFoundException, TransientException,
-        AccessControlException
+        throws UserNotFoundException, TransientException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
         if (searchField == null)
@@ -563,19 +562,16 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Filter filter =
-                Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
-            filter =
-                Filter.createANDFilter(filter,
-                    Filter.createEqualityFilter(searchField, userID.getName()));
+
+            searchField = "(" + searchField + "=" + userID.getName() + ")";
+
+            logger.debug("search field: " + searchField);
+
+            // TODO: Search must take into account deleted users (nsaccountlock attr)
 
             SearchRequest searchRequest =
-                new SearchRequest(config.getUsersDN(), SearchScope.ONE,
-                    filter, identityAttribs);
-
-            searchRequest.addControl(
-                new ProxiedAuthorizationV2RequestControl(
-                    "dn:" + getSubjectDN().toNormalizedString()));
+                    new SearchRequest(config.getUsersDN(), SearchScope.ONE,
+                        searchField, identityAttribs);
 
             SearchResultEntry searchResult = getConnection().searchForEntry(searchRequest);
 
@@ -1097,9 +1093,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             LdapDAO.checkLdapResult(code);
         }
     }
-    
+
     /**
-     * Method to return a randomly generated user numeric ID. The default 
+     * Method to return a randomly generated user numeric ID. The default
      * implementation returns a value between 10000 and Integer.MAX_VALUE.
      * Services that support a different mechanism for generating numeric
      * IDs overide this method.

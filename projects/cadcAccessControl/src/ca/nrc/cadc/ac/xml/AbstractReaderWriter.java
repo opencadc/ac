@@ -79,6 +79,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -265,6 +266,10 @@ public abstract class AbstractReaderWriter
         else if (type.equals(IdentityType.X500.getValue()))
         {
             principal = new X500Principal(identity);
+        }
+        else if (type.equals(IdentityType.ENTRY_DN.getValue()))
+        {
+            principal = new DNPrincipal(identity);
         }
         else
         {
@@ -728,6 +733,10 @@ public abstract class AbstractReaderWriter
         else if ((identity instanceof X500Principal))
         {
             identityElement.setAttribute("type", IdentityType.X500.getValue());
+        }
+        else if ((identity instanceof DNPrincipal))
+        {
+            identityElement.setAttribute("type", IdentityType.ENTRY_DN.getValue());
         }
         else
         {
