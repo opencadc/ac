@@ -1,8 +1,9 @@
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web;
 
 
 import javax.servlet.http.HttpServletRequest;
 
+import ca.nrc.cadc.ac.server.web.UserServlet;
 import org.junit.Test;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
