@@ -162,11 +162,13 @@ public class WhoAmIServlet extends HttpServlet
         final RegistryClient registryClient = getRegistryClient();
         final URL redirectURL =
                 registryClient.getServiceURL(
-                        URI.create(AC.GMS_SERVICE_URI), "http", USER_GET_PATH);
+                        URI.create(AC.GMS_SERVICE_URI), "https", USER_GET_PATH);
 
         // Take the first one.
-        response.sendRedirect(String.format(redirectURL.toExternalForm(),
-            webPrincipal.getName()));
+        final String redirectUrl =
+            String.format(redirectURL.toString(), webPrincipal.getName());
+        log.debug("redirecting to " + redirectUrl);
+        response.sendRedirect(redirectUrl);
     }
 
     /**

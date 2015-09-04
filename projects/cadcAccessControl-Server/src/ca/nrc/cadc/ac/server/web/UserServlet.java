@@ -259,7 +259,6 @@ public class UserServlet extends HttpServlet
     {
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
-        log.debug("Principals: " + principals);
 
         for (Principal principal : principals)
         {
@@ -267,12 +266,12 @@ public class UserServlet extends HttpServlet
             {
                 if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
                 {
+                    log.debug("found notAugmentedX500User " + notAugmentedX500User);
                     return true;
                 }
             }
         }
 
         return false;
-
     }
 }

@@ -102,9 +102,13 @@ public class AuthenticatorImpl implements Authenticator
      */
     public Subject getSubject(Subject subject)
     {
+        log.debug("ac augment subject: " + subject);
         AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
         if (am == null || AuthMethod.ANON.equals(am))
+        {
+            log.debug("returning anon subject");
             return subject;
+        }
 
         if (subject != null && subject.getPrincipals().size() > 0)
         {
@@ -126,14 +130,13 @@ public class AuthenticatorImpl implements Authenticator
 
     protected void augmentSubject(final Subject subject)
     {
-
         try
         {
             LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
             User<Principal> user = dao.getAugmentedUser(subject.getPrincipals().iterator().next());
             if (user.getIdentities() != null)
             {
-                log.debug("Found " + user.getIdentities().size() + " principals after agument");
+                log.debug("Found " + user.getIdentities().size() + " principals after argument");
             }
             else
             {
@@ -150,7 +153,6 @@ public class AuthenticatorImpl implements Authenticator
         {
             throw new IllegalStateException("Internal error", e);
         }
-
     }
 
 }
