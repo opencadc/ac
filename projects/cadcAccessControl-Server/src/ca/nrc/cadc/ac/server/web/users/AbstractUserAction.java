@@ -105,8 +105,8 @@ import java.util.Set;
 public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(AbstractUserAction.class);
-    static final String DEFAULT_CONTENT_TYPE = "text/xml";
-    static final String JSON_CONTENT_TYPE = "application/json";
+    public static final String DEFAULT_CONTENT_TYPE = "text/xml";
+    public static final String JSON_CONTENT_TYPE = "application/json";
 
     protected boolean isAugmentUser;
     protected UserLogInfo logInfo;

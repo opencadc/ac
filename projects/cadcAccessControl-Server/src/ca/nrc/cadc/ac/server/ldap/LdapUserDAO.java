@@ -284,7 +284,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws AccessControlException     If the operation is not permitted.
      * @throws UserAlreadyExistsException If the user already exists.
      */
-    public User<T> addUser(final UserRequest<T> userRequest)
+    public void addUser(final UserRequest<T> userRequest)
             throws TransientException, UserAlreadyExistsException
     {
         DN userDN;
@@ -301,19 +301,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             userDN = getUserRequestsDN(userID.getName());
             addUser(userRequest, userDN);
-
-            // AD: Search results sometimes come incomplete if
-            // connection is not reset - not sure why.
-            getConnection().reconnect();
-            try
-            {
-                return getUser(userID, config.getUserRequestsDN());
-            }
-            catch (UserNotFoundException e)
-            {
-                throw new RuntimeException("BUG: new user " + userDN.toNormalizedString() +
-                    " not found");
-            }
         }
         catch (LDAPException e)
         {
@@ -507,9 +494,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                                       searchField, userAttribs);
             if (proxy && isSecure(usersDN))
             {
-                searchRequest.addControl(
-                        new ProxiedAuthorizationV2RequestControl(
-                                "dn:" + getSubjectDN().toNormalizedString()));
+                String proxyDN = "dn:" + getSubjectDN().toNormalizedString();
+                logger.debug("Proxying auth as: " + proxyDN);
+                searchRequest.addControl(new ProxiedAuthorizationV2RequestControl(proxyDN));
+            }
+            else
+            {
+                logger.debug("Not proxying authorization");
             }
 
             searchResult = getConnection().searchForEntry(searchRequest);
@@ -530,9 +521,18 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         user.getIdentities().add(new HttpPrincipal(
                 searchResult.getAttributeValue(
                        userLdapAttrib.get(HttpPrincipal.class))));
-        user.getIdentities().add(new NumericPrincipal(
-                searchResult.getAttributeValueAsLong(
-                        userLdapAttrib.get(NumericPrincipal.class))));
+
+        Long numericID = searchResult.getAttributeValueAsLong(userLdapAttrib.get(NumericPrincipal.class));
+        logger.debug("Numeric id is: " + numericID);
+        if (numericID == null)
+        {
+            // If the numeric ID does not return it means the user
+            // does not have permission
+            throw new AccessControlException("Permission denied");
+        }
+        NumericPrincipal numericPrincipal = new NumericPrincipal(numericID);
+        user.getIdentities().add(numericPrincipal);
+
         user.getIdentities().add(new X500Principal(
                 searchResult.getAttributeValue(
                         userLdapAttrib.get(X500Principal.class))));

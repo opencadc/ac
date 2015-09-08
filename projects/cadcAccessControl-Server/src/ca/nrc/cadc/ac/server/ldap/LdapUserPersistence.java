@@ -126,7 +126,7 @@ public class LdapUserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> addUser(UserRequest<T> user)
+    public void addUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
                UserAlreadyExistsException
     {
@@ -134,7 +134,7 @@ public class LdapUserPersistence<T extends Principal>
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            return userDAO.addUser(user);
+            userDAO.addUser(user);
         }
         finally
         {

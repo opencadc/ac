@@ -66,93 +66,128 @@
  *
  ************************************************************************
  */
-
-package ca.nrc.cadc.auth;
+package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
-
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.TreeSet;
 
 /**
- * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
- * This class augments the subject with additional identities using the
- * access control library.
- *
- * @author pdowler
+ * Servlet to handle password changes.  Passwords are an integral part of the
+ * access control system and are handled differently to accommodate stricter
+ * guidelines.
+ * <p/>
+ * This servlet handles POST only.  It relies on the Subject being set higher
+ * up by the AccessControlFilter as configured in the web descriptor.
  */
-public class AuthenticatorImpl implements Authenticator
+public class PasswordServlet extends HttpServlet
 {
-    private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
-
-    public AuthenticatorImpl() { }
+    private static final Logger log = Logger.getLogger(PasswordServlet.class);
 
     /**
-     * @param subject
-     * @return the possibly modified subject
+     * Attempt to change password.
+     *
+     * @param request  The HTTP Request.
+     * @param response The HTTP Response.
+     * @throws IOException Any errors that are not expected.
      */
-    public Subject getSubject(Subject subject)
+    public void doPost(final HttpServletRequest request,
+                       final HttpServletResponse response)
+            throws IOException
     {
-        log.debug("ac augment subject: " + subject);
-        AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
-        if (am == null || AuthMethod.ANON.equals(am))
-        {
-            log.debug("returning anon subject");
-            return subject;
-        }
-
-        if (subject != null && subject.getPrincipals().size() > 0)
-        {
-            Profiler prof = new Profiler(AuthenticatorImpl.class);
-            this.augmentSubject(subject);
-            prof.checkpoint("userDAO.augmentSubject()");
-
-            // if the caller had an invalid or forged CADC_SSO cookie, we could get
-            // in here and then not match any known identity: drop to anon
-            if ( subject.getPrincipals(HttpPrincipal.class).isEmpty() ) // no matching cadc account
-            {
-                log.debug("HttpPrincipal not found - dropping to anon: " + subject);
-                subject = AuthenticationUtil.getAnonSubject();
-            }
-        }
-
-        return subject;
-    }
-
-    public void augmentSubject(final Subject subject)
-    {
+        final long start = System.currentTimeMillis();
+        final ServletLogInfo logInfo = new ServletLogInfo(request);
+        log.info(logInfo.start());
         try
         {
-            LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
-            User<Principal> user = dao.getAugmentedUser(subject.getPrincipals().iterator().next());
-            if (user.getIdentities() != null)
+            final Subject subject = AuthenticationUtil.getSubject(request);
+            if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
-                log.debug("Found " + user.getIdentities().size() + " principals after argument");
+                logInfo.setMessage("Unauthorized subject");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             else
             {
-                log.debug("Null identities after augment");
+                Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+                {
+                    public Object run() throws Exception
+                    {
+                        LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
+                        User<Principal> user;
+                        try
+                        {
+                            user = dao.getUser(subject.getPrincipals().iterator().next());
+                        }
+                        catch (UserNotFoundException e)
+                        {
+                            throw new AccessControlException("User not found");
+                        }
+
+                        Subject logSubject = new Subject(false, user.getIdentities(),
+                                                         new TreeSet(), new TreeSet());
+
+                        logInfo.setSubject(logSubject);
+
+                        String oldPassword = request.getParameter("old_password");
+                        String newPassword = request.getParameter("new_password");
+                        if (StringUtil.hasText(oldPassword))
+                        {
+                            if (StringUtil.hasText(newPassword))
+                            {
+                                dao.setPassword(user, oldPassword, newPassword);
+                            }
+                            else
+                            {
+                                throw new IllegalArgumentException("Missing new password");
+                            }
+                        }
+                        else
+                        {
+                            throw new IllegalArgumentException("Missing old password");
+                        }
+                        return null;
+                    }
+                });
             }
-            subject.getPrincipals().addAll(user.getIdentities());
         }
-        catch (UserNotFoundException e)
+        catch (IllegalArgumentException e)
         {
-            // ignore, could be an anonymous user
-            log.debug("could not find user for augmenting", e);
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
-        catch (TransientException e)
+        catch (AccessControlException e)
         {
-            throw new IllegalStateException("Internal error", e);
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
+        catch (Throwable t)
+        {
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
         }
     }
-
 }

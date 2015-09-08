@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,138 +62,87 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import java.io.IOException;
-import java.security.PrivilegedActionException;
+package ca.nrc.cadc.ac.server.web;
+
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import org.junit.Test;
 
 import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Logger;
+import java.net.URI;
+import java.net.URL;
+import java.security.PrivilegedExceptionAction;
 
-import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import static org.easymock.EasyMock.*;
 
-/**
- * Servlet for handling all requests to /groups
- *
- * @author majorb
- */
-public class GroupServlet extends HttpServlet
+
+public class WhoAmIServletTest
 {
-    private static final long serialVersionUID = 7854660717655869213L;
-    private static final Logger log = Logger.getLogger(GroupServlet.class);
-
-    /**
-     * Create a GroupAction and run the action safely.
-     */
-    private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    @Test
+    public void doGet() throws Exception
     {
-        long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
-        try
+        final Subject subject = new Subject();
+        subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+
+        final RegistryClient mockRegistry = createMock(RegistryClient.class);
+        final WhoAmIServlet testSubject = new WhoAmIServlet()
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-
-            AbstractGroupAction action = factory.createAction(request);
-
-            action.setLogInfo(logInfo);
-            action.setHttpServletRequest(request);
-            SyncOutput syncOut = new SyncOutput(response);
-            action.setSyncOut(syncOut);
-
-            try
+            /**
+             * Tests will need to override this method so as not to rely on the
+             * environment.
+             *
+             * @return Registry Client instance.
+             */
+            @Override
+            RegistryClient getRegistryClient()
             {
-                if (subject == null)
-                {
-                    action.run();
-                }
-                else
-                {
-                    Subject.doAs(subject, action);
-                }
+                return mockRegistry;
             }
-            catch (PrivilegedActionException e)
+
+            @Override
+            Subject getSubject(final HttpServletRequest request)
             {
-                Throwable cause = e.getCause();
-                if (cause != null)
-                {
-                    throw cause;
-                }
-                Exception exception = e.getException();
-                if (exception != null)
-                {
-                    throw exception;
-                }
-                throw e;
+                return subject;
             }
-        }
-        catch (IllegalArgumentException e)
+        };
+
+        final HttpServletRequest mockRequest =
+                createMock(HttpServletRequest.class);
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+
+        expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
+        expect(mockRequest.getMethod()).andReturn("GET").once();
+        expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
+
+        mockResponse.sendRedirect("https://mysite.com/ac/users/CADCtest?idType=HTTP");
+        expectLastCall().once();
+
+        expect(mockRegistry.getServiceURL(URI.create(AC.GMS_SERVICE_URI),
+                                          "http", "/users/%s?idType=HTTP")).
+                andReturn(new URL("https://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
+
+        replay(mockRequest, mockResponse, mockRegistry);
+
+
+        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
-        }
-        catch (Throwable t)
-        {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
-        }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
-    }
+            @Override
+            public Void run() throws Exception
+            {
+                testSubject.doGet(mockRequest, mockResponse);
+                return null;
+            }
+        });
 
-    @Override
-    public void doGet(final HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpGetFactory(), request, response);
+        verify(mockRequest, mockResponse, mockRegistry);
     }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpPostFactory(), request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpPutFactory(), request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpHeadFactory(), request, response);
-    }
-
 }

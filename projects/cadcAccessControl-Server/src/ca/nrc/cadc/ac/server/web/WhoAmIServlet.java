@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,115 +62,71 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Set;
-import java.util.TreeSet;
+package ca.nrc.cadc.ac.server.web;
 
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.ldap.LdapUserDAO;
-import ca.nrc.cadc.net.TransientException;
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
-import ca.nrc.cadc.util.StringUtil;
-import org.omg.CORBA.UserException;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import org.apache.log4j.Logger;
 
+import javax.security.auth.Subject;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.Set;
 
 /**
- * Servlet to handle password changes.  Passwords are an integral part of the
- * access control system and are handled differently to accommodate stricter
- * guidelines.
- * <p/>
- * This servlet handles POST only.  It relies on the Subject being set higher
- * up by the AccessControlFilter as configured in the web descriptor.
+ * Servlet to handle GET requests asking for the current User.  This servlet
+ * will implement the /whoami functionality to return details about the
+ * currently authenticated user, or rather, the user whose Subject is currently
+ * found in this context.
  */
-public class PasswordServlet extends HttpServlet
+public class WhoAmIServlet extends HttpServlet
 {
-    private static final Logger log = Logger.getLogger(PasswordServlet.class);
+    private static final Logger log = Logger.getLogger(WhoAmIServlet.class);
 
+    static final String USER_GET_PATH = "/users/%s?idType=HTTP";
 
     /**
-     * Attempt to change password.
+     * Handle a /whoami GET operation.
      *
      * @param request  The HTTP Request.
      * @param response The HTTP Response.
-     * @throws IOException Any errors that are not expected.
+     * @throws ServletException Anything goes wrong at the Servlet level.
+     * @throws IOException      Any reading/writing errors.
      */
-    public void doPost(final HttpServletRequest request,
-                       final HttpServletResponse response)
-            throws IOException
+    @Override
+    protected void doGet(final HttpServletRequest request,
+                         final HttpServletResponse response)
+            throws ServletException, IOException
     {
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
         log.info(logInfo.start());
         try
         {
-            final Subject subject = AuthenticationUtil.getSubject(request);
-            if ((subject == null) || (subject.getPrincipals().isEmpty()))
+            final Subject currentSubject = getSubject(request);
+            final Set<HttpPrincipal> currentWebPrincipals =
+                    currentSubject.getPrincipals(HttpPrincipal.class);
+
+            if (currentWebPrincipals.isEmpty())
             {
-                logInfo.setMessage("Unauthorized subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             else
             {
-                Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-                {
-                    public Object run() throws Exception
-                    {
-                        LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
-                        User<Principal> user;
-                        try
-                        {
-                            user = dao.getUser(subject.getPrincipals().iterator().next());
-                        }
-                        catch (UserNotFoundException e)
-                        {
-                            throw new AccessControlException("User not found");
-                        }
-
-                        Subject logSubject = new Subject(false, user.getIdentities(),
-                                                         new TreeSet(), new TreeSet());
-
-                        logInfo.setSubject(logSubject);
-
-                        String oldPassword = request.getParameter("old_password");
-                        String newPassword = request.getParameter("new_password");
-                        if (StringUtil.hasText(oldPassword))
-                        {
-                            if (StringUtil.hasText(newPassword))
-                            {
-                                dao.setPassword(user, oldPassword, newPassword);
-                            }
-                            else
-                            {
-                                throw new IllegalArgumentException("Missing new password");
-                            }
-                        }
-                        else
-                        {
-                            throw new IllegalArgumentException("Missing old password");
-                        }
-                        return null;
-                    }
-                });
+                redirect(response, currentWebPrincipals.toArray(
+                        new HttpPrincipal[1])[0]);
             }
         }
         catch (IllegalArgumentException e)
@@ -178,12 +134,6 @@ public class PasswordServlet extends HttpServlet
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        }
-        catch (AccessControlException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
         catch (Throwable t)
         {
@@ -198,5 +148,48 @@ public class PasswordServlet extends HttpServlet
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
+    }
+
+    /**
+     * Forward on to the Service's user endpoint.
+     *
+     * @param response     The HTTP response.
+     * @param webPrincipal The HttpPrincipal instance.
+     */
+    void redirect(final HttpServletResponse response,
+                  final HttpPrincipal webPrincipal) throws IOException
+    {
+        final RegistryClient registryClient = getRegistryClient();
+        final URL redirectURL =
+                registryClient.getServiceURL(
+                        URI.create(AC.GMS_SERVICE_URI), "https", USER_GET_PATH);
+
+        // Take the first one.
+        final String redirectUrl =
+            String.format(redirectURL.toString(), webPrincipal.getName());
+        log.debug("redirecting to " + redirectUrl);
+        response.sendRedirect(redirectUrl);
+    }
+
+    /**
+     * Tests will need to override this method so as not to rely on the
+     * environment.
+     *
+     * @return      Registry Client instance.
+     */
+    RegistryClient getRegistryClient()
+    {
+        return new RegistryClient();
+    }
+
+    /**
+     * Get and augment the Subject. Tests can override this method.
+     *
+     * @param request Servlet request
+     * @return augmented Subject
+     */
+    Subject getSubject(final HttpServletRequest request)
+    {
+        return AuthenticationUtil.getSubject(request);
     }
 }
