@@ -101,7 +101,8 @@ public class LoginServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(LoginServlet.class);
     private static final String CONTENT_TYPE = "text/plain";
-    public static final String PROXY_USER_DELIM = " as ";
+    // " as " - delimiter use for proxy user authentication
+    public static final String PROXY_USER_DELIM = "(.*)/s[aA][sS]/s(.*";
     String proxyGroup; // only users in this group can impersonate other users
     String nonImpersonGroup; // users in this group cannot be impersonated
     
