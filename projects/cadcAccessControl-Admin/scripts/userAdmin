@@ -1,0 +1,5 @@
+#!/bin/tcsh -f
+
+source ${DEFAULT_CONFIG_DIR}/JavaSystemProps.csh || exit $status
+
+java -Xmx128m ${JAVA_SYSTEM_PROPS} -jar ${CADC_ROOT}/lib/userAdmin.jar $*:q
