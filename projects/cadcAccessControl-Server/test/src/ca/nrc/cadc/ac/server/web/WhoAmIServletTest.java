@@ -71,6 +71,10 @@ package ca.nrc.cadc.ac.server.web;
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.Log4jInit;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.security.auth.Subject;
@@ -83,9 +87,16 @@ import java.security.PrivilegedExceptionAction;
 
 import static org.easymock.EasyMock.*;
 
-
 public class WhoAmIServletTest
 {
+    private static final Logger log = Logger.getLogger(WhoAmIServletTest.class);
+    @BeforeClass
+    public static void setUpBeforeClass()
+        throws Exception
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
     @Test
     public void doGet() throws Exception
     {
@@ -114,10 +125,8 @@ public class WhoAmIServletTest
             }
         };
 
-        final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+        final HttpServletRequest mockRequest = createMock(HttpServletRequest.class);
+        final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
 
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
@@ -127,7 +136,7 @@ public class WhoAmIServletTest
         expectLastCall().once();
 
         expect(mockRegistry.getServiceURL(URI.create(AC.GMS_SERVICE_URI),
-                                          "http", "/users/%s?idType=HTTP")).
+                                          "https", "/users/%s?idType=HTTP")).
                 andReturn(new URL("https://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);

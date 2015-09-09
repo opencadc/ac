@@ -91,9 +91,9 @@ public interface UserPersistence<T extends Principal>
             throws TransientException, AccessControlException;
 
     /**
-     * Add the new user.
+     * Add the user to the active user tree.
      *
-     * @param user      The user request to put into the request tree.
+     * @param user      The user request to put into the active user tree.
      *
      * @return User instance.
      *
@@ -103,6 +103,20 @@ public interface UserPersistence<T extends Principal>
     void addUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
                UserAlreadyExistsException;
+
+    /**
+     * Add the user to the pending user tree.
+     *
+     * @param user      The user request to put into the pending user tree.
+     *
+     * @return User instance.
+     *
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void addPendingUser(UserRequest<T> user)
+        throws TransientException, AccessControlException,
+        UserAlreadyExistsException;
 
     /**
      * Get the user specified by userID.
