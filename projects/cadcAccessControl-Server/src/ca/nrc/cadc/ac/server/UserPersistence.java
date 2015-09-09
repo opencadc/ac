@@ -243,5 +243,5 @@ public interface UserPersistence<T extends Principal>
      */
     void setPassword(User<T> user, final String oldPassword, final String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException;
-    
+
 }
