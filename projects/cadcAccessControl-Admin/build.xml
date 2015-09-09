@@ -87,7 +87,6 @@
     <property name="cadcAccessControl"		value="${lib}/cadcAccessControl.jar" />
     <property name="cadcAccessControl-Server"	value="${lib}/cadcAccessControl-Server.jar" />
     <property name="cadcUtil"			value="${lib}/cadcUtil.jar" />
-    <property name="javaUtil"			value="${lib}/javaUtil.jar" />
     <property name="log4j"			value="${ext.lib}/log4j.jar" />
     <property name="commons-logging"		value="${ext.lib}/commons-logging.jar" />
     <property name="jconn3"			value="${ext.lib}/jconn3.jar" />
