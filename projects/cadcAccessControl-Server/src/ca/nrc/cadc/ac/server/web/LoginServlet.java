@@ -102,7 +102,7 @@ public class LoginServlet extends HttpServlet
     private static final Logger log = Logger.getLogger(LoginServlet.class);
     private static final String CONTENT_TYPE = "text/plain";
     // " as " - delimiter use for proxy user authentication
-    public static final String PROXY_USER_DELIM = "(.*)/s[aA][sS]/s(.*";
+    public static final String PROXY_USER_DELIM = "\\s[aA][sS]\\s";
     String proxyGroup; // only users in this group can impersonate other users
     String nonImpersonGroup; // users in this group cannot be impersonated
     
@@ -140,13 +140,13 @@ public class LoginServlet extends HttpServlet
         try
         {
             log.info(logInfo.start());
-            String userID = request.getParameter("username");
+            String userID = request.getParameter("username").trim();
             String proxyUser = null;
-            if (userID.contains(PROXY_USER_DELIM))
+            String[] fields = userID.split(PROXY_USER_DELIM);
+            if (fields.length == 2 )
             {
-                String[] fields = userID.split(PROXY_USER_DELIM);
-                proxyUser = fields[0];
-                userID = fields[1];
+                proxyUser = fields[0].trim();
+                userID = fields[1].trim();
                 checkCanImpersonate(userID, proxyUser);
             }
             String password = request.getParameter("password");

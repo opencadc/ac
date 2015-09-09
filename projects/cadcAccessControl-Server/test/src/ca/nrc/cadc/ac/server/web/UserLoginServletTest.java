@@ -1,4 +1,7 @@
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.security.AccessControlException;
 import java.util.Collection;
@@ -12,9 +15,6 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
-
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertTrue;
 
 public class UserLoginServletTest
 {
