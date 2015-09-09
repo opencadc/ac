@@ -147,7 +147,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
 
-
     private String[] userAttribs = new String[]
             {
                     LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
@@ -422,7 +421,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         SearchResultEntry searchResult = null;
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
+            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             filter = Filter.createANDFilter(filter,
                 Filter.createEqualityFilter(searchField, userID.getName()));
             logger.debug("search filter: " + filter);
@@ -493,7 +492,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
+            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             filter = Filter.createANDFilter(filter,
                 Filter.createEqualityFilter(searchField, userID.getName()));
             logger.debug("search filter: " + filter);
@@ -560,8 +559,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
-            filter = Filter.createANDFilter(filter, Filter.createPresenceFilter(LDAP_UID));
+            Filter filter =  Filter.createPresenceFilter(LDAP_UID);
             logger.debug("search filter: " + filter);
 
             final String[] attributes = new String[]
@@ -577,15 +575,18 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 LdapDAO.checkLdapResult(searchResult.getResultCode());
                 for (SearchResultEntry next : searchResult.getSearchEntries())
                 {
-                    final String firstName =
-                        next.getAttributeValue(LDAP_FIRST_NAME).trim();
-                    final String lastName =
-                        next.getAttributeValue(LDAP_LAST_NAME).trim();
-                    final String uid =  next.getAttributeValue(LDAP_UID).trim();
-                    User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
-                    PersonalDetails pd = new PersonalDetails(firstName, lastName);
-                    user.details.add(pd);
-                    users.add(user);
+                    if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
+                    {
+                        final String firstName =
+                            next.getAttributeValue(LDAP_FIRST_NAME).trim();
+                        final String lastName =
+                            next.getAttributeValue(LDAP_LAST_NAME).trim();
+                        final String uid = next.getAttributeValue(LDAP_UID).trim();
+                        User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
+                        PersonalDetails pd = new PersonalDetails(firstName, lastName);
+                        user.details.add(pd);
+                        users.add(user);
+                    }
                 }
             }
             catch (LDAPSearchException e)
@@ -748,7 +749,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             DN userDN = getUserDN(userID.getName(), usersDN);
             List<Modification> modifs = new ArrayList<Modification>();
-            modifs.add(new Modification(ModificationType.ADD, "nsaccountlock", "true"));
+            modifs.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
 
             ModifyRequest modifyRequest = new ModifyRequest(userDN, modifs);
             modifyRequest.addControl(
