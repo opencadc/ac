@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,99 +62,87 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.IOException;
-import java.security.AccessControlException;
+package ca.nrc.cadc.ac.server.web;
 
-import javax.servlet.http.HttpServlet;
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import org.junit.Test;
+
+import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Logger;
+import java.net.URI;
+import java.net.URL;
+import java.security.PrivilegedExceptionAction;
 
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.SSOCookieManager;
-import ca.nrc.cadc.log.ServletLogInfo;
-import ca.nrc.cadc.util.StringUtil;
+import static org.easymock.EasyMock.*;
 
-@SuppressWarnings("serial")
-public class LoginServlet extends HttpServlet
+
+public class WhoAmIServletTest
 {
-    private static final Logger log = Logger.getLogger(LoginServlet.class);
-    private static final String CONTENT_TYPE = "text/plain";
-    /**
-     * Attempt to login for userid/password.
-     */
-	@SuppressWarnings("rawtypes")
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    @Test
+    public void doGet() throws Exception
     {
-        long start = System.currentTimeMillis();
-        ServletLogInfo logInfo = new ServletLogInfo(request);
-        try
+        final Subject subject = new Subject();
+        subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+
+        final RegistryClient mockRegistry = createMock(RegistryClient.class);
+        final WhoAmIServlet testSubject = new WhoAmIServlet()
         {
-            log.info(logInfo.start());
-            String userID = request.getParameter("username");
-            String password = request.getParameter("password");
-            if (StringUtil.hasText(userID))
+            /**
+             * Tests will need to override this method so as not to rely on the
+             * environment.
+             *
+             * @return Registry Client instance.
+             */
+            @Override
+            RegistryClient getRegistryClient()
             {
-                if (StringUtil.hasText(password))
-                {
-                	if (new LdapUserPersistence().doLogin(userID, password))
-                	{
-	            	    String token = new SSOCookieManager().generate(new HttpPrincipal(userID));
-	            	    response.setContentType(CONTENT_TYPE);
-	            	    response.setContentLength(token.length());
-	            	    response.getWriter().write(token);
-                	}
-                }
-                else
-                {
-                	throw new IllegalArgumentException("Missing password");
-                }
+                return mockRegistry;
             }
-            else
+
+            @Override
+            Subject getSubject(final HttpServletRequest request)
             {
-            	throw new IllegalArgumentException("Missing userid");
+                return subject;
             }
-        }
-        catch (IllegalArgumentException e)
+        };
+
+        final HttpServletRequest mockRequest =
+                createMock(HttpServletRequest.class);
+        final HttpServletResponse mockResponse =
+                createMock(HttpServletResponse.class);
+
+        expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
+        expect(mockRequest.getMethod()).andReturn("GET").once();
+        expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
+
+        mockResponse.sendRedirect("https://mysite.com/ac/users/CADCtest?idType=HTTP");
+        expectLastCall().once();
+
+        expect(mockRegistry.getServiceURL(URI.create(AC.GMS_SERVICE_URI),
+                                          "http", "/users/%s?idType=HTTP")).
+                andReturn(new URL("https://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
+
+        replay(mockRequest, mockResponse, mockRegistry);
+
+
+        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-    	    response.setContentType(CONTENT_TYPE);
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
-        }
-        catch (AccessControlException e)
-        {
-            log.debug(e.getMessage(), e);
-            String message = "Invalid credentials";
-            logInfo.setMessage(message);
-    	    response.setContentType(CONTENT_TYPE);
-            response.getWriter().write(message);
-            response.setStatus(401);
-        }
-        catch (Throwable t)
-        {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-    	    response.setContentType(CONTENT_TYPE);
-            response.getWriter().write(message);
-            response.setStatus(500);
-        }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
-        }
+            @Override
+            public Void run() throws Exception
+            {
+                testSubject.doGet(mockRequest, mockResponse);
+                return null;
+            }
+        });
+
+        verify(mockRequest, mockResponse, mockRegistry);
     }
 }

@@ -66,37 +66,95 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web;
 
-import java.io.InputStream;
+import java.io.IOException;
+import java.security.AccessControlException;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.server.UserPersistence;
-
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.security.Principal;
 
+import org.apache.log4j.Logger;
 
-public class CreateUserAction extends AbstractUserAction
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.SSOCookieManager;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.util.StringUtil;
+
+@SuppressWarnings("serial")
+public class LoginServlet extends HttpServlet
 {
-    private final InputStream inputStream;
-
-    CreateUserAction(final InputStream inputStream)
+    private static final Logger log = Logger.getLogger(LoginServlet.class);
+    private static final String CONTENT_TYPE = "text/plain";
+    /**
+     * Attempt to login for userid/password.
+     */
+	@SuppressWarnings("rawtypes")
+	public void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws IOException
     {
-        super();
-        this.inputStream = inputStream;
+        long start = System.currentTimeMillis();
+        ServletLogInfo logInfo = new ServletLogInfo(request);
+        try
+        {
+            log.info(logInfo.start());
+            String userID = request.getParameter("username");
+            String password = request.getParameter("password");
+            if (StringUtil.hasText(userID))
+            {
+                if (StringUtil.hasText(password))
+                {
+                	if (new LdapUserPersistence().doLogin(userID, password))
+                	{
+	            	    String token = new SSOCookieManager().generate(new HttpPrincipal(userID));
+	            	    response.setContentType(CONTENT_TYPE);
+	            	    response.setContentLength(token.length());
+	            	    response.getWriter().write(token);
+                	}
+                }
+                else
+                {
+                	throw new IllegalArgumentException("Missing password");
+                }
+            }
+            else
+            {
+            	throw new IllegalArgumentException("Missing userid");
+            }
+        }
+        catch (IllegalArgumentException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+    	    response.setContentType(CONTENT_TYPE);
+            response.getWriter().write(e.getMessage());
+            response.setStatus(400);
+        }
+        catch (AccessControlException e)
+        {
+            log.debug(e.getMessage(), e);
+            String message = "Invalid credentials";
+            logInfo.setMessage(message);
+    	    response.setContentType(CONTENT_TYPE);
+            response.getWriter().write(message);
+            response.setStatus(401);
+        }
+        catch (Throwable t)
+        {
+            String message = "Internal Server Error: " + t.getMessage();
+            log.error(message, t);
+            logInfo.setSuccess(false);
+            logInfo.setMessage(message);
+    	    response.setContentType(CONTENT_TYPE);
+            response.getWriter().write(message);
+            response.setStatus(500);
+        }
+        finally
+        {
+            logInfo.setElapsedTime(System.currentTimeMillis() - start);
+            log.info(logInfo.end());
+        }
     }
-
-
-    public void doAction() throws Exception
-    {
-        final UserPersistence<Principal> userPersistence = getUserPersistence();
-        final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
-        userPersistence.addUser(userRequest);
-
-        syncOut.setCode(201);
-        logUserInfo(userRequest.getUser().getUserID().getName());
-    }
-
 }

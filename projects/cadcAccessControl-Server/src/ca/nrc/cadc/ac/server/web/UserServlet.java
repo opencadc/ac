@@ -66,13 +66,14 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
+import ca.nrc.cadc.ac.server.web.users.GetUserAction;
+import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
+import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
-import ca.nrc.cadc.auth.X509CertificateChain;
-import ca.nrc.cadc.util.ArrayUtil;
 import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
@@ -87,8 +88,6 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.Set;
 
 public class UserServlet extends HttpServlet
@@ -260,7 +259,6 @@ public class UserServlet extends HttpServlet
     {
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
-        log.debug("Principals: " + principals);
 
         for (Principal principal : principals)
         {
@@ -268,12 +266,12 @@ public class UserServlet extends HttpServlet
             {
                 if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
                 {
+                    log.debug("found notAugmentedX500User " + notAugmentedX500User);
                     return true;
                 }
             }
         }
 
         return false;
-
     }
 }

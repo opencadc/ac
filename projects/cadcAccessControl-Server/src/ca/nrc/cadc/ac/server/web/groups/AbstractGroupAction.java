@@ -101,17 +101,17 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
 
     abstract void doAction() throws Exception;
 
-    void setLogInfo(GroupLogInfo logInfo)
+    public void setLogInfo(GroupLogInfo logInfo)
     {
         this.logInfo = logInfo;
     }
 
-    void setHttpServletRequest(HttpServletRequest request)
+    public void setHttpServletRequest(HttpServletRequest request)
     {
         this.request = request;
     }
 
-    void setSyncOut(SyncOutput syncOut)
+    public void setSyncOut(SyncOutput syncOut)
     {
         this.syncOut = syncOut;
     }

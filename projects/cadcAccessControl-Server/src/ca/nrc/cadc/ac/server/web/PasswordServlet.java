@@ -66,84 +66,115 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.security.PrivilegedActionException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.util.StringUtil;
+import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.TreeSet;
 
 /**
- * Servlet for handling all requests to /groups
- *
- * @author majorb
+ * Servlet to handle password changes.  Passwords are an integral part of the
+ * access control system and are handled differently to accommodate stricter
+ * guidelines.
+ * <p/>
+ * This servlet handles POST only.  It relies on the Subject being set higher
+ * up by the AccessControlFilter as configured in the web descriptor.
  */
-public class GroupServlet extends HttpServlet
+public class PasswordServlet extends HttpServlet
 {
-    private static final long serialVersionUID = 7854660717655869213L;
-    private static final Logger log = Logger.getLogger(GroupServlet.class);
+    private static final Logger log = Logger.getLogger(PasswordServlet.class);
 
     /**
-     * Create a GroupAction and run the action safely.
+     * Attempt to change password.
+     *
+     * @param request  The HTTP Request.
+     * @param response The HTTP Response.
+     * @throws IOException Any errors that are not expected.
      */
-    private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
-        throws IOException
+    public void doPost(final HttpServletRequest request,
+                       final HttpServletResponse response)
+            throws IOException
     {
-        long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
+        final long start = System.currentTimeMillis();
+        final ServletLogInfo logInfo = new ServletLogInfo(request);
+        log.info(logInfo.start());
         try
         {
-            log.info(logInfo.start());
-            Subject subject = AuthenticationUtil.getSubject(request);
-            logInfo.setSubject(subject);
-
-            AbstractGroupAction action = factory.createAction(request);
-
-            action.setLogInfo(logInfo);
-            action.setHttpServletRequest(request);
-            SyncOutput syncOut = new SyncOutput(response);
-            action.setSyncOut(syncOut);
-
-            try
+            final Subject subject = AuthenticationUtil.getSubject(request);
+            if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
-                if (subject == null)
-                {
-                    action.run();
-                }
-                else
-                {
-                    Subject.doAs(subject, action);
-                }
+                logInfo.setMessage("Unauthorized subject");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
-            catch (PrivilegedActionException e)
+            else
             {
-                Throwable cause = e.getCause();
-                if (cause != null)
+                Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
                 {
-                    throw cause;
-                }
-                Exception exception = e.getException();
-                if (exception != null)
-                {
-                    throw exception;
-                }
-                throw e;
+                    public Object run() throws Exception
+                    {
+                        LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
+                        User<Principal> user;
+                        try
+                        {
+                            user = dao.getUser(subject.getPrincipals().iterator().next());
+                        }
+                        catch (UserNotFoundException e)
+                        {
+                            throw new AccessControlException("User not found");
+                        }
+
+                        Subject logSubject = new Subject(false, user.getIdentities(),
+                                                         new TreeSet(), new TreeSet());
+
+                        logInfo.setSubject(logSubject);
+
+                        String oldPassword = request.getParameter("old_password");
+                        String newPassword = request.getParameter("new_password");
+                        if (StringUtil.hasText(oldPassword))
+                        {
+                            if (StringUtil.hasText(newPassword))
+                            {
+                                dao.setPassword(user, oldPassword, newPassword);
+                            }
+                            else
+                            {
+                                throw new IllegalArgumentException("Missing new password");
+                            }
+                        }
+                        else
+                        {
+                            throw new IllegalArgumentException("Missing old password");
+                        }
+                        return null;
+                    }
+                });
             }
         }
         catch (IllegalArgumentException e)
         {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            response.getWriter().write(e.getMessage());
-            response.setStatus(400);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
+        catch (AccessControlException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
         catch (Throwable t)
         {
@@ -151,8 +182,7 @@ public class GroupServlet extends HttpServlet
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
-            response.getWriter().write(message);
-            response.setStatus(500);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
         finally
         {
@@ -160,40 +190,4 @@ public class GroupServlet extends HttpServlet
             log.info(logInfo.end());
         }
     }
-
-    @Override
-    public void doGet(final HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpGetFactory(), request, response);
-    }
-
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpPostFactory(), request, response);
-    }
-
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
-    }
-
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpPutFactory(), request, response);
-    }
-
-    @Override
-    public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
-        doAction(GroupsActionFactory.httpHeadFactory(), request, response);
-    }
-
 }
