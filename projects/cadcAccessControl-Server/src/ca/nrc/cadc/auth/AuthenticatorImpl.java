@@ -128,7 +128,7 @@ public class AuthenticatorImpl implements Authenticator
         return subject;
     }
 
-    protected void augmentSubject(final Subject subject)
+    public void augmentSubject(final Subject subject)
     {
         try
         {
