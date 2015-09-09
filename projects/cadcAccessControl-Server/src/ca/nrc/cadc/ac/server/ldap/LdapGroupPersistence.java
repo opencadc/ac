@@ -97,7 +97,7 @@ public class LdapGroupPersistence<T extends Principal>
         config = LdapConfig.getLdapConfig();
     }
     
-    protected void setDetailSelector(GroupDetailSelector gds)
+    public void setDetailSelector(GroupDetailSelector gds)
     {
         this.detailSelector = gds;
     }
@@ -256,14 +256,5 @@ public class LdapGroupPersistence<T extends Principal>
                 userDAO.close();
             }
         }
-    }
-    
-    public boolean isMember(T userID, String groupID)
-            throws UserNotFoundException, TransientException,
-            AccessControlException
-    {
-        return (new LdapUserPersistence<T>()).isMember(userID, groupID);
-    }
-
-  
+    }  
 }

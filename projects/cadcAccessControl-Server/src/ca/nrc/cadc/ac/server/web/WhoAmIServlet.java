@@ -126,7 +126,7 @@ public class WhoAmIServlet extends HttpServlet
             else
             {
                 redirect(response, currentWebPrincipals.toArray(
-                        new HttpPrincipal[1])[0]);
+                        new HttpPrincipal[1])[0], request.getScheme());
             }
         }
         catch (IllegalArgumentException e)
@@ -155,14 +155,16 @@ public class WhoAmIServlet extends HttpServlet
      *
      * @param response     The HTTP response.
      * @param webPrincipal The HttpPrincipal instance.
+     * @param scheme       The scheme
      */
     void redirect(final HttpServletResponse response,
-                  final HttpPrincipal webPrincipal) throws IOException
+                  final HttpPrincipal webPrincipal, 
+                  final String scheme) throws IOException
     {
         final RegistryClient registryClient = getRegistryClient();
         final URL redirectURL =
                 registryClient.getServiceURL(
-                        URI.create(AC.GMS_SERVICE_URI), "https", USER_GET_PATH);
+                        URI.create(AC.GMS_SERVICE_URI), scheme, USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =
