@@ -73,6 +73,7 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.net.TransientException;
+import com.unboundid.ldap.sdk.DN;
 
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -81,19 +82,9 @@ import java.util.Collection;
 public interface UserPersistence<T extends Principal>
 {
     /**
-     * Get all user names.
+     * Add the user to the active users tree.
      *
-     * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<User<Principal>> getUsers()
-            throws TransientException, AccessControlException;
-
-    /**
-     * Add the user to the active user tree.
-     *
-     * @param user      The user request to put into the active user tree.
+     * @param user      The user request to put into the active users tree.
      *
      * @return User instance.
      *
@@ -102,12 +93,12 @@ public interface UserPersistence<T extends Principal>
      */
     void addUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
-               UserAlreadyExistsException;
+        UserAlreadyExistsException;
 
     /**
-     * Add the user to the pending user tree.
+     * Add the user to the pending users tree.
      *
-     * @param user      The user request to put into the pending user tree.
+     * @param user      The user request to put into the pending users tree.
      *
      * @return User instance.
      *
@@ -119,7 +110,7 @@ public interface UserPersistence<T extends Principal>
         UserAlreadyExistsException;
 
     /**
-     * Get the user specified by userID.
+     * Get the user specified by userID from the active users tree.
      *
      * @param userID The userID.
      *
@@ -131,7 +122,7 @@ public interface UserPersistence<T extends Principal>
      */
     User<T> getUser(T userID)
         throws UserNotFoundException, TransientException,
-               AccessControlException;
+        AccessControlException;
 
     /**
      * Get the user specified by userID whose account is pending approval.
@@ -145,8 +136,8 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      */
     User<T> getPendingUser(T userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException;
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
 
     /**
      * Get the user specified by userID with all of the users identities.
@@ -160,6 +151,67 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      */
     User<T> getAugmentedUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
+
+    /**
+     * Get all user names from the active users tree.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    Collection<User<Principal>> getUsers()
+            throws TransientException, AccessControlException;
+
+    /**
+     * Get all user names from the pending users tree.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    Collection<User<Principal>> getPendingUsers()
+        throws TransientException, AccessControlException;
+
+    /**
+     * Updated the user specified by userID in the active users tree.
+     *
+     * @param user      The user instance to modify.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User<T> modifyUser(User<T> user)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+
+    /**
+     * Delete the user specified by userID from the active users tree.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void deleteUser(T userID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+
+    /**
+     * Delete the user specified by userID from the pending users tree.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void deletePendingUser(T userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 
@@ -176,34 +228,20 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      */
     Boolean doLogin(String userID, String password)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException;
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
 
     /**
-     * Updated the user specified by User.
+     * Update a user's password. The given user and authenticating user must match.
      *
-     * @param user      The user instance to modify.
-     *
-     * @return User instance.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @param user
+     * @param oldPassword   current password.
+     * @param newPassword   new password.
+     * @throws UserNotFoundException If the given user does not exist.
+     * @throws TransientException   If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
-
-    /**
-     * Delete the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    void deleteUser(T userID)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
+    void setPassword(User<T> user, final String oldPassword, final String newPassword)
+        throws UserNotFoundException, TransientException, AccessControlException;
+    
 }
