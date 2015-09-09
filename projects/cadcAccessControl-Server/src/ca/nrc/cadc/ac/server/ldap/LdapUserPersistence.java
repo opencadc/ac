@@ -117,9 +117,9 @@ public class LdapUserPersistence<T extends Principal>
     }
 
     /**
-     * Add the new user.
+     * Add the user to the active user tree.
      *
-     * @param user
+     * @param user      The user request to put into the active user tree.
      *
      * @return User instance.
      *
@@ -135,6 +135,35 @@ public class LdapUserPersistence<T extends Principal>
         {
             userDAO = new LdapUserDAO<T>(this.config);
             userDAO.addUser(user);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Add the user to the pending user tree.
+     *
+     * @param user      The user request to put into the pending user tree.
+     *
+     * @return User instance.
+     *
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void addPendingUser(UserRequest<T> user)
+        throws TransientException, AccessControlException,
+        UserAlreadyExistsException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO.addPendingUser(user);
         }
         finally
         {
@@ -183,9 +212,8 @@ public class LdapUserPersistence<T extends Principal>
     * @throws TransientException     If an temporary, unexpected problem occurred.
     * @throws AccessControlException If the operation is not permitted.
     */
-    public User<T> getPendingUser(final T userID) throws UserNotFoundException,
-                                                         TransientException,
-                                                         AccessControlException
+    public User<T> getPendingUser(final T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try

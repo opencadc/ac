@@ -980,6 +980,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         try
         {
+            // TODO Subject has the X500Principal, no need to go to ldap.
+            // TODO X500Principal is optional???
             User<X500Principal> subjectUser =
                     userPersist.getX500User(getSubjectDN());
             if (subjectUser.equals(owner))

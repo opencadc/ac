@@ -156,7 +156,6 @@ public class GetUserAction extends AbstractUserAction
                 user.details.clear();
                 user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
             }
-
         }
 
     	return user;

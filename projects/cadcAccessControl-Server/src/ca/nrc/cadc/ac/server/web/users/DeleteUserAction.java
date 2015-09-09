@@ -68,8 +68,8 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
+
 import java.security.Principal;
 
 public class DeleteUserAction extends AbstractUserAction
@@ -85,8 +85,7 @@ public class DeleteUserAction extends AbstractUserAction
     public void doAction() throws Exception
     {
         UserPersistence userPersistence = getUserPersistence();
-        User<? extends Principal> deletedUser = userPersistence.getUser(userID);
-        userPersistence.deleteUser(deletedUser.getUserID());
+        userPersistence.deleteUser(userID);
     }
 
 }
