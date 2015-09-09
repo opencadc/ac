@@ -126,6 +126,9 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     };
 
     private LdapUserDAO<T> userPersist;
+    
+    // this gets filled by the LdapgroupPersistence
+    GroupDetailSelector searchDetailSelector;
 
     public LdapGroupDAO(LdapConfig config, LdapUserDAO<T> userPersist)
     {
@@ -811,8 +814,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         }
         throw new RuntimeException("BUG: failed to extract group name from " + groupDN.toString());
     }
-    // this gets filled by the LdapgroupPersistence
-    GroupDetailSelector searchDetailSelector;
+
 
     private boolean isDetailedSearch(Group g, Role r)
     {

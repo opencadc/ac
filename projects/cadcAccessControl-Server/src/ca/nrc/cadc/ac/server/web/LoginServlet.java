@@ -70,17 +70,30 @@ package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
+import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupDetailSelector;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.AuthenticatorImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
 
 @SuppressWarnings("serial")
@@ -88,6 +101,33 @@ public class LoginServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(LoginServlet.class);
     private static final String CONTENT_TYPE = "text/plain";
+    // " as " - delimiter use for proxy user authentication
+    public static final String PROXY_USER_DELIM = "\\s[aA][sS]\\s";
+    String proxyGroup; // only users in this group can impersonate other users
+    String nonImpersonGroup; // users in this group cannot be impersonated
+    
+    private static final String PROXY_ACCESS = "Proxy user access: ";
+    
+    
+    @Override
+    public void init(final ServletConfig config) throws ServletException
+    {
+        super.init(config);
+
+        try
+        {
+            this.proxyGroup = config.getInitParameter(
+                    LoginServlet.class.getName() + ".proxyGroup");
+            log.info("proxyGroup: " + proxyGroup);
+            this.nonImpersonGroup = config.getInitParameter(
+                    LoginServlet.class.getName() + ".nonImpersonGroup");
+            log.info("nonImpersonGroup: " + nonImpersonGroup);
+        }
+        catch(Exception ex)
+        {
+            log.error("failed to init: " + ex);
+        }
+    }
     /**
      * Attempt to login for userid/password.
      */
@@ -100,15 +140,29 @@ public class LoginServlet extends HttpServlet
         try
         {
             log.info(logInfo.start());
-            String userID = request.getParameter("username");
+            String userID = request.getParameter("username").trim();
+            String proxyUser = null;
+            String[] fields = userID.split(PROXY_USER_DELIM);
+            if (fields.length == 2 )
+            {
+                proxyUser = fields[0].trim();
+                userID = fields[1].trim();
+                checkCanImpersonate(userID, proxyUser);
+            }
             String password = request.getParameter("password");
+            UserPersistence up = new LdapUserPersistence();
             if (StringUtil.hasText(userID))
             {
                 if (StringUtil.hasText(password))
                 {
-                	if (new LdapUserPersistence().doLogin(userID, password))
-                	{
-	            	    String token = new SSOCookieManager().generate(new HttpPrincipal(userID));
+                    if ((StringUtil.hasText(proxyUser) && 
+                            up.doLogin(proxyUser, password)) ||
+                        (!StringUtil.hasText(proxyUser) &&
+                                up.doLogin(userID, password)))   
+                    {
+	            	    String token = 
+	            	            new SSOCookieManager().generate(
+	            	                    new HttpPrincipal(userID, proxyUser));
 	            	    response.setContentType(CONTENT_TYPE);
 	            	    response.setContentLength(token.length());
 	            	    response.getWriter().write(token);
@@ -126,16 +180,24 @@ public class LoginServlet extends HttpServlet
         }
         catch (IllegalArgumentException e)
         {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
+            String msg = e.getMessage();
+            if (msg.startsWith(PROXY_ACCESS))
+            {
+                log.warn(msg, e);
+            }
+            else
+            {
+                log.debug(msg, e);
+            }
+            logInfo.setMessage(msg);
     	    response.setContentType(CONTENT_TYPE);
-            response.getWriter().write(e.getMessage());
+            response.getWriter().write(msg);
             response.setStatus(400);
         }
         catch (AccessControlException e)
         {
             log.debug(e.getMessage(), e);
-            String message = "Invalid credentials";
+            String message = e.getMessage();
             logInfo.setMessage(message);
     	    response.setContentType(CONTENT_TYPE);
             response.getWriter().write(message);
@@ -156,5 +218,90 @@ public class LoginServlet extends HttpServlet
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
+    }
+	
+	/**
+	 * Checks if user can impersonate another user
+	 */
+    protected void checkCanImpersonate(final String userID, final String proxyUser)
+            throws AccessControlException, UserNotFoundException,
+            TransientException, Throwable
+    {
+        final LdapGroupPersistence<HttpPrincipal> gp = 
+                getLdapGroupPersistence();
+        
+        AuthenticatorImpl ai = new AuthenticatorImpl();
+        Subject proxySubject = new Subject();
+        proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
+        ai.augmentSubject(proxySubject);
+        try
+        {
+            Subject.doAs(proxySubject, new PrivilegedExceptionAction<Object>()
+            {
+                @Override
+                public Object run() throws Exception
+                {
+                    
+                    if (gp.getGroups(new HttpPrincipal(proxyUser), Role.MEMBER,
+                            proxyGroup).size() == 0)
+                    {
+                        throw new AccessControlException(PROXY_ACCESS
+                                + proxyUser + " as " + userID
+                                + " failed - not allowed to impersonate ("
+                                + proxyUser + " not in " + proxyGroup
+                                + " group)");
+                    }
+                    return null;
+                }
+            });
+
+            Subject userSubject = new Subject();
+            userSubject.getPrincipals().add(new HttpPrincipal(userID));
+            ai.augmentSubject(userSubject);
+            Subject.doAs(userSubject, new PrivilegedExceptionAction<Object>()
+            {
+                @Override
+                public Object run() throws Exception
+                {
+                    if (gp.getGroups(new HttpPrincipal(userID), Role.MEMBER,
+                            nonImpersonGroup).size() != 0)
+                    {
+                        throw new AccessControlException(PROXY_ACCESS
+                                + proxyUser + " as " + userID
+                                + " failed - non impersonable (" + userID
+                                + " in " + nonImpersonGroup + " group)");
+                    }
+                    return null;
+                }
+            });
+        }
+        catch (PrivilegedActionException e)
+        {
+            Throwable cause = e.getCause();
+            if (cause != null)
+            {
+                throw cause;
+            }
+            Exception exception = e.getException();
+            if (exception != null)
+            {
+                throw exception;
+            }
+            throw e;
+        }
+    }
+    
+    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence()
+    {
+        LdapGroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
+        gp.setDetailSelector(new GroupDetailSelector()
+        {
+            @Override
+            public boolean isDetailedSearch(Group g, Role r)
+            {
+                return false;
+            }
+        });
+        return gp;
     }
 }

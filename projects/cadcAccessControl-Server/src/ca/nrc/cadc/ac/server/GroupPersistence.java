@@ -173,21 +173,5 @@ public interface GroupPersistence<T extends Principal>
     Collection<Group> getGroups(T userID, Role role, String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
-    
-    /**
-     * Check whether the user is a member of the group.
-     *
-     * @param userID The userID.
-     * @param groupID The groupID.
-     *
-     * @return true or false
-     *
-     * @throws UserNotFoundException If the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    boolean isMember(T userID, String groupID)
-        throws UserNotFoundException, TransientException,
-               AccessControlException;
   
 }
