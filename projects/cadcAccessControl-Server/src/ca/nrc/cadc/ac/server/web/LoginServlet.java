@@ -234,7 +234,7 @@ public class LoginServlet extends HttpServlet
         // at this point so in order to make the calls to check their group
         // membership we need to create corresponding subjects and run the
         // get groups command in the corresponding subject context.
-        AuthenticatorImpl ai = new AuthenticatorImpl();
+        AuthenticatorImpl ai = getAuthenticatorImpl();
         Subject proxySubject = new Subject();
         proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
         ai.augmentSubject(proxySubject);
@@ -265,15 +265,16 @@ public class LoginServlet extends HttpServlet
             Subject.doAs(userSubject, new PrivilegedExceptionAction<Object>()
             {
                 @Override
-                public Object run() throws Exception
+                public Object run()
+                    throws Exception
                 {
                     if (gp.getGroups(new HttpPrincipal(userID), Role.MEMBER,
-                            nonImpersonGroup).size() != 0)
+                        nonImpersonGroup).size() != 0)
                     {
                         throw new AccessControlException(PROXY_ACCESS
-                                + proxyUser + " as " + userID
-                                + " failed - non impersonable (" + userID
-                                + " in " + nonImpersonGroup + " group)");
+                            + proxyUser + " as " + userID
+                            + " failed - non impersonable (" + userID
+                            + " in " + nonImpersonGroup + " group)");
                     }
                     return null;
                 }
@@ -307,5 +308,10 @@ public class LoginServlet extends HttpServlet
             }
         });
         return gp;
+    }
+
+    protected AuthenticatorImpl getAuthenticatorImpl()
+    {
+        return new AuthenticatorImpl();
     }
 }
