@@ -230,6 +230,10 @@ public class LoginServlet extends HttpServlet
         final LdapGroupPersistence<HttpPrincipal> gp = 
                 getLdapGroupPersistence();
         
+        // Users (proxy and the user to be impersonated) are not authenticated
+        // at this point so in order to make the calls to check their group
+        // membership we need to create corresponding subjects and run the
+        // get groups command in the corresponding subject context.
         AuthenticatorImpl ai = new AuthenticatorImpl();
         Subject proxySubject = new Subject();
         proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));

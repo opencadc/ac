@@ -73,11 +73,14 @@ import java.security.cert.CertificateException;
 
 import javax.security.auth.Subject;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.CertCmdArgUtil;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.ArgumentMap;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.StringUtil;
 
 
 
@@ -93,13 +96,18 @@ public class CmdLineParser
     private String appName = "";
     private AbstractCommand command;
     private Subject subject;
+    private ArgumentMap am;
+    private Level logLevel = Level.DEBUG;
 
     /**
      * Default constructor.
      */
-    public CmdLineParser(final String name) 
+    public CmdLineParser(final String name, final String[] args) 
     {
     	this.appName = name;
+    	
+        ArgumentMap am = new ArgumentMap( args );
+    	this.am = am;
     }
     
     /**
@@ -128,92 +136,131 @@ public class CmdLineParser
     {
     	return this.subject;
     }
-    
-    protected boolean isValid(final ArgumentMap am) throws UsageException
-    {
-    	int levelCount = 0;
-    	int cmdCount = 0;
-    	
-        // only one command is allowed per command line
-    	if (am.isSet("list"))
-    	{
-    		this.command = new List();
-    		cmdCount++;
-    	}
 
-    	if (am.isSet("list-pending"))
-    	{
-    		this.command = new ListPending();
-    		cmdCount++;
-    	}
-    	
-    	String userID = am.getValue("view");
-    	if ((userID != null	) && (!userID.equalsIgnoreCase("true")))
-    	{
-    		this.command = new View(userID);
-    		cmdCount++;
-    	}
-    	
-        userID = am.getValue("reject");
-    	if ((userID != null	) && (!userID.equalsIgnoreCase("true")))
-    	{
-    		this.command = new Reject(userID);
-    		cmdCount++;
-    	}
-    	
-        userID = am.getValue("approve");
-    	if ((userID != null	) && (!userID.equalsIgnoreCase("true")))
-    	{
-    		this.command = new Approve(userID);
-    		cmdCount++;
-    	}
+    /**
+     * Get the log level.
+     * @throws UsageException 
+     */
+    public Level getLogLevel()
+    {
+    	return this.logLevel;
+    }
+    
+    /**
+     * Get the log level.
+     * @throws UsageException 
+     */
+    public void setLogLevel() throws UsageException
+    {
+    	int count = 0;
     	
         // only one log level is allowed 
     	if (am.isSet("v") || am.isSet("verbose"))
     	{
-    		levelCount++;
+    		this.logLevel = Level.INFO;
+    		count++;
     	}
 
     	if (am.isSet("d") || am.isSet("debug"))
     	{
-    		levelCount++;
+    		this.logLevel = Level.DEBUG;
+    		count++;
     	}
                     	
-    	if ((cmdCount == 1) && (levelCount <2))
+    	if (count >=2)
+    	{
+    		String msg = "--verbose and --debug are mutually exclusive options\n";            
+    		throw new UsageException(msg);
+    	}
+    }
+    
+    protected boolean hasValue(final String userID) throws UsageException
+    {
+		if (!StringUtil.hasText(userID) ||userID.equalsIgnoreCase("true"))
+		{
+			String msg = "Missing userID";
+    		throw new UsageException(msg);
+		}
+		else
+		{
+			return true;
+		}
+
+    }
+    
+    protected boolean isValid(final ArgumentMap am) throws UsageException
+    {
+    	int count = 0;
+    	
+        // only one command is allowed per command line
+    	if (am.isSet("list"))
+    	{
+    		this.command = new ListActiveUsers();
+    		count++;
+    	}
+
+    	if (am.isSet("list-pending"))
+    	{
+    		this.command = new ListPendingUsers();
+    		count++;
+    	}
+    	
+    	String userID = am.getValue("view");
+    	if (userID != null	)
+    	{
+    		if (this.hasValue(userID))
+    	    {
+	    		this.command = new ViewUser(userID);
+    	    }
+    		
+    		count++;
+    	}
+    	
+        userID = am.getValue("reject");
+    	if (userID != null	)
+    	{
+    		if (this.hasValue(userID))
+    	    {
+        		this.command = new RejectUser(userID);
+    	    }
+    		
+    		count++;
+    	}
+    	
+        userID = am.getValue("approve");
+    	if (userID != null	)
+    	{
+    		if (this.hasValue(userID))
+    	    {
+        		this.command = new ApproveUser(userID);
+    	    }
+    		
+    		count++;
+    	}
+                    	
+    	if (count == 1)
     	{
     		return true;
     	}
     	else
     	{
-    		String msg = "";
-    		if (cmdCount > 1)
-    		{
-    		    msg = "Only one command can be specified.\n";
-    		}
-    		
-            if (levelCount == 2)
-    		{
-                msg = "--verbose and --debug are mutually exclusive options\n";
-    		}
-            
+    		String msg = "Only one command can be specified.\n";
     		throw new UsageException(msg);
     	}
     }
     
     /**
      * Parse the command line arguments.
-     * @param args command line arguments
      * @throws UsageException Error in command line
      * @throws CertificateException 
      */
-    public void parse(final String[] args) throws UsageException, CertificateException
+    public void parse() throws UsageException, CertificateException
     {
-        ArgumentMap am = new ArgumentMap( args );
         this.proceed = false;
 
-        if (!am.isSet("h") && !am.isSet("help") && isValid(am))
+        if (!this.am.isSet("h") && !this.am.isSet("help") && isValid(this.am))
         {
-            Subject subject = CertCmdArgUtil.initSubject(am, true);
+            Subject subject = CertCmdArgUtil.initSubject(this.am, true);
             try 
             {
     			SSLUtil.validateSubject(subject, null);
@@ -222,7 +269,7 @@ public class CmdLineParser
     		} 
             catch (CertificateException e) 
     		{
-            	if (am.isSet("list") || am.isSet("list-pending"))
+            	if (this.am.isSet("list") || this.am.isSet("list-pending"))
             	{
             		// we can use anonymous subject
             		this.proceed = true;

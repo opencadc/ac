@@ -7,9 +7,9 @@ import org.apache.log4j.Logger;
  * @author yeunga
  *
  */
-public class Reject extends AbstractCommand 
+public class RejectUser extends AbstractCommand 
 {
-    private static final Logger log = Logger.getLogger(Reject.class);
+    private static final Logger log = Logger.getLogger(RejectUser.class);
 
 	private String userID;
 	
@@ -17,7 +17,7 @@ public class Reject extends AbstractCommand
 	 * Constructor
 	 * @param userID Id of the pending user to be deleted
 	 */
-    public Reject(final String userID)
+    public RejectUser(final String userID)
     {
     	this.userID = userID;
     }
