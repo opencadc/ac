@@ -292,6 +292,37 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
     }
 
     /**
+     * Move the pending user specified by userID from the
+     * pending users tree to the active users tree.
+     *
+     * @param userID      The user instance to move.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> approvePendingUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.approvePendingUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
      * Updated the user specified by userID in the active users tree.
      *
      * @param user          The user to update.

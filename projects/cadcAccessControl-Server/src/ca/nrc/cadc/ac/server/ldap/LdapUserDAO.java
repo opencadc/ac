@@ -77,10 +77,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.DNPrincipal;
+import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -611,21 +613,69 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Updated the user specified by User.
+     * Move the pending user specified by userID from the
+     * pending users tree to the active users tree.
      *
-     * @param user
+     * @param userID
      * @return User instance.
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> modifyUser(final User<T> user)
+    public User<T> approvePendingUser(final T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        User<T> pendingUser = getPendingUser(userID);
+
+        Set<HttpPrincipal> httpPrincipals = pendingUser.getIdentities(HttpPrincipal.class);
+        if (httpPrincipals.isEmpty())
+        {
+            throw new RuntimeException("BUG: missing HttpPrincipal for " + userID.getName());
+        }
+        HttpPrincipal httpPrincipal = httpPrincipals.iterator().next();
+        String uid = "uid=" + httpPrincipal.getName();
+        String dn = uid + "," + config.getUserRequestsDN();
+
+        try
+        {
+            ModifyDNRequest modifyDNRequest =
+                new ModifyDNRequest(dn, uid, false, config.getUsersDN());
+
+            LdapDAO.checkLdapResult(getConnection().modifyDN(modifyDNRequest).getResultCode());
+        }
+        catch (LDAPException e)
+        {
+            e.printStackTrace();
+            logger.debug("Modify Exception: " + e, e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+        try
+        {
+            return getUser(userID);
+        }
+        catch (UserNotFoundException e)
+        {
+            throw new RuntimeException(
+                "BUG: approved user not found (" + userID.getName() + ")");
+        }
+    }
+
+    /**
+     * Update the user specified by User.
+     *
+     * @param userID
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> modifyUser(final User<T> userID)
             throws UserNotFoundException, TransientException, AccessControlException
     {
-        User existingUser = getUser(user.getUserID());
+        User existingUser = getUser(userID.getUserID());
 
         List<Modification> mods = new ArrayList<Modification>();
-        for (UserDetails details : user.details)
+        for (UserDetails details : userID.details)
         {
             if (details.getClass() == PersonalDetails.class)
             {
@@ -647,7 +697,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(user), mods);
+            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(userID), mods);
             modifyRequest.addControl(
                 new ProxiedAuthorizationV2RequestControl(
                     "dn:" + getSubjectDN().toNormalizedString()));
@@ -661,12 +711,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         try
         {
-            return getUser(user.getUserID());
+            return getUser(userID.getUserID());
         }
         catch (UserNotFoundException e)
         {
             throw new RuntimeException(
-                "BUG: modified user not found (" + user.getUserID() + ")");
+                "BUG: modified user not found (" + userID.getUserID() + ")");
         }
     }
 

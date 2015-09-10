@@ -175,7 +175,23 @@ public interface UserPersistence<T extends Principal>
         throws TransientException, AccessControlException;
 
     /**
-     * Updated the user specified by userID in the active users tree.
+     * Move the pending user specified by userID from the
+     * pending users tree to the active users tree.
+     *
+     * @param userID      The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User<T> approvePendingUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
+
+    /**
+     * Update the user specified by userID in the active users tree.
      *
      * @param user      The user instance to modify.
      *

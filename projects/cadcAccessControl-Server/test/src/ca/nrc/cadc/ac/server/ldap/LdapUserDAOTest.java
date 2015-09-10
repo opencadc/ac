@@ -94,7 +94,6 @@ import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.DN;
@@ -170,7 +169,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         };
     }
 
-    String createUserID()
+    String createUsername()
     {
         return "CadcDaoTestUser-" + System.currentTimeMillis();
     }
@@ -181,14 +180,14 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testAddUser() throws Exception
     {
-        String userID = createUserID();
+        String username = createUsername();
 
-        HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
-        X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
+        HttpPrincipal userID = new HttpPrincipal(username);
+        X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
         NumericPrincipal numericPrincipal = new NumericPrincipal(ran.nextInt(Integer.MAX_VALUE));
 
-        final User<Principal> expected = new User<Principal>(httpPrincipal);
-        expected.getIdentities().add(httpPrincipal);
+        final User<Principal> expected = new User<Principal>(userID);
+        expected.getIdentities().add(userID);
         expected.getIdentities().add(x500Principal);
         expected.getIdentities().add(numericPrincipal);
 
@@ -200,7 +199,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final LdapUserDAO<Principal> userDAO = getUserDAO();
         userDAO.addUser(userRequest);
 
-        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + userID + "," + config.getUsersDN());
+        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
 
@@ -232,14 +231,14 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testAddPendingUser() throws Exception
     {
-        String userID = createUserID();
+        String username = createUsername();
 
-        HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
-        X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
+        HttpPrincipal userID = new HttpPrincipal(username);
+        X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
         NumericPrincipal numericPrincipal = new NumericPrincipal(ran.nextInt(Integer.MAX_VALUE));
 
-        final User<Principal> expected = new User<Principal>(httpPrincipal);
-        expected.getIdentities().add(httpPrincipal);
+        final User<Principal> expected = new User<Principal>(userID);
+        expected.getIdentities().add(userID);
         expected.getIdentities().add(x500Principal);
         expected.getIdentities().add(numericPrincipal);
 
@@ -251,7 +250,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final LdapUserDAO<Principal> userDAO = getUserDAO();
         userDAO.addPendingUser(userRequest);
 
-        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + userID + "," + config.getUserRequestsDN());
+        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUserRequestsDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
 
@@ -341,11 +340,59 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     }
 
     @Test
+    public void testApproveUser() throws Exception
+    {
+        String username = createUsername();
+
+        HttpPrincipal userID = new HttpPrincipal(username);
+        X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
+        NumericPrincipal numericPrincipal = new NumericPrincipal(ran.nextInt(Integer.MAX_VALUE));
+
+        final User<Principal> expected = new User<Principal>(userID);
+        expected.getIdentities().add(userID);
+        expected.getIdentities().add(x500Principal);
+        expected.getIdentities().add(numericPrincipal);
+
+        expected.details.add(new PersonalDetails("foo", "bar"));
+
+        final UserRequest<Principal> userRequest =
+            new UserRequest<Principal>(expected, "123456".toCharArray());
+
+        final LdapUserDAO<Principal> userDAO = getUserDAO();
+        userDAO.addPendingUser(userRequest);
+
+        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
+        Subject subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    final User<Principal> actual = userDAO.approvePendingUser(expected.getUserID());
+                    assertNotNull(actual);
+                    assertEquals(expected.getUserID(), actual.getUserID());
+
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+
+    @Test
     public void testUpdateUser() throws Exception
     {
         // Create a test user
         final User<HttpPrincipal> testUser2;
-        final String username = createUserID();
+        final String username = createUsername();
         final char[] password = "foo".toCharArray();
 
         HttpPrincipal principal = new HttpPrincipal(username);
@@ -447,7 +494,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void deleteUser() throws Exception
     {
-        String userID = createUserID();
+        String userID = createUsername();
 
         HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
         X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
@@ -493,7 +540,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void deletePendingUser() throws Exception
     {
-        String userID = createUserID();
+        String userID = createUsername();
 
         HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
         X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
@@ -754,7 +801,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
         // Create a test user with a known password
         final User<HttpPrincipal> testUser2;
-        final String username = createUserID();
+        final String username = createUsername();
         final char[] password = "foo".toCharArray();
         final char[] newPassword = "bar".toCharArray();
 
