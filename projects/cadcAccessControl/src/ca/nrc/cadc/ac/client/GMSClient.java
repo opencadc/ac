@@ -93,6 +93,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.net.*;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.Group;
@@ -105,11 +106,6 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.InputStreamWrapper;
-import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 
@@ -346,6 +342,9 @@ public class GMSClient implements TransferListener
                 }
             }
         });
+
+        // Disable retries.
+        httpDownload.setRetry(0, 0, HttpTransfer.RetryReason.NONE);
 
         httpDownload.setSSLSocketFactory(getSSLSocketFactory());
         httpDownload.run();
