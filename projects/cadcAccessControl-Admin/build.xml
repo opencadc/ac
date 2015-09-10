@@ -88,13 +88,10 @@
     <property name="cadcAccessControl-Server"	value="${lib}/cadcAccessControl-Server.jar" />
     <property name="cadcUtil"			value="${lib}/cadcUtil.jar" />
     <property name="log4j"			value="${ext.lib}/log4j.jar" />
-    <property name="commons-logging"		value="${ext.lib}/commons-logging.jar" />
-    <property name="jconn3"			value="${ext.lib}/jconn3.jar" />
-    <property name="spring"			value="${ext.lib}/spring.jar" />
-    <property name="unboundid"			value="${ext.lib}/unboundid-ldapsdk-se.jar" />
+    <property name="unboundid"                  value="${ext.lib}/unboundid-ldapsdk-se.jar" />
     
-    <property name="cadc"       value="${cadcAccessControl}:${cadcAccessControl-Server}:${cadcUtil}:${javaUtil}" />
-    <property name="external"   value="${unboundid}:${spring}:${commons-logging}:${jconn3}:${log4j}" />
+    <property name="cadc"       value="${cadcAccessControl}:${cadcAccessControl-Server}:${cadcUtil}" />
+    <property name="external"   value="${unboundid}:${log4j}" />
 
     <property name="jars"       value="${cadc}:${external}" />
     
@@ -102,10 +99,8 @@
 
     <!-- JAR files needed to run the test suite -->
     <property name="junit"          value="${ext.dev}/junit.jar" />
-    <property name="easymock"       value="${ext.dev}/easymock.jar" />
-    <property name="em_extras" value="${ext.dev}/objenesis.jar:${ext.dev}/cglib.jar:${ext.dev}/asm.jar" />
 
-    <property name="testingJars" value="${junit}:${easymock}:${em_extras}" />
+    <property name="testingJars" value="${junit}" />
     
 
 </project>

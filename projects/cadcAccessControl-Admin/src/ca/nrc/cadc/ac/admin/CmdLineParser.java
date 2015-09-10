@@ -79,7 +79,6 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.auth.CertCmdArgUtil;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.ArgumentMap;
-import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.StringUtil;
 
 
@@ -104,8 +103,7 @@ public class CmdLineParser
      */
     public CmdLineParser(final String name, final String[] args) 
     {
-    	this.appName = name;
-    	
+    	this.appName = name;    	
         ArgumentMap am = new ArgumentMap( args );
     	this.am = am;
     }
@@ -157,35 +155,34 @@ public class CmdLineParser
         // only one log level is allowed 
     	if (am.isSet("v") || am.isSet("verbose"))
     	{
-    		this.logLevel = Level.INFO;
-    		count++;
+            this.logLevel = Level.INFO;
+            count++;
     	}
 
     	if (am.isSet("d") || am.isSet("debug"))
     	{
-    		this.logLevel = Level.DEBUG;
-    		count++;
+            this.logLevel = Level.DEBUG;
+            count++;
     	}
                     	
     	if (count >=2)
     	{
-    		String msg = "--verbose and --debug are mutually exclusive options\n";            
-    		throw new UsageException(msg);
+            String msg = "--verbose and --debug are mutually exclusive options\n";            
+            throw new UsageException(msg);
     	}
     }
     
     protected boolean hasValue(final String userID) throws UsageException
     {
-		if (!StringUtil.hasText(userID) ||userID.equalsIgnoreCase("true"))
-		{
-			String msg = "Missing userID";
-    		throw new UsageException(msg);
-		}
-		else
-		{
-			return true;
-		}
-
+        if (!StringUtil.hasText(userID) ||userID.equalsIgnoreCase("true"))
+        {
+            String msg = "Missing userID";
+            throw new UsageException(msg);
+        }
+        else
+        {
+            return true;
+        }
     }
     
     protected boolean isValid(final ArgumentMap am) throws UsageException
@@ -195,57 +192,67 @@ public class CmdLineParser
         // only one command is allowed per command line
     	if (am.isSet("list"))
     	{
-    		this.command = new ListActiveUsers();
-    		count++;
+            this.command = new ListActiveUsers();
+            count++;
     	}
 
     	if (am.isSet("list-pending"))
     	{
-    		this.command = new ListPendingUsers();
-    		count++;
+            this.command = new ListPendingUsers();
+            count++;
     	}
     	
     	String userID = am.getValue("view");
     	if (userID != null	)
     	{
-    		if (this.hasValue(userID))
+            if (this.hasValue(userID))
     	    {
-	    		this.command = new ViewUser(userID);
+                this.command = new ViewUser(userID);
     	    }
     		
-    		count++;
+            count++;
     	}
     	
         userID = am.getValue("reject");
     	if (userID != null	)
     	{
-    		if (this.hasValue(userID))
+            if (this.hasValue(userID))
     	    {
-        		this.command = new RejectUser(userID);
+                this.command = new RejectUser(userID);
     	    }
     		
-    		count++;
+            count++;
     	}
     	
         userID = am.getValue("approve");
     	if (userID != null	)
     	{
-    		if (this.hasValue(userID))
+            if (this.hasValue(userID))
     	    {
-        		this.command = new ApproveUser(userID);
+                this.command = new ApproveUser(userID);
     	    }
     		
-    		count++;
+            count++;
     	}
                     	
     	if (count == 1)
     	{
-    		return true;
+            return true;
     	}
     	else
     	{
-    		String msg = "Only one command can be specified.\n";
-    		throw new UsageException(msg);
+            String msg;
+    		
+            if (count == 0)
+            {
+                msg = "Command is not supported.";
+            }
+            else
+            {
+                msg = "Only one command can be specified.\n";
+            }
+    	
+            throw new UsageException(msg);
     	}
     }
     
@@ -261,24 +268,25 @@ public class CmdLineParser
         if (!this.am.isSet("h") && !this.am.isSet("help") && isValid(this.am))
         {
             Subject subject = CertCmdArgUtil.initSubject(this.am, true);
+            
             try 
             {
-    			SSLUtil.validateSubject(subject, null);
-    			this.subject = subject;
+                SSLUtil.validateSubject(subject, null);
+                this.subject = subject;
                 this.proceed = true;
-    		} 
+            } 
             catch (CertificateException e) 
-    		{
-            	if (this.am.isSet("list") || this.am.isSet("list-pending"))
+            {
+            	if (this.am.isSet("list"))
             	{
-            		// we can use anonymous subject
-            		this.proceed = true;
+                    // we can use anonymous subject
+                    this.proceed = true;
             	}
             	else
             	{
-    				throw e;
+                    throw e;
             	}
-    		}
+            }
         }
     }    
 
@@ -289,7 +297,7 @@ public class CmdLineParser
     {
     	StringBuilder sb = new StringBuilder();
     	sb.append("\n");
-    	sb.append("Usage: " + this.appName + " <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
+    	sb.append("Usage: " + this.appName + " [--cert=<path to pem file>] <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
     	sb.append("Where command is\n");
     	sb.append("--list               :list users in the Users tree\n");
     	sb.append("                     :can be executed as an anonymous user\n");
@@ -306,5 +314,4 @@ public class CmdLineParser
     	sb.append("-h|--help            : Print this message and exit\n");
     	return sb.toString();
     }
-
 }
