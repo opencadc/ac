@@ -8,9 +8,9 @@ import org.apache.log4j.Logger;
  * @author yeunga
  *
  */
-public class Approve extends AbstractCommand 
+public class ApproveUser extends AbstractCommand 
 {
-    private static final Logger log = Logger.getLogger(Approve.class);
+    private static final Logger log = Logger.getLogger(ApproveUser.class);
 
 	private String userID;
 	
@@ -18,7 +18,7 @@ public class Approve extends AbstractCommand
 	 * Constructor
 	 * @param userID Id of the pending user to be approved
 	 */
-    public Approve(final String userID)
+    public ApproveUser(final String userID)
     {
     	this.userID = userID;
     }

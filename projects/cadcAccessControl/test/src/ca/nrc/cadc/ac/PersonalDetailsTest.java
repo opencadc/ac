@@ -86,10 +86,15 @@ public class PersonalDetailsTest
     @Test
     public void simplePersonalDetailsTest() throws Exception
     {
-        PersonalDetails pd1 = new PersonalDetails("firstname", "lastname");
+        PersonalDetails pd1 = new PersonalDetails("john", "doe");
+        pd1.email = "john.doe@jd.com";
+        pd1.address = "1234 john doe street";
+        pd1.institute = "JD insttitute";
+        pd1.city = "JD city";
+        pd1.country = "JD country";
         
-        assertEquals("firstname", pd1.getFirstName());
-        assertEquals("lastname", pd1.getLastName());
+        assertEquals("john", pd1.getFirstName());
+        assertEquals("doe", pd1.getLastName());
 
         PersonalDetails pd2 = pd1;
         assertEquals(pd1.hashCode(), pd2.hashCode());
@@ -98,6 +103,7 @@ public class PersonalDetailsTest
         
         // test toString
         System.out.println(pd1);
+        System.out.print(pd1.toStringFormatted());
     }
     
     @Test
