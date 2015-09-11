@@ -69,6 +69,7 @@
 
  package ca.nrc.cadc.ac.admin;
 
+import java.io.PrintStream;
 import java.security.cert.CertificateException;
 
 import javax.security.auth.Subject;
@@ -106,11 +107,12 @@ public class CmdLineParser
      * @throws UsageException Error in command line
      * @throws CertificateException Fail to get a certificate
      */
-    public CmdLineParser(final String[] args) throws UsageException, CertificateException 
+    public CmdLineParser(final String[] args, final PrintStream outStream,
+        final PrintStream errStream) throws UsageException, CertificateException 
     {
         ArgumentMap am = new ArgumentMap( args );
     	this.setLogLevel(am);
-    	this.parse(am);
+    	this.parse(am, outStream, errStream);
     }
     
     /**
@@ -198,7 +200,8 @@ public class CmdLineParser
         }
     }
     
-    protected boolean isValid(final ArgumentMap am) throws UsageException
+    protected boolean isValid(final ArgumentMap am, final PrintStream outStream,
+        final PrintStream errStream) throws UsageException
     {
     	int count = 0;
     	
@@ -250,6 +253,8 @@ public class CmdLineParser
                     	
     	if (count == 1)
     	{
+            this.command.setSystemOut(outStream);
+            this.command.setSystemErr(errStream);
             return true;
     	}
     	else
@@ -275,11 +280,12 @@ public class CmdLineParser
      * @throws UsageException Error in command line
      * @throws CertificateException Fail to get a certificate
      */
-    protected void parse(final ArgumentMap am) throws UsageException, CertificateException
+    protected void parse(final ArgumentMap am, final PrintStream out,
+        final PrintStream err) throws UsageException, CertificateException
     {
         this.proceed = false;
 
-        if (!am.isSet("h") && !am.isSet("help") && isValid(am))
+        if (!am.isSet("h") && !am.isSet("help") && isValid(am, out, err))
         {
             Subject subject = CertCmdArgUtil.initSubject(am, true);
             

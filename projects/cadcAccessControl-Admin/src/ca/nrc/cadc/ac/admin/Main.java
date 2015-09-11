@@ -97,13 +97,11 @@ public class Main
     {
         try
         {
-        	CmdLineParser parser = new CmdLineParser(args);
+            CmdLineParser parser = new CmdLineParser(args, systemOut, systemErr);
 
             if (parser.proceed())
             {  
                 AbstractCommand command = parser.getCommand();
-            	command.setSystemOut(systemOut);
-            	command.setSystemErr(systemErr);
                 if (parser.getSubject() == null)
                 {
                     // no credential, but command works with an anonymous user

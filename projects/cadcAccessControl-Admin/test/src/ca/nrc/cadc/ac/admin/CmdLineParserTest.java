@@ -69,6 +69,8 @@
 
 package ca.nrc.cadc.ac.admin;
 
+import java.io.PrintStream;
+
 import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
@@ -79,14 +81,17 @@ import org.junit.Test;
  */
 public class CmdLineParserTest
 {    
-	@Test
+    private static PrintStream sysOut = System.out;
+    private static PrintStream sysErr = System.err;
+
+    @Test
 	public void testHelp()
 	{
 		// case 1: short form
     	try
     	{
     	    String[] mArgs = {"-h"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs);
+    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -98,7 +103,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] mArgs = {"--help"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs);
+    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -110,7 +115,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] mArgs = {"--list", "-h"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs);
+    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -122,7 +127,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] mArgs = {"--list", "-h", "-v"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs);
+    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.INFO, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -138,7 +143,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] args = {"--list",};
-    	    CmdLineParser parser = new CmdLineParser(args);
+    	    CmdLineParser parser = new CmdLineParser(args, sysOut, sysErr);
     	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -150,7 +155,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] vArgs = {"--list", "-v"};
-    	    CmdLineParser parser = new CmdLineParser(vArgs);
+    	    CmdLineParser parser = new CmdLineParser(vArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.INFO, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -162,7 +167,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--list", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs);
+    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	}
     	catch (Exception e)
@@ -176,13 +181,13 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] mArgs = {"--list", "-d", "-v"};
-    	    parser = new CmdLineParser(mArgs);
+    	    parser = new CmdLineParser(mArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
     	catch (UsageException e)
     	{
-    		String expected = "--verbose and --debug are mutually exclusive options";
-    		Assert.assertTrue(e.getMessage().contains(expected));
+            String expected = "--verbose and --debug are mutually exclusive options";
+            Assert.assertTrue(e.getMessage().contains(expected));
     	}
     	catch (Exception e)
     	{
@@ -199,13 +204,13 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"-d"};
-    	    new CmdLineParser(dArgs);
+    	    new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
     	catch (UsageException e)
     	{
-    		String expected = "Missing command or ommand is not supported";
-    		Assert.assertTrue(e.getMessage().contains(expected));
+            String expected = "Missing command or ommand is not supported";
+            Assert.assertTrue(e.getMessage().contains(expected));
     	}
     	catch (Exception e)
     	{
@@ -216,7 +221,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--list", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs);
+    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	    Assert.assertTrue(parser.getCommand() instanceof ListActiveUsers);
     	}
@@ -229,7 +234,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--list-pending", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs);
+    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	    Assert.assertTrue(parser.getCommand() instanceof ListPendingUsers);
     	}
@@ -242,7 +247,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--view=jdoe", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs);
+    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	    Assert.assertTrue(parser.getCommand() instanceof ViewUser);
     	}
@@ -255,7 +260,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--reject=jdoe", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs);
+    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	    Assert.assertTrue(parser.getCommand() instanceof RejectUser);
     	}
@@ -268,7 +273,7 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--approve=jdoe", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs);
+    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	    Assert.assertTrue(parser.getCommand() instanceof ApproveUser);
     	}
@@ -281,13 +286,13 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--approve", "-d"};
-    	    new CmdLineParser(dArgs);
+    	    new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
     	catch (UsageException e)
     	{
-    		String expected = "Missing userID";
-    		Assert.assertTrue(e.getMessage().contains(expected));
+            String expected = "Missing userID";
+            Assert.assertTrue(e.getMessage().contains(expected));
     	}
     	catch (Exception e)
     	{
@@ -298,13 +303,13 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--approve=", "-d"};
-    	    new CmdLineParser(dArgs);
+    	    new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
     	catch (UsageException e)
     	{
-    		String expected = "Missing userID";
-    		Assert.assertTrue(e.getMessage().contains(expected));
+            String expected = "Missing userID";
+            Assert.assertTrue(e.getMessage().contains(expected));
     	}
     	catch (Exception e)
     	{
@@ -315,13 +320,13 @@ public class CmdLineParserTest
     	try
     	{
     	    String[] dArgs = {"--list", "--list-pending", "-d"};
-    	    new CmdLineParser(dArgs);
+    	    new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
     	catch (UsageException e)
     	{
-    		String expected = "Only one command can be specified";
-    		Assert.assertTrue(e.getMessage().contains(expected));
+            String expected = "Only one command can be specified";
+            Assert.assertTrue(e.getMessage().contains(expected));
     	}
     	catch (Exception e)
     	{
