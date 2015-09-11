@@ -79,6 +79,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.auth.CertCmdArgUtil;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.ArgumentMap;
+import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.StringUtil;
 
 
@@ -89,23 +90,27 @@ import ca.nrc.cadc.util.StringUtil;
 public class CmdLineParser 
 {
     private static Logger log = Logger.getLogger(CmdLineParser.class);
+    private static final String APP_NAME = "userAdmin";
+    private static final String[] LOG_PACKAGES = 
+		{"ca.nrc.cadc.ac", "ca.nrc.cadc.auth", "ca.nrc.cadc.util"};
 
     // no need to proceed further if false
+    private Level logLevel = Level.OFF;
     private boolean proceed = true;
-    private String appName = "";
     private AbstractCommand command;
     private Subject subject;
-    private ArgumentMap am;
-    private Level logLevel = Level.DEBUG;
 
     /**
-     * Default constructor.
+     * Constructor.
+     * @param args Input arguments
+     * @throws UsageException Error in command line
+     * @throws CertificateException Fail to get a certificate
      */
-    public CmdLineParser(final String name, final String[] args) 
+    public CmdLineParser(final String[] args) throws UsageException, CertificateException 
     {
-    	this.appName = name;    	
         ArgumentMap am = new ArgumentMap( args );
-    	this.am = am;
+    	this.setLogLevel(am);
+    	this.parse(am);
     }
     
     /**
@@ -134,21 +139,21 @@ public class CmdLineParser
     {
     	return this.subject;
     }
-
+    
     /**
-     * Get the log level.
-     * @throws UsageException 
+     * Get the logging level.
      */
     public Level getLogLevel()
     {
     	return this.logLevel;
     }
-    
-    /**
-     * Get the log level.
+
+    /*
+     * Set the log level.
+     * @param am Input arguments
      * @throws UsageException 
      */
-    public void setLogLevel() throws UsageException
+    protected void setLogLevel(final ArgumentMap am) throws UsageException
     {
     	int count = 0;
     	
@@ -167,8 +172,16 @@ public class CmdLineParser
                     	
     	if (count >=2)
     	{
-            String msg = "--verbose and --debug are mutually exclusive options\n";            
+            String msg = "--verbose and --debug are mutually exclusive options";            
             throw new UsageException(msg);
+    	}
+    	else
+    	{        	
+            // set the application log level
+            for (String pkg : LOG_PACKAGES)
+            {
+                Log4jInit.setLevel(APP_NAME, pkg, this.logLevel);
+            }
     	}
     }
     
@@ -245,29 +258,30 @@ public class CmdLineParser
     		
             if (count == 0)
             {
-                msg = "Command is not supported.";
+                msg = "Missing command or ommand is not supported.";
             }
             else
             {
-                msg = "Only one command can be specified.\n";
+                msg = "Only one command can be specified.";
             }
     	
             throw new UsageException(msg);
     	}
     }
     
-    /**
+    /*
      * Parse the command line arguments.
+     * @param ArgumentMap Command line arguments
      * @throws UsageException Error in command line
-     * @throws CertificateException 
+     * @throws CertificateException Fail to get a certificate
      */
-    public void parse() throws UsageException, CertificateException
+    protected void parse(final ArgumentMap am) throws UsageException, CertificateException
     {
         this.proceed = false;
 
-        if (!this.am.isSet("h") && !this.am.isSet("help") && isValid(this.am))
+        if (!am.isSet("h") && !am.isSet("help") && isValid(am))
         {
-            Subject subject = CertCmdArgUtil.initSubject(this.am, true);
+            Subject subject = CertCmdArgUtil.initSubject(am, true);
             
             try 
             {
@@ -277,7 +291,7 @@ public class CmdLineParser
             } 
             catch (CertificateException e) 
             {
-            	if (this.am.isSet("list"))
+            	if (am.isSet("list"))
             	{
                     // we can use anonymous subject
                     this.proceed = true;
@@ -293,11 +307,11 @@ public class CmdLineParser
     /**
      * Provide the default command line usage. 
      */
-    public String getUsage()
+    public static String getUsage()
     {
     	StringBuilder sb = new StringBuilder();
     	sb.append("\n");
-    	sb.append("Usage: " + this.appName + " [--cert=<path to pem file>] <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
+    	sb.append("Usage: " + APP_NAME + " [--cert=<path to pem file>] <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
     	sb.append("Where command is\n");
     	sb.append("--list               :list users in the Users tree\n");
     	sb.append("                     :can be executed as an anonymous user\n");

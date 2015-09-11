@@ -76,8 +76,6 @@ import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.util.Log4jInit;
-
 /**
  * A command line admin tool for LDAP users.
  * 
@@ -88,9 +86,6 @@ public class Main
 {
     private static Logger log = Logger.getLogger(Main.class);
     
-    private static final String APP_NAME = "userAdmin";
-    private static final String[] LOG_PACKAGES = 
-		{"ca.nrc.cadc.ac", "ca.nrc.cadc.auth", "ca.nrc.cadc.util"};
     private static PrintStream systemOut = System.out;
     private static PrintStream systemErr = System.err;
  
@@ -100,17 +95,10 @@ public class Main
      */
     public static void main(String[] args)
     {
-    	CmdLineParser parser = new CmdLineParser(APP_NAME, args);
-    	
         try
         {
-            parser.setLogLevel();
-            for (String pkg : LOG_PACKAGES)
-            {
-                Log4jInit.setLevel(APP_NAME, pkg, parser.getLogLevel());
-            }
+        	CmdLineParser parser = new CmdLineParser(args);
 
-            parser.parse();
             if (parser.proceed())
             {  
                 AbstractCommand command = parser.getCommand();
@@ -129,13 +117,13 @@ public class Main
             }
             else
             {
-                systemOut.println(parser.getUsage());
+                systemOut.println(CmdLineParser.getUsage());
             }
         }
         catch(UsageException e)
         {
             systemErr.println("ERROR: " + e.getMessage());
-    		systemOut.println(parser.getUsage());
+    		systemOut.println(CmdLineParser.getUsage());
             System.exit(0);
         }
         catch(CertificateException e)

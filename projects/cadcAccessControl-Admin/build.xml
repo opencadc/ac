@@ -88,6 +88,7 @@
     <property name="cadcAccessControl-Server"	value="${lib}/cadcAccessControl-Server.jar" />
     <property name="cadcUtil"			value="${lib}/cadcUtil.jar" />
     <property name="log4j"			value="${ext.lib}/log4j.jar" />
+    <property name="commons-logging"            value="${ext.lib}/commons-logging.jar" />
     <property name="unboundid"                  value="${ext.lib}/unboundid-ldapsdk-se.jar" />
     
     <property name="cadc"       value="${cadcAccessControl}:${cadcAccessControl-Server}:${cadcUtil}" />
