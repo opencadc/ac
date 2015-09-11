@@ -92,8 +92,6 @@
   <property name="cadcRegistry" value="${lib}/cadcRegistryClient.jar"/>
   <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
   <property name="cadcUWS" value="${lib}/cadcUWS.jar"/>
-  <property name="wsUtil" value="${lib}/wsUtil.jar"/>
-  <property name="wsUtil-augment" value="${lib}/wsUtil-augment.jar"/>
 
   <property name="javacsv" value="${ext.lib}/javacsv.jar"/>
   <property name="jdom2" value="${ext.lib}/jdom2.jar"/>
@@ -103,7 +101,7 @@
   <property name="xerces" value="${ext.lib}/xerces.jar"/>
 
   <property name="jars"
-            value="${javacsv}:${jdom2}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${wsUtil}:${wsUtil-augment}"/>
+            value="${javacsv}:${jdom2}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}"/>
 
   <target name="build" depends="compile">
     <jar jarfile="${build}/lib/${project}.jar"
