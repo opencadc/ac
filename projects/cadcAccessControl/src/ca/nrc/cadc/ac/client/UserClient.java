@@ -131,8 +131,8 @@ public class UserClient
     }
 
     /**
-     * This method takes a subject with at least one valid principal, 
-     * uses the ac user web service to get all the other 
+     * This method takes a subject with at least one valid principal,
+     * uses the ac user web service to get all the other
      * associated principals which are then added to the subject.
      *
      * @param subject           The Subject to pull Princials for.
@@ -143,17 +143,31 @@ public class UserClient
     	if (principal != null)
     	{
 	        URL url = this.getURL(principal);
-	    	log.debug("augmentSubject request to " + url.toString());    	
+	    	log.debug("augmentSubject request to " + url.toString());
 	        ByteArrayOutputStream out = new ByteArrayOutputStream();
 	        HttpDownload download = new HttpDownload(url, out);
 	        download.run();
-	     
-	        this.handleThrowable(download);
+
+	        int responseCode = download.getResponseCode();
+	        if (responseCode == 404) // not found
+	        {
+	            return;
+	        }
+	        if (responseCode != 200)
+	        {
+	            String message = "Error calling /ac to augment subject";
+	            if (download.getThrowable() != null)
+	            {
+	                throw new IllegalStateException(message, download.getThrowable());
+	            }
+	            throw new IllegalStateException(message);
+	        }
+
 	        subject.getPrincipals().clear();
 	        subject.getPrincipals().addAll(this.getPrincipals(out));
     	}
     }
-    
+
     protected Principal getPrincipal(final Subject subject)
     {
     	Set<Principal> principals = subject.getPrincipals();
@@ -167,7 +181,7 @@ public class UserClient
         		final String msg = "Subject has more than one principal.";
 		        throw new IllegalArgumentException(msg);
             }
-            
+
             return principal;
     	}
     	else
@@ -175,14 +189,14 @@ public class UserClient
     		return null;
     	}
     }
-    
+
     protected Set<Principal> getPrincipals(ByteArrayOutputStream out)
     {
     	try
     	{
 	        String userXML = new String(out.toByteArray(), "UTF-8");
 	        log.debug("userXML Input to getPrincipals(): " + userXML);
-	        
+
 	        User<Principal> user = new UserReader().read(userXML);
 	        return user.getIdentities();
     	}
@@ -191,36 +205,25 @@ public class UserClient
     		throw new RuntimeException(e);
     	}
     }
-    
-    protected void handleThrowable(HttpDownload download)
-    {
-    	Throwable throwable = download.getThrowable();
-        if (throwable != null)
-        {
-            log.debug("handleThrowable(): throwable (" + download
-                    .getResponseCode() + ")", throwable);
-            throw new IllegalStateException(throwable.getMessage());
-        }
-    }
-    
+
     protected URL getURL(Principal principal)
     {
-		try 
+		try
 		{
 		    String userID = principal.getName();
-			URL url = new URL(this.baseURL + "/users/" + userID + 
+			URL url = new URL(this.baseURL + "/users/" + userID +
 					"?idType=" + this.getIdType(principal) + "&detail=identity");
 			log.debug("getURL(): returned url ="
 					+ ""
 					+ " " + url.toString());
 			return url;
-		} 
+		}
 		catch (MalformedURLException e)
 		{
 			throw new RuntimeException(e);
 		}
     }
-    
+
     protected String getIdType(Principal principal)
     {
 		String idTypeStr = AuthenticationUtil.getPrincipalType(principal);
@@ -230,7 +233,7 @@ public class UserClient
     				principal.getName();
 	        throw new IllegalArgumentException(msg);
         }
-        
+
         return idTypeStr;
     }
 }
