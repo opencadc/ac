@@ -71,11 +71,18 @@ package ca.nrc.cadc.ac.server.web.users;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityType;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import org.apache.log4j.Logger;
 
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
@@ -83,11 +90,13 @@ import java.util.Set;
 
 public class ModifyUserAction extends AbstractUserAction
 {
+    private static final Logger log = Logger.getLogger(ModifyUserAction.class);
+
     private final InputStream inputStream;
-    private final String request;
+    private final HttpServletRequest request;
 
 
-    ModifyUserAction(final InputStream inputStream, final String request)
+    ModifyUserAction(final InputStream inputStream, final HttpServletRequest request)
     {
         super();
 
@@ -102,7 +111,59 @@ public class ModifyUserAction extends AbstractUserAction
         final User<Principal> modifiedUser = modifyUser(user);
         logUserInfo(modifiedUser.getUserID().getName());
 
-        syncOut.setHeader("Location", request);
+        final URL requestURL = new URL(request.getRequestURL().toString());
+        final StringBuilder sb = new StringBuilder();
+        sb.append(requestURL.getProtocol());
+        sb.append("://");
+        sb.append(requestURL.getHost());
+        if (requestURL.getPort() > 0)
+        {
+            sb.append(":");
+            sb.append(requestURL.getPort());
+        }
+        sb.append(request.getContextPath());
+        sb.append(request.getServletPath());
+        sb.append(request.getPathInfo());
+        sb.append("?idType=");
+
+        // Need to find the principal type for this userID
+        String idType = null;
+        for (Principal principal : user.getIdentities())
+        {
+            if (principal.getName().equals(modifiedUser.getUserID().getName()))
+            {
+                if (principal instanceof HttpPrincipal)
+                {
+                    idType = IdentityType.USERNAME.getValue();
+                }
+                else if (principal instanceof X500Principal)
+                {
+                    idType = IdentityType.X500.getValue();
+                }
+                else if (principal instanceof NumericPrincipal)
+                {
+                    idType = IdentityType.CADC.getValue();
+                }
+                else if (principal instanceof CookiePrincipal)
+                {
+                    idType = IdentityType.COOKIE.getValue();
+                }
+            }
+        }
+
+        if (idType == null)
+        {
+            throw new IllegalArgumentException(
+                "Bad POST request to " + request.getServletPath() +
+                    " because unknown userID Principal");
+        }
+
+        sb.append(idType);
+
+        final String redirectUrl = sb.toString();
+        log.debug("redirect URL: " + redirectUrl);
+
+        syncOut.setHeader("Location", redirectUrl);
         syncOut.setCode(303);
     }
 

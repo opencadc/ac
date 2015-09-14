@@ -423,9 +423,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         SearchResultEntry searchResult = null;
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
-            filter = Filter.createANDFilter(filter,
-                Filter.createEqualityFilter(searchField, userID.getName()));
+//            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//            filter = Filter.createANDFilter(filter,
+//                Filter.createEqualityFilter(searchField, userID.getName()));
+            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -454,7 +455,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 searchResult.getAttributeValue(
                        userLdapAttrib.get(HttpPrincipal.class))));
 
-        Long numericID = searchResult.getAttributeValueAsLong(userLdapAttrib.get(NumericPrincipal.class));
+        Long numericID = searchResult.getAttributeValueAsLong(
+            userLdapAttrib.get(NumericPrincipal.class));
         logger.debug("Numeric id is: " + numericID);
         if (numericID == null)
         {
@@ -494,9 +496,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
-            filter = Filter.createANDFilter(filter,
-                Filter.createEqualityFilter(searchField, userID.getName()));
+            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest = new SearchRequest(
@@ -537,7 +537,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
     public Collection<User<Principal>> getUsers()
-        throws TransientException
+        throws AccessControlException, TransientException
     {
         return getUsers(config.getUsersDN());
     }
@@ -549,13 +549,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
     public Collection<User<Principal>> getPendingUsers()
-        throws TransientException
+        throws AccessControlException, TransientException
     {
         return getUsers(config.getUserRequestsDN());
     }
 
     private Collection<User<Principal>> getUsers(final String usersDN)
-        throws TransientException
+        throws AccessControlException, TransientException
     {
         final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
@@ -565,7 +565,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             logger.debug("search filter: " + filter);
 
             final String[] attributes = new String[]
-                { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_NSACCOUNTLOCK };
+                { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME };
             final SearchRequest searchRequest =
                 new SearchRequest(usersDN, SearchScope.ONE, filter, attributes);
 
@@ -577,18 +577,15 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 LdapDAO.checkLdapResult(searchResult.getResultCode());
                 for (SearchResultEntry next : searchResult.getSearchEntries())
                 {
-                    if (!next.hasAttribute(LDAP_NSACCOUNTLOCK))
-                    {
-                        final String firstName =
-                            next.getAttributeValue(LDAP_FIRST_NAME).trim();
-                        final String lastName =
-                            next.getAttributeValue(LDAP_LAST_NAME).trim();
-                        final String uid = next.getAttributeValue(LDAP_UID).trim();
-                        User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
-                        PersonalDetails pd = new PersonalDetails(firstName, lastName);
-                        user.details.add(pd);
-                        users.add(user);
-                    }
+                    final String firstName =
+                        next.getAttributeValue(LDAP_FIRST_NAME).trim();
+                    final String lastName =
+                        next.getAttributeValue(LDAP_LAST_NAME).trim();
+                    final String uid = next.getAttributeValue(LDAP_UID).trim();
+                    User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
+                    PersonalDetails pd = new PersonalDetails(firstName, lastName);
+                    user.details.add(pd);
+                    users.add(user);
                 }
             }
             catch (LDAPSearchException e)
