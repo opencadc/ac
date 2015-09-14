@@ -200,8 +200,7 @@ public class CmdLineParser
         }
     }
     
-    protected boolean isValid(final ArgumentMap am, final PrintStream outStream,
-        final PrintStream errStream) throws UsageException
+    protected boolean isValid(final ArgumentMap am) throws UsageException
     {
     	int count = 0;
     	
@@ -253,8 +252,6 @@ public class CmdLineParser
                     	
     	if (count == 1)
     	{
-            this.command.setSystemOut(outStream);
-            this.command.setSystemErr(errStream);
             return true;
     	}
     	else
@@ -285,7 +282,7 @@ public class CmdLineParser
     {
         this.proceed = false;
 
-        if (!am.isSet("h") && !am.isSet("help") && isValid(am, out, err))
+        if (!am.isSet("h") && !am.isSet("help") && isValid(am))
         {
             Subject subject = CertCmdArgUtil.initSubject(am, true);
             
@@ -300,13 +297,17 @@ public class CmdLineParser
             	if (am.isSet("list"))
             	{
                     // we can use anonymous subject
-                    this.proceed = true;
+                     this.proceed = true;
             	}
             	else
             	{
                     throw e;
             	}
             }
+            
+            // the following statements are executed only when proceed is true
+            this.command.setSystemOut(out);
+            this.command.setSystemErr(err);            
         }
     }    
 
