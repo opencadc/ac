@@ -261,7 +261,7 @@ public abstract class UserActionFactory
         else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
         {
             return new User<NumericPrincipal>(new NumericPrincipal(
-                    Long.parseLong(userName)));
+                    Integer.parseInt(userName)));
         }
         else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue()))
         {
