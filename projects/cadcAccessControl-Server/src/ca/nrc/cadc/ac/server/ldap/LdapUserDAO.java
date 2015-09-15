@@ -453,7 +453,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 searchResult.getAttributeValue(
                        userLdapAttrib.get(HttpPrincipal.class))));
 
-        Long numericID = searchResult.getAttributeValueAsLong(userLdapAttrib.get(NumericPrincipal.class));
+        Integer numericID = searchResult.getAttributeValueAsInteger(userLdapAttrib.get(NumericPrincipal.class));
         logger.debug("Numeric id is: " + numericID);
         if (numericID == null)
         {
@@ -514,7 +514,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             user.getIdentities().add(new HttpPrincipal(
                 searchResult.getAttributeValue(LDAP_UID)));
             user.getIdentities().add(new NumericPrincipal(
-                searchResult.getAttributeValueAsLong(LDAP_NUMERICID)));
+                searchResult.getAttributeValueAsInteger(LDAP_NUMERICID)));
             user.getIdentities().add(new X500Principal(
                 searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME)));
             user.getIdentities().add(new DNPrincipal(
