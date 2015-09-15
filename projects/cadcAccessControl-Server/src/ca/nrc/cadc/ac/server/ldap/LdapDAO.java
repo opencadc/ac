@@ -165,7 +165,7 @@ public abstract class LdapDAO
     {
         if (subjDN == null)
         {
-            Subject callerSubject = getSubject();
+            Subject callerSubject = Subject.getSubject(AccessController.getContext());
             if (callerSubject == null)
             {
                 throw new AccessControlException("Caller not authenticated.");
@@ -238,10 +238,4 @@ public abstract class LdapDAO
 
         throw new RuntimeException("Ldap error (" + code.getName() + ")");
     }
-
-    protected Subject getSubject()
-    {
-        return Subject.getSubject(AccessController.getContext());
-    }
-
 }

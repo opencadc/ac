@@ -74,6 +74,8 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+import java.security.PrivilegedAction;
 import org.apache.log4j.Level;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -81,6 +83,7 @@ import org.junit.Test;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import java.security.PrivilegedExceptionAction;
+import org.junit.Assert;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -179,21 +182,30 @@ public class LdapDAOTest extends AbstractLdapDAOTest
         DN expected = new DN("uid=foo,ou=bar,dc=net");
         final DNPrincipal dnPrincipal = new DNPrincipal(expected.toNormalizedString());
 
+        Subject subject = new Subject();
+        subject.getPrincipals().add(new HttpPrincipal("foo"));
+        subject.getPrincipals().add(new X500Principal("uid=foo,o=bar"));
+        subject.getPrincipals().add(dnPrincipal);
+                
         LdapConfig config = LdapConfig.getLdapConfig("LdapConfig.test.properties");
-        LdapDAO ldapDAO = new LdapDAO(config)
+        final LdapDAO ldapDAO = new LdapDAO(config) { }; // abstract
+        
+        DN actual = Subject.doAs(subject, new PrivilegedAction<DN>()
         {
-            @Override
-            protected Subject getSubject()
+            public DN run()
             {
-                Subject subject = new Subject();
-                subject.getPrincipals().add(new HttpPrincipal("foo"));
-                subject.getPrincipals().add(new X500Principal("uid=foo,o=bar"));
-                subject.getPrincipals().add(dnPrincipal);
-                return subject;
+                try
+                {
+                    return ldapDAO.getSubjectDN();
+                }
+                catch(LDAPException ex)
+                {
+                    Assert.fail("getSubjectDN threw " + ex);
+                }
+                return null;
             }
-        };
-
-        DN actual = ldapDAO.getSubjectDN();
+        } );
+        
         assertNotNull("DN is null", actual);
         assertEquals("DN's do not match", expected.toNormalizedString(), actual.toNormalizedString());
     }
