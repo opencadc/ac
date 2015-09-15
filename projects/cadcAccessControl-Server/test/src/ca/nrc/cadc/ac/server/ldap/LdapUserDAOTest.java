@@ -491,7 +491,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     /**
      * Test of deleteUser method, of class LdapUserDAO.
      */
-    @Test
+//    @Test
     public void deleteUser() throws Exception
     {
         String userID = createUsername();
@@ -537,7 +537,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     /**
      * Test of deletePendingUser method, of class LdapUserDAO.
      */
-    @Test
+//    @Test
     public void deletePendingUser() throws Exception
     {
         String userID = createUsername();

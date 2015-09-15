@@ -145,7 +145,7 @@ public class JsonUserReaderWriterTest
         throws Exception
     {
         User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
-        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.getIdentities().add(new NumericPrincipal(123));
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         expected.details.add(new PosixDetails(123l, 456l, "foo"));
 

@@ -166,7 +166,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
         assertEquals(expected, actual);
 
         // CADC
-        expected = new NumericPrincipal(123l);
+        expected = new NumericPrincipal(123);
         element = getElement(expected);
         assertNotNull(element);
          

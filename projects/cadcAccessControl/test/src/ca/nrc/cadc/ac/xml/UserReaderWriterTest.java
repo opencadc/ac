@@ -144,7 +144,7 @@ public class UserReaderWriterTest
         throws Exception
     {
         User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
-        expected.getIdentities().add(new NumericPrincipal(123l));
+        expected.getIdentities().add(new NumericPrincipal(123));
         expected.details.add(new PersonalDetails("firstname", "lastname"));
         
         StringBuilder xml = new StringBuilder();

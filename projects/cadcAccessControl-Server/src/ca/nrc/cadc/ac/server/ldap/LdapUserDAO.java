@@ -455,7 +455,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 searchResult.getAttributeValue(
                        userLdapAttrib.get(HttpPrincipal.class))));
 
-        Long numericID = searchResult.getAttributeValueAsLong(
+        Integer numericID = searchResult.getAttributeValueAsInteger(
             userLdapAttrib.get(NumericPrincipal.class));
         logger.debug("Numeric id is: " + numericID);
         if (numericID == null)
