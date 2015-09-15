@@ -89,12 +89,14 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
 
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.Filter;
+import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.LDAPResult;
 import com.unboundid.ldap.sdk.LDAPSearchException;
@@ -105,8 +107,11 @@ import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.ldap.sdk.SearchRequest;
 import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchResultListener;
+import com.unboundid.ldap.sdk.SearchResultReference;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
+import java.util.LinkedList;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -125,6 +130,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         "entrydn", "cn", "nsaccountlock", "owner", "modifytimestamp", "description", "uniquemember"
     };
 
+    private Profiler profiler = new Profiler(LdapDAO.class);
+    
     private LdapUserDAO<T> userPersist;
     
     // this gets filled by the LdapgroupPersistence
@@ -347,17 +354,48 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            Filter filter = Filter.createPresenceFilter("cn");
-            String [] attributes = new String[] {"cn", "nsaccountlock"};
+            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
+            filter = Filter.createANDFilter(filter, Filter.create("(cn=*)"));
+            
+            final List<String> groupNames = new LinkedList<String>();
+            SearchRequest searchRequest = new SearchRequest(
+                    new SearchResultListener()
+                    {
+                        long t1 = System.currentTimeMillis();
+                        
+                        public void searchEntryReturned(SearchResultEntry sre)
+                        {
+                            String gname = sre.getAttributeValue("cn");
+                            groupNames.add(gname);
+                            
+                            long t2 = System.currentTimeMillis();
+                            long dt = t2 - t1;
+                            if (groupNames.size() == 1)
+                            {
+                                logger.debug("first row: " + dt + "ms");
+                                t1 = t2;
+                            }    
+                            if ( (groupNames.size() % 100) == 0)
+                            {
+                                
+                                logger.debug("found: " + groupNames.size() + " " + dt + "ms");
+                                t1 = t2;
+                            }
+                        }
 
-            SearchRequest searchRequest =
-                    new SearchRequest(config.getGroupsDN(),
-                                      SearchScope.SUB, filter, attributes);
+                        public void searchReferenceReturned(SearchResultReference srr)
+                        {
+                            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+                    }, config.getGroupsDN(), SearchScope.ONE, filter, PUB_GROUP_ATTRS);
 
             SearchResult searchResult = null;
             try
             {
-                searchResult = getConnection().search(searchRequest);
+                LDAPConnection con = getConnection();
+                profiler.checkpoint("getGroupNames.getConnection");
+                searchResult = con.search(searchRequest);
+                profiler.checkpoint("getGroupNames.search");
             }
             catch (LDAPSearchException e)
             {
@@ -372,15 +410,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
 
             LdapDAO.checkLdapResult(searchResult.getResultCode());
-            List<String> groupNames = new ArrayList<String>();
-            for (SearchResultEntry next : searchResult.getSearchEntries())
-            {
-                if (!next.hasAttribute("nsaccountlock"))
-                {
-                    groupNames.add(next.getAttributeValue("cn"));
-                }
-            }
-
+            profiler.checkpoint("checkLdapResult");
+            
             return groupNames;
         }
         catch (LDAPException e1)
@@ -389,8 +420,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             LdapDAO.checkLdapResult(e1.getResultCode());
             throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
         }
-
     }
+    
 
     /**
      * Get the group with members.
