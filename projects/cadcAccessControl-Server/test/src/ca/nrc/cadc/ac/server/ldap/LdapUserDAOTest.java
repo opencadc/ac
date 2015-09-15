@@ -196,9 +196,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final UserRequest<Principal> userRequest =
                 new UserRequest<Principal>(expected, "123456".toCharArray());
 
-        final LdapUserDAO<Principal> userDAO = getUserDAO();
-        userDAO.addUser(userRequest);
-
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
@@ -211,6 +208,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    userDAO.addUser(userRequest);
+
                     final User<Principal> actual =
                         userDAO.getUser(expected.getUserID());
                     check(expected, actual);
@@ -247,9 +246,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());
 
-        final LdapUserDAO<Principal> userDAO = getUserDAO();
-        userDAO.addPendingUser(userRequest);
-
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUserRequestsDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
@@ -263,6 +259,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    userDAO.addPendingUser(userRequest);
+
                     final User<Principal> actual =
                         userDAO.getPendingUser(expected.getUserID());
                     check(expected, actual);
@@ -358,9 +356,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());
 
-        final LdapUserDAO<Principal> userDAO = getUserDAO();
-        userDAO.addPendingUser(userRequest);
-
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
@@ -373,6 +368,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    userDAO.addPendingUser(userRequest);
+
                     final User<Principal> actual = userDAO.approvePendingUser(expected.getUserID());
                     assertNotNull(actual);
                     assertEquals(expected.getUserID(), actual.getUserID());
