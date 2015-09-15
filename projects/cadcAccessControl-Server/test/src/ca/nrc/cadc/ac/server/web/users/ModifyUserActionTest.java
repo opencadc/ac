@@ -74,12 +74,14 @@ import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.Principal;
 
 import static org.easymock.EasyMock.createMock;
@@ -88,7 +90,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
-
 
 public class ModifyUserActionTest
 {
@@ -108,7 +109,6 @@ public class ModifyUserActionTest
 
         final byte[] input = sb.toString().getBytes();
         final InputStream inputStream = new ByteArrayInputStream(input);
-        final String request = "/CADCtest?idType=http";
 
         // Should match the JSON above, without the e-mail modification.
         Principal principal = new HttpPrincipal("CADCtest");
@@ -120,6 +120,15 @@ public class ModifyUserActionTest
         personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
         userObject.details.add(personalDetail);
 
+        StringBuffer requestUrl = new StringBuffer();
+        requestUrl.append("http://host/ac/users/CADCtest?idType=HTTP");
+
+        HttpServletRequest mockRequest = EasyMock.createMock(HttpServletRequest.class);
+        EasyMock.expect(mockRequest.getPathInfo()).andReturn("/CADCtest");
+        EasyMock.expect(mockRequest.getRequestURL()).andReturn(requestUrl).once();
+        EasyMock.expect(mockRequest.getContextPath()).andReturn("/ac").once();
+        EasyMock.expect(mockRequest.getServletPath()).andReturn("/users").once();
+
         final SyncOutput mockSyncOut =
                 createMock(SyncOutput.class);
 
@@ -128,10 +137,9 @@ public class ModifyUserActionTest
                 createMock(UserPersistence.class);
 
         expect(mockUserPersistence.modifyUser(userObject)).andReturn(
-                userObject).once();
+            userObject).once();
 
-
-        mockSyncOut.setHeader("Location", request);
+        mockSyncOut.setHeader("Location", requestUrl.toString());
         expectLastCall().once();
 
         mockSyncOut.setCode(303);
@@ -140,9 +148,9 @@ public class ModifyUserActionTest
         mockSyncOut.setHeader("Content-Type", "application/json");
         expectLastCall().once();
 
-        replay(mockSyncOut, mockUserPersistence);
+        replay(mockRequest, mockSyncOut, mockUserPersistence);
 
-        final ModifyUserAction testSubject = new ModifyUserAction(inputStream, request)
+        final ModifyUserAction testSubject = new ModifyUserAction(inputStream, mockRequest)
         {
             @Override
             @SuppressWarnings("unchecked")
@@ -156,8 +164,14 @@ public class ModifyUserActionTest
         testSubject.syncOut = mockSyncOut;
         UserLogInfo logInfo = createMock(UserLogInfo.class);
         testSubject.setLogInfo(logInfo);
-        testSubject.doAction();
-
-        verify(mockSyncOut, mockUserPersistence);
+        try
+        {
+            testSubject.doAction();
+        }
+        catch (Throwable t)
+        {
+            t.printStackTrace();
+        }
+        verify(mockRequest, mockSyncOut, mockUserPersistence);
     }
 }

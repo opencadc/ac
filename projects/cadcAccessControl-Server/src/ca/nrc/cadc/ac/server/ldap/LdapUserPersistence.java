@@ -68,20 +68,20 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.*;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
 import com.unboundid.ldap.sdk.DN;
+import org.apache.log4j.Logger;
+
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
-import org.apache.log4j.Logger;
-
-public class LdapUserPersistence<T extends Principal>
-    implements UserPersistence<T>
+public class LdapUserPersistence<T extends Principal>  implements UserPersistence<T>
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
     private LdapConfig config;
@@ -98,28 +98,10 @@ public class LdapUserPersistence<T extends Principal>
         }
     }
 
-    public Collection<User<Principal>> getUsers()
-        throws TransientException, AccessControlException
-    {
-        LdapUserDAO<T> userDAO = null;
-        try
-        {
-            userDAO = new LdapUserDAO<T>(config);
-            return userDAO.getUsers();
-        }
-        finally
-        {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
-        }
-    }
-
     /**
-     * Add the new user.
+     * Add the user to the active users tree.
      *
-     * @param user
+     * @param user      The user request to put into the active user tree.
      *
      * @return User instance.
      *
@@ -146,7 +128,36 @@ public class LdapUserPersistence<T extends Principal>
     }
 
     /**
-     * Get the user specified by userID.
+     * Add the user to the pending users tree.
+     *
+     * @param user      The user request to put into the pending user tree.
+     *
+     * @return User instance.
+     *
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void addPendingUser(UserRequest<T> user)
+        throws TransientException, AccessControlException,
+        UserAlreadyExistsException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO.addPendingUser(user);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Get the user specified by userID from the active users tree.
      *
      * @param userID The userID.
      *
@@ -183,9 +194,8 @@ public class LdapUserPersistence<T extends Principal>
     * @throws TransientException     If an temporary, unexpected problem occurred.
     * @throws AccessControlException If the operation is not permitted.
     */
-    public User<T> getPendingUser(final T userID) throws UserNotFoundException,
-                                                         TransientException,
-                                                         AccessControlException
+    public User<T> getPendingUser(final T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
         try
@@ -232,6 +242,173 @@ public class LdapUserPersistence<T extends Principal>
     }
 
     /**
+     * Get all user names from the active users tree.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<User<Principal>> getUsers()
+        throws TransientException, AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            return userDAO.getUsers();
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Get all user names from the pending users tree.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public Collection<User<Principal>> getPendingUsers()
+        throws TransientException, AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(config);
+            return userDAO.getPendingUsers();
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Move the pending user specified by userID from the
+     * pending users tree to the active users tree.
+     *
+     * @param userID      The user instance to move.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> approvePendingUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.approvePendingUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Updated the user specified by userID in the active users tree.
+     *
+     * @param user          The user to update.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> modifyUser(User<T> user)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            return userDAO.modifyUser(user);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Delete the user specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void deleteUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO.deleteUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
+     * Delete the user specified by userID from the pending users tree.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void deletePendingUser(T userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        LdapUserDAO<T> userDAO = null;
+        try
+        {
+            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO.deletePendingUser(userID);
+        }
+        finally
+        {
+            if (userDAO != null)
+            {
+                userDAO.close();
+            }
+        }
+    }
+
+    /**
      * Get the user specified by userID.
      *
      * @param userID The userID.
@@ -261,36 +438,6 @@ public class LdapUserPersistence<T extends Principal>
     }
 
     /**
-     * Updated the user specified by User.
-     *
-     * @param user          The user to update.
-     *
-     * @return User instance.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    public User<T> modifyUser(User<T> user)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
-    {
-        LdapUserDAO<T> userDAO = null;
-        try
-        {
-            userDAO = new LdapUserDAO<T>(this.config);
-            return userDAO.modifyUser(user);
-        }
-        finally
-        {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
-        }
-    }
-
-    /**
      * Update a user's password. The given user and authenticating user must match.
      *
      * @param user
@@ -308,34 +455,6 @@ public class LdapUserPersistence<T extends Principal>
         {
             userDAO = new LdapUserDAO<T>(this.config);
             userDAO.setPassword(user, oldPassword, newPassword);
-        }
-        finally
-        {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
-        }
-    }
-
-    /**
-     * Delete the user specified by userID.
-     *
-     * @param userID The userID.
-     *
-     * @throws UserNotFoundException when the user is not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    public void deleteUser(T userID)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
-    {
-        LdapUserDAO<T> userDAO = null;
-        try
-        {
-            userDAO = new LdapUserDAO<T>(this.config);
-            userDAO.deleteUser(userID);
         }
         finally
         {

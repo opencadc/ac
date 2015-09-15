@@ -195,4 +195,26 @@ public class PersonalDetails implements UserDetails
                institute + ", " + city + ", " + country + "]";
     }
 
+    /**
+     * Provide a list of all personal attributes in a String.
+     * Each attribute contains its name and value on a separate line.
+     * For example:
+     * firstName: John
+     * lastName: Doe
+     * email: john.Doe@jd.com 
+     */
+    public String toStringFormatted()
+    {
+    	StringBuffer sb = new StringBuffer(NAME + "\n");
+    	sb.append(FIRSTNAME + ": " + firstName +"\n");
+    	sb.append(LASTNAME + ": " + lastName +"\n");
+    	sb.append(EMAIL + ": " + email +"\n");
+    	sb.append(ADDRESS + ": " + address +"\n");
+    	sb.append(INSTITUTE + ": " + institute +"\n");
+    	sb.append(CITY + ": " + city +"\n");
+    	sb.append(COUNTRY + ": " + country +"\n");
+	
+    	
+    	return sb.toString();
+    }
 }

@@ -98,7 +98,7 @@ public class UserClientTest
     
     public UserClientTest()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
 
