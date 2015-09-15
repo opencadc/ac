@@ -77,10 +77,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.DNPrincipal;
+import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -146,7 +148,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     protected static final String LDAP_EMAIL = "email";
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
-
 
     private String[] userAttribs = new String[]
             {
@@ -422,9 +423,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         SearchResultEntry searchResult = null;
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
-            filter = Filter.createANDFilter(filter,
-                Filter.createEqualityFilter(searchField, userID.getName()));
+//            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//            filter = Filter.createANDFilter(filter,
+//                Filter.createEqualityFilter(searchField, userID.getName()));
+            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -453,7 +455,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 searchResult.getAttributeValue(
                        userLdapAttrib.get(HttpPrincipal.class))));
 
-        Integer numericID = searchResult.getAttributeValueAsInteger(userLdapAttrib.get(NumericPrincipal.class));
+        Long numericID = searchResult.getAttributeValueAsLong(
+            userLdapAttrib.get(NumericPrincipal.class));
         logger.debug("Numeric id is: " + numericID);
         if (numericID == null)
         {
@@ -493,9 +496,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
-            filter = Filter.createANDFilter(filter,
-                Filter.createEqualityFilter(searchField, userID.getName()));
+            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest = new SearchRequest(
@@ -536,7 +537,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
     public Collection<User<Principal>> getUsers()
-        throws TransientException
+        throws AccessControlException, TransientException
     {
         return getUsers(config.getUsersDN());
     }
@@ -548,24 +549,23 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
     public Collection<User<Principal>> getPendingUsers()
-        throws TransientException
+        throws AccessControlException, TransientException
     {
         return getUsers(config.getUserRequestsDN());
     }
 
     private Collection<User<Principal>> getUsers(final String usersDN)
-        throws TransientException
+        throws AccessControlException, TransientException
     {
         final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
         try
         {
-            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
-            filter = Filter.createANDFilter(filter, Filter.createPresenceFilter(LDAP_UID));
+            Filter filter =  Filter.createPresenceFilter(LDAP_UID);
             logger.debug("search filter: " + filter);
 
             final String[] attributes = new String[]
-                { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_NSACCOUNTLOCK };
+                { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME };
             final SearchRequest searchRequest =
                 new SearchRequest(usersDN, SearchScope.ONE, filter, attributes);
 
@@ -581,7 +581,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                         next.getAttributeValue(LDAP_FIRST_NAME).trim();
                     final String lastName =
                         next.getAttributeValue(LDAP_LAST_NAME).trim();
-                    final String uid =  next.getAttributeValue(LDAP_UID).trim();
+                    final String uid = next.getAttributeValue(LDAP_UID).trim();
                     User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
                     PersonalDetails pd = new PersonalDetails(firstName, lastName);
                     user.details.add(pd);
@@ -610,21 +610,69 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
-     * Updated the user specified by User.
+     * Move the pending user specified by userID from the
+     * pending users tree to the active users tree.
      *
-     * @param user
+     * @param userID
      * @return User instance.
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> modifyUser(final User<T> user)
+    public User<T> approvePendingUser(final T userID)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        User<T> pendingUser = getPendingUser(userID);
+
+        Set<HttpPrincipal> httpPrincipals = pendingUser.getIdentities(HttpPrincipal.class);
+        if (httpPrincipals.isEmpty())
+        {
+            throw new RuntimeException("BUG: missing HttpPrincipal for " + userID.getName());
+        }
+        HttpPrincipal httpPrincipal = httpPrincipals.iterator().next();
+        String uid = "uid=" + httpPrincipal.getName();
+        String dn = uid + "," + config.getUserRequestsDN();
+
+        try
+        {
+            ModifyDNRequest modifyDNRequest =
+                new ModifyDNRequest(dn, uid, false, config.getUsersDN());
+
+            LdapDAO.checkLdapResult(getConnection().modifyDN(modifyDNRequest).getResultCode());
+        }
+        catch (LDAPException e)
+        {
+            e.printStackTrace();
+            logger.debug("Modify Exception: " + e, e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+        try
+        {
+            return getUser(userID);
+        }
+        catch (UserNotFoundException e)
+        {
+            throw new RuntimeException(
+                "BUG: approved user not found (" + userID.getName() + ")");
+        }
+    }
+
+    /**
+     * Update the user specified by User.
+     *
+     * @param userID
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<T> modifyUser(final User<T> userID)
             throws UserNotFoundException, TransientException, AccessControlException
     {
-        User existingUser = getUser(user.getUserID());
+        User existingUser = getUser(userID.getUserID());
 
         List<Modification> mods = new ArrayList<Modification>();
-        for (UserDetails details : user.details)
+        for (UserDetails details : userID.details)
         {
             if (details.getClass() == PersonalDetails.class)
             {
@@ -646,7 +694,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(user), mods);
+            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(userID), mods);
             modifyRequest.addControl(
                 new ProxiedAuthorizationV2RequestControl(
                     "dn:" + getSubjectDN().toNormalizedString()));
@@ -660,12 +708,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         try
         {
-            return getUser(user.getUserID());
+            return getUser(userID.getUserID());
         }
         catch (UserNotFoundException e)
         {
             throw new RuntimeException(
-                "BUG: modified user not found (" + user.getUserID() + ")");
+                "BUG: modified user not found (" + userID.getUserID() + ")");
         }
     }
 
@@ -748,7 +796,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             DN userDN = getUserDN(userID.getName(), usersDN);
             List<Modification> modifs = new ArrayList<Modification>();
-            modifs.add(new Modification(ModificationType.ADD, "nsaccountlock", "true"));
+            modifs.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
 
             ModifyRequest modifyRequest = new ModifyRequest(userDN, modifs);
             modifyRequest.addControl(

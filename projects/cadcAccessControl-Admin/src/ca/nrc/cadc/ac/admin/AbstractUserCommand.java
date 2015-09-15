@@ -71,26 +71,50 @@ package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 /**
- * This class provides a list of all active or pending users in the LDAP server.
- * The users' nsaccountlocked attribute is not set. 
+ * Base class for commands that require the user ID to be provided.
  * @author yeunga
  *
  */
-public class ListPendingUsers extends AbstractListUsers 
-{	
-    private static final Logger log = Logger.getLogger(ListPendingUsers.class);
-    
-    protected Collection<User<Principal>> getUsers() 
-    		throws AccessControlException, TransientException
+public abstract class AbstractUserCommand extends AbstractCommand 
+{
+    private static final Logger log = Logger.getLogger(AbstractUserCommand.class);
+	
+    private HttpPrincipal principal;
+    protected abstract void execute() 
+    		throws UserNotFoundException, AccessControlException, TransientException;
+
+    /**
+     * Constructor
+     * @param userID Id of the user to associated with the command
+     */
+    public AbstractUserCommand(final String userID)
     {
-    	return this.getUserPersistence().getPendingUsers();
+    	this.principal = new HttpPrincipal(userID);
+    }
+    
+    protected Principal getPrincipal()
+    {
+    	return this.principal;
+    }
+    
+    protected void doRun() throws AccessControlException, TransientException
+    {
+        try 
+        {
+            this.execute();
+        } 
+        catch (UserNotFoundException e1) 
+        {
+            String msg = "User " + this.getPrincipal().getName() + " was not found.";
+            this.systemOut.println(msg);
+        } 
     }
 }

@@ -127,6 +127,8 @@ public class UserServlet extends HttpServlet
         {
             log.info(logInfo.start());
             AbstractUserAction action = factory.createAction(request);
+            action.setAcceptedContentType(getAcceptedContentType(request));
+            log.debug("content-type: " + getAcceptedContentType(request));
 
             // Special case: if the calling subject has a servops X500Principal,
             // AND it is a GET request, do not augment the subject.
@@ -147,7 +149,6 @@ public class UserServlet extends HttpServlet
             SyncOutput syncOut = new SyncOutput(response);
             action.setLogInfo(logInfo);
             action.setSyncOut(syncOut);
-            action.setAcceptedContentType(getAcceptedContentType(request));
 
             try
             {

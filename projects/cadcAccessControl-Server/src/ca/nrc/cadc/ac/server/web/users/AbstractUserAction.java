@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -81,7 +80,6 @@ import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.ac.xml.UserRequestReader;
@@ -89,7 +87,6 @@ import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
@@ -97,10 +94,6 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
 {

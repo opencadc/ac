@@ -169,23 +169,7 @@ public abstract class UserActionFactory
 
                 if (segments.length == 1)
                 {
-                    final URL requestURL = new URL(request.getRequestURL().toString());
-                    final StringBuilder sb = new StringBuilder();
-                    sb.append(requestURL.getProtocol());
-                    sb.append("://");
-                    sb.append(requestURL.getHost());
-                    if (requestURL.getPort() > 0)
-                    {
-                        sb.append(":");
-                        sb.append(requestURL.getPort());
-                    }
-                    sb.append(request.getContextPath());
-                    sb.append(request.getServletPath());
-                    sb.append(path);
-                    sb.append("?");
-                    sb.append(request.getQueryString());
-
-                    action = new ModifyUserAction(request.getInputStream(), sb.toString());
+                    action = new ModifyUserAction(request.getInputStream(), request);
                 }
 
                 if (action != null)
