@@ -82,6 +82,7 @@ import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.DNPrincipal;
+import com.unboundid.ldap.sdk.DeleteRequest;
 import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
@@ -96,6 +97,8 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -129,6 +132,8 @@ import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
 public class LdapUserDAO<T extends Principal> extends LdapDAO
 {
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
+
+    private Profiler profiler = new Profiler(LdapUserDAO.class);
 
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
@@ -286,7 +291,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * Add the specified user to the active user tree.
      *
      * @param userRequest                 The user to add.
-     * @return User instance.
      * @throws TransientException         If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException If the user already exists.
      */
@@ -309,7 +313,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      *Add the specified user to the pending user tree.
      *
      * @param userRequest                   The user to add.
-     * @return User instance.
      * @throws TransientException           If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException   If the user already exists.
      */
@@ -548,12 +551,15 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
+            profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest = new SearchRequest(
                 config.getUsersDN(), SearchScope.ONE, filter, identityAttribs);
+            profiler.checkpoint("getAugmentedUser.createSearchRequest");
 
             SearchResultEntry searchResult = getConnection().searchForEntry(searchRequest);
+            profiler.checkpoint("getAugmentedUser.searchForEntry");
 
             if (searchResult == null)
             {
@@ -571,6 +577,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME)));
             user.getIdentities().add(new DNPrincipal(
                 searchResult.getAttributeValue(LDAP_ENTRYDN)));
+            profiler.checkpoint("getAugmentedUser.mapIdentities");
             return user;
         }
         catch (LDAPException e)
@@ -687,7 +694,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             ModifyDNRequest modifyDNRequest =
-                new ModifyDNRequest(dn, uid, false, config.getUsersDN());
+                new ModifyDNRequest(dn, uid, true, config.getUsersDN());
 
             LdapDAO.checkLdapResult(getConnection().modifyDN(modifyDNRequest).getResultCode());
         }

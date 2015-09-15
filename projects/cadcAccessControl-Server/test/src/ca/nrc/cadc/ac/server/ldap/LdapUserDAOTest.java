@@ -82,6 +82,7 @@ import java.util.Random;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.DNPrincipal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -377,6 +378,18 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                     final User<Principal> actual = userDAO.approvePendingUser(expected.getUserID());
                     assertNotNull(actual);
                     assertEquals(expected.getUserID(), actual.getUserID());
+
+                    User<Principal> newUser = userDAO.getUser(userRequest.getUser().getUserID());
+                    assertNotNull(newUser);
+                    assertEquals(expected.getUserID(), newUser.getUserID());
+
+                    try
+                    {
+                        userDAO.getPendingUser(userRequest.getUser().getUserID());
+                        fail("approved user " + userRequest.getUser().getUserID() +
+                             " found in pending user tree");
+                    }
+                    catch (UserNotFoundException ignore) {}
 
                     return null;
                 }
