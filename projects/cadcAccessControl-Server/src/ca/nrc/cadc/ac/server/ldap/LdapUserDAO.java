@@ -82,6 +82,7 @@ import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.DNPrincipal;
+import com.unboundid.ldap.sdk.DeleteRequest;
 import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
@@ -682,7 +683,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             ModifyDNRequest modifyDNRequest =
-                new ModifyDNRequest(dn, uid, false, config.getUsersDN());
+                new ModifyDNRequest(dn, uid, true, config.getUsersDN());
 
             LdapDAO.checkLdapResult(getConnection().modifyDN(modifyDNRequest).getResultCode());
         }
@@ -841,15 +842,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             DN userDN = getUserDN(userID.getName(), usersDN);
-            List<Modification> modifs = new ArrayList<Modification>();
-            modifs.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
-
-            ModifyRequest modifyRequest = new ModifyRequest(userDN, modifs);
-            modifyRequest.addControl(
-                new ProxiedAuthorizationV2RequestControl(
-                    "dn:" + getSubjectDN().toNormalizedString()));
-
-            LDAPResult result = getConnection().modify(modifyRequest);
+            DeleteRequest deleteRequest = new DeleteRequest(userDN);
+            LDAPResult result = getConnection().delete(deleteRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
         }
         catch (LDAPException e1)
