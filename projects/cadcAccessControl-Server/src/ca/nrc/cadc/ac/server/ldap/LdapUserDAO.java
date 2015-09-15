@@ -288,6 +288,15 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public void addUser(final UserRequest<T> userRequest)
             throws TransientException, UserAlreadyExistsException
     {
+        try
+        {
+            getUser(userRequest.getUser().getUserID(), config.getUsersDN());
+            final String error = userRequest.getUser().getUserID().getName() +
+                " fount in " + config.getUsersDN();
+            throw new UserAlreadyExistsException(error);
+        }
+        catch (UserNotFoundException e1) {}
+
         addUser(userRequest, config.getUsersDN());
     }
 
@@ -302,6 +311,25 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public void addPendingUser(final UserRequest<T> userRequest)
             throws TransientException, UserAlreadyExistsException
     {
+        try
+        {
+            getUser(userRequest.getUser().getUserID(), config.getUsersDN());
+            final String error = userRequest.getUser().getUserID().getName() +
+                                 " fount in " + config.getUsersDN();
+            throw new UserAlreadyExistsException(error);
+        }
+        catch (UserNotFoundException e1)
+        {
+            try
+            {
+                getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN());
+                final String error = userRequest.getUser().getUserID().getName() +
+                    " fount in " + config.getUserRequestsDN();
+                throw new UserAlreadyExistsException(error);
+            }
+            catch (UserNotFoundException e2) {}
+        }
+
         addUser(userRequest, config.getUserRequestsDN());
     }
 
@@ -423,9 +451,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         SearchResultEntry searchResult = null;
         try
         {
-//            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
-//            filter = Filter.createANDFilter(filter,
-//                Filter.createEqualityFilter(searchField, userID.getName()));
             Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
