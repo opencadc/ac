@@ -103,7 +103,7 @@ public class GMSClientTest
 
     public GMSClientTest()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
