@@ -292,7 +292,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             getUser(userRequest.getUser().getUserID(), config.getUsersDN());
             final String error = userRequest.getUser().getUserID().getName() +
-                " fount in " + config.getUsersDN();
+                " found in " + config.getUsersDN();
             throw new UserAlreadyExistsException(error);
         }
         catch (UserNotFoundException e1) {}
@@ -313,18 +313,18 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         try
         {
-            getUser(userRequest.getUser().getUserID(), config.getUsersDN());
+            getUser(userRequest.getUser().getUserID(), config.getUsersDN(), false);
             final String error = userRequest.getUser().getUserID().getName() +
-                                 " fount in " + config.getUsersDN();
+                                 " found in " + config.getUsersDN();
             throw new UserAlreadyExistsException(error);
         }
         catch (UserNotFoundException e1)
         {
             try
             {
-                getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN());
+                getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN(), false);
                 final String error = userRequest.getUser().getUserID().getName() +
-                    " fount in " + config.getUserRequestsDN();
+                    " found in " + config.getUserRequestsDN();
                 throw new UserAlreadyExistsException(error);
             }
             catch (UserNotFoundException e2) {}
@@ -441,6 +441,24 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
+
+        return getUser(userID, usersDN, true);
+    }
+    /**
+     * Get the user specified by userID.
+     *
+     * @param userID  The userID.
+     * @param usersDN The LDAP tree to search.
+     * @param proxy Whether to proxy the search as the calling Subject.
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    private User<T> getUser(final T userID, final String usersDN, final boolean proxy)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
         String searchField = userLdapAttrib.get(userID.getClass());
         if (searchField == null)
         {
@@ -457,9 +475,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.SUB, filter, userAttribs);
 
-            String proxyDN = "dn:" + getSubjectDN().toNormalizedString();
-            logger.debug("Proxying auth as: " + proxyDN);
-            searchRequest.addControl(new ProxiedAuthorizationV2RequestControl(proxyDN));
+            if (proxy)
+            {
+                String proxyDN = "dn:" + getSubjectDN().toNormalizedString();
+                logger.debug("Proxying auth as: " + proxyDN);
+                searchRequest.addControl(new ProxiedAuthorizationV2RequestControl(proxyDN));
+            }
 
             searchResult = getConnection().searchForEntry(searchRequest);
         }

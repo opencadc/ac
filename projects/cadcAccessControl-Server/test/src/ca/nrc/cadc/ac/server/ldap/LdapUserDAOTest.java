@@ -275,6 +275,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
     }
 
+    // TODO testAddUser for an existing user
+
     /**
      * Test of getUser method, of class LdapUserDAO.
      */
@@ -336,6 +338,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
+
+    // TODO testGetUser for a user that doesn't exist
 
     @Test
     public void testApproveUser() throws Exception
@@ -484,6 +488,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         assertNotNull(updatedUser);
         check(testUser2, updatedUser);
     }
+
+    // TODO testUpdateUser for a user that doesn't exist
 
     /**
      * Test of deleteUser method, of class LdapUserDAO.
