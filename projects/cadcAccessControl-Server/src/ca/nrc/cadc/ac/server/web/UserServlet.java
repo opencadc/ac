@@ -123,6 +123,7 @@ public class UserServlet extends HttpServlet
     private void doAction(UserActionFactory factory, HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
+        profiler.checkpoint("startNewRequest");
         long start = System.currentTimeMillis();
         UserLogInfo logInfo = new UserLogInfo(request);
 
