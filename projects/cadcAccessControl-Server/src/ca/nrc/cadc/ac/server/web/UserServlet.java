@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
@@ -95,6 +96,8 @@ public class UserServlet extends HttpServlet
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
+
+    private Profiler profiler = new Profiler(UserServlet.class);
 
     private String notAugmentedX500User;
 
@@ -129,20 +132,24 @@ public class UserServlet extends HttpServlet
             AbstractUserAction action = factory.createAction(request);
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
+            profiler.checkpoint("created action");
 
             // Special case: if the calling subject has a servops X500Principal,
             // AND it is a GET request, do not augment the subject.
             Subject subject;
             if (action instanceof GetUserAction && isNotAugmentedSubject(request))
             {
+                profiler.checkpoint("check not augmented user");
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
+                profiler.checkpoint("set not augmented user");
             }
             else
             {
                 subject = AuthenticationUtil.getSubject(request);
                 log.debug("augmented subject: " + subject);
+                profiler.checkpoint("augment subject");
             }
             logInfo.setSubject(subject);
 
@@ -174,6 +181,10 @@ public class UserServlet extends HttpServlet
                     throw exception;
                 }
                 throw e;
+            }
+            finally
+            {
+                profiler.checkpoint("Executed action");
             }
         }
         catch (IllegalArgumentException e)
