@@ -97,8 +97,6 @@ public class UserServlet extends HttpServlet
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
 
-    private Profiler profiler = new Profiler(UserServlet.class);
-
     private String notAugmentedX500User;
 
     @Override
@@ -123,7 +121,7 @@ public class UserServlet extends HttpServlet
     private void doAction(UserActionFactory factory, HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        profiler.checkpoint("startNewRequest");
+        Profiler profiler = new Profiler(UserServlet.class);
         long start = System.currentTimeMillis();
         UserLogInfo logInfo = new UserLogInfo(request);
 
