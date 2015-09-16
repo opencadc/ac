@@ -243,6 +243,7 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
             if (userDAO != null)
             {
                 userDAO.close();
+                profiler.checkpoint("close");
             }
         }
     }
