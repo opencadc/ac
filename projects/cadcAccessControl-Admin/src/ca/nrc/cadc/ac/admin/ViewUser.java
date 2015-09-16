@@ -71,11 +71,9 @@ package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
@@ -113,28 +111,5 @@ public class ViewUser extends AbstractUserCommand
             User<Principal> user = this.getUserPersistence().getPendingUser(this.getPrincipal());
             this.printUser(user);
         } 
-    }
-	
-    protected void printUser(final User<Principal> user)
-    {
-        if (user != null)
-        {
-            // print all user identities
-            this.systemOut.println("Identitities");
-            Set<Principal> principals = user.getIdentities();
-            for (final Principal p : principals)
-            {
-                this.systemOut.println(p.toString());
-            }
-			
-            this.systemOut.println();
-			
-            // print user's personal details
-            PersonalDetails personalDetails = user.getUserDetail(PersonalDetails.class);
-            if (personalDetails != null)
-            {
-                this.systemOut.println(personalDetails.toStringFormatted());
-            }
-        }
     }
 }
