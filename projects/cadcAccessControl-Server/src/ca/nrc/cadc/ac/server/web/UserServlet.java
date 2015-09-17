@@ -110,7 +110,8 @@ public class UserServlet extends HttpServlet
         {
         	this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
         	this.notAugmentedHttpUser = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpUser");
-            log.info("notAugmentedX500User: " + notAugmentedX500User);
+            log.debug("notAugmentedX500User: " + notAugmentedX500User);
+            log.debug("notAugmentedHttpUser: " + notAugmentedHttpUser);
         }
         catch(Exception ex)
         {
