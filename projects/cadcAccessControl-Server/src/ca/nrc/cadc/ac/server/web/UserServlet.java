@@ -73,6 +73,7 @@ import ca.nrc.cadc.ac.server.web.users.GetUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
@@ -98,6 +99,7 @@ public class UserServlet extends HttpServlet
     private static final Logger log = Logger.getLogger(UserServlet.class);
 
     private String notAugmentedX500User;
+    private String notAugmentedHttpUser;
 
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -107,6 +109,7 @@ public class UserServlet extends HttpServlet
         try
         {
         	this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
+        	this.notAugmentedHttpUser = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpUser");
             log.info("notAugmentedX500User: " + notAugmentedX500User);
         }
         catch(Exception ex)
@@ -142,15 +145,16 @@ public class UserServlet extends HttpServlet
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
+                logInfo.user = notAugmentedHttpUser;
                 profiler.checkpoint("set not augmented user");
             }
             else
             {
                 subject = AuthenticationUtil.getSubject(request);
+                logInfo.setSubject(subject);
                 log.debug("augmented subject: " + subject);
                 profiler.checkpoint("augment subject");
             }
-            logInfo.setSubject(subject);
 
             SyncOutput syncOut = new SyncOutput(response);
             action.setLogInfo(logInfo);
@@ -278,6 +282,14 @@ public class UserServlet extends HttpServlet
                 if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
                 {
                     log.debug("found notAugmentedX500User " + notAugmentedX500User);
+                    return true;
+                }
+            }
+            if (principal instanceof HttpPrincipal)
+            {
+                if (principal.getName().equalsIgnoreCase(notAugmentedHttpUser))
+                {
+                    log.debug("found notAugmentedHttpUser " + notAugmentedHttpUser);
                     return true;
                 }
             }
