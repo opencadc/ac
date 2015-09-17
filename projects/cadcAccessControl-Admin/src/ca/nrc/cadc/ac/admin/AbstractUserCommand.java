@@ -126,16 +126,16 @@ public abstract class AbstractUserCommand extends AbstractCommand
         if (user != null)
         {
             // print all user identities
+            this.systemOut.println();
             this.systemOut.println("Identitities");
             Set<Principal> principals = user.getIdentities();
             for (final Principal p : principals)
             {
                 this.systemOut.println(p.toString());
             }
-            
-            this.systemOut.println();
-            
+                       
             // print user's personal details
+            this.systemOut.println();
             PersonalDetails personalDetails = user.getUserDetail(PersonalDetails.class);
             if (personalDetails != null)
             {
