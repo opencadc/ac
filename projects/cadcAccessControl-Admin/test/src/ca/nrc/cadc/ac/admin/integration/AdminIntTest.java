@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.admin.integration;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
@@ -84,6 +85,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -95,8 +97,6 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class AdminIntTest
@@ -112,12 +112,14 @@ public class AdminIntTest
     public static void setUpClass()
         throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
         testCert = "build/test/class/cadcauthtest1.pem";
+
+        config = LdapConfig.getLdapConfig();
     }
 
-//    @Test
+    @Test
     public void listUsers() throws Exception
     {
         String[] args = new String[] { "--list" };
@@ -128,7 +130,7 @@ public class AdminIntTest
         assertFalse("output is empty", output.isEmpty());
     }
 
-//    @Test
+    @Test
     public void listPendingUsers() throws Exception
     {
         String[] args = new String[] { "--list-pending" };
@@ -139,40 +141,17 @@ public class AdminIntTest
         assertFalse("output is empty", output.isEmpty());
     }
 
-//    @Test
+    @Test
     public void viewUser() throws Exception
     {
-        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
+        String userID = getUserID();
         boolean isPending = false;
-        addUser(userID, isPending);
-//
-//        String[] args = new String[] { "--view=" + userID };
-//
-//        List<String> output = doTest(args, 0);
-//
-//        assertFalse("output is empty", output.isEmpty());
-//
-//        boolean found = false;
-//        for (String line : output)
-//        {
-//            if (line.contains(userID))
-//            {
-//                found = true;
-//            }
-//        }
-//        assertTrue("User not found", found);
-    }
-
-    @Test
-    public void viewPendingUser() throws Exception
-    {
-        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
-        boolean isPending = true;
         addUser(userID, isPending);
 
         String[] args = new String[] { "--view=" + userID };
 
         List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
 
         assertFalse("output is empty", output.isEmpty());
 
@@ -187,28 +166,17 @@ public class AdminIntTest
         assertTrue("User not found", found);
     }
 
-//    @Test
-    public void viewPendingUserNotFound() throws Exception
+    @Test
+    public void viewPendingUser() throws Exception
     {
-        String userID = "foo-" + System.currentTimeMillis();
-
-        String[] args = new String[] { "--view=" + userID };
-
-        List<String> output = doTest(args, 1);
-
-        assertTrue("output is empty", output.isEmpty());
-    }
-
-//    @Test
-    public void approvePendingUser() throws Exception
-    {
-        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
+        String userID = getUserID();
         boolean isPending = true;
         addUser(userID, isPending);
 
-        String[] args = new String[] { "--approve=" + userID };
+        String[] args = new String[] { "--view=" + userID };
 
         List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
 
         assertFalse("output is empty", output.isEmpty());
 
@@ -216,71 +184,107 @@ public class AdminIntTest
         for (String line : output)
         {
             if (line.contains(userID))
+            {
+                found = true;
+            }
+        }
+        assertTrue("User not found", found);
+    }
+
+    @Test
+    public void viewPendingUserNotFound() throws Exception
+    {
+        String userID = "foo_" + System.currentTimeMillis();
+
+        String[] args = new String[] { "--view=" + userID };
+
+        List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
+
+        assertFalse(output.isEmpty());
+        assertTrue(output.iterator().next().contains("not found"));
+    }
+
+    @Test
+    public void approvePendingUser() throws Exception
+    {
+        String userID = getUserID();
+        boolean isPending = true;
+        addUser(userID, isPending);
+
+        String[] args = new String[] { "--approve=" + userID };
+
+        List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
+
+        assertFalse("output is empty", output.isEmpty());
+
+        boolean found = false;
+        for (String line : output)
+        {
+            if (line.contains("was approved"))
             {
                 found = true;
             }
         }
         assertTrue("User not approved", found);
 
-        User<Principal> deletedUser = getUser(userID, true);
-        assertNull("User found", deletedUser);
-
-        User<Principal> approvedUser = getUser(userID, false);
-        assertNotNull("User not found", approvedUser);
+        User<Principal> deletedUser = getUser(userID, true, false);
+        User<Principal> approvedUser = getUser(userID, false, true);
     }
 
-//    @Test
+    @Test
     public void approvePendingUserNotFound() throws Exception
     {
-        String userID = "foo-" + System.currentTimeMillis();
+        String userID = "foo_" + System.currentTimeMillis();
 
         String[] args = new String[] { "--approve=" + userID };
 
-        List<String> output = doTest(args, 1);
+        List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
 
-        assertTrue("output is empty", output.isEmpty());
+        assertFalse(output.isEmpty());
+        assertTrue(output.iterator().next().contains("not found"));
     }
 
-//    @Test
+    @Test
     public void rejectPendingUser() throws Exception
     {
-        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
+        String userID = getUserID();
         boolean isPending = true;
         addUser(userID, isPending);
 
         String[] args = new String[] { "--reject=" + userID };
 
         List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
 
-        assertFalse("output is empty", output.isEmpty());
+        assertFalse(output.isEmpty());
+        assertTrue(output.iterator().next().contains("was rejected"));
 
-        boolean found = false;
-        for (String line : output)
-        {
-            if (line.contains(userID))
-            {
-                found = true;
-            }
-        }
-        assertTrue("User not rejected", found);
-
-        User<Principal> deletedUser = getUser(userID, isPending);
-        assertNull("User found", deletedUser);
+        User<Principal> deletedUser = getUser(userID, isPending, false);
     }
 
-//    @Test
+    @Test
     public void rejectPendingUserNotFound() throws Exception
     {
-        String userID = "foo-" + System.currentTimeMillis();
+        String userID = "foo_" + System.currentTimeMillis();
 
         String[] args = new String[] { "--reject=" + userID };
 
-        List<String> output = doTest(args, 1);
+        List<String> output = doTest(args, 0);
+        log.debug("output: " + output);
 
-        assertTrue("output is empty", output.isEmpty());
+        assertFalse(output.isEmpty());
+        assertTrue(output.iterator().next().contains("not found"));
     }
 
-    private List<String> doTest(String[] args, int expectedExitValue)
+    String getUserID()
+    {
+        return "CadcAdminIntTestUser-" + System.currentTimeMillis();
+    }
+
+    List<String> doTest(String[] args, int expectedExitValue)
         throws IOException, InterruptedException
     {
         String[] exec = new String[args.length + 2];
@@ -312,31 +316,59 @@ public class AdminIntTest
         return output;
     }
 
-    void addUser(final String userID, final boolean isPending)
-        throws UserAlreadyExistsException, TransientException
+    void addUser(final String username, final boolean isPending)
+        throws UserAlreadyExistsException, TransientException,
+                PrivilegedActionException
     {
-        log.debug("adding " + userID + ", " + isPending);
-        HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
-        final User<Principal> expected = new User<Principal>(httpPrincipal);
-        expected.getIdentities().add(httpPrincipal);
+        final HttpPrincipal userID = new HttpPrincipal(username);
+
+        String dn = "uid=" + username + "," + config.getUsersDN();
+        X500Principal x500Principal = new X500Principal(dn);
+
+        final User<Principal> expected = new User<Principal>(userID);
+        expected.getIdentities().add(userID);
+        expected.getIdentities().add(x500Principal);
 
         expected.details.add(new PersonalDetails("foo", "bar"));
 
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());
 
-        final LdapUserPersistence<Principal> userDAO = getUserPersistence();
-        if (isPending)
-        {
-            userDAO.addPendingUser(userRequest);
-        }
-        else
-        {
-            userDAO.addUser(userRequest);
-        }
+        Subject subject = new Subject();
+        subject.getPrincipals().add(userID);
+        subject.getPrincipals().add(getDNPrincipal(username, isPending));
+
+        PrivilegedExceptionAction<Object> action =
+            new PrivilegedExceptionAction<Object>()
+            {
+                public Object run()
+                    throws Exception
+                {
+                    try
+                    {
+                        final LdapUserPersistence<Principal> userDAO = getUserPersistence();
+                        if (isPending)
+                        {
+                            userDAO.addPendingUser(userRequest);
+                        }
+                        else
+                        {
+                            userDAO.addUser(userRequest);
+                        }
+                        return null;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception("Problems", e);
+                    }
+                }
+            };
+
+        Subject.doAs(subject, action);
     }
 
-    User<Principal> getUser(final String username, final boolean isPending)
+    User<Principal> getUser(final String username, final boolean isPending,
+                            final boolean expectedFound)
         throws PrivilegedActionException
     {
         final HttpPrincipal userID = new HttpPrincipal(username);
@@ -363,10 +395,14 @@ public class AdminIntTest
                         return userDAO.getUser(userID);
                     }
                 }
-                catch (Exception e)
+                catch (UserNotFoundException e)
                 {
-                    throw new Exception("Problems", e);
+                    if (expectedFound)
+                    {
+                        throw e;
+                    }
                 }
+                return null;
             }
         };
 
