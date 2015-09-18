@@ -94,6 +94,8 @@ public class AuthenticatorImpl implements Authenticator
 {
     private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
 
+    private Profiler profiler = new Profiler(AuthenticatorImpl.class);
+
     public AuthenticatorImpl() { }
 
     /**
@@ -124,6 +126,7 @@ public class AuthenticatorImpl implements Authenticator
                 subject = AuthenticationUtil.getAnonSubject();
             }
         }
+        profiler.checkpoint("getSubject");
 
         return subject;
     }
@@ -143,6 +146,7 @@ public class AuthenticatorImpl implements Authenticator
                 log.debug("Null identities after augment");
             }
             subject.getPrincipals().addAll(user.getIdentities());
+            profiler.checkpoint("augmentSubject");
         }
         catch (UserNotFoundException e)
         {

@@ -142,7 +142,7 @@ public class UserRequestReaderWriterTest
         throws Exception
     {
         User<HttpPrincipal> expectedUser = new User<HttpPrincipal>(new HttpPrincipal("foo"));
-        expectedUser.getIdentities().add(new NumericPrincipal(123l));
+        expectedUser.getIdentities().add(new NumericPrincipal(123));
         expectedUser.details.add(new PersonalDetails("firstname", "lastname"));
 
         char[] expectedPassword = "123456".toCharArray();

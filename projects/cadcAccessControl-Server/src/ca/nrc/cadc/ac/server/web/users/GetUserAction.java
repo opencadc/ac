@@ -71,6 +71,8 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.profiler.Profiler;
+
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
@@ -82,6 +84,8 @@ import java.util.Set;
 public class GetUserAction extends AbstractUserAction
 {
     private static final Logger log = Logger.getLogger(GetUserAction.class);
+
+    private Profiler profiler = new Profiler(GetUserAction.class);
 
     private final Principal userID;
     private final String detail;
@@ -96,7 +100,9 @@ public class GetUserAction extends AbstractUserAction
 	public void doAction() throws Exception
     {
         User<Principal> user = getUser(this.userID);
+        profiler.checkpoint("getUser");
         writeUser(user);
+        profiler.checkpoint("writeUser");
     }
 
     protected User<Principal> getUser(Principal principal) throws Exception
@@ -113,6 +119,7 @@ public class GetUserAction extends AbstractUserAction
         {
             log.debug("getting augmented user " + principal.getName());
             user = userPersistence.getAugmentedUser(principal);
+            profiler.checkpoint("getAugmentedUser");
         }
 
         /**
@@ -129,6 +136,7 @@ public class GetUserAction extends AbstractUserAction
             Subject subject = Subject.getSubject(AccessController.getContext());
             user = new User<Principal>(principal);
             user.getIdentities().addAll(subject.getPrincipals());
+            profiler.checkpoint("added identities");
         }
         else
         {
@@ -136,10 +144,12 @@ public class GetUserAction extends AbstractUserAction
             try
             {
                 user = userPersistence.getUser(principal);
+                profiler.checkpoint("getUser");
             }
             catch (UserNotFoundException e)
             {
                 user = userPersistence.getPendingUser(principal);
+                profiler.checkpoint("getPendingUser");
             }
 
             // Only return user profile info, first and last name.
@@ -155,6 +165,7 @@ public class GetUserAction extends AbstractUserAction
                 PersonalDetails pd = details.iterator().next();
                 user.details.clear();
                 user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+                profiler.checkpoint("addUserDetails");
             }
         }
 
@@ -176,6 +187,7 @@ public class GetUserAction extends AbstractUserAction
         		}
         	}
         }
+        profiler.checkpoint("isSubjectUser");
         return isSubjectUser;
     }
 }

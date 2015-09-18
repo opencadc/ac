@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
@@ -94,6 +95,8 @@ public abstract class LdapDAO
 
     LdapConfig config;
     DN subjDN = null;
+    
+    private Profiler profiler = new Profiler(LdapDAO.class);
 
     public LdapDAO(LdapConfig config)
     {
@@ -119,7 +122,9 @@ public abstract class LdapDAO
         {
             conn = new LDAPConnection(getSocketFactory(), config.getServer(),
                                       config.getPort());
+            profiler.checkpoint("new-LDAPConnection");
             conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
+            profiler.checkpoint("LDAPConnection.bind-adminUser");
         }
 
         return conn;
@@ -132,12 +137,13 @@ public abstract class LdapDAO
         if (config.isSecure())
         {
             socketFactory = createSSLSocketFactory();
+            profiler.checkpoint("createSSLSocketFactory");
         }
         else
         {
             socketFactory = SocketFactory.getDefault();
         }
-
+        
         return socketFactory;
     }
 
@@ -159,7 +165,7 @@ public abstract class LdapDAO
     {
         if (subjDN == null)
         {
-            Subject callerSubject = getSubject();
+            Subject callerSubject = Subject.getSubject(AccessController.getContext());
             if (callerSubject == null)
             {
                 throw new AccessControlException("Caller not authenticated.");
@@ -232,10 +238,4 @@ public abstract class LdapDAO
 
         throw new RuntimeException("Ldap error (" + code.getName() + ")");
     }
-
-    protected Subject getSubject()
-    {
-        return Subject.getSubject(AccessController.getContext());
-    }
-
 }
