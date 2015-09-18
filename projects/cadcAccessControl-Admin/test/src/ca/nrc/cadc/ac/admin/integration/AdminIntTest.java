@@ -73,7 +73,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig;
-import ca.nrc.cadc.ac.server.ldap.LdapUserDAO;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
@@ -103,10 +103,9 @@ public class AdminIntTest
 {
     private static final Logger log = Logger.getLogger(AdminIntTest.class);
 
-    static final String CONFIG = LdapConfig.class.getSimpleName() + ".test.properties";
-    static final String EXEC_CMD = "./scripts/userAdmin";
+    static final String EXEC_CMD = "./test/scripts/userAdminTest";
 
-    static String servopsCert;
+    static String testCert;
     static LdapConfig config;
 
     @BeforeClass
@@ -115,28 +114,48 @@ public class AdminIntTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
 
-        servopsCert = System.getProperty("user.home") + "/.pub/proxy.pem";
-
-        config = LdapConfig.getLdapConfig(CONFIG);
+        testCert = "build/test/class/cadcauthtest1.pem";
     }
 
-    @Test
+//    @Test
     public void listUsers() throws Exception
     {
-//        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
-//        boolean isPending = false;
-//        addUser(userID, isPending);
-
         String[] args = new String[] { "--list" };
 
         List<String> output = doTest(args, 0);
 
+        log.debug("number users found: " + output.size());
         assertFalse("output is empty", output.isEmpty());
+    }
 
+//    @Test
+    public void listPendingUsers() throws Exception
+    {
+        String[] args = new String[] { "--list-pending" };
+
+        List<String> output = doTest(args, 0);
+
+        log.debug("number pending users found: " + output.size());
+        assertFalse("output is empty", output.isEmpty());
+    }
+
+//    @Test
+    public void viewUser() throws Exception
+    {
+        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
+        boolean isPending = false;
+        addUser(userID, isPending);
+//
+//        String[] args = new String[] { "--view=" + userID };
+//
+//        List<String> output = doTest(args, 0);
+//
+//        assertFalse("output is empty", output.isEmpty());
+//
 //        boolean found = false;
 //        for (String line : output)
 //        {
-//            if (line.equals(userID))
+//            if (line.contains(userID))
 //            {
 //                found = true;
 //            }
@@ -144,31 +163,7 @@ public class AdminIntTest
 //        assertTrue("User not found", found);
     }
 
-//    @Test
-    public void listPendingUsers() throws Exception
-    {
-        String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
-        boolean isPending = true;
-        addUser(userID, isPending);
-
-        String[] args = new String[] { "--list-pending" };
-
-        List<String> output = doTest(args, 0);
-
-        assertFalse("output is empty", output.isEmpty());
-
-        boolean found = false;
-        for (String line : output)
-        {
-            if (line.equals(userID))
-            {
-                found = true;
-            }
-        }
-        assertTrue("User not found", found);
-    }
-
-//    @Test
+    @Test
     public void viewPendingUser() throws Exception
     {
         String userID = "CadcAdmin-int-test-user-" + System.currentTimeMillis();
@@ -290,7 +285,7 @@ public class AdminIntTest
     {
         String[] exec = new String[args.length + 2];
         exec[0] = EXEC_CMD;
-        exec[1] = "--cert=" + servopsCert;
+        exec[1] = "--cert=" + testCert;
 
         System.arraycopy(args, 0, exec, 2, args.length);
         for (int i = 0; i < exec.length; i++)
@@ -330,7 +325,7 @@ public class AdminIntTest
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());
 
-        final LdapUserDAO<Principal> userDAO = getUserDAO();
+        final LdapUserPersistence<Principal> userDAO = getUserPersistence();
         if (isPending)
         {
             userDAO.addPendingUser(userRequest);
@@ -358,7 +353,7 @@ public class AdminIntTest
             {
                 try
                 {
-                    final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    final LdapUserPersistence<Principal> userDAO = getUserPersistence();
                     if (isPending)
                     {
                         return userDAO.getPendingUser(userID);
@@ -378,9 +373,9 @@ public class AdminIntTest
         return Subject.doAs(subject, action);
     }
 
-    <T extends Principal> LdapUserDAO<T> getUserDAO()
+    <T extends Principal> LdapUserPersistence<T> getUserPersistence()
     {
-        return new LdapUserDAO(config);
+        return new LdapUserPersistence<T>();
     }
 
     DNPrincipal getDNPrincipal(final String username, final boolean isPending)

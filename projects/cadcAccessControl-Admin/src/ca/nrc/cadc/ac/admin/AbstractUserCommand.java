@@ -127,7 +127,7 @@ public abstract class AbstractUserCommand extends AbstractCommand
         {
             // print all user identities
             this.systemOut.println();
-            this.systemOut.println("Identitities");
+            this.systemOut.println("Identities");
             Set<Principal> principals = user.getIdentities();
             for (final Principal p : principals)
             {

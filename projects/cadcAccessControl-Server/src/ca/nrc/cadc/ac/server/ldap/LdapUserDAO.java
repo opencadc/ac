@@ -292,7 +292,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             getUser(userRequest.getUser().getUserID(), config.getUsersDN());
             final String error = userRequest.getUser().getUserID().getName() +
-                " fount in " + config.getUsersDN();
+                " found in " + config.getUsersDN();
             throw new UserAlreadyExistsException(error);
         }
         catch (UserNotFoundException e1) {}
@@ -315,7 +315,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             getUser(userRequest.getUser().getUserID(), config.getUsersDN());
             final String error = userRequest.getUser().getUserID().getName() +
-                                 " fount in " + config.getUsersDN();
+                                 " found in " + config.getUsersDN();
             throw new UserAlreadyExistsException(error);
         }
         catch (UserNotFoundException e1)
@@ -324,7 +324,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                 getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN());
                 final String error = userRequest.getUser().getUserID().getName() +
-                    " fount in " + config.getUserRequestsDN();
+                    " found in " + config.getUserRequestsDN();
                 throw new UserAlreadyExistsException(error);
             }
             catch (UserNotFoundException e2) {}

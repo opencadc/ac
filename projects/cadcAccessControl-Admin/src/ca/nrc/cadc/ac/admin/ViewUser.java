@@ -94,6 +94,7 @@ public class ViewUser extends AbstractUserCommand
     public ViewUser(final String userID)
     {
     	super(userID);
+        log.debug("view user: " + userID);
     }
     
     protected void execute() 
@@ -102,6 +103,7 @@ public class ViewUser extends AbstractUserCommand
         try 
         {
             // Try the main tree first
+            log.debug("principal: " + this.getPrincipal());
             User<Principal> user = this.getUserPersistence().getUser(this.getPrincipal());
             this.printUser(user);
         } 
