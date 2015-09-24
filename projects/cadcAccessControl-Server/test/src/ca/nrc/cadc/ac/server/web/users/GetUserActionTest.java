@@ -104,14 +104,8 @@ public class GetUserActionTest
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(userID, null)
-        {
-            @Override
-            UserPersistence<HttpPrincipal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final GetUserAction testSubject = new GetUserAction(userID, null);
+        testSubject.userPersistence = mockUserPersistence;
 
         final User<HttpPrincipal> user = new User<HttpPrincipal>(userID);
         final Writer writer = new StringWriter();
@@ -157,14 +151,8 @@ public class GetUserActionTest
                     createMock(UserPersistence.class);
 
 
-                final GetUserAction testSubject = new GetUserAction(httpPrincipal, "identity")
-                {
-                    @Override
-                    UserPersistence<HttpPrincipal> getUserPersistence()
-                    {
-                        return mockUserPersistence;
-                    }
-                };
+                final GetUserAction testSubject = new GetUserAction(httpPrincipal, "identity");
+                testSubject.userPersistence = mockUserPersistence;
 
                 final User<HttpPrincipal> expected = new User<HttpPrincipal>(httpPrincipal);
                 expected.getIdentities().add(httpPrincipal);
@@ -215,14 +203,8 @@ public class GetUserActionTest
             createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(userID, "display")
-        {
-            @Override
-            UserPersistence<HttpPrincipal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final GetUserAction testSubject = new GetUserAction(userID, "display");
+        testSubject.userPersistence = mockUserPersistence;
 
         final User<HttpPrincipal> expected = new User<HttpPrincipal>(userID);
 
@@ -273,14 +255,8 @@ public class GetUserActionTest
         final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
 
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
-        final GetUserAction testSubject = new GetUserAction(userID, null)
-        {
-            @Override
-            UserPersistence<Principal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final GetUserAction testSubject = new GetUserAction(userID, null);
+        testSubject.userPersistence = mockUserPersistence;
         testSubject.setAugmentUser(true);
 
         final NumericPrincipal numericPrincipal = new NumericPrincipal(789);
@@ -326,14 +302,8 @@ public class GetUserActionTest
                 createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final GetUserAction testSubject = new GetUserAction(userID, null)
-        {
-            @Override
-            UserPersistence<HttpPrincipal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final GetUserAction testSubject = new GetUserAction(userID, null);
+        testSubject.userPersistence = mockUserPersistence;
 
         testSubject.setAcceptedContentType(AbstractUserAction.JSON_CONTENT_TYPE);
 

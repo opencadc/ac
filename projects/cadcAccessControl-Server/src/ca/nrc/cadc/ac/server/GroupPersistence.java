@@ -82,20 +82,25 @@ import ca.nrc.cadc.net.TransientException;
 public interface GroupPersistence<T extends Principal>
 {
     /**
+     * Call if this object is to be shut down.
+     */
+    void destroy();
+
+    /**
      * Get all group names.
-     * 
+     *
      * @return A collection of strings.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     Collection<String> getGroupNames()
             throws TransientException, AccessControlException;
-    
+
     /**
      * Get the group with the given Group ID.
      *
      * @param groupID The Group ID.
-     * 
+     *
      * @return A Group instance
      *
      * @throws GroupNotFoundException If the group was not found.
@@ -110,7 +115,7 @@ public interface GroupPersistence<T extends Principal>
      * Creates the group.
      *
      * @param group The group to create
-     * 
+     *
      * @return created group
      *
      * @throws GroupAlreadyExistsException If a group with the same ID already
@@ -123,7 +128,7 @@ public interface GroupPersistence<T extends Principal>
      */
     Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException, 
+               AccessControlException, UserNotFoundException,
                GroupNotFoundException;
 
     /**
@@ -143,9 +148,9 @@ public interface GroupPersistence<T extends Principal>
      * Modify the given group.
      *
      * @param group The group to update.
-     * 
+     *
      * @return The newly updated group.
-     * 
+     *
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
@@ -161,7 +166,7 @@ public interface GroupPersistence<T extends Principal>
      * @param userID The userID.
      * @param role Role of the user, either owner, member, or read/write.
      * @param groupID The Group ID.
-     * 
+     *
      * @return Collection of Groups matching the query, or empty Collection.
      *         Never null.
      *
@@ -173,5 +178,5 @@ public interface GroupPersistence<T extends Principal>
     Collection<Group> getGroups(T userID, Role role, String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
-  
+
 }

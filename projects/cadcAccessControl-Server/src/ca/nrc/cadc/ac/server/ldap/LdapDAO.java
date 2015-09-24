@@ -71,10 +71,17 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+
+import com.unboundid.ldap.sdk.BindRequest;
+import com.unboundid.ldap.sdk.BindResult;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPInterface;
 import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SimpleBindRequest;
+
 import org.apache.log4j.Logger;
 
 import javax.net.SocketFactory;
@@ -91,73 +98,32 @@ public abstract class LdapDAO
 {
 	private static final Logger logger = Logger.getLogger(LdapDAO.class);
 
-    private LDAPConnection conn;
+    private LdapConnections connections;
+    protected LdapConfig config;
 
-    LdapConfig config;
     DN subjDN = null;
-    
+
     private Profiler profiler = new Profiler(LdapDAO.class);
 
-    public LdapDAO(LdapConfig config)
+    public LdapDAO(LdapConnections connections)
     {
-        if (config == null)
-        {
-            throw new IllegalArgumentException("LDAP config required");
-        }
-        this.config = config;
+        this.connections = connections;
+        config = connections.getCurrentConfig();
+    }
+
+    public LDAPConnection getReadOnlyConnection() throws LDAPException
+    {
+        return connections.getReadWriteConnection();
+    }
+
+    public LDAPConnection getReadWriteConnection() throws LDAPException
+    {
+        return connections.getReadOnlyConnection();
     }
 
     public void close()
     {
-        if (conn != null)
-        {
-            conn.close();
-        }
-    }
-
-    protected LDAPConnection getConnection()
-            throws LDAPException, AccessControlException
-    {
-        if (conn == null)
-        {
-            conn = new LDAPConnection(getSocketFactory(), config.getServer(),
-                                      config.getPort());
-            profiler.checkpoint("new-LDAPConnection");
-            conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
-            profiler.checkpoint("LDAPConnection.bind-adminUser");
-        }
-
-        return conn;
-    }
-
-    private SocketFactory getSocketFactory()
-    {
-        final SocketFactory socketFactory;
-
-        if (config.isSecure())
-        {
-            socketFactory = createSSLSocketFactory();
-            profiler.checkpoint("createSSLSocketFactory");
-        }
-        else
-        {
-            socketFactory = SocketFactory.getDefault();
-        }
-        
-        return socketFactory;
-    }
-
-    private SSLSocketFactory createSSLSocketFactory()
-    {
-        try
-        {
-            return new com.unboundid.util.ssl.SSLUtil().
-                    createSSLSocketFactory();
-        }
-        catch (GeneralSecurityException e)
-        {
-            throw new RuntimeException("Unexpected error.", e);
-        }
+        connections.releaseConnections();
     }
 
     protected DN getSubjectDN()
@@ -237,5 +203,37 @@ public abstract class LdapDAO
         }
 
         throw new RuntimeException("Ldap error (" + code.getName() + ")");
+    }
+
+
+    static SocketFactory getSocketFactory(LdapConfig config)
+    {
+        final SocketFactory socketFactory;
+
+        if (config.isSecure())
+        {
+            socketFactory = createSSLSocketFactory();
+            Profiler profiler = new Profiler(LdapDAO.class);
+            profiler.checkpoint("createSSLSocketFactory");
+        }
+        else
+        {
+            socketFactory = SocketFactory.getDefault();
+        }
+
+        return socketFactory;
+    }
+
+    static SSLSocketFactory createSSLSocketFactory()
+    {
+        try
+        {
+            return new com.unboundid.util.ssl.SSLUtil().
+                    createSSLSocketFactory();
+        }
+        catch (GeneralSecurityException e)
+        {
+            throw new RuntimeException("Unexpected error.", e);
+        }
     }
 }

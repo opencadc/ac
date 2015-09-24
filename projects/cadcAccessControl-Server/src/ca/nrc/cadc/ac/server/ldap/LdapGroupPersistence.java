@@ -74,6 +74,8 @@ import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
+import com.unboundid.ldap.sdk.LDAPException;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -83,100 +85,88 @@ import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.net.TransientException;
 
-public class LdapGroupPersistence<T extends Principal>
-    implements GroupPersistence<T>
+public class LdapGroupPersistence<T extends Principal> extends LdapPersistence implements GroupPersistence<T>
 {
-    private static final Logger log = 
+    private static final Logger log =
             Logger.getLogger(LdapGroupPersistence.class);
-    private final LdapConfig config;
-    
+
     private GroupDetailSelector detailSelector;
 
     public LdapGroupPersistence()
     {
-        config = LdapConfig.getLdapConfig();
+        super();
     }
-    
+
     public void setDetailSelector(GroupDetailSelector gds)
     {
         this.detailSelector = gds;
     }
-    
+
+    /**
+     * No-op.  UserPersistence will shutdown the
+     * connection pool.
+     */
+    public void destroy()
+    {
+    }
+
     public Collection<String> getGroupNames()
         throws TransientException, AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
-            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            userDAO = new LdapUserDAO<T>(conns);
+            groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             Collection<String> ret = groupDAO.getGroupNames();
             return ret;
         }
         finally
         {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
-    
+
     public Group getGroup(String groupName)
         throws GroupNotFoundException, TransientException,
                AccessControlException
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
-            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            userDAO = new LdapUserDAO<T>(conns);
+            groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             Group ret = groupDAO.getGroup(groupName);
             return ret;
         }
         finally
         {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
     public Group addGroup(Group group)
-        throws GroupAlreadyExistsException, TransientException, 
-               AccessControlException, UserNotFoundException, 
+        throws GroupAlreadyExistsException, TransientException,
+               AccessControlException, UserNotFoundException,
                GroupNotFoundException
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
-            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            userDAO = new LdapUserDAO<T>(conns);
+            groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             Group ret = groupDAO.addGroup(group);
             return ret;
         }
         finally
         {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -186,22 +176,16 @@ public class LdapGroupPersistence<T extends Principal>
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
-            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            userDAO = new LdapUserDAO<T>(conns);
+            groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             groupDAO.deleteGroup(groupName);
         }
         finally
         {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -211,23 +195,17 @@ public class LdapGroupPersistence<T extends Principal>
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
-            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            userDAO = new LdapUserDAO<T>(conns);
+            groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             Group ret = groupDAO.modifyGroup(group);
             return ret;
         }
         finally
         {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -237,24 +215,19 @@ public class LdapGroupPersistence<T extends Principal>
     {
         LdapGroupDAO<T> groupDAO = null;
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
-            groupDAO = new LdapGroupDAO<T>(config, userDAO);
+            userDAO = new LdapUserDAO<T>(conns);
+            groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             groupDAO.searchDetailSelector = detailSelector;
             Collection<Group> ret = groupDAO.getGroups(userID, role, groupID);
             return ret;
         }
         finally
         {
-            if (groupDAO != null)
-            {
-                groupDAO.close();
-            }
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
-    }  
+    }
+
 }

@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
@@ -82,10 +83,13 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import com.unboundid.ldap.sdk.LDAPException;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
+import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
@@ -97,7 +101,7 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
 
 @SuppressWarnings("serial")
-public class LoginServlet extends HttpServlet
+public class LoginServlet<T extends Principal> extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(LoginServlet.class);
     private static final String CONTENT_TYPE = "text/plain";
@@ -105,10 +109,13 @@ public class LoginServlet extends HttpServlet
     public static final String PROXY_USER_DELIM = "\\s[aA][sS]\\s";
     String proxyGroup; // only users in this group can impersonate other users
     String nonImpersonGroup; // users in this group cannot be impersonated
-    
+
     private static final String PROXY_ACCESS = "Proxy user access: ";
-    
-    
+
+    UserPersistence<T> userPersistence;
+    GroupPersistence<HttpPrincipal> groupPersistence;
+
+
     @Override
     public void init(final ServletConfig config) throws ServletException
     {
@@ -116,12 +123,15 @@ public class LoginServlet extends HttpServlet
 
         try
         {
-            this.proxyGroup = config.getInitParameter(
-                    LoginServlet.class.getName() + ".proxyGroup");
-            log.info("proxyGroup: " + proxyGroup);
-            this.nonImpersonGroup = config.getInitParameter(
-                    LoginServlet.class.getName() + ".nonImpersonGroup");
-            log.info("nonImpersonGroup: " + nonImpersonGroup);
+            this.proxyGroup = config.getInitParameter(LoginServlet.class.getName() + ".proxyGroup");
+            log.debug("proxyGroup: " + proxyGroup);
+            this.nonImpersonGroup = config.getInitParameter(LoginServlet.class.getName() + ".nonImpersonGroup");
+            log.debug("nonImpersonGroup: " + nonImpersonGroup);
+
+            userPersistence = (UserPersistence<T>)
+                config.getServletContext().getAttribute(UserServlet.USER_PERSISTENCE_REF);
+            groupPersistence = (GroupPersistence<HttpPrincipal>)
+                config.getServletContext().getAttribute(GroupServlet.GROUP_PERSISTENCE_REF);
         }
         catch(Exception ex)
         {
@@ -150,17 +160,16 @@ public class LoginServlet extends HttpServlet
                 checkCanImpersonate(userID, proxyUser);
             }
             String password = request.getParameter("password");
-            UserPersistence up = new LdapUserPersistence();
             if (StringUtil.hasText(userID))
             {
                 if (StringUtil.hasText(password))
                 {
-                    if ((StringUtil.hasText(proxyUser) && 
-                            up.doLogin(proxyUser, password)) ||
+                    if ((StringUtil.hasText(proxyUser) &&
+                            userPersistence.doLogin(proxyUser, password)) ||
                         (!StringUtil.hasText(proxyUser) &&
-                                up.doLogin(userID, password)))   
+                                userPersistence.doLogin(userID, password)))
                     {
-	            	    String token = 
+	            	    String token =
 	            	            new SSOCookieManager().generate(
 	            	                    new HttpPrincipal(userID, proxyUser));
 	            	    response.setContentType(CONTENT_TYPE);
@@ -219,7 +228,7 @@ public class LoginServlet extends HttpServlet
             log.info(logInfo.end());
         }
     }
-	
+
 	/**
 	 * Checks if user can impersonate another user
 	 */
@@ -227,14 +236,12 @@ public class LoginServlet extends HttpServlet
             throws AccessControlException, UserNotFoundException,
             TransientException, Throwable
     {
-        final LdapGroupPersistence<HttpPrincipal> gp = 
-                getLdapGroupPersistence();
-        
+
         // Users (proxy and the user to be impersonated) are not authenticated
         // at this point so in order to make the calls to check their group
         // membership we need to create corresponding subjects and run the
         // get groups command in the corresponding subject context.
-        AuthenticatorImpl ai = getAuthenticatorImpl();
+        AuthenticatorImpl ai = new AuthenticatorImpl();
         Subject proxySubject = new Subject();
         proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
         ai.augmentSubject(proxySubject);
@@ -245,8 +252,8 @@ public class LoginServlet extends HttpServlet
                 @Override
                 public Object run() throws Exception
                 {
-                    
-                    if (gp.getGroups(new HttpPrincipal(proxyUser), Role.MEMBER,
+
+                    if (groupPersistence.getGroups(new HttpPrincipal(proxyUser), Role.MEMBER,
                             proxyGroup).size() == 0)
                     {
                         throw new AccessControlException(PROXY_ACCESS
@@ -268,7 +275,7 @@ public class LoginServlet extends HttpServlet
                 public Object run()
                     throws Exception
                 {
-                    if (gp.getGroups(new HttpPrincipal(userID), Role.MEMBER,
+                    if (groupPersistence.getGroups(new HttpPrincipal(userID), Role.MEMBER,
                         nonImpersonGroup).size() != 0)
                     {
                         throw new AccessControlException(PROXY_ACCESS
@@ -295,8 +302,8 @@ public class LoginServlet extends HttpServlet
             throw e;
         }
     }
-    
-    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence()
+
+    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence() throws AccessControlException, LDAPException
     {
         LdapGroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
         gp.setDetailSelector(new GroupDetailSelector()
@@ -310,8 +317,4 @@ public class LoginServlet extends HttpServlet
         return gp;
     }
 
-    protected AuthenticatorImpl getAuthenticatorImpl()
-    {
-        return new AuthenticatorImpl();
-    }
 }

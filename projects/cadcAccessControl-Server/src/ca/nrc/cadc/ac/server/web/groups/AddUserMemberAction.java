@@ -95,7 +95,6 @@ public class AddUserMemberAction extends AbstractGroupAction
     @SuppressWarnings("unchecked")
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
         User<Principal> toAdd = new User(userPrincipal);

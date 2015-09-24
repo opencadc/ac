@@ -150,15 +150,8 @@ public class ModifyUserActionTest
 
         replay(mockRequest, mockSyncOut, mockUserPersistence);
 
-        final ModifyUserAction testSubject = new ModifyUserAction(inputStream, mockRequest)
-        {
-            @Override
-            @SuppressWarnings("unchecked")
-            UserPersistence<Principal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final ModifyUserAction testSubject = new ModifyUserAction(inputStream, mockRequest);
+        testSubject.userPersistence = mockUserPersistence;
 
         testSubject.setAcceptedContentType("application/json");
         testSubject.syncOut = mockSyncOut;

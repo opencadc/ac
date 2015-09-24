@@ -83,7 +83,6 @@ public class GetGroupAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         syncOut.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();

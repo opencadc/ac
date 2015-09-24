@@ -93,7 +93,6 @@ public class ModifyGroupAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
         Group oldGroup = groupPersistence.getGroup(this.groupName);

@@ -81,6 +81,12 @@ import java.util.Collection;
 
 public interface UserPersistence<T extends Principal>
 {
+
+    /**
+     * Call if this object is to be shut down.
+     */
+    void destroy();
+
     /**
      * Add the user to the active users tree.
      *

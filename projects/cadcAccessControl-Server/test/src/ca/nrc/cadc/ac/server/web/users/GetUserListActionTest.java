@@ -129,14 +129,8 @@ public class GetUserListActionTest
             expectedUsers.add(user);
         }
 
-        final GetUserListAction testSubject = new GetUserListAction()
-        {
-            @Override
-            UserPersistence<HttpPrincipal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final GetUserListAction testSubject = new GetUserListAction();
+        testSubject.userPersistence = mockUserPersistence;
 
         testSubject.setAcceptedContentType(AbstractUserAction.JSON_CONTENT_TYPE);
 
@@ -181,14 +175,8 @@ public class GetUserListActionTest
             expectedUsers.add(user);
         }
 
-        final GetUserListAction testSubject = new GetUserListAction()
-        {
-            @Override
-            UserPersistence<HttpPrincipal> getUserPersistence()
-            {
-                return mockUserPersistence;
-            }
-        };
+        final GetUserListAction testSubject = new GetUserListAction();
+        testSubject.userPersistence = mockUserPersistence;
 
         final Writer actualWriter = new StringWriter();
         final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);

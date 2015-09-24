@@ -90,7 +90,6 @@ public class CreateGroupAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
         Group newGroup = groupPersistence.addGroup(group);

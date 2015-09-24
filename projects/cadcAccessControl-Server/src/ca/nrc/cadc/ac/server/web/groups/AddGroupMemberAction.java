@@ -89,7 +89,6 @@ public class AddGroupMemberAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         Group toAdd = new Group(this.groupMemberName);
         if (!group.getGroupMembers().add(toAdd))
