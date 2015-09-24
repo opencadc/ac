@@ -164,8 +164,9 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
     LdapGroupDAO<X500Principal> getGroupDAO() throws Exception
     {
-        return new LdapGroupDAO<X500Principal>(config,
-                new LdapUserDAO<X500Principal>(config));
+        LdapConnections connections = new LdapConnections(config);
+        return new LdapGroupDAO<X500Principal>(connections,
+                new LdapUserDAO<X500Principal>(connections));
     }
     
     String getGroupID()

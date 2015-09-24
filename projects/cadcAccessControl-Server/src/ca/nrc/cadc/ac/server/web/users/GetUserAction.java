@@ -108,7 +108,6 @@ public class GetUserAction extends AbstractUserAction
     protected User<Principal> getUser(Principal principal) throws Exception
     {
         User<Principal> user;
-        final UserPersistence<Principal> userPersistence = getUserPersistence();
 
         /**
          * Special case 1

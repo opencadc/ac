@@ -91,7 +91,6 @@ public class CreateUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        final UserPersistence<Principal> userPersistence = getUserPersistence();
         final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
         userPersistence.addPendingUser(userRequest);
 

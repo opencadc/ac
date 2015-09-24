@@ -86,7 +86,6 @@ public class DeleteGroupAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         Group deletedGroup = groupPersistence.getGroup(this.groupName);
         groupPersistence.deleteGroup(this.groupName);
         if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))

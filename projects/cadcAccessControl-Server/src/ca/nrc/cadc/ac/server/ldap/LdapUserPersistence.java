@@ -77,28 +77,37 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
 import com.unboundid.ldap.sdk.DN;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPConnectionPool;
+import com.unboundid.ldap.sdk.LDAPException;
+
 import org.apache.log4j.Logger;
 
 import java.security.AccessControlException;
+import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.Collection;
 
-public class LdapUserPersistence<T extends Principal>  implements UserPersistence<T>
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+
+public class LdapUserPersistence<T extends Principal> extends LdapPersistence implements UserPersistence<T>
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
-    private LdapConfig config;
     private Profiler profiler = new Profiler(LdapUserPersistence.class);
 
     public LdapUserPersistence()
     {
-        try
-        {
-            this.config = LdapConfig.getLdapConfig();
-        }
-        catch (RuntimeException e)
-        {
-            logger.error("test/config/LdapConfig.properties file required.", e);
-        }
+        super();
+    }
+
+    /**
+     * Shutdown the connection pool.
+     */
+    @Override
+    public void destroy()
+    {
+        super.shutdown();
     }
 
     /**
@@ -116,17 +125,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
                UserAlreadyExistsException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             userDAO.addUser(user);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -145,17 +152,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         UserAlreadyExistsException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             userDAO.addPendingUser(user);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -174,17 +179,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.getUser(userID);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -201,17 +204,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.getPendingUser(userID);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -230,9 +231,10 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         throws UserNotFoundException, TransientException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             profiler.checkpoint("Create LdapUserDAO");
             User<T> user = userDAO.getAugmentedUser(userID);
             profiler.checkpoint("getAugmentedUser");
@@ -240,11 +242,7 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-                profiler.checkpoint("close");
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -259,17 +257,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         throws TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.getUsers();
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -284,17 +280,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         throws TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.getPendingUsers();
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -315,17 +309,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.approvePendingUser(userID);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -345,17 +337,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.modifyUser(user);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -373,17 +363,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             userDAO.deleteUser(userID);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -401,17 +389,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             userDAO.deletePendingUser(userID);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -430,17 +416,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
             throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.doLogin(userID, password);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -458,17 +442,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
             throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             userDAO.setPassword(user, oldPassword, newPassword);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -490,17 +472,15 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.getUserGroups(userID, isAdmin);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
 
@@ -522,17 +502,16 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
                AccessControlException
     {
         LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(this.config);
+            userDAO = new LdapUserDAO<T>(conns);
             return userDAO.isMember(userID, groupID);
         }
         finally
         {
-            if (userDAO != null)
-            {
-                userDAO.close();
-            }
+            conns.releaseConnections();
         }
     }
+
 }

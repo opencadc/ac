@@ -80,6 +80,8 @@ import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
+import com.unboundid.ldap.sdk.LDAPException;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.AccessControlException;
@@ -94,6 +96,7 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
     protected GroupLogInfo logInfo;
     protected HttpServletRequest request;
     protected SyncOutput syncOut;
+    protected GroupPersistence groupPersistence;
 
     public AbstractGroupAction()
     {
@@ -114,6 +117,11 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
     public void setSyncOut(SyncOutput syncOut)
     {
         this.syncOut = syncOut;
+    }
+
+    public void setGroupPersistence(GroupPersistence groupPersistence)
+    {
+        this.groupPersistence = groupPersistence;
     }
 
     public Object run() throws PrivilegedActionException
@@ -216,18 +224,6 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
                 log.warn("Could not write error message to output stream");
             }
         }
-    }
-
-    <T extends Principal> GroupPersistence<T> getGroupPersistence()
-    {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.getGroupPersistence();
-    }
-
-    <T extends Principal> UserPersistence<T> getUserPersistence()
-    {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.getUserPersistence();
     }
 
     protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers)

@@ -89,6 +89,8 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import org.apache.log4j.Logger;
 
+import com.unboundid.ldap.sdk.LDAPException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
@@ -97,7 +99,7 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
-public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
+public abstract class AbstractUserAction<T extends Principal> implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
@@ -107,6 +109,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected boolean isAugmentUser;
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
+    protected UserPersistence<T> userPersistence;
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
@@ -135,6 +138,11 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     public void setSyncOut(SyncOutput syncOut)
     {
         this.syncOut = syncOut;
+    }
+
+    public void setUserPersistence(UserPersistence<T> userPersistence)
+    {
+        this.userPersistence = userPersistence;
     }
 
     public Object run() throws IOException
@@ -226,13 +234,6 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             }
         }
         profiler.checkpoint("sendError");
-    }
-
-    @SuppressWarnings("unchecked")
-    <T extends Principal> UserPersistence<T> getUserPersistence()
-    {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.getUserPersistence();
     }
 
     protected void logUserInfo(String userName)

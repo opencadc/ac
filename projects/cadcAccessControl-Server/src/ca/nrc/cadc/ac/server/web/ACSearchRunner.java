@@ -105,7 +105,7 @@ import java.util.Set;
 public class ACSearchRunner implements JobRunner
 {
     private static Logger log = Logger.getLogger(ACSearchRunner.class);
-    
+
     private JobUpdater jobUpdater;
     private SyncOutput syncOut;
     private Job job;
@@ -134,7 +134,7 @@ public class ACSearchRunner implements JobRunner
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
-        
+
         log.debug("RUN ACSearchRunner: " + subject);
         if (log.isDebugEnabled())
         {
@@ -148,7 +148,7 @@ public class ACSearchRunner implements JobRunner
                         + ": " + next.getName());
             }
         }
-        
+
         logInfo = new JobLogInfo(job);
         logInfo.setSubject(subject);
 
@@ -164,11 +164,11 @@ public class ACSearchRunner implements JobRunner
         String endMessage = logInfo.end();
         log.info(endMessage);
     }
-    
+
     @SuppressWarnings("unchecked")
     private void search(Subject subject)
     {
-        
+
         // Note: This search runner is customized to run with
         // InMemoryJobPersistence, and synchronous POST requests are
         // dealt with immediately, rather than returning results via
@@ -176,11 +176,11 @@ public class ACSearchRunner implements JobRunner
         // Jobs in this runner are never updated after execution begins
         // in case the in-memory job has gone away.  Error reporting
         // is done directly through the response on both POST and GET
-        
+
         try
         {
-            ExecutionPhase ep = 
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, 
+            ExecutionPhase ep =
+                jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED,
                                     ExecutionPhase.EXECUTING, new Date());
             if ( !ExecutionPhase.EXECUTING.equals(ep) )
             {
@@ -190,10 +190,10 @@ public class ACSearchRunner implements JobRunner
 
             RequestValidator rv = new RequestValidator();
             rv.validate(job.getParameterList());
-            
+
             // only allow users to search themselves...
             Principal userBeingSearched = rv.getPrincipal();
-            
+
             boolean idMatch = false;
             if (userBeingSearched instanceof X500Principal)
             {
@@ -225,7 +225,7 @@ public class ACSearchRunner implements JobRunner
                 throw new AccessControlException("Can only search oneself.");
 
             PluginFactory factory = new PluginFactory();
-            GroupPersistence dao = factory.getGroupPersistence();
+            GroupPersistence dao = factory.createGroupPersistence();
             Collection<Group> groups;
             try
             {
@@ -238,9 +238,9 @@ public class ACSearchRunner implements JobRunner
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
             GroupListWriter groupListWriter = new GroupListWriter();
             groupListWriter.write(groups, syncOut.getOutputStream());
-            
+
             // Mark the Job as completed.
-//            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING, 
+//            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
 //                                ExecutionPhase.COMPLETED, new Date());
         }
         catch (TransientException t)
@@ -248,7 +248,7 @@ public class ACSearchRunner implements JobRunner
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
             log.error("FAIL", t);
-            
+
             syncOut.setResponseCode(503);
             syncOut.setHeader("Content-Type", "text/plain");
             try
@@ -259,13 +259,13 @@ public class ACSearchRunner implements JobRunner
             {
                 log.warn("Could not write response to output stream", e);
             }
-            
+
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
 //            try
 //            {
 //                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                    ExecutionPhase.ERROR, errorSummary, 
+//                                    ExecutionPhase.ERROR, errorSummary,
 //                                    new Date());
 //            }
 //            catch(Throwable oops)
@@ -278,7 +278,7 @@ public class ACSearchRunner implements JobRunner
             logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
-            
+
             syncOut.setResponseCode(404);
             syncOut.setHeader("Content-Type", "text/plain");
             try
@@ -289,7 +289,7 @@ public class ACSearchRunner implements JobRunner
             {
                 log.warn("Could not write response to output stream", e);
             }
-            
+
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
 //            try
@@ -309,7 +309,7 @@ public class ACSearchRunner implements JobRunner
             logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
-            
+
             syncOut.setResponseCode(404);
             syncOut.setHeader("Content-Type", "text/plain");
             try
@@ -320,7 +320,7 @@ public class ACSearchRunner implements JobRunner
             {
                 log.warn("Could not write response to output stream", e);
             }
-            
+
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
 //            try
@@ -340,7 +340,7 @@ public class ACSearchRunner implements JobRunner
             logInfo.setSuccess(true);
             logInfo.setMessage(ex.getMessage());
             log.debug("FAIL", ex);
-            
+
             syncOut.setResponseCode(400);
             syncOut.setHeader("Content-Type", "text/plain");
             try
@@ -357,18 +357,18 @@ public class ACSearchRunner implements JobRunner
             logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
-            
+
             syncOut.setResponseCode(403);
             syncOut.setHeader("Content-Type", "text/plain");
             try
             {
-                syncOut.getOutputStream().write(t.getMessage().getBytes());
+                syncOut.getOutputStream().write("Permission Denied".getBytes());
             }
             catch (IOException e)
             {
                 log.warn("Could not write response to output stream", e);
             }
-            
+
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
 //            try
@@ -387,9 +387,9 @@ public class ACSearchRunner implements JobRunner
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
             log.error("FAIL", t);
-            
+
             writeError(syncOut, 500, t);
-            
+
 //            ErrorSummary errorSummary =
 //                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
 //            try
@@ -404,7 +404,7 @@ public class ACSearchRunner implements JobRunner
 //            }
         }
     }
-    
+
     private void writeError(SyncOutput syncOutput, int code, Throwable t)
     {
         try

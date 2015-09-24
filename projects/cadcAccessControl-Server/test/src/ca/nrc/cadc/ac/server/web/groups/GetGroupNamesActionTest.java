@@ -137,14 +137,8 @@ public class GetGroupNamesActionTest
 
             EasyMock.replay(mockPersistence, mockWriter, mockResponse);
 
-            GetGroupNamesAction action = new GetGroupNamesAction()
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return mockPersistence;
-                };
-            };
+            GetGroupNamesAction action = new GetGroupNamesAction();
+            action.groupPersistence = mockPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);

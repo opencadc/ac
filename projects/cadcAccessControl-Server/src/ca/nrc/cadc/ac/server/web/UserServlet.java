@@ -68,6 +68,8 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
 import ca.nrc.cadc.ac.server.web.users.GetUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
@@ -92,31 +94,45 @@ import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.util.Set;
 
-public class UserServlet extends HttpServlet
+public class UserServlet<T extends Principal> extends HttpServlet
 {
 
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
 
+    public static final String USER_PERSISTENCE_REF = "userPersistence";
+
     private String notAugmentedX500User;
     private String notAugmentedHttpUser;
 
+    private UserPersistence<T> userPersistence;
+
     @Override
-    public void init(final ServletConfig config) throws ServletException
+    public void init(ServletConfig config) throws ServletException
     {
         super.init(config);
 
         try
         {
-        	this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
-        	this.notAugmentedHttpUser = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpUser");
+            this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
+            this.notAugmentedHttpUser = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpUser");
             log.debug("notAugmentedX500User: " + notAugmentedX500User);
             log.debug("notAugmentedHttpUser: " + notAugmentedHttpUser);
+
+            PluginFactory pluginFactory = new PluginFactory();
+            userPersistence = pluginFactory.createUserPersistence();
         }
-        catch(Exception ex)
+        catch (Throwable t)
         {
-            log.error("failed to init: " + ex);
+            log.fatal("Error initializing group persistence", t);
+            throw new ExceptionInInitializerError(t);
         }
+    }
+
+    @Override
+    public void destroy()
+    {
+        userPersistence.destroy();
     }
 
     /**
@@ -160,6 +176,7 @@ public class UserServlet extends HttpServlet
             SyncOutput syncOut = new SyncOutput(response);
             action.setLogInfo(logInfo);
             action.setSyncOut(syncOut);
+            action.setUserPersistence(userPersistence);
 
             try
             {

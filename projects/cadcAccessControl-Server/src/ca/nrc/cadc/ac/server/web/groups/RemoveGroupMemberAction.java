@@ -88,7 +88,6 @@ public class RemoveGroupMemberAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         Group group = groupPersistence.getGroup(this.groupName);
         Group toRemove = new Group(this.groupMemberName);
         if (!group.getGroupMembers().remove(toRemove))

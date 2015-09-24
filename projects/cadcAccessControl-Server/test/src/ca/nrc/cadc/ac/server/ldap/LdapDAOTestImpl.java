@@ -71,21 +71,22 @@ package ca.nrc.cadc.ac.server.ldap;
 import java.security.AccessControlException;
 
 import ca.nrc.cadc.net.TransientException;
+
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 
 
 public class LdapDAOTestImpl extends LdapDAO
 {
-    public LdapDAOTestImpl(LdapConfig config) throws TransientException
+    public LdapDAOTestImpl(LdapConnections connections) throws TransientException
     {
-        super(config);
+        super(connections);
     }
 
     @Override
-    public LDAPConnection getConnection() throws LDAPException,
+    public LDAPConnection getReadOnlyConnection() throws LDAPException,
                                                  AccessControlException
     {
-        return super.getConnection();
+        return super.getReadOnlyConnection();
     }
 }

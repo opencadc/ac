@@ -70,11 +70,16 @@ package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+
+import java.lang.reflect.Constructor;
 import java.net.URL;
+import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Properties;
 import java.util.Set;
 import org.apache.log4j.Logger;
+
+import com.unboundid.ldap.sdk.LDAPException;
 
 public class PluginFactory
 {
@@ -113,54 +118,50 @@ public class PluginFactory
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Principal> GroupPersistence<T> getGroupPersistence()
+    public <T extends Principal> GroupPersistence<T> createGroupPersistence()
     {
-        GroupPersistence<T> ret = null;
         String name = GroupPersistence.class.getName();
         String cname = config.getProperty(name);
         if (cname == null)
         {
-            ret = new LdapGroupPersistence<T>();
+            return new LdapGroupPersistence<T>();
         }
         else
         {
             try
             {
                 Class<?> c = Class.forName(cname);
-                ret = (GroupPersistence<T>) c.newInstance();
+                return (GroupPersistence<T>) c.newInstance();
             }
             catch (Exception ex)
             {
                 throw new RuntimeException("config error: failed to create GroupPersistence " + cname, ex);
             }
         }
-        return ret;
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Principal> UserPersistence<T> getUserPersistence()
+    public <T extends Principal> UserPersistence<T> createUserPersistence()
     {
-        UserPersistence ret = null;
         String name = UserPersistence.class.getName();
         String cname = config.getProperty(name);
 
         if (cname == null)
         {
-            ret = new LdapUserPersistence<T>();
+            return new LdapUserPersistence<T>();
         }
         else
         {
             try
             {
                 Class<?> c = Class.forName(cname);
-                ret = (UserPersistence) c.newInstance();
+                return (UserPersistence) c.newInstance();
             }
             catch (Exception ex)
             {
                 throw new RuntimeException("config error: failed to create UserPersistence " + cname, ex);
             }
         }
-        return ret;
     }
 
 }
