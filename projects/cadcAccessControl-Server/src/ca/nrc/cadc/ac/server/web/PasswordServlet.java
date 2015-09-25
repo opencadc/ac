@@ -70,6 +70,8 @@ package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.log.ServletLogInfo;
@@ -77,6 +79,8 @@ import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -97,6 +101,17 @@ import java.util.TreeSet;
 public class PasswordServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(PasswordServlet.class);
+
+    UserPersistence userPersistence;
+
+    @Override
+    public void init(final ServletConfig config) throws ServletException
+    {
+        super.init(config);
+
+        PluginFactory pluginFactory = new PluginFactory();
+        userPersistence = pluginFactory.createUserPersistence();
+    }
 
     /**
      * Attempt to change password.
@@ -126,11 +141,10 @@ public class PasswordServlet extends HttpServlet
                 {
                     public Object run() throws Exception
                     {
-                        LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
                         User<Principal> user;
                         try
                         {
-                            user = dao.getUser(subject.getPrincipals().iterator().next());
+                            user = userPersistence.getUser(subject.getPrincipals().iterator().next());
                         }
                         catch (UserNotFoundException e)
                         {
@@ -148,7 +162,7 @@ public class PasswordServlet extends HttpServlet
                         {
                             if (StringUtil.hasText(newPassword))
                             {
-                                dao.setPassword(user, oldPassword, newPassword);
+                                userPersistence.setPassword(user, oldPassword, newPassword);
                             }
                             else
                             {
