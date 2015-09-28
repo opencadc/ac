@@ -70,10 +70,12 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.io.PrintStream;
+import java.security.Principal;
 import java.security.cert.CertificateException;
 
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.ac.User;
 import org.apache.log4j.Logger;
 
 /**
@@ -105,12 +107,27 @@ public class Main
                 if (parser.getSubject() == null)
                 {
                     // no credential, but command works with an anonymous user
+                    log.debug("running as anon user");
                     command.run();
                 }
                 else
                 {
-                    // has credential, execute the command 
-                    Subject.doAs(parser.getSubject(), command);
+                    Subject subject = parser.getSubject();
+                    log.debug("running as " + subject);
+
+                    // augment the subject
+                    if (subject.getPrincipals().isEmpty())
+                    {
+                        throw new RuntimeException("BUG: subject with no principals");
+                    }
+                    Principal userID = subject.getPrincipals().iterator().next();
+                    User<Principal> subjectUser = command.getUserPersistence().getAugmentedUser(userID);
+                    for (Principal identity: subjectUser.getIdentities())
+                    {
+                        subject.getPrincipals().add(identity);
+                    }
+                    log.debug("augmented subject: " + subject);
+                    Subject.doAs(subject, command);
                 }
             }
             else

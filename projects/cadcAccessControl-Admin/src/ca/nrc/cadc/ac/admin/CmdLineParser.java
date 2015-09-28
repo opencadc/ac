@@ -207,6 +207,7 @@ public class CmdLineParser
         // only one command is allowed per command line
     	if (am.isSet("list"))
     	{
+            System.out.println("--list");
             this.command = new ListActiveUsers();
             count++;
     	}
@@ -260,7 +261,7 @@ public class CmdLineParser
     		
             if (count == 0)
             {
-                msg = "Missing command or ommand is not supported.";
+                msg = "Missing command or command is not supported.";
             }
             else
             {
@@ -289,6 +290,7 @@ public class CmdLineParser
             try 
             {
                 SSLUtil.validateSubject(subject, null);
+                log.debug("subject: " + subject);
                 this.subject = subject;
                 this.proceed = true;
             } 
@@ -323,11 +325,10 @@ public class CmdLineParser
     	sb.append("--list               :list users in the Users tree\n");
     	sb.append("                     :can be executed as an anonymous user\n");
     	sb.append("--list-pending       :list users in the UserRequests tree\n");
-    	sb.append("                     :except those with nsaccountlock=true\n");
     	sb.append("                     :can be executed as an anonymous user\n");
     	sb.append("--view=<userid>      :print the entire details of the user\n");
     	sb.append("--approve=<userid>   :delete the user from the UserRequests tree\n");
-    	sb.append("                     :by setting nsaccount=true, and insert it to the Users tree\n");
+    	sb.append("                     :and insert it into the Users tree\n");
     	sb.append("--reject=<userid>    :delete the user from the UserRequests tree\n");
     	sb.append("\n");
     	sb.append("-v|--verbose         : Verbose mode print progress and error messages\n");
