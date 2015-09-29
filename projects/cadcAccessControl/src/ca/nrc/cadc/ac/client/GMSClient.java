@@ -77,7 +77,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -646,11 +645,12 @@ public class GMSClient implements TransferListener
     public void addUserMember(String targetGroupName, Principal userID)
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
+        log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
+        
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String encodedUserID = URLEncoder.encode(userID.getName(), "UTF-8");
-        URL addUserMemberURL = new URL(this.baseURL + "/groups/" +
-                                       targetGroupName + "/userMembers/" +
-                                       encodedUserID + "?idType=" + userIDType);
+        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName 
+                + "/userMembers/" + NetUtil.encode(userID.getName()) 
+                + "?idType=" + userIDType);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
 
@@ -769,14 +769,14 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
-        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" +
-                                          targetGroupName + "/userMembers/" +
-                                          encodedUserID + "?idType=" +
-                                          userIDType);
+        
+        log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
+        
+        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName 
+                + "/userMembers/" + NetUtil.encode(userID.getName()) 
+                + "?idType=" + userIDType);
 
-        log.debug("removeUserMember request to " +
-                  removeUserMemberURL.toString());
+        log.debug("removeUserMember: " + removeUserMemberURL.toString());
 
         // reset the state of the cache
         clearCache();
@@ -834,9 +834,9 @@ public class GMSClient implements TransferListener
      * @param role The role to look up.
      * @return A list of groups for which the user has the role.
      * @throws UserNotFoundException If the user does not exist.
-     * @throws AccessControlException If not allowed to peform the search.
+     * @throws AccessControlException If not allowed to perform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException If an unknown error occured.
+     * @throws IOException If an unknown error occurred.
      */
     public List<Group> getMemberships(Principal userID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
@@ -859,11 +859,9 @@ public class GMSClient implements TransferListener
         StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
         searchGroupURL.append("/search?");
 
-        searchGroupURL.append("ID=").append(URLEncoder.encode(id, "UTF-8"));
-        searchGroupURL.append("&IDTYPE=")
-                .append(URLEncoder.encode(idType, "UTF-8"));
-        searchGroupURL.append("&ROLE=")
-                .append(URLEncoder.encode(roleString, "UTF-8"));
+        searchGroupURL.append("ID=").append(NetUtil.encode(id));
+        searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
+        searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
 
         log.debug("getMemberships request to " + searchGroupURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -967,13 +965,10 @@ public class GMSClient implements TransferListener
         StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
         searchGroupURL.append("/search?");
 
-        searchGroupURL.append("ID=").append(URLEncoder.encode(id, "UTF-8"));
-        searchGroupURL.append("&IDTYPE=")
-                .append(URLEncoder.encode(idType, "UTF-8"));
-        searchGroupURL.append("&ROLE=")
-                .append(URLEncoder.encode(roleString, "UTF-8"));
-        searchGroupURL.append("&GROUPID=")
-                .append(URLEncoder.encode(groupName, "UTF-8"));
+        searchGroupURL.append("ID=").append(NetUtil.encode(id));
+        searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
+        searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
+        searchGroupURL.append("&GROUPID=").append(NetUtil.encode(groupName));
 
         log.debug("getMembership request to " + searchGroupURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
