@@ -121,6 +121,7 @@ public class AddUserMemberActionTest
             EasyMock.replay(groupPersistence);
 
             AddUserMemberAction action = new AddUserMemberAction("group", userID, userIDType);
+            action.groupPersistence = groupPersistence;
 
             try
             {

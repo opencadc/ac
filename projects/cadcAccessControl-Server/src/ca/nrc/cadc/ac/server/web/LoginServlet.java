@@ -90,6 +90,7 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
@@ -128,10 +129,10 @@ public class LoginServlet<T extends Principal> extends HttpServlet
             this.nonImpersonGroup = config.getInitParameter(LoginServlet.class.getName() + ".nonImpersonGroup");
             log.debug("nonImpersonGroup: " + nonImpersonGroup);
 
-            userPersistence = (UserPersistence<T>)
-                config.getServletContext().getAttribute(UserServlet.USER_PERSISTENCE_REF);
-            groupPersistence = (GroupPersistence<HttpPrincipal>)
-                config.getServletContext().getAttribute(GroupServlet.GROUP_PERSISTENCE_REF);
+            PluginFactory pluginFactory = new PluginFactory();
+            userPersistence = pluginFactory.createUserPersistence();
+            groupPersistence = pluginFactory.createGroupPersistence();
+
         }
         catch(Exception ex)
         {

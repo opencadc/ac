@@ -70,6 +70,7 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import org.apache.log4j.Logger;
+import org.seleniumhq.jetty7.util.log.Log;
 
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
@@ -166,6 +167,7 @@ public class LdapConnectionPool
                 if (timeToCheckPool())
                 {
                     // check to see if the configuration has changed
+                    logger.debug("checking for ldap config change");
                     LdapConfig newConfig = LdapConfig.getLdapConfig();
                     if (!newConfig.equals(currentConfig))
                     {
@@ -189,7 +191,7 @@ public class LdapConnectionPool
         return System.currentTimeMillis() - lastPoolCheck > POOL_CHECK_INTERVAL_MILLESCONDS;
     }
 
-    private LDAPReadWriteConnectionPool createPool(LdapConfig config)
+    static LDAPReadWriteConnectionPool createPool(LdapConfig config)
     {
         LDAPConnectionPool ro = createPool(config.getReadOnlyPool(), config);
         LDAPConnectionPool rw = createPool(config.getReadOnlyPool(), config);
@@ -197,7 +199,7 @@ public class LdapConnectionPool
         return pool;
     }
 
-    private LDAPConnectionPool createPool(LdapPool pool, LdapConfig config)
+    private static LDAPConnectionPool createPool(LdapPool pool, LdapConfig config)
     {
         try
         {
@@ -213,12 +215,10 @@ public class LdapConnectionPool
             if (pool.getPolicy().equals(PoolPolicy.roundRobin))
             {
                 serverSet = new RoundRobinServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
-                profiler.checkpoint("Create round robin server set");
             }
             else if (pool.getPolicy().equals(PoolPolicy.fewestConnections))
             {
                 serverSet = new FewestConnectionsServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
-                profiler.checkpoint("Create fewest connections server set");
             }
             else
             {
@@ -228,7 +228,6 @@ public class LdapConnectionPool
             SimpleBindRequest bindRequest = new SimpleBindRequest(config.getAdminUserDN(), config.getAdminPasswd());
             LDAPConnectionPool connectionPool = new LDAPConnectionPool(
                 serverSet, bindRequest, pool.getInitSize(), pool.getMaxSize());
-            profiler.checkpoint("Create connection pool");
 
             return connectionPool;
         }
