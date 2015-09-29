@@ -124,9 +124,9 @@ import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
 
 
 /**
- * 
+ *
  * @author pdowler
- * @param <T> 
+ * @param <T>
  */
 public class LdapUserDAO<T extends Principal> extends LdapDAO
 {
@@ -327,7 +327,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new UserAlreadyExistsException(error);
         }
         catch (UserNotFoundException ok) { }
-        
+
         // check pending users
         try
         {
@@ -480,7 +480,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
-            SearchRequest searchRequest = 
+            SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
             if (proxy)
@@ -541,6 +541,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         throws UserNotFoundException, TransientException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
+        profiler.checkpoint("getAugmentedUser.getSearchField");
         if (searchField == null)
         {
             throw new IllegalArgumentException(
@@ -584,6 +585,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             logger.debug("getGroup Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("BUG: checkLdapResult didn't throw an exception");
+        }
+        finally
+        {
+            profiler.checkpoint("Done getAugmentedUser");
         }
     }
 
@@ -869,7 +874,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 delRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl(
                         "dn:" + getSubjectDN().toNormalizedString()));
-                
+
                 LDAPResult result = getConnection().delete(delRequest);
                 LdapDAO.checkLdapResult(result.getResultCode());
             }
@@ -915,12 +920,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             }
 
             //User<T> user = getUser(userID);
-            
+
             //Filter filter = Filter.createANDFilter(
             //        Filter.createEqualityFilter(searchField,
             //                                    user.getUserID().getName()),
             //        Filter.createPresenceFilter(LDAP_MEMBEROF));
-            
+
             Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
             SearchRequest searchRequest = new SearchRequest(
                     config.getUsersDN(), SearchScope.ONE, filter, LDAP_MEMBEROF);

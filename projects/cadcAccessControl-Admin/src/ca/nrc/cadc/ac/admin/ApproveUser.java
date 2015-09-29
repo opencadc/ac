@@ -70,9 +70,11 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
+import java.security.Principal;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 
@@ -98,8 +100,9 @@ public class ApproveUser extends AbstractUserCommand
     protected void execute() 
 	throws AccessControlException, UserNotFoundException, TransientException 
     {
-        this.getUserPersistence().approvePendingUser(this.getPrincipal());
+        User<Principal> user = this.getUserPersistence().approvePendingUser(this.getPrincipal());
         String msg = "User " + this.getPrincipal().getName() + " was approved successfully.";
         this.systemOut.println(msg);
+        this.printUser(user);
     }
 }

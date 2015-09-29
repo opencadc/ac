@@ -74,6 +74,8 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+
 import com.unboundid.ldap.sdk.DN;
 import org.apache.log4j.Logger;
 
@@ -85,6 +87,7 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
     private LdapConfig config;
+    private Profiler profiler = new Profiler(LdapUserPersistence.class);
 
     public LdapUserPersistence()
     {
@@ -230,13 +233,17 @@ public class LdapUserPersistence<T extends Principal>  implements UserPersistenc
         try
         {
             userDAO = new LdapUserDAO<T>(this.config);
-            return userDAO.getAugmentedUser(userID);
+            profiler.checkpoint("Create LdapUserDAO");
+            User<T> user = userDAO.getAugmentedUser(userID);
+            profiler.checkpoint("getAugmentedUser");
+            return user;
         }
         finally
         {
             if (userDAO != null)
             {
                 userDAO.close();
+                profiler.checkpoint("close");
             }
         }
     }

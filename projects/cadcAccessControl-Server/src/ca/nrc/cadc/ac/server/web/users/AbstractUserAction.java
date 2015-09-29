@@ -85,6 +85,8 @@ import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.ac.xml.UserRequestReader;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -100,6 +102,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
     public static final String JSON_CONTENT_TYPE = "application/json";
+    private Profiler profiler = new Profiler(AbstractUserAction.class);
 
     protected boolean isAugmentUser;
     protected UserLogInfo logInfo;
@@ -118,12 +121,12 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     {
     	this.isAugmentUser = isAugmentUser;
     }
-    
+
     public boolean isAugmentUser()
     {
     	return this.isAugmentUser;
     }
-    
+
     public void setLogInfo(UserLogInfo logInfo)
     {
         this.logInfo = logInfo;
@@ -139,6 +142,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
         try
         {
             doAction();
+            profiler.checkpoint("doAction");
         }
         catch (AccessControlException e)
         {
@@ -221,6 +225,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
                 log.warn("Could not write error message to output stream");
             }
         }
+        profiler.checkpoint("sendError");
     }
 
     @SuppressWarnings("unchecked")
@@ -269,7 +274,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             throw new IOException("Unknown content being asked for: "
                                   + acceptedContentType);
         }
-
+        profiler.checkpoint("readUserRequest");
         return userRequest;
     }
 
@@ -303,7 +308,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             throw new IOException("Unknown content being asked for: "
                                   + acceptedContentType);
         }
-
+        profiler.checkpoint("readUser");
         return user;
     }
 
@@ -329,6 +334,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             JsonUserWriter userWriter = new JsonUserWriter();
             userWriter.write(user, writer);
         }
+        profiler.checkpoint("writeUser");
     }
 
     /**
@@ -352,6 +358,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             JsonUserListWriter userListWriter = new JsonUserListWriter();
             userListWriter.write(users, writer);
         }
+        profiler.checkpoint("writeUsers");
     }
 
 }
