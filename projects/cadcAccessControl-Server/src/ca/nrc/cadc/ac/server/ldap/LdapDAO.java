@@ -113,7 +113,7 @@ public abstract class LdapDAO
 
     public LDAPConnection getReadOnlyConnection() throws LDAPException
     {
-        return connections.getReadWriteConnection();
+        return connections.getReadOnlyConnection();
     }
 
     public LDAPConnection getReadWriteConnection() throws LDAPException

@@ -92,7 +92,7 @@ class LdapConnections
 {
     private final static Logger log = Logger.getLogger(LdapConnections.class);
 
-    Profiler profiler = new Profiler(LdapPersistence.class);
+    Profiler profiler = new Profiler(LdapConnections.class);
 
     private LdapPersistence persistence;
 
@@ -132,6 +132,8 @@ class LdapConnections
             log.debug("Obtaining manual config read only connection.");
             if (manualConfigPool == null)
             {
+                log.debug("Creating manual config connection pool--should only see this " +
+                        "message when running unit tests.");
                 manualConfigPool = LdapConnectionPool.createPool(config);
             }
             if (manualConfigReadOnlyConn == null)
@@ -159,6 +161,8 @@ class LdapConnections
             log.debug("Obtaining manual config read write connection.");
             if (manualConfigPool == null)
             {
+                log.debug("Creating manual config connection pool--should only see this " +
+                        "message when running unit tests.");
                 manualConfigPool = LdapConnectionPool.createPool(config);
             }
             if (manualConfigReadWriteConn == null)
@@ -205,9 +209,10 @@ class LdapConnections
     @Override
     public void finalize()
     {
-        log.debug("Closing manual config connection pool");
         if (manualConfigPool != null)
         {
+            log.debug("Closing manual config connection pool--should only see this " +
+            		"message when running unit tests.");
             manualConfigPool.close();
         }
     }

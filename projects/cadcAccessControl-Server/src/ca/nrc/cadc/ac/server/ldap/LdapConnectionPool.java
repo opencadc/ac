@@ -70,7 +70,6 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import org.apache.log4j.Logger;
-import org.seleniumhq.jetty7.util.log.Log;
 
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
@@ -98,7 +97,7 @@ public class LdapConnectionPool
 
     private static final int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
 
-    Profiler profiler = new Profiler(LdapPersistence.class);
+    Profiler profiler = new Profiler(LdapConnectionPool.class);
 
     protected LdapConfig currentConfig;
     private LDAPReadWriteConnectionPool pool;
@@ -119,7 +118,7 @@ public class LdapConnectionPool
         {
             poolCheck();
             LDAPConnection conn = pool.getReadConnection();
-            profiler.checkpoint("get read write connection");
+            profiler.checkpoint("get read only connection");
             return conn;
         }
     }
