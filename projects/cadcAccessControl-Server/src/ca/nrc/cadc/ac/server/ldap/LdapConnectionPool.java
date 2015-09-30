@@ -93,7 +93,7 @@ import com.unboundid.ldap.sdk.SimpleBindRequest;
  */
 public class LdapConnectionPool
 {
-    private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
+    private static final Logger logger = Logger.getLogger(LdapConnectionPool.class);
 
     private static final int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
 
@@ -108,6 +108,13 @@ public class LdapConnectionPool
     LdapConnectionPool()
     {
         this.currentConfig = LdapConfig.getLdapConfig();
+        pool = createPool(currentConfig);
+        profiler.checkpoint("Create pool");
+    }
+
+    LdapConnectionPool(LdapConfig config)
+    {
+        this.currentConfig = config;
         pool = createPool(currentConfig);
         profiler.checkpoint("Create pool");
     }
@@ -150,6 +157,11 @@ public class LdapConnectionPool
         }
     }
 
+    protected LdapConfig getCurrentConfig()
+    {
+        return currentConfig;
+    }
+
     protected void shutdown()
     {
         logger.debug("Shutting down pool");
@@ -190,7 +202,7 @@ public class LdapConnectionPool
         return System.currentTimeMillis() - lastPoolCheck > POOL_CHECK_INTERVAL_MILLESCONDS;
     }
 
-    static LDAPReadWriteConnectionPool createPool(LdapConfig config)
+    LDAPReadWriteConnectionPool createPool(LdapConfig config)
     {
         LDAPConnectionPool ro = createPool(config.getReadOnlyPool(), config);
         LDAPConnectionPool rw = createPool(config.getReadOnlyPool(), config);
@@ -198,7 +210,7 @@ public class LdapConnectionPool
         return pool;
     }
 
-    private static LDAPConnectionPool createPool(LdapPool pool, LdapConfig config)
+    private LDAPConnectionPool createPool(LdapPool pool, LdapConfig config)
     {
         try
         {
