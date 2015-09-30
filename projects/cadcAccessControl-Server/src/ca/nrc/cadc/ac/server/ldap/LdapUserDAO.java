@@ -82,7 +82,6 @@ import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.DNPrincipal;
-import com.unboundid.ldap.sdk.DeleteRequest;
 import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
