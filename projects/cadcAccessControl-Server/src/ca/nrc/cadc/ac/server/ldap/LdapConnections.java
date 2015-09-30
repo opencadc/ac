@@ -75,7 +75,6 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.LDAPReadWriteConnectionPool;
 
 /**
  * This class in the means by which the DAO classes obtain
@@ -92,27 +91,30 @@ class LdapConnections
 {
     private final static Logger log = Logger.getLogger(LdapConnections.class);
 
-    Profiler profiler = new Profiler(LdapPersistence.class);
+    Profiler profiler = new Profiler(LdapConnections.class);
 
     private LdapPersistence persistence;
 
     private LDAPConnection autoConfigReadOnlyConn;
     private LDAPConnection autoConfigReadWriteConn;
 
-    private LdapConfig config;
+    private LdapConnectionPool pool;
 
-    private LDAPReadWriteConnectionPool manualConfigPool;
     private LDAPConnection manualConfigReadOnlyConn;
     private LDAPConnection manualConfigReadWriteConn;
 
     LdapConnections(LdapPersistence persistence)
     {
+        if (persistence == null)
+            throw new RuntimeException("persistence object is required");
         this.persistence = persistence;
     }
 
-    LdapConnections(LdapConfig config)
+    LdapConnections(LdapConnectionPool pool)
     {
-        this.config = config;
+        if (pool == null)
+            throw new RuntimeException("pool object is required");
+        this.pool = pool;
     }
 
     LDAPConnection getReadOnlyConnection() throws LDAPException
@@ -130,13 +132,9 @@ class LdapConnections
         else
         {
             log.debug("Obtaining manual config read only connection.");
-            if (manualConfigPool == null)
-            {
-                manualConfigPool = LdapConnectionPool.createPool(config);
-            }
             if (manualConfigReadOnlyConn == null)
             {
-                manualConfigReadOnlyConn = manualConfigPool.getReadConnection();
+                manualConfigReadOnlyConn = pool.getReadOnlyConnection();
             }
             return manualConfigReadOnlyConn;
         }
@@ -157,13 +155,9 @@ class LdapConnections
         else
         {
             log.debug("Obtaining manual config read write connection.");
-            if (manualConfigPool == null)
-            {
-                manualConfigPool = LdapConnectionPool.createPool(config);
-            }
             if (manualConfigReadWriteConn == null)
             {
-                manualConfigReadWriteConn = manualConfigPool.getReadConnection();
+                manualConfigReadWriteConn = pool.getReadWriteConnection();
             }
             return manualConfigReadWriteConn;
         }
@@ -190,11 +184,11 @@ class LdapConnections
             log.debug("Releasing manual config connections.");
             if (manualConfigReadOnlyConn != null)
             {
-                manualConfigPool.releaseReadConnection(manualConfigReadOnlyConn);
+                pool.releaseReadOnlyConnection(manualConfigReadOnlyConn);
             }
             if (manualConfigReadWriteConn != null)
             {
-                manualConfigPool.releaseWriteConnection(manualConfigReadWriteConn);
+                pool.releaseReadWriteConnection(manualConfigReadWriteConn);
             }
         }
     }
@@ -205,10 +199,11 @@ class LdapConnections
     @Override
     public void finalize()
     {
-        log.debug("Closing manual config connection pool");
-        if (manualConfigPool != null)
+        if (pool != null)
         {
-            manualConfigPool.close();
+            log.debug("Closing manual config connection pool--should only see this " +
+            		"message when running unit tests.");
+            pool.shutdown();
         }
     }
 
@@ -217,7 +212,7 @@ class LdapConnections
         if (persistence != null)
             return persistence.getCurrentConfig();
         else
-            return config;
+            return pool.getCurrentConfig();
 
     }
 

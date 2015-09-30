@@ -70,7 +70,6 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import org.apache.log4j.Logger;
-import org.seleniumhq.jetty7.util.log.Log;
 
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
@@ -94,11 +93,11 @@ import com.unboundid.ldap.sdk.SimpleBindRequest;
  */
 public class LdapConnectionPool
 {
-    private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
+    private static final Logger logger = Logger.getLogger(LdapConnectionPool.class);
 
     private static final int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
 
-    Profiler profiler = new Profiler(LdapPersistence.class);
+    Profiler profiler = new Profiler(LdapConnectionPool.class);
 
     protected LdapConfig currentConfig;
     private LDAPReadWriteConnectionPool pool;
@@ -113,13 +112,20 @@ public class LdapConnectionPool
         profiler.checkpoint("Create pool");
     }
 
+    LdapConnectionPool(LdapConfig config)
+    {
+        this.currentConfig = config;
+        pool = createPool(currentConfig);
+        profiler.checkpoint("Create pool");
+    }
+
     protected LDAPConnection getReadOnlyConnection() throws LDAPException
     {
         synchronized (poolMonitor)
         {
             poolCheck();
             LDAPConnection conn = pool.getReadConnection();
-            profiler.checkpoint("get read write connection");
+            profiler.checkpoint("get read only connection");
             return conn;
         }
     }
@@ -149,6 +155,11 @@ public class LdapConnectionPool
         {
             pool.releaseWriteConnection(conn);
         }
+    }
+
+    protected LdapConfig getCurrentConfig()
+    {
+        return currentConfig;
     }
 
     protected void shutdown()
@@ -191,7 +202,7 @@ public class LdapConnectionPool
         return System.currentTimeMillis() - lastPoolCheck > POOL_CHECK_INTERVAL_MILLESCONDS;
     }
 
-    static LDAPReadWriteConnectionPool createPool(LdapConfig config)
+    LDAPReadWriteConnectionPool createPool(LdapConfig config)
     {
         LDAPConnectionPool ro = createPool(config.getReadOnlyPool(), config);
         LDAPConnectionPool rw = createPool(config.getReadOnlyPool(), config);
@@ -199,7 +210,7 @@ public class LdapConnectionPool
         return pool;
     }
 
-    private static LDAPConnectionPool createPool(LdapPool pool, LdapConfig config)
+    private LDAPConnectionPool createPool(LdapPool pool, LdapConfig config)
     {
         try
         {

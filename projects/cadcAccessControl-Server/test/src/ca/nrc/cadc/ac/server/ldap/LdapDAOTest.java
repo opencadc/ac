@@ -117,7 +117,8 @@ public class LdapDAOTest extends AbstractLdapDAOTest
 
         subject.getPrincipals().add(httpPrincipal);
 
-        LdapConnections connections = new LdapConnections(config);
+        LdapConnectionPool pool = new LdapConnectionPool(config);
+        LdapConnections connections = new LdapConnections(pool);
         final LdapDAOTestImpl ldapDao = new LdapDAOTestImpl(connections);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -191,7 +192,8 @@ public class LdapDAOTest extends AbstractLdapDAOTest
         subject.getPrincipals().add(dnPrincipal);
 
         LdapConfig config = LdapConfig.getLdapConfig("LdapConfig.test.properties");
-        LdapConnections conn = new LdapConnections(config);
+        LdapConnectionPool pool = new LdapConnectionPool(config);
+        LdapConnections conn = new LdapConnections(pool);
         final LdapDAO ldapDAO = new LdapDAO(conn) { }; // abstract
 
         DN actual = Subject.doAs(subject, new PrivilegedAction<DN>()
