@@ -73,10 +73,12 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
 import com.unboundid.ldap.sdk.FewestConnectionsServerSet;
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPConnectionOptions;
 import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.LDAPReadWriteConnectionPool;
@@ -102,59 +104,76 @@ public class LdapConnectionPool
     protected LdapConfig currentConfig;
     private LDAPReadWriteConnectionPool pool;
     private Object poolMonitor = new Object();
+    private LDAPConnectionOptions connectionOptions;
 
     private long lastPoolCheck = System.currentTimeMillis();
 
     LdapConnectionPool()
     {
-        this.currentConfig = LdapConfig.getLdapConfig();
-        pool = createPool(currentConfig);
-        profiler.checkpoint("Create pool");
+        this(LdapConfig.getLdapConfig());
     }
 
     LdapConnectionPool(LdapConfig config)
     {
+        connectionOptions = new LDAPConnectionOptions();
+        connectionOptions.setUseSynchronousMode(true);
+        connectionOptions.setAutoReconnect(true);
         this.currentConfig = config;
         pool = createPool(currentConfig);
         profiler.checkpoint("Create pool");
     }
 
-    protected LDAPConnection getReadOnlyConnection() throws LDAPException
+    protected LDAPConnection getReadOnlyConnection() throws TransientException
     {
         synchronized (poolMonitor)
         {
             poolCheck();
-            LDAPConnection conn = pool.getReadConnection();
-            profiler.checkpoint("get read only connection");
-            return conn;
+            try
+            {
+                LDAPConnection conn = pool.getReadConnection();
+                logger.debug("Read pool statistics after borrow:\n" + pool.getReadPoolStatistics());
+                profiler.checkpoint("get read only connection");
+                conn.setConnectionOptions(connectionOptions);
+
+                return conn;
+            }
+            catch (LDAPException e)
+            {
+                throw new TransientException("Failed to get read only connection", e);
+            }
         }
     }
 
-    protected LDAPConnection getReadWriteConnection() throws LDAPException
+    protected LDAPConnection getReadWriteConnection() throws TransientException
     {
         synchronized (poolMonitor)
         {
             poolCheck();
-            LDAPConnection conn = pool.getWriteConnection();
-            profiler.checkpoint("get read write connection");
-            return conn;
+            try
+            {
+                LDAPConnection conn = pool.getWriteConnection();
+                logger.debug("write pool statistics after borrow:\n" + pool.getWritePoolStatistics());
+                profiler.checkpoint("get read write connection");
+
+                return conn;
+            }
+            catch (LDAPException e)
+            {
+                throw new TransientException("Failed to get read write connection", e);
+            }
         }
     }
 
     protected void releaseReadOnlyConnection(LDAPConnection conn)
     {
-        synchronized (poolMonitor)
-        {
-            pool.releaseReadConnection(conn);
-        }
+        pool.releaseReadConnection(conn);
+        logger.debug("Read pool statistics after release:\n" + pool.getReadPoolStatistics());
     }
 
     protected void releaseReadWriteConnection(LDAPConnection conn)
     {
-        synchronized (poolMonitor)
-        {
-            pool.releaseWriteConnection(conn);
-        }
+        pool.releaseWriteConnection(conn);
+        logger.debug("write pool statistics after release:\n" + pool.getWritePoolStatistics());
     }
 
     protected LdapConfig getCurrentConfig()
@@ -173,27 +192,33 @@ public class LdapConnectionPool
     {
         if (timeToCheckPool())
         {
-            synchronized (poolMonitor)
+            // check to see if the configuration has changed
+            logger.debug("checking for ldap config change");
+            LdapConfig newConfig = LdapConfig.getLdapConfig();
+            if (!newConfig.equals(currentConfig))
             {
-                if (timeToCheckPool())
+                logger.debug("Detected ldap configuration change, rebuilding pools");
+                this.currentConfig = newConfig;
+
+                final LDAPReadWriteConnectionPool oldPool = pool;
+
+                pool = createPool(currentConfig);
+                profiler.checkpoint("Rebuild pool");
+
+                // close the old pool in a separate thread
+                Runnable closeOldPool = new Runnable()
                 {
-                    // check to see if the configuration has changed
-                    logger.debug("checking for ldap config change");
-                    LdapConfig newConfig = LdapConfig.getLdapConfig();
-                    if (!newConfig.equals(currentConfig))
+                    public void run()
                     {
-                        logger.debug("Detected ldap configuration change, rebuilding pools");
-                        this.currentConfig = newConfig;
-
-                        pool.close();
-                        profiler.checkpoint("Close old pool");
-
-                        pool = createPool(currentConfig);
-                        profiler.checkpoint("Rebuild pool");
+                        logger.debug("Closing old pool...");
+                        oldPool.close();
+                        logger.debug("Old pool closed.");
                     }
-                    lastPoolCheck = System.currentTimeMillis();
-                }
+                };
+                Thread closePoolThread = new Thread(closeOldPool);
+                closePoolThread.start();
             }
+            lastPoolCheck = System.currentTimeMillis();
         }
     }
 
@@ -207,6 +232,8 @@ public class LdapConnectionPool
         LDAPConnectionPool ro = createPool(config.getReadOnlyPool(), config);
         LDAPConnectionPool rw = createPool(config.getReadOnlyPool(), config);
         LDAPReadWriteConnectionPool pool = new LDAPReadWriteConnectionPool(ro, rw);
+        logger.debug("Read pool statistics after create:\n" + pool.getReadPoolStatistics());
+        logger.debug("Write pool statistics after create:\n" + pool.getWritePoolStatistics());
         return pool;
     }
 
@@ -240,6 +267,9 @@ public class LdapConnectionPool
             LDAPConnectionPool connectionPool = new LDAPConnectionPool(
                 serverSet, bindRequest, pool.getInitSize(), pool.getMaxSize());
 
+            connectionPool.setCreateIfNecessary(pool.getCreateIfNeeded());
+            connectionPool.setMaxWaitTimeMillis(pool.getMaxWait());
+
             return connectionPool;
         }
         catch (Exception e)
@@ -248,5 +278,6 @@ public class LdapConnectionPool
             throw new IllegalStateException(e);
         }
     }
+
 
 }

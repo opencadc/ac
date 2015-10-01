@@ -79,7 +79,6 @@ import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import ca.nrc.cadc.util.StringUtil;
 
 /**
  * Reads and stores the LDAP configuration information. The information
@@ -99,6 +98,8 @@ public class LdapConfig
     public static final String POOL_INIT_SIZE = "poolInitSize";
     public static final String POOL_MAX_SIZE = "poolMaxSize";
     public static final String POOL_POLICY = "poolPolicy";
+    public static final String MAX_WAIT = "maxWait";
+    public static final String CREATE_IF_NEEDED = "createIfNeeded";
 
     public static final String LDAP_DBRC_ENTRY = "dbrcHost";
     public static final String LDAP_PORT = "port";
@@ -122,6 +123,8 @@ public class LdapConfig
         private int initSize;
         private int maxSize;
         private PoolPolicy policy;
+        private long maxWait;
+        private boolean createIfNeeded;
 
         public List<String> getServers()
         {
@@ -138,6 +141,14 @@ public class LdapConfig
         public PoolPolicy getPolicy()
         {
             return policy;
+        }
+        public long getMaxWait()
+        {
+            return maxWait;
+        }
+        public boolean getCreateIfNeeded()
+        {
+            return createIfNeeded;
         }
 
         @Override
@@ -158,6 +169,12 @@ public class LdapConfig
                 return false;
 
             if ( !(l.policy.equals(policy)))
+                return false;
+
+            if ( !(l.maxWait == maxWait))
+                return false;
+
+            if ( !(l.createIfNeeded == createIfNeeded))
                 return false;
 
             return true;
@@ -208,11 +225,15 @@ public class LdapConfig
         ldapConfig.readOnlyPool.initSize = Integer.valueOf(getProperty(pr, READONLY_PREFIX + POOL_INIT_SIZE));
         ldapConfig.readOnlyPool.maxSize = Integer.valueOf(getProperty(pr, READONLY_PREFIX + POOL_MAX_SIZE));
         ldapConfig.readOnlyPool.policy = PoolPolicy.valueOf(getProperty(pr, READONLY_PREFIX + POOL_POLICY));
+        ldapConfig.readOnlyPool.maxWait = Long.valueOf(getProperty(pr, READONLY_PREFIX + MAX_WAIT));
+        ldapConfig.readOnlyPool.createIfNeeded = Boolean.valueOf(getProperty(pr, READONLY_PREFIX + CREATE_IF_NEEDED));
 
         ldapConfig.readWritePool.servers = getMultiProperty(pr, READWRITE_PREFIX + POOL_SERVERS);
         ldapConfig.readWritePool.initSize = Integer.valueOf(getProperty(pr, READWRITE_PREFIX + POOL_INIT_SIZE));
         ldapConfig.readWritePool.maxSize = Integer.valueOf(getProperty(pr, READWRITE_PREFIX + POOL_MAX_SIZE));
         ldapConfig.readWritePool.policy = PoolPolicy.valueOf(getProperty(pr, READWRITE_PREFIX + POOL_POLICY));
+        ldapConfig.readWritePool.maxWait = Long.valueOf(getProperty(pr, READONLY_PREFIX + MAX_WAIT));
+        ldapConfig.readWritePool.createIfNeeded = Boolean.valueOf(getProperty(pr, READONLY_PREFIX + CREATE_IF_NEEDED));
 
         ldapConfig.dbrcHost = getProperty(pr, LDAP_DBRC_ENTRY);
         ldapConfig.port = Integer.valueOf(getProperty(pr, LDAP_PORT));
