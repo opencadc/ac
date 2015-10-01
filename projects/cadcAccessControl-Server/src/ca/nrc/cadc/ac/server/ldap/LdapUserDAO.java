@@ -252,45 +252,35 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      */
     public Collection<HttpPrincipal> getCadcIDs() throws TransientException
     {
+        Filter filter = Filter.createPresenceFilter("uid");
+        String[] attributes = new String[]{"uid"};
+
+        SearchRequest searchRequest =
+                new SearchRequest(config.getUsersDN(),
+                                  SearchScope.ONE, filter, attributes);
+
+        SearchResult searchResult = null;
         try
         {
-            Filter filter = Filter.createPresenceFilter("uid");
-            String[] attributes = new String[]{"uid"};
-
-            SearchRequest searchRequest =
-                    new SearchRequest(config.getUsersDN(),
-                                      SearchScope.ONE, filter, attributes);
-
-            SearchResult searchResult = null;
-            try
-            {
-                searchResult = getReadOnlyConnection().search(searchRequest);
-            }
-            catch (LDAPSearchException e)
-            {
-                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
-                {
-                    logger.debug("Could not find users root", e);
-                    throw new IllegalStateException("Could not find users root");
-                }
-            }
-
-            LdapDAO.checkLdapResult(searchResult.getResultCode());
-            Collection<HttpPrincipal> userIDs = new HashSet<HttpPrincipal>();
-            for (SearchResultEntry next : searchResult.getSearchEntries())
-            {
-                userIDs.add(new HttpPrincipal(next.getAttributeValue("uid")));
-            }
-
-            return userIDs;
+            searchResult = getReadOnlyConnection().search(searchRequest);
         }
-        catch (LDAPException e)
+        catch (LDAPSearchException e)
         {
-            logger.error("getCadcIDs Exception: " + e, e);
-            LdapDAO.checkLdapResult(e.getResultCode());
-            throw new IllegalStateException("Unexpected exception: " +
-                                            e.getMatchedDN(), e);
+            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+            {
+                logger.debug("Could not find users root", e);
+                throw new IllegalStateException("Could not find users root");
+            }
         }
+
+        LdapDAO.checkLdapResult(searchResult.getResultCode());
+        Collection<HttpPrincipal> userIDs = new HashSet<HttpPrincipal>();
+        for (SearchResultEntry next : searchResult.getSearchEntries())
+        {
+            userIDs.add(new HttpPrincipal(next.getAttributeValue("uid")));
+        }
+
+        return userIDs;
     }
 
     /**
@@ -629,51 +619,41 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
+        Filter filter =  Filter.createPresenceFilter(LDAP_UID);
+        logger.debug("search filter: " + filter);
+
+        final String[] attributes = new String[]
+            { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME };
+        final SearchRequest searchRequest =
+            new SearchRequest(usersDN, SearchScope.ONE, filter, attributes);
+
         try
         {
-            Filter filter =  Filter.createPresenceFilter(LDAP_UID);
-            logger.debug("search filter: " + filter);
+            final SearchResult searchResult =
+                getReadOnlyConnection().search(searchRequest);
 
-            final String[] attributes = new String[]
-                { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME };
-            final SearchRequest searchRequest =
-                new SearchRequest(usersDN, SearchScope.ONE, filter, attributes);
-
-            try
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            for (SearchResultEntry next : searchResult.getSearchEntries())
             {
-                final SearchResult searchResult =
-                    getReadOnlyConnection().search(searchRequest);
-
-                LdapDAO.checkLdapResult(searchResult.getResultCode());
-                for (SearchResultEntry next : searchResult.getSearchEntries())
-                {
-                    final String firstName =
-                        next.getAttributeValue(LDAP_FIRST_NAME).trim();
-                    final String lastName =
-                        next.getAttributeValue(LDAP_LAST_NAME).trim();
-                    final String uid = next.getAttributeValue(LDAP_UID).trim();
-                    User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
-                    PersonalDetails pd = new PersonalDetails(firstName, lastName);
-                    user.details.add(pd);
-                    users.add(user);
-                }
-            }
-            catch (LDAPSearchException e)
-            {
-                if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
-                {
-                    final String message = "Could not find users root";
-                    logger.debug(message, e);
-                    throw new IllegalStateException(message);
-                }
+                final String firstName =
+                    next.getAttributeValue(LDAP_FIRST_NAME).trim();
+                final String lastName =
+                    next.getAttributeValue(LDAP_LAST_NAME).trim();
+                final String uid = next.getAttributeValue(LDAP_UID).trim();
+                User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
+                PersonalDetails pd = new PersonalDetails(firstName, lastName);
+                user.details.add(pd);
+                users.add(user);
             }
         }
-        catch (LDAPException e1)
+        catch (LDAPSearchException e)
         {
-            logger.debug("getUsers Exception: " + e1, e1);
-            LdapDAO.checkLdapResult(e1.getResultCode());
-            throw new IllegalStateException(
-                "Unexpected exception: " + e1.getMatchedDN(), e1);
+            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+            {
+                final String message = "Could not find users root";
+                logger.debug(message, e);
+                throw new IllegalStateException(message);
+            }
         }
 
         return users;
@@ -1041,7 +1021,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws LDAPException
      */
     User<X500Principal> getX500User(DN userDN)
-            throws UserNotFoundException, LDAPException
+            throws UserNotFoundException, LDAPException, TransientException
     {
         Filter filter =
                 Filter.createEqualityFilter(LDAP_ENTRYDN,

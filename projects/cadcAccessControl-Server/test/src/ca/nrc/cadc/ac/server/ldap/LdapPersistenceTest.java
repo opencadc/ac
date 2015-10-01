@@ -69,125 +69,28 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPException;
+import ca.nrc.cadc.util.Log4jInit;
 
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.profiler.Profiler;
-
-/**
- * Class that provides access to the LdapConnectionPool through
- * JNDI binding.
- */
-public class LdapPersistence
+public class LdapPersistenceTest
 {
-    private static final Logger logger = Logger.getLogger(LdapPersistence.class);
-    private static final String LDAP_POOL_JNDI_NAME = LdapConnectionPool.class.getName();
 
-    Profiler profiler = new Profiler(LdapPersistence.class);
+    private final static Logger log = Logger.getLogger(LdapPersistenceTest.class);
 
-    private LdapConnectionPool pool;
-
-    // static monitor is required for when multiple LdapPersistence objects
-    // are created.
-    private static Object jndiMonitor = new Object();
-
-    LdapPersistence()
+    public LdapPersistenceTest()
     {
-        initPool();
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.DEBUG);
     }
 
-    protected LDAPConnection getReadOnlyConnection() throws TransientException
+    @Test
+    public void test()
     {
-        return pool.getReadOnlyConnection();
+        // tbd
     }
 
-    protected LDAPConnection getReadWriteConnection() throws TransientException
-    {
-        return pool.getReadWriteConnection();
-    }
-
-    protected void releaseReadOnlyConnection(LDAPConnection conn)
-    {
-        pool.releaseReadOnlyConnection(conn);
-    }
-
-    protected void releaseReadWriteConnection(LDAPConnection conn)
-    {
-        pool.releaseReadWriteConnection(conn);
-    }
-
-    protected LdapConfig getCurrentConfig()
-    {
-        return pool.currentConfig;
-    }
-
-    protected void shutdown()
-    {
-        // shutdown the pool
-        pool.shutdown();
-
-        // unbind the pool
-        try
-        {
-            InitialContext ic = new InitialContext();
-            ic.unbind(LDAP_POOL_JNDI_NAME);
-        }
-        catch (NamingException e)
-        {
-            logger.warn("Could not unbind ldap pool", e);
-        }
-    }
-
-    private void initPool()
-    {
-        try
-        {
-            pool = lookupPool();
-            logger.debug("Pool from JNDI lookup: " + pool);
-
-            if (pool == null)
-            {
-                synchronized (jndiMonitor)
-                {
-                    pool = lookupPool();
-                    logger.debug("Pool from second JNDI lookup: " + pool);
-                    if (pool == null)
-                    {
-                        pool = new LdapConnectionPool();
-                        profiler.checkpoint("Created LDAP connection pool");
-                        InitialContext ic = new InitialContext();
-                        ic.bind(LDAP_POOL_JNDI_NAME, pool);
-                        profiler.checkpoint("Bound LDAP pool to JNDI");
-                        logger.debug("Bound LDAP pool to JNDI");
-                    }
-                }
-            }
-        }
-        catch (Throwable t)
-        {
-            String message = "Failed to find or create LDAP connection pool: " + t.getMessage();
-            throw new IllegalStateException(message, t);
-        }
-    }
-
-    private LdapConnectionPool lookupPool() throws NamingException
-    {
-        try
-        {
-            InitialContext ic = new InitialContext();
-            return (LdapConnectionPool) ic.lookup(LDAP_POOL_JNDI_NAME);
-        }
-        catch (NameNotFoundException e)
-        {
-            return null;
-        }
-    }
 
 }

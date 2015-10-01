@@ -215,7 +215,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
                 // AD: Search results sometimes come incomplete if
                 // connection is not reset - not sure why.
-                getReadWriteConnection().reconnect();
+
+                // BM: commented-out this workout with introduction
+                // of connection pools.  Reconnecting within a pool
+                // causes an error.
+
+                //getReadWriteConnection().reconnect();
                 try
                 {
                     return getGroup(group.getID());
@@ -901,7 +906,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     }
 
     private Group createGroupFromEntry(SearchResultEntry result, String[] attributes)
-        throws LDAPException
+        throws LDAPException, TransientException
     {
         if (result.getAttribute("nsaccountlock") != null)
         {
@@ -1011,7 +1016,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException
      */
     protected boolean isCreatorOwner(final User<? extends Principal> owner)
-        throws UserNotFoundException
+        throws UserNotFoundException, TransientException
     {
         try
         {

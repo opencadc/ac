@@ -111,14 +111,14 @@ public abstract class LdapDAO
         config = connections.getCurrentConfig();
     }
 
-    public LDAPConnection getReadOnlyConnection() throws LDAPException
+    public LDAPConnection getReadOnlyConnection() throws TransientException
     {
         return connections.getReadOnlyConnection();
     }
 
-    public LDAPConnection getReadWriteConnection() throws LDAPException
+    public LDAPConnection getReadWriteConnection() throws TransientException
     {
-        return connections.getReadOnlyConnection();
+        return connections.getReadWriteConnection();
     }
 
     public void close()

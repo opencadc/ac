@@ -106,15 +106,20 @@ public class LdapConfigTest
             Assert.assertEquals("userRequestsDN", c.getUserRequestsDN());
             Assert.assertEquals("groupsDN", c.getGroupsDN());
             Assert.assertEquals("adminGroupsDN", c.getAdminGroupsDN());
+
             Assert.assertEquals(Arrays.asList("server1","server2","server3"), c.getReadOnlyPool().getServers());
             Assert.assertEquals(3, c.getReadOnlyPool().getInitSize());
             Assert.assertEquals(8, c.getReadOnlyPool().getMaxSize());
             Assert.assertEquals(PoolPolicy.roundRobin, c.getReadOnlyPool().getPolicy());
+            Assert.assertEquals(30000, c.getReadOnlyPool().getMaxWait());
+            Assert.assertEquals(false, c.getReadOnlyPool().getCreateIfNeeded());
 
             Assert.assertEquals(Arrays.asList("server4","server5"), c.getReadWritePool().getServers());
             Assert.assertEquals(4, c.getReadWritePool().getInitSize());
             Assert.assertEquals(9, c.getReadWritePool().getMaxSize());
             Assert.assertEquals(PoolPolicy.fewestConnections, c.getReadWritePool().getPolicy());
+            Assert.assertEquals(30000, c.getReadWritePool().getMaxWait());
+            Assert.assertEquals(false, c.getReadWritePool().getCreateIfNeeded());
         }
         catch (Throwable t)
         {
@@ -142,14 +147,20 @@ public class LdapConfigTest
             Assert.assertEquals("userRequestsDN", c.getUserRequestsDN());
             Assert.assertEquals("groupsDN", c.getGroupsDN());
             Assert.assertEquals("adminGroupsDN", c.getAdminGroupsDN());
+
             Assert.assertEquals(Arrays.asList("serverA","serverB","serverC"), c.getReadOnlyPool().getServers());
             Assert.assertEquals(0, c.getReadOnlyPool().getInitSize());
             Assert.assertEquals(1, c.getReadOnlyPool().getMaxSize());
             Assert.assertEquals(PoolPolicy.fewestConnections, c.getReadOnlyPool().getPolicy());
+            Assert.assertEquals(30000, c.getReadOnlyPool().getMaxWait());
+            Assert.assertEquals(false, c.getReadOnlyPool().getCreateIfNeeded());
+
             Assert.assertEquals(Arrays.asList("serverC"), c.getReadWritePool().getServers());
             Assert.assertEquals(1, c.getReadWritePool().getInitSize());
             Assert.assertEquals(2, c.getReadWritePool().getMaxSize());
             Assert.assertEquals(PoolPolicy.fewestConnections, c.getReadWritePool().getPolicy());
+            Assert.assertEquals(30000, c.getReadWritePool().getMaxWait());
+            Assert.assertEquals(false, c.getReadWritePool().getCreateIfNeeded());
         }
         catch (Throwable t)
         {
