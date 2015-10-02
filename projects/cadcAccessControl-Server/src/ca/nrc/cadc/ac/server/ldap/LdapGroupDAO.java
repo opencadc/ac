@@ -97,7 +97,9 @@ import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPInterface;
 import com.unboundid.ldap.sdk.LDAPResult;
 import com.unboundid.ldap.sdk.LDAPSearchException;
 import com.unboundid.ldap.sdk.Modification;
@@ -131,15 +133,16 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     };
 
     private Profiler profiler = new Profiler(LdapDAO.class);
-    
+    LdapConnections connections;
+
     private LdapUserDAO<T> userPersist;
-    
+
     // this gets filled by the LdapgroupPersistence
     GroupDetailSelector searchDetailSelector;
 
-    public LdapGroupDAO(LdapConfig config, LdapUserDAO<T> userPersist)
+    public LdapGroupDAO(LdapConnections connections, LdapUserDAO<T> userPersist)
     {
-        super(config);
+        super(connections);
         if (userPersist == null)
         {
             throw new IllegalArgumentException(
@@ -209,9 +212,15 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                   group.getUserAdmins(),
                                   group.getGroupAdmins());
                 LdapDAO.checkLdapResult(result.getResultCode());
+
                 // AD: Search results sometimes come incomplete if
                 // connection is not reset - not sure why.
-                getConnection().reconnect();
+
+                // BM: commented-out this workout with introduction
+                // of connection pools.  Reconnecting within a pool
+                // causes an error.
+
+                //getReadWriteConnection().reconnect();
                 try
                 {
                     return getGroup(group.getID());
@@ -278,7 +287,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         "dn:" + getSubjectDN().toNormalizedString()));
 
         logger.debug("addGroup: " + groupDN);
-        return getConnection().add(addRequest);
+        return getReadWriteConnection().add(addRequest);
     }
 
 
@@ -310,7 +319,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl("dn:" +
                             getSubjectDN().toNormalizedString()));
 
-            SearchResultEntry searchResult = getConnection().searchForEntry(searchRequest);
+            SearchResultEntry searchResult = getReadWriteConnection().searchForEntry(searchRequest);
 
             if (searchResult == null)
             {
@@ -356,28 +365,28 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
         {
             Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
             filter = Filter.createANDFilter(filter, Filter.create("(cn=*)"));
-            
+
             final List<String> groupNames = new LinkedList<String>();
             SearchRequest searchRequest = new SearchRequest(
                     new SearchResultListener()
                     {
                         long t1 = System.currentTimeMillis();
-                        
+
                         public void searchEntryReturned(SearchResultEntry sre)
                         {
                             String gname = sre.getAttributeValue("cn");
                             groupNames.add(gname);
-                            
+
                             long t2 = System.currentTimeMillis();
                             long dt = t2 - t1;
                             if (groupNames.size() == 1)
                             {
                                 logger.debug("first row: " + dt + "ms");
                                 t1 = t2;
-                            }    
+                            }
                             if ( (groupNames.size() % 100) == 0)
                             {
-                                
+
                                 logger.debug("found: " + groupNames.size() + " " + dt + "ms");
                                 t1 = t2;
                             }
@@ -392,7 +401,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             SearchResult searchResult = null;
             try
             {
-                LDAPConnection con = getConnection();
+                LDAPInterface con = getReadOnlyConnection();
                 profiler.checkpoint("getGroupNames.getConnection");
                 searchResult = con.search(searchRequest);
                 profiler.checkpoint("getGroupNames.search");
@@ -411,7 +420,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
             LdapDAO.checkLdapResult(searchResult.getResultCode());
             profiler.checkpoint("checkLdapResult");
-            
+
             return groupNames;
         }
         catch (LDAPException e1)
@@ -421,7 +430,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throw new IllegalStateException("Unexpected exception: " + e1.getMatchedDN(), e1);
         }
     }
-    
+
 
     /**
      * Get the group with members.
@@ -470,7 +479,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                             getSubjectDN().toNormalizedString()));
 
 
-            SearchResultEntry searchEntry = getConnection().searchForEntry(searchRequest);
+            SearchResultEntry searchEntry = getReadOnlyConnection().searchForEntry(searchRequest);
 
             if (searchEntry == null)
             {
@@ -647,7 +656,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                         new ProxiedAuthorizationV2RequestControl(
                                 "dn:" + getSubjectDN().toNormalizedString()));
 
-                LdapDAO.checkLdapResult(getConnection().modify(modifyRequest).getResultCode());
+                LdapDAO.checkLdapResult(getReadWriteConnection().modify(modifyRequest).getResultCode());
             }
 
             // modify the group itself now
@@ -657,7 +666,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl(
                             "dn:" + getSubjectDN().toNormalizedString()));
 
-            LdapDAO.checkLdapResult(getConnection().modify(modifyRequest).getResultCode());
+            LdapDAO.checkLdapResult(getReadWriteConnection().modify(modifyRequest).getResultCode());
         }
         catch (LDAPException e1)
         {
@@ -729,7 +738,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             modifyRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl(
                             "dn:" + getSubjectDN().toNormalizedString()));
-            LDAPResult result = getConnection().modify(modifyRequest);
+            LDAPResult result = getReadWriteConnection().modify(modifyRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
         }
         catch (LDAPException e1)
@@ -882,7 +891,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     new ProxiedAuthorizationV2RequestControl("dn:" +
                             getSubjectDN().toNormalizedString()));
 
-            SearchResult results = getConnection().search(searchRequest);
+            SearchResult results = getReadOnlyConnection().search(searchRequest);
             for (SearchResultEntry result : results.getSearchEntries())
             {
                 ret.add(createGroupFromEntry(result, GROUP_ATTRS));
@@ -897,7 +906,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     }
 
     private Group createGroupFromEntry(SearchResultEntry result, String[] attributes)
-        throws LDAPException
+        throws LDAPException, TransientException
     {
         if (result.getAttribute("nsaccountlock") != null)
         {
@@ -1007,7 +1016,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException
      */
     protected boolean isCreatorOwner(final User<? extends Principal> owner)
-        throws UserNotFoundException
+        throws UserNotFoundException, TransientException
     {
         try
         {

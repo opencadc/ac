@@ -162,7 +162,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
     <T extends Principal> LdapUserDAO<T> getUserDAO() throws Exception
     {
-        return new LdapUserDAO(config){
+        LdapConnectionPool pool = new LdapConnectionPool(config);
+        LdapConnections connections = new LdapConnections(pool);
+        return new LdapUserDAO(connections){
             protected int genNextNumericId()
             {
                 return nextUserNumericID;

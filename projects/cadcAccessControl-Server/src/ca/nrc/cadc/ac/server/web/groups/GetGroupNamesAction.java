@@ -88,7 +88,6 @@ public class GetGroupNamesAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        GroupPersistence groupPersistence = getGroupPersistence();
         Collection<String> groups = groupPersistence.getGroupNames();
         log.debug("Found " + groups.size() + " group names");
         syncOut.setHeader("Content-Type", "text/plain");

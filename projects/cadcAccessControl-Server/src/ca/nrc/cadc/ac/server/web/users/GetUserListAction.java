@@ -86,7 +86,6 @@ public class GetUserListAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        final UserPersistence userPersistence = getUserPersistence();
         writeUsers(userPersistence.getUsers());
     }
 }

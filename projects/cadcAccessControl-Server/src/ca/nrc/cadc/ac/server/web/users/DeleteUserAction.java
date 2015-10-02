@@ -84,7 +84,6 @@ public class DeleteUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        UserPersistence userPersistence = getUserPersistence();
         userPersistence.deleteUser(userID);
     }
 

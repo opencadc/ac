@@ -108,14 +108,8 @@ public class DeleteGroupActionTest
             EasyMock.expectLastCall().once();
             EasyMock.replay(groupPersistence);
 
-            DeleteGroupAction action = new DeleteGroupAction("group")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
+            DeleteGroupAction action = new DeleteGroupAction("group");
+            action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);

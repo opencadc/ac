@@ -109,14 +109,8 @@ public class RemoveGroupMemberActionTest
             EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member");
+            action.groupPersistence = groupPersistence;
 
             try
             {
@@ -150,14 +144,8 @@ public class RemoveGroupMemberActionTest
             EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member");
+            action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);

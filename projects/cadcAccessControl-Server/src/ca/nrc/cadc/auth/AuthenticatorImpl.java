@@ -71,6 +71,8 @@ package ca.nrc.cadc.auth;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -135,8 +137,9 @@ public class AuthenticatorImpl implements Authenticator
     {
         try
         {
-            LdapUserPersistence<Principal> dao = new LdapUserPersistence<Principal>();
-            User<Principal> user = dao.getAugmentedUser(subject.getPrincipals().iterator().next());
+            PluginFactory pluginFactory = new PluginFactory();
+            UserPersistence userPersistence = pluginFactory.createUserPersistence();
+            User<Principal> user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next());
             if (user.getIdentities() != null)
             {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");
@@ -153,7 +156,7 @@ public class AuthenticatorImpl implements Authenticator
             // ignore, could be an anonymous user
             log.debug("could not find user for augmenting", e);
         }
-        catch (TransientException e)
+        catch (Exception e)
         {
             throw new IllegalStateException("Internal error", e);
         }

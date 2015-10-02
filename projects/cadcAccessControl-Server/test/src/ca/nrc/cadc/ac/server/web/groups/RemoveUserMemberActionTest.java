@@ -119,24 +119,8 @@ public class RemoveUserMemberActionTest
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             EasyMock.replay(groupPersistence);
 
-            final UserPersistence userPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(userPersistence.getUser(userPrincipal)).andReturn(user);
-            EasyMock.replay(userPersistence);
-
-            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType)
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-
-                @Override
-                <T extends Principal> UserPersistence<T> getUserPersistence()
-                {
-                    return userPersistence;
-                };
-            };
+            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType);
+            action.groupPersistence = groupPersistence;
 
             try
             {
@@ -172,24 +156,8 @@ public class RemoveUserMemberActionTest
             EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
             EasyMock.replay(groupPersistence);
 
-            final UserPersistence userPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(userPersistence.getUser(userPrincipal)).andReturn(user);
-            EasyMock.replay(userPersistence);
-
-            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType)
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-
-                @Override
-                <T extends Principal> UserPersistence<T> getUserPersistence()
-                {
-                    return userPersistence;
-                };
-            };
+            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType);
+            action.setGroupPersistence(groupPersistence);
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);

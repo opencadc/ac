@@ -69,13 +69,19 @@
 package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.groups.AbstractGroupAction;
 import ca.nrc.cadc.ac.server.web.groups.GroupLogInfo;
 import ca.nrc.cadc.ac.server.web.groups.GroupsActionFactory;
@@ -88,10 +94,37 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
  *
  * @author majorb
  */
-public class GroupServlet extends HttpServlet
+public class GroupServlet<T extends Principal> extends HttpServlet
 {
     private static final long serialVersionUID = 7854660717655869213L;
     private static final Logger log = Logger.getLogger(GroupServlet.class);
+
+    public static final String GROUP_PERSISTENCE_REF = "groupPersistence";
+
+    private GroupPersistence<T> groupPersistence;
+
+    @Override
+    public void init(ServletConfig config) throws ServletException
+    {
+        super.init(config);
+
+        try
+        {
+            PluginFactory pluginFactory = new PluginFactory();
+            groupPersistence = pluginFactory.createGroupPersistence();
+        }
+        catch (Throwable t)
+        {
+            log.fatal("Error initializing group persistence", t);
+            throw new ExceptionInInitializerError(t);
+        }
+    }
+
+    @Override
+    public void destroy()
+    {
+        groupPersistence.destroy();
+    }
 
     /**
      * Create a GroupAction and run the action safely.
@@ -113,6 +146,7 @@ public class GroupServlet extends HttpServlet
             action.setHttpServletRequest(request);
             SyncOutput syncOut = new SyncOutput(response);
             action.setSyncOut(syncOut);
+            action.setGroupPersistence(groupPersistence);
 
             try
             {

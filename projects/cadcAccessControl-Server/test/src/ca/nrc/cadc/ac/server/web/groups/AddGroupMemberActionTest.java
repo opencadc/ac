@@ -109,14 +109,8 @@ public class AddGroupMemberActionTest
             expect(groupPersistence.getGroup("member")).andReturn(member);
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member");
+            action.groupPersistence = groupPersistence;
 
             try
             {
@@ -151,14 +145,8 @@ public class AddGroupMemberActionTest
 
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-            {
-                @Override
-                <T extends Principal> GroupPersistence<T> getGroupPersistence()
-                {
-                    return groupPersistence;
-                };
-            };
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member");
+            action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);

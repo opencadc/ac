@@ -75,6 +75,8 @@ import ca.nrc.cadc.util.Log4jInit;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPInterface;
+
 import java.security.PrivilegedAction;
 import org.apache.log4j.Level;
 import org.junit.BeforeClass;
@@ -93,13 +95,13 @@ import static org.junit.Assert.assertTrue;
 public class LdapDAOTest extends AbstractLdapDAOTest
 {
     static LdapConfig config;
-    
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
         // get the configuration of the development server from and config files...
-        config = getLdapConfig();        
+        config = getLdapConfig();
     }
     @Test
     public void testLdapBindConnection() throws Exception
@@ -114,8 +116,10 @@ public class LdapDAOTest extends AbstractLdapDAOTest
         Subject subject = new Subject();
 
         subject.getPrincipals().add(httpPrincipal);
-        
-        final LdapDAOTestImpl ldapDao = new LdapDAOTestImpl(config);
+
+        LdapConnectionPool pool = new LdapConnectionPool(config);
+        LdapConnections connections = new LdapConnections(pool);
+        final LdapDAOTestImpl ldapDao = new LdapDAOTestImpl(connections);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -123,7 +127,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    testConnection(ldapDao.getConnection());
+                    testConnection(ldapDao.getReadOnlyConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -132,18 +136,18 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-               
+
 
         subject = new Subject();
         subject.getPrincipals().add(subjPrincipal);
-        
+
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
                 try
                 {
-                    testConnection(ldapDao.getConnection());
+                    testConnection(ldapDao.getReadOnlyConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -152,9 +156,9 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-        
-        
-        NumericPrincipal numPrincipal = new NumericPrincipal(1866);       
+
+
+        NumericPrincipal numPrincipal = new NumericPrincipal(1866);
         subject.getPrincipals().add(numPrincipal);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -164,7 +168,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 try
                 {
 
-                    testConnection(ldapDao.getConnection());
+                    testConnection(ldapDao.getReadOnlyConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -186,10 +190,12 @@ public class LdapDAOTest extends AbstractLdapDAOTest
         subject.getPrincipals().add(new HttpPrincipal("foo"));
         subject.getPrincipals().add(new X500Principal("uid=foo,o=bar"));
         subject.getPrincipals().add(dnPrincipal);
-                
+
         LdapConfig config = LdapConfig.getLdapConfig("LdapConfig.test.properties");
-        final LdapDAO ldapDAO = new LdapDAO(config) { }; // abstract
-        
+        LdapConnectionPool pool = new LdapConnectionPool(config);
+        LdapConnections conn = new LdapConnections(pool);
+        final LdapDAO ldapDAO = new LdapDAO(conn) { }; // abstract
+
         DN actual = Subject.doAs(subject, new PrivilegedAction<DN>()
         {
             public DN run()
@@ -205,7 +211,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 return null;
             }
         } );
-        
+
         assertNotNull("DN is null", actual);
         assertEquals("DN's do not match", expected.toNormalizedString(), actual.toNormalizedString());
     }

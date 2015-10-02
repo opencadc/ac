@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,105 +66,128 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.CookiePrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.auth.NumericPrincipal;
+package ca.nrc.cadc.ac.server.ldap;
+
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+
 import org.apache.log4j.Logger;
 
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
 
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
 
-public class ModifyUserAction extends AbstractUserAction
+/**
+ * Class that provides access to the LdapConnectionPool through
+ * JNDI binding.
+ */
+public class LdapPersistence
 {
-    private static final Logger log = Logger.getLogger(ModifyUserAction.class);
+    private static final Logger logger = Logger.getLogger(LdapPersistence.class);
+    private static final String LDAP_POOL_JNDI_NAME = LdapConnectionPool.class.getName();
 
-    private final InputStream inputStream;
-    private final HttpServletRequest request;
+    Profiler profiler = new Profiler(LdapPersistence.class);
 
+    private LdapConnectionPool pool;
 
-    ModifyUserAction(final InputStream inputStream, final HttpServletRequest request)
+    // static monitor is required for when multiple LdapPersistence objects
+    // are created.
+    private static Object jndiMonitor = new Object();
+
+    LdapPersistence()
     {
-        super();
-
-        this.inputStream = inputStream;
-        this.request = request;
+        initPool();
     }
 
-
-    public void doAction() throws Exception
+    protected LDAPConnection getReadOnlyConnection() throws TransientException
     {
-        final User<Principal> user = readUser(this.inputStream);
-        final User<Principal> modifiedUser = userPersistence.modifyUser(user);
-        logUserInfo(modifiedUser.getUserID().getName());
+        return pool.getReadOnlyConnection();
+    }
 
-        final URL requestURL = new URL(request.getRequestURL().toString());
-        final StringBuilder sb = new StringBuilder();
-        sb.append(requestURL.getProtocol());
-        sb.append("://");
-        sb.append(requestURL.getHost());
-        if (requestURL.getPort() > 0)
+    protected LDAPConnection getReadWriteConnection() throws TransientException
+    {
+        return pool.getReadWriteConnection();
+    }
+
+    protected void releaseReadOnlyConnection(LDAPConnection conn)
+    {
+        pool.releaseReadOnlyConnection(conn);
+    }
+
+    protected void releaseReadWriteConnection(LDAPConnection conn)
+    {
+        pool.releaseReadWriteConnection(conn);
+    }
+
+    protected LdapConfig getCurrentConfig()
+    {
+        return pool.currentConfig;
+    }
+
+    protected void shutdown()
+    {
+        // shutdown the pool
+        pool.shutdown();
+
+        // unbind the pool
+        try
         {
-            sb.append(":");
-            sb.append(requestURL.getPort());
+            InitialContext ic = new InitialContext();
+            ic.unbind(LDAP_POOL_JNDI_NAME);
         }
-        sb.append(request.getContextPath());
-        sb.append(request.getServletPath());
-        sb.append(request.getPathInfo());
-        sb.append("?idType=");
-
-        // Need to find the principal type for this userID
-        String idType = null;
-        for (Principal principal : user.getIdentities())
+        catch (NamingException e)
         {
-            if (principal.getName().equals(modifiedUser.getUserID().getName()))
+            logger.warn("Could not unbind ldap pool", e);
+        }
+    }
+
+    private void initPool()
+    {
+        try
+        {
+            pool = lookupPool();
+            logger.debug("Pool from JNDI lookup: " + pool);
+
+            if (pool == null)
             {
-                if (principal instanceof HttpPrincipal)
+                synchronized (jndiMonitor)
                 {
-                    idType = IdentityType.USERNAME.getValue();
-                }
-                else if (principal instanceof X500Principal)
-                {
-                    idType = IdentityType.X500.getValue();
-                }
-                else if (principal instanceof NumericPrincipal)
-                {
-                    idType = IdentityType.CADC.getValue();
-                }
-                else if (principal instanceof CookiePrincipal)
-                {
-                    idType = IdentityType.COOKIE.getValue();
+                    pool = lookupPool();
+                    logger.debug("Pool from second JNDI lookup: " + pool);
+                    if (pool == null)
+                    {
+                        pool = new LdapConnectionPool();
+                        profiler.checkpoint("Created LDAP connection pool");
+                        InitialContext ic = new InitialContext();
+                        ic.bind(LDAP_POOL_JNDI_NAME, pool);
+                        profiler.checkpoint("Bound LDAP pool to JNDI");
+                        logger.debug("Bound LDAP pool to JNDI");
+                    }
                 }
             }
         }
-
-        if (idType == null)
+        catch (Throwable t)
         {
-            throw new IllegalArgumentException(
-                "Bad POST request to " + request.getServletPath() +
-                    " because unknown userID Principal");
+            String message = "Failed to find or create LDAP connection pool: " + t.getMessage();
+            throw new IllegalStateException(message, t);
         }
+    }
 
-        sb.append(idType);
-
-        final String redirectUrl = sb.toString();
-        log.debug("redirect URL: " + redirectUrl);
-
-        syncOut.setHeader("Location", redirectUrl);
-        syncOut.setCode(303);
+    private LdapConnectionPool lookupPool() throws NamingException
+    {
+        try
+        {
+            InitialContext ic = new InitialContext();
+            return (LdapConnectionPool) ic.lookup(LDAP_POOL_JNDI_NAME);
+        }
+        catch (NameNotFoundException e)
+        {
+            return null;
+        }
     }
 
 }

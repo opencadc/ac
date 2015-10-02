@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,105 +66,120 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.CookiePrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.auth.NumericPrincipal;
+package ca.nrc.cadc.ac.server.ldap;
+
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.Assert;
+import org.junit.Test;
 
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
+import com.unboundid.ldap.sdk.LDAPConnection;
 
+import ca.nrc.cadc.util.Log4jInit;
 
-public class ModifyUserAction extends AbstractUserAction
+public class LdapConnectionsTest
 {
-    private static final Logger log = Logger.getLogger(ModifyUserAction.class);
 
-    private final InputStream inputStream;
-    private final HttpServletRequest request;
+    private final static Logger log = Logger.getLogger(LdapConnectionsTest.class);
 
-
-    ModifyUserAction(final InputStream inputStream, final HttpServletRequest request)
+    public LdapConnectionsTest()
     {
-        super();
-
-        this.inputStream = inputStream;
-        this.request = request;
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.DEBUG);
     }
 
-
-    public void doAction() throws Exception
+    @Test
+    public void testAutoConfig()
     {
-        final User<Principal> user = readUser(this.inputStream);
-        final User<Principal> modifiedUser = userPersistence.modifyUser(user);
-        logUserInfo(modifiedUser.getUserID().getName());
-
-        final URL requestURL = new URL(request.getRequestURL().toString());
-        final StringBuilder sb = new StringBuilder();
-        sb.append(requestURL.getProtocol());
-        sb.append("://");
-        sb.append(requestURL.getHost());
-        if (requestURL.getPort() > 0)
+        try
         {
-            sb.append(":");
-            sb.append(requestURL.getPort());
-        }
-        sb.append(request.getContextPath());
-        sb.append(request.getServletPath());
-        sb.append(request.getPathInfo());
-        sb.append("?idType=");
+            LDAPConnection readConn = new LDAPConnection();
+            LDAPConnection writeConn = new LDAPConnection();
+            LdapPersistence persistence = EasyMock.createMock(LdapPersistence.class);
 
-        // Need to find the principal type for this userID
-        String idType = null;
-        for (Principal principal : user.getIdentities())
+            EasyMock.expect(persistence.getReadOnlyConnection()).andReturn(readConn).once();
+            EasyMock.expect(persistence.getReadWriteConnection()).andReturn(writeConn).once();
+            EasyMock.expect(persistence.getCurrentConfig()).andReturn(null).once();
+
+            persistence.releaseReadOnlyConnection(readConn);
+            EasyMock.expectLastCall().once();
+
+            persistence.releaseReadWriteConnection(writeConn);
+            EasyMock.expectLastCall().once();
+
+            EasyMock.replay(persistence);
+
+            LdapConnections connections = new LdapConnections(persistence);
+
+            // multiple calls to get connections should only go to the pool once
+            connections.getReadOnlyConnection();
+            connections.getReadOnlyConnection();
+            connections.getReadOnlyConnection();
+
+            connections.getReadWriteConnection();
+            connections.getReadWriteConnection();
+            connections.getReadWriteConnection();
+
+            connections.getCurrentConfig();
+
+            connections.releaseConnections();
+
+            EasyMock.verify(persistence);
+
+        }
+        catch (Exception e)
         {
-            if (principal.getName().equals(modifiedUser.getUserID().getName()))
-            {
-                if (principal instanceof HttpPrincipal)
-                {
-                    idType = IdentityType.USERNAME.getValue();
-                }
-                else if (principal instanceof X500Principal)
-                {
-                    idType = IdentityType.X500.getValue();
-                }
-                else if (principal instanceof NumericPrincipal)
-                {
-                    idType = IdentityType.CADC.getValue();
-                }
-                else if (principal instanceof CookiePrincipal)
-                {
-                    idType = IdentityType.COOKIE.getValue();
-                }
-            }
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception");
         }
+    }
 
-        if (idType == null)
+    @Test
+    public void testManualConfig()
+    {
+        try
         {
-            throw new IllegalArgumentException(
-                "Bad POST request to " + request.getServletPath() +
-                    " because unknown userID Principal");
+            LDAPConnection readConn = new LDAPConnection();
+            LDAPConnection writeConn = new LDAPConnection();
+            LdapConnectionPool pool = EasyMock.createMock(LdapConnectionPool.class);
+
+            EasyMock.expect(pool.getReadOnlyConnection()).andReturn(readConn).once();
+            EasyMock.expect(pool.getReadWriteConnection()).andReturn(writeConn).once();
+            EasyMock.expect(pool.getCurrentConfig()).andReturn(null).once();
+
+            pool.releaseReadOnlyConnection(readConn);
+            EasyMock.expectLastCall().once();
+
+            pool.releaseReadWriteConnection(writeConn);
+            EasyMock.expectLastCall().once();
+
+            EasyMock.replay(pool);
+
+            LdapConnections connections = new LdapConnections(pool);
+
+            // multiple calls to get connections should only go to the pool once
+            connections.getReadOnlyConnection();
+            connections.getReadOnlyConnection();
+            connections.getReadOnlyConnection();
+
+            connections.getReadWriteConnection();
+            connections.getReadWriteConnection();
+            connections.getReadWriteConnection();
+
+            connections.getCurrentConfig();
+
+            connections.releaseConnections();
+
+            EasyMock.verify(pool);
+
         }
-
-        sb.append(idType);
-
-        final String redirectUrl = sb.toString();
-        log.debug("redirect URL: " + redirectUrl);
-
-        syncOut.setHeader("Location", redirectUrl);
-        syncOut.setCode(303);
+        catch (Exception e)
+        {
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception");
+        }
     }
 
 }
