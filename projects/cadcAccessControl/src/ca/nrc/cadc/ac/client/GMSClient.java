@@ -84,7 +84,6 @@ import java.security.AccessController;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -108,6 +107,8 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import java.net.URI;
 
 
 /**
@@ -122,8 +123,27 @@ public class GMSClient implements TransferListener
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
     
+    private URI serviceURI;
     private String baseURL;
 
+    public GMSClient(URI serviceURI)
+    {
+        this.serviceURI = serviceURI;
+        try
+        {
+            RegistryClient reg = new RegistryClient();
+            URL base = reg.getServiceURL(serviceURI, "https");
+            if (base == null)
+                throw new IllegalArgumentException("service not found with https access: " + serviceURI);
+            this.baseURL = base.toExternalForm();
+        }
+        catch(MalformedURLException ex)
+        {
+            throw new RuntimeException("BUG: failed to construct GMS base URL", ex);
+        }
+        finally { }
+    }
+    
     /**
      * Constructor.
      * 
@@ -754,6 +774,34 @@ public class GMSClient implements TransferListener
         }
     }
 
+    private Principal getCurrentUserID()
+    {
+        Subject cur = AuthenticationUtil.getCurrentSubject();
+        if (cur == null)
+            throw new IllegalArgumentException("no subject");
+        Set<Principal> ps = cur.getPrincipals();
+        if (ps.isEmpty())
+            throw new IllegalArgumentException("no principals");
+        Principal p = ps.iterator().next();
+        
+        return p;
+    }
+    
+    /**
+     * Get memberships for the current user (subject).
+     * 
+     * @param role
+     * @return A list of groups for which the current user has the role.
+     * @throws AccessControlException
+     * @throws ca.nrc.cadc.ac.UserNotFoundException 
+     * @throws java.io.IOException 
+     */
+    public List<Group> getMemberships(Role role) 
+        throws UserNotFoundException, AccessControlException, IOException
+    {
+        return getMemberships(getCurrentUserID(), role);
+    }
+    
     /**
      * Get all the memberships of the user of a certain role.
      * 
@@ -954,6 +1002,21 @@ public class GMSClient implements TransferListener
             log.error("Unexpected exception", bug);
             throw new RuntimeException(bug);
         }
+    }
+    
+    /**
+     * Check group membership of the current Subject.
+     * 
+     * @param groupName
+     * @return
+     * @throws UserNotFoundException
+     * @throws AccessControlException
+     * @throws IOException 
+     */
+    public boolean isMember(String groupName)
+        throws UserNotFoundException, AccessControlException, IOException
+    {
+        return isMember(getCurrentUserID(), groupName, Role.MEMBER);
     }
     
     /**
