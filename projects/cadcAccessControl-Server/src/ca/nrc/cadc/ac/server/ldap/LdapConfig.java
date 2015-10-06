@@ -81,7 +81,7 @@ import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**
- * Reads and stores the LDAP configuration information. The information
+ * Reads and stores the LDAP configuration information.
  *
  * @author adriand
  *
@@ -94,6 +94,7 @@ public class LdapConfig
 
     public static final String READONLY_PREFIX = "readOnly.";
     public static final String READWRITE_PREFIX = "readWrite.";
+    public static final String UB_READONLY_PREFIX = "unboundReadOnly.";
     public static final String POOL_SERVERS = "servers";
     public static final String POOL_INIT_SIZE = "poolInitSize";
     public static final String POOL_MAX_SIZE = "poolMaxSize";
@@ -152,6 +153,23 @@ public class LdapConfig
         }
 
         @Override
+        public String toString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append(" Servers: ");
+            for (String server : servers)
+            {
+                sb.append(" [" + server + "]");
+            }
+            sb.append(" initSize: " + initSize);
+            sb.append(" maxSize: " + maxSize);
+            sb.append(" policy: " + policy);
+            sb.append(" maxWait: " + maxWait);
+            sb.append(" createIfNeeded: " + createIfNeeded);
+            return sb.toString();
+        }
+
+        @Override
         public boolean equals(Object other)
         {
             if (other == null || !(other instanceof LdapPool))
@@ -183,6 +201,7 @@ public class LdapConfig
 
     private LdapPool readOnlyPool = new LdapPool();
     private LdapPool readWritePool = new LdapPool();
+    private LdapPool unboundReadOnlyPool = new LdapPool();
     private int port;
     private String usersDN;
     private String userRequestsDN;
@@ -204,16 +223,15 @@ public class LdapConfig
 
     public static LdapConfig getLdapConfig()
     {
-        return getLdapConfig(CONFIG);
+        return loadLdapConfig(CONFIG);
     }
 
-    public static LdapConfig getLdapConfig(String ldapProperties)
+    public static LdapConfig loadLdapConfig(String ldapProperties)
     {
         logger.debug("Reading LDAP properties from: " + ldapProperties);
         PropertiesReader pr = new PropertiesReader(ldapProperties);
 
         MultiValuedProperties config = pr.getAllProperties();
-
         if (config == null || config.keySet() == null)
         {
             throw new RuntimeException("failed to read any LDAP property ");
@@ -221,19 +239,9 @@ public class LdapConfig
 
         LdapConfig ldapConfig = new LdapConfig();
 
-        ldapConfig.readOnlyPool.servers = getMultiProperty(pr, READONLY_PREFIX + POOL_SERVERS);
-        ldapConfig.readOnlyPool.initSize = Integer.valueOf(getProperty(pr, READONLY_PREFIX + POOL_INIT_SIZE));
-        ldapConfig.readOnlyPool.maxSize = Integer.valueOf(getProperty(pr, READONLY_PREFIX + POOL_MAX_SIZE));
-        ldapConfig.readOnlyPool.policy = PoolPolicy.valueOf(getProperty(pr, READONLY_PREFIX + POOL_POLICY));
-        ldapConfig.readOnlyPool.maxWait = Long.valueOf(getProperty(pr, READONLY_PREFIX + MAX_WAIT));
-        ldapConfig.readOnlyPool.createIfNeeded = Boolean.valueOf(getProperty(pr, READONLY_PREFIX + CREATE_IF_NEEDED));
-
-        ldapConfig.readWritePool.servers = getMultiProperty(pr, READWRITE_PREFIX + POOL_SERVERS);
-        ldapConfig.readWritePool.initSize = Integer.valueOf(getProperty(pr, READWRITE_PREFIX + POOL_INIT_SIZE));
-        ldapConfig.readWritePool.maxSize = Integer.valueOf(getProperty(pr, READWRITE_PREFIX + POOL_MAX_SIZE));
-        ldapConfig.readWritePool.policy = PoolPolicy.valueOf(getProperty(pr, READWRITE_PREFIX + POOL_POLICY));
-        ldapConfig.readWritePool.maxWait = Long.valueOf(getProperty(pr, READONLY_PREFIX + MAX_WAIT));
-        ldapConfig.readWritePool.createIfNeeded = Boolean.valueOf(getProperty(pr, READONLY_PREFIX + CREATE_IF_NEEDED));
+        loadPoolConfig(ldapConfig.readOnlyPool, pr, READONLY_PREFIX);
+        loadPoolConfig(ldapConfig.readWritePool, pr, READWRITE_PREFIX);
+        loadPoolConfig(ldapConfig.unboundReadOnlyPool, pr, UB_READONLY_PREFIX);
 
         ldapConfig.dbrcHost = getProperty(pr, LDAP_DBRC_ENTRY);
         ldapConfig.port = Integer.valueOf(getProperty(pr, LDAP_PORT));
@@ -263,6 +271,16 @@ public class LdapConfig
         }
 
         return ldapConfig;
+    }
+
+    private static void loadPoolConfig(LdapPool pool, PropertiesReader pr, String prefix)
+    {
+        pool.servers = getMultiProperty(pr, prefix + POOL_SERVERS);
+        pool.initSize = Integer.valueOf(getProperty(pr, prefix + POOL_INIT_SIZE));
+        pool.maxSize = Integer.valueOf(getProperty(pr, prefix + POOL_MAX_SIZE));
+        pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
+        pool.maxWait = Long.valueOf(getProperty(pr, prefix + MAX_WAIT));
+        pool.createIfNeeded = Boolean.valueOf(getProperty(pr, prefix + CREATE_IF_NEEDED));
     }
 
     private static String getProperty(PropertiesReader properties, String key)
@@ -321,6 +339,9 @@ public class LdapConfig
         if ( !(l.readWritePool.equals(readWritePool)))
             return false;
 
+        if ( !(l.unboundReadOnlyPool.equals(unboundReadOnlyPool)))
+            return false;
+
         return true;
     }
 
@@ -336,6 +357,11 @@ public class LdapConfig
     public LdapPool getReadWritePool()
     {
         return readWritePool;
+    }
+
+    public LdapPool getUnboundReadOnlyPool()
+    {
+        return unboundReadOnlyPool;
     }
 
     public String getUsersDN()
@@ -386,12 +412,13 @@ public class LdapConfig
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("ldap dbrc host = ");
-        sb.append(dbrcHost);
-        sb.append(" port = ");
-        sb.append(port);
-        sb.append(" proxyUserDN = ");
-        sb.append(proxyUserDN);
+        sb.append(" ReadOnlyPool: [" + readOnlyPool + "]");
+        sb.append(" ReadWritePool: [" + readWritePool + "]");
+        sb.append(" UnboundReadOnlyPool: [" + unboundReadOnlyPool + "]");
+        sb.append(" Port: " + port);
+        sb.append(" dbrcHost: " + dbrcHost);
+        sb.append(" proxyUserDN: " + proxyUserDN);
+
         return sb.toString();
     }
 }

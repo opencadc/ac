@@ -76,7 +76,7 @@ public class AbstractLdapDAOTest
 
     static protected LdapConfig getLdapConfig()
     {
-        return LdapConfig.getLdapConfig(CONFIG);
+        return LdapConfig.loadLdapConfig(CONFIG);
     }
 
 }

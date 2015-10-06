@@ -213,11 +213,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             BindRequest bindRequest = new SimpleBindRequest(
                 getUserDN(username, config.getUsersDN()), password);
+//
+//            String server = config.getReadOnlyPool().getServers().get(0);
+//            int port = config.getPort();
+//            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server,
+//                    config.getPort());
+//            BindResult bindResult = conn.bind(bindRequest);
 
-            String server = config.getReadOnlyPool().getServers().get(0);
-            int port = config.getPort();
-            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server,
-                    config.getPort());
+            LDAPConnection conn = this.getUnboundReadConnection();
             BindResult bindResult = conn.bind(bindRequest);
 
             if (bindResult != null && bindResult.getResultCode() == ResultCode.SUCCESS)
@@ -795,9 +798,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 new PasswordModifyExtendedRequest(
                     userDN.toNormalizedString(), oldPassword, newPassword, controls);
 
-            String server = config.getReadWritePool().getServers().get(0);
-            int port = config.getPort();
-            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server, port);
+            LdapConfig ldapConfig = LdapConfig.getLdapConfig();
+            String server = ldapConfig.getReadWritePool().getServers().get(0);
+            int port = ldapConfig.getPort();
+            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(ldapConfig), server, port);
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
                     conn.processExtendedOperation(passwordModifyRequest);
