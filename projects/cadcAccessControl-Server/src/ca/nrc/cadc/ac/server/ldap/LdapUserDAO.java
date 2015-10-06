@@ -475,9 +475,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
 
         SearchResultEntry searchResult = null;
+        Filter filter = null;
         try
         {
-            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
+            filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -499,9 +500,26 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         if (searchResult == null)
         {
-            String msg = "User not found " + userID.toString();
-            logger.debug(msg);
-            throw new UserNotFoundException(msg);
+            // determine if the user is not there of if the calling user
+            // doesn't have permission to see it
+            SearchRequest searchRequest =
+                    new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
+            try
+            {
+                searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            }
+            catch (LDAPException e)
+            {
+                LdapDAO.checkLdapResult(e.getResultCode());
+            }
+
+            if (searchResult == null)
+            {
+                String msg = "User not found " + userID.toString();
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+            throw new AccessControlException("Permission denied");
         }
 
         User<T> user = new User<T>(userID);
