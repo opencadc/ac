@@ -136,7 +136,9 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
 
     protected <T extends Principal> UserPersistence<T> getUserPersistence()
     {
+        System.setProperty("java.naming.factory.initial", ContextFactoryImpl.class.getName());
+
         PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.getUserPersistence();
+        return pluginFactory.createUserPersistence();
     }
 }

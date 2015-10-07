@@ -66,7 +66,7 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.admin.integration;
+package ca.nrc.cadc.ac.admin;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
@@ -79,6 +79,7 @@ import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
@@ -99,9 +100,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class AdminIntTest
+public class UserAdminTest
 {
-    private static final Logger log = Logger.getLogger(AdminIntTest.class);
+    private static final Logger log = Logger.getLogger(UserAdminTest.class);
 
     static final String EXEC_CMD = "./test/scripts/userAdminTest";
 
@@ -117,6 +118,8 @@ public class AdminIntTest
         testCert = "build/test/class/cadcauthtest1.pem";
 
         config = LdapConfig.getLdapConfig();
+
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "test");
     }
 
     @Test
@@ -350,15 +353,18 @@ public class AdminIntTest
                         if (isPending)
                         {
                             userDAO.addPendingUser(userRequest);
+                            log.debug("added pending user: " + username);
                         }
                         else
                         {
                             userDAO.addUser(userRequest);
+                            log.debug("added user: " + username);
                         }
                         return null;
                     }
                     catch (Exception e)
                     {
+                        log.error("Exception adding user: " + e.getMessage());
                         throw new Exception("Problems", e);
                     }
                 }
@@ -411,6 +417,7 @@ public class AdminIntTest
 
     <T extends Principal> LdapUserPersistence<T> getUserPersistence()
     {
+        System.setProperty("java.naming.factory.initial", ContextFactoryImpl.class.getName());
         return new LdapUserPersistence<T>();
     }
 
