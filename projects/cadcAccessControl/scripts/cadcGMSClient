@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# environment
+#
+# CADC_ROOT : location of installed CADC/CANFAR sofwtare
+# CADC_EXT  : location of external java/lib (default: /usr/cadc/external)
+# C2SRV     : name of the service environment to use (default: www, supported: demo, rc, dev)
+#
+
+# location of jar files
+CL=$CADC_ROOT/lib
+EL=/usr/cadc/external/java/lib
+if [ ! -z $CADC_EXT ]; then
+    EL=$CADC_EXT/java/lib
+fi
+
+# classpath
+echo
+EP="${EL}/jdom2.jar:${EL}/log4j.jar:${EL}/xerces.jar"
+CP="${CL}/cadcUtil.jar:${CL}/cadcRegistryClient.jar:${CL}/cadcAccessControl.jar"
+echo "classpath: ${CP}:${EP}"
+echo
+
+# service environment
+LOCAL=""
+
+if [ "$C2SRV" == "www" ]; then
+    # no-op
+    LOCAL=""
+elif [ "$C2SRV" == "demo" ]; then
+    LOCAL="-Dca.nrc.cadc.reg.client.RegistryClient.shortHostname=demo"
+elif [ "$C2SRV" == "rc" ]; then
+    LOCAL="-Dca.nrc.cadc.reg.client.RegistryClient.shortHostname=rc"
+elif [ "$C2SRV" == "dev" ]; then 
+    LOCAL="-Dca.nrc.cadc.reg.client.RegistryClient.host=$(whoami).cadc.dao.nrc.ca" 
+fi
+echo "registry hack: $LOCAL"
+echo
+
+java $LOCAL -cp "${CP}:${EP}" ca.nrc.cadc.ac.client.GMSClientMain "$@"
+

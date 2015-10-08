@@ -209,7 +209,7 @@ public class CmdLineParserTest
     	}
     	catch (UsageException e)
     	{
-            String expected = "Missing command or ommand is not supported";
+            String expected = "Missing command or command is not supported";
             Assert.assertTrue(e.getMessage().contains(expected));
     	}
     	catch (Exception e)

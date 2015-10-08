@@ -101,6 +101,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
     private static Logger log = Logger.getLogger(GMSClientMain.class);
 
     public static final String ARG_ADD_MEMBER = "add-member";
+    public static final String ARG_DEL_MEMBER = "remove-member";
     public static final String ARG_CREATE_GROUP = "create";
     public static final String ARG_GET_GROUP = "get";
     public static final String ARG_DELETE_GROUP = "delete";
@@ -185,6 +186,9 @@ public class GMSClientMain implements PrivilegedAction<Object>
         
         if (argMap.isSet(ARG_DELETE_GROUP))
             return ARG_DELETE_GROUP;
+        
+        if (argMap.isSet(ARG_DEL_MEMBER))
+            return ARG_DEL_MEMBER;
 
         throw new IllegalArgumentException("No valid commands");
     }
@@ -192,6 +196,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
     private static void usage()
     {
         System.out.println("--add-member --group=<g> --userid=<u>");
+        System.out.println("--remove-member --group=<g> --userid=<u>");
         System.out.println("--create --group=<g>");
         System.out.println("--get --group=<g>");
         System.out.println("--delete --group=<g>");
@@ -216,6 +221,18 @@ public class GMSClientMain implements PrivilegedAction<Object>
                     throw new IllegalArgumentException("No userid specified");
 
                 client.addUserMember(group, new HttpPrincipal(userID));
+            }
+            else if (command.equals(ARG_DEL_MEMBER))
+            {
+                String group = argMap.getValue(ARG_GROUP);
+                if (group == null)
+                    throw new IllegalArgumentException("No group specified");
+
+                String member = argMap.getValue(ARG_USERID);
+                if (member == null)
+                    throw new IllegalArgumentException("No user specified");
+                
+                client.removeUserMember(group, new HttpPrincipal(member));
             }
             else if (command.equals(ARG_CREATE_GROUP))
             {
