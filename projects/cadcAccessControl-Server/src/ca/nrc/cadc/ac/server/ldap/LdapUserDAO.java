@@ -808,18 +808,21 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 throw new AccessControlException("Given user and authenticating user do not match");
             }
 
-            ProxiedAuthorizationV2RequestControl control =
-                new ProxiedAuthorizationV2RequestControl("dn:" + getSubjectDN().toNormalizedString());
-            Control[] controls = new Control[] {control};
+            String username = null;
+            for (Principal p : user.getIdentities())
+            {
+                if (p instanceof HttpPrincipal)
+                    username = p.getName();
+            }
+
+            BindRequest bindRequest = new SimpleBindRequest(
+                    getUserDN(username, config.getUsersDN()), oldPassword);
+            LDAPConnection conn = this.getUnboundReadConnection();
+            conn.bind(bindRequest);
 
             PasswordModifyExtendedRequest passwordModifyRequest =
                 new PasswordModifyExtendedRequest(
-                    userDN.toNormalizedString(), oldPassword, newPassword, controls);
-
-            LdapConfig ldapConfig = LdapConfig.getLdapConfig();
-            String server = ldapConfig.getReadWritePool().getServers().get(0);
-            int port = ldapConfig.getPort();
-            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(ldapConfig), server, port);
+                    userDN.toNormalizedString(), oldPassword, newPassword);
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
                     conn.processExtendedOperation(passwordModifyRequest);
