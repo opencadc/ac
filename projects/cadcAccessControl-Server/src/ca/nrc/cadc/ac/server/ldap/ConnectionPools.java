@@ -1,4 +1,4 @@
-/**
+/*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -62,21 +62,39 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
+ *
  ************************************************************************
  */
 
 package ca.nrc.cadc.ac.server.ldap;
 
-/**
- * Created by jburke on 2014-11-03.
- */
-public class AbstractLdapDAOTest
-{
-    static final String CONFIG = LdapConfig.class.getSimpleName() + ".test.properties";
+import java.util.Map;
 
-    static protected LdapConfig getLdapConfig()
+/**
+ * The object that is bound in JNDI to hold the LDAP pools.
+ */
+public class ConnectionPools
+{
+
+    private LdapConfig config;
+
+    private Map<String,LdapConnectionPool> pools;
+
+    public ConnectionPools(Map<String,LdapConnectionPool> pools, LdapConfig config)
     {
-        return LdapConfig.loadLdapConfig(CONFIG);
+        this.pools = pools;
+        this.config = config;
+    }
+
+    public Map<String,LdapConnectionPool> getPools()
+    {
+        return pools;
+    }
+
+    public LdapConfig getConfig()
+    {
+        return config;
     }
 
 }

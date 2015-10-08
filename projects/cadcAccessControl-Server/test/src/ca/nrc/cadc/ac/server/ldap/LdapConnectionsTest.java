@@ -97,16 +97,21 @@ public class LdapConnectionsTest
         {
             LDAPConnection readConn = new LDAPConnection();
             LDAPConnection writeConn = new LDAPConnection();
+            LDAPConnection unReadConn = new LDAPConnection();
             LdapPersistence persistence = EasyMock.createMock(LdapPersistence.class);
 
-            EasyMock.expect(persistence.getReadOnlyConnection()).andReturn(readConn).once();
-            EasyMock.expect(persistence.getReadWriteConnection()).andReturn(writeConn).once();
+            EasyMock.expect(persistence.getConnection(LdapPersistence.POOL_READONLY)).andReturn(readConn).once();
+            EasyMock.expect(persistence.getConnection(LdapPersistence.POOL_READWRITE)).andReturn(writeConn).once();
+            EasyMock.expect(persistence.getConnection(LdapPersistence.POOL_UNBOUNDREADONLY)).andReturn(unReadConn).once();
             EasyMock.expect(persistence.getCurrentConfig()).andReturn(null).once();
 
-            persistence.releaseReadOnlyConnection(readConn);
+            persistence.releaseConnection(LdapPersistence.POOL_READONLY, readConn);
             EasyMock.expectLastCall().once();
 
-            persistence.releaseReadWriteConnection(writeConn);
+            persistence.releaseConnection(LdapPersistence.POOL_READWRITE, writeConn);
+            EasyMock.expectLastCall().once();
+
+            persistence.releaseConnection(LdapPersistence.POOL_UNBOUNDREADONLY, unReadConn);
             EasyMock.expectLastCall().once();
 
             EasyMock.replay(persistence);
@@ -122,57 +127,15 @@ public class LdapConnectionsTest
             connections.getReadWriteConnection();
             connections.getReadWriteConnection();
 
+            connections.getUnboundReadOnlyConnection();
+            connections.getUnboundReadOnlyConnection();
+            connections.getUnboundReadOnlyConnection();
+
             connections.getCurrentConfig();
 
             connections.releaseConnections();
 
             EasyMock.verify(persistence);
-
-        }
-        catch (Exception e)
-        {
-            log.error("Unexpected exception", e);
-            Assert.fail("Unexpected exception");
-        }
-    }
-
-    @Test
-    public void testManualConfig()
-    {
-        try
-        {
-            LDAPConnection readConn = new LDAPConnection();
-            LDAPConnection writeConn = new LDAPConnection();
-            LdapConnectionPool pool = EasyMock.createMock(LdapConnectionPool.class);
-
-            EasyMock.expect(pool.getReadOnlyConnection()).andReturn(readConn).once();
-            EasyMock.expect(pool.getReadWriteConnection()).andReturn(writeConn).once();
-            EasyMock.expect(pool.getCurrentConfig()).andReturn(null).once();
-
-            pool.releaseReadOnlyConnection(readConn);
-            EasyMock.expectLastCall().once();
-
-            pool.releaseReadWriteConnection(writeConn);
-            EasyMock.expectLastCall().once();
-
-            EasyMock.replay(pool);
-
-            LdapConnections connections = new LdapConnections(pool);
-
-            // multiple calls to get connections should only go to the pool once
-            connections.getReadOnlyConnection();
-            connections.getReadOnlyConnection();
-            connections.getReadOnlyConnection();
-
-            connections.getReadWriteConnection();
-            connections.getReadWriteConnection();
-            connections.getReadWriteConnection();
-
-            connections.getCurrentConfig();
-
-            connections.releaseConnections();
-
-            EasyMock.verify(pool);
 
         }
         catch (Exception e)

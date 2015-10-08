@@ -98,7 +98,7 @@ public class LdapConfigTest
         {
             System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
 
-            LdapConfig c = LdapConfig.getLdapConfig("testConfig1.properties");
+            LdapConfig c = LdapConfig.loadLdapConfig("testConfig1.properties");
             Assert.assertEquals("devLdap", c.getDbrcHost());
             Assert.assertEquals(389, c.getPort());
             Assert.assertEquals("uid=testproxy,ou=SpecialUsers,dc=testcanfar", c.getProxyUserDN());
@@ -139,7 +139,7 @@ public class LdapConfigTest
         {
             System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
 
-            LdapConfig c = LdapConfig.getLdapConfig("testConfig2.properties");
+            LdapConfig c = LdapConfig.loadLdapConfig("testConfig2.properties");
             Assert.assertEquals("devLdap", c.getDbrcHost());
             Assert.assertEquals(389, c.getPort());
             Assert.assertEquals("uid=testproxy,ou=SpecialUsers,dc=testcanfar", c.getProxyUserDN());
@@ -180,8 +180,8 @@ public class LdapConfigTest
         {
             System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
 
-            LdapConfig c1 = LdapConfig.getLdapConfig("testConfig1.properties");
-            LdapConfig c2 = LdapConfig.getLdapConfig("testConfig1.properties");
+            LdapConfig c1 = LdapConfig.loadLdapConfig("testConfig1.properties");
+            LdapConfig c2 = LdapConfig.loadLdapConfig("testConfig1.properties");
             Assert.assertEquals(c1, c2);
         }
         catch (Throwable t)
@@ -202,8 +202,8 @@ public class LdapConfigTest
         {
             System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
 
-            LdapConfig c1 = LdapConfig.getLdapConfig("testConfig2.properties");
-            LdapConfig c2 = LdapConfig.getLdapConfig("testConfig2.properties");
+            LdapConfig c1 = LdapConfig.loadLdapConfig("testConfig2.properties");
+            LdapConfig c2 = LdapConfig.loadLdapConfig("testConfig2.properties");
             Assert.assertEquals(c1, c2);
         }
         catch (Throwable t)
@@ -224,8 +224,8 @@ public class LdapConfigTest
         {
             System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
 
-            LdapConfig c1 = LdapConfig.getLdapConfig("testConfig1.properties");
-            LdapConfig c2 = LdapConfig.getLdapConfig("testConfig2.properties");
+            LdapConfig c1 = LdapConfig.loadLdapConfig("testConfig1.properties");
+            LdapConfig c2 = LdapConfig.loadLdapConfig("testConfig2.properties");
             Assert.assertTrue(!c1.equals(c2));
         }
         catch (Throwable t)

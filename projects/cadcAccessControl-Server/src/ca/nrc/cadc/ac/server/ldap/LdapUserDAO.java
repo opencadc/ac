@@ -213,11 +213,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             BindRequest bindRequest = new SimpleBindRequest(
                 getUserDN(username, config.getUsersDN()), password);
+//
+//            String server = config.getReadOnlyPool().getServers().get(0);
+//            int port = config.getPort();
+//            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server,
+//                    config.getPort());
+//            BindResult bindResult = conn.bind(bindRequest);
 
-            String server = config.getReadOnlyPool().getServers().get(0);
-            int port = config.getPort();
-            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server,
-                    config.getPort());
+            LDAPConnection conn = this.getUnboundReadConnection();
             BindResult bindResult = conn.bind(bindRequest);
 
             if (bindResult != null && bindResult.getResultCode() == ResultCode.SUCCESS)
@@ -472,9 +475,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
 
         SearchResultEntry searchResult = null;
+        Filter filter = null;
         try
         {
-            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
+            filter = Filter.createEqualityFilter(searchField, userID.getName());
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -496,9 +500,26 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         if (searchResult == null)
         {
-            String msg = "User not found " + userID.toString();
-            logger.debug(msg);
-            throw new UserNotFoundException(msg);
+            // determine if the user is not there of if the calling user
+            // doesn't have permission to see it
+            SearchRequest searchRequest =
+                    new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
+            try
+            {
+                searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            }
+            catch (LDAPException e)
+            {
+                LdapDAO.checkLdapResult(e.getResultCode());
+            }
+
+            if (searchResult == null)
+            {
+                String msg = "User not found " + userID.toString();
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+            throw new AccessControlException("Permission denied");
         }
 
         User<T> user = new User<T>(userID);
@@ -795,9 +816,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 new PasswordModifyExtendedRequest(
                     userDN.toNormalizedString(), oldPassword, newPassword, controls);
 
-            String server = config.getReadWritePool().getServers().get(0);
-            int port = config.getPort();
-            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server, port);
+            LdapConfig ldapConfig = LdapConfig.getLdapConfig();
+            String server = ldapConfig.getReadWritePool().getServers().get(0);
+            int port = ldapConfig.getPort();
+            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(ldapConfig), server, port);
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
                     conn.processExtendedOperation(passwordModifyRequest);

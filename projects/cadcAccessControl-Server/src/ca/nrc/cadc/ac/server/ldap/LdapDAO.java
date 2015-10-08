@@ -109,6 +109,7 @@ public abstract class LdapDAO
     {
         this.connections = connections;
         config = connections.getCurrentConfig();
+        logger.debug("New LdapDAO instance, config: " + config);
     }
 
     public LDAPConnection getReadOnlyConnection() throws TransientException
@@ -119,6 +120,11 @@ public abstract class LdapDAO
     public LDAPConnection getReadWriteConnection() throws TransientException
     {
         return connections.getReadWriteConnection();
+    }
+
+    public LDAPConnection getUnboundReadConnection() throws TransientException
+    {
+        return connections.getUnboundReadOnlyConnection();
     }
 
     public void close()

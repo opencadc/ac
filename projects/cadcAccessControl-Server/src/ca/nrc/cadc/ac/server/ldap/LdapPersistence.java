@@ -69,6 +69,9 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
@@ -76,8 +79,10 @@ import javax.naming.NamingException;
 import org.apache.log4j.Logger;
 
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 
+import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
@@ -87,12 +92,20 @@ import ca.nrc.cadc.profiler.Profiler;
  */
 public class LdapPersistence
 {
+
+    // pool names
+    public static final String POOL_READONLY = "readOnly";
+    public static final String POOL_READWRITE = "readWrite";
+    public static final String POOL_UNBOUNDREADONLY = "unboundReadOnly";
+
     private static final Logger logger = Logger.getLogger(LdapPersistence.class);
-    private static final String LDAP_POOL_JNDI_NAME = LdapConnectionPool.class.getName();
+    private static final String LDAP_POOL_JNDI_NAME = ConnectionPools.class.getName();
+    private static final int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
 
     Profiler profiler = new Profiler(LdapPersistence.class);
 
-    private LdapConnectionPool pool;
+    private long lastPoolCheck = System.currentTimeMillis();
+    private ConnectionPools pools;
 
     // static monitor is required for when multiple LdapPersistence objects
     // are created.
@@ -100,38 +113,31 @@ public class LdapPersistence
 
     LdapPersistence()
     {
-        initPool();
+        initPools();
     }
 
-    protected LDAPConnection getReadOnlyConnection() throws TransientException
+    protected LDAPConnection getConnection(String poolName) throws TransientException
     {
-        return pool.getReadOnlyConnection();
+        poolCheck();
+        return pools.getPools().get(poolName).getConnection();
     }
 
-    protected LDAPConnection getReadWriteConnection() throws TransientException
+    protected void releaseConnection(String poolName, LDAPConnection conn)
     {
-        return pool.getReadWriteConnection();
-    }
-
-    protected void releaseReadOnlyConnection(LDAPConnection conn)
-    {
-        pool.releaseReadOnlyConnection(conn);
-    }
-
-    protected void releaseReadWriteConnection(LDAPConnection conn)
-    {
-        pool.releaseReadWriteConnection(conn);
+        pools.getPools().get(poolName).releaseConnection(conn);
     }
 
     protected LdapConfig getCurrentConfig()
     {
-        return pool.currentConfig;
+        return pools.getConfig();
     }
 
     protected void shutdown()
     {
-        // shutdown the pool
-        pool.shutdown();
+        // shutdown the pools
+        pools.getPools().get(POOL_READONLY).shutdown();
+        pools.getPools().get(POOL_READWRITE).shutdown();
+        pools.getPools().get(POOL_UNBOUNDREADONLY).shutdown();
 
         // unbind the pool
         try
@@ -141,31 +147,31 @@ public class LdapPersistence
         }
         catch (NamingException e)
         {
-            logger.warn("Could not unbind ldap pool", e);
+            logger.warn("Could not unbind ldap pools", e);
         }
     }
 
-    private void initPool()
+    private void initPools()
     {
         try
         {
-            pool = lookupPool();
-            logger.debug("Pool from JNDI lookup: " + pool);
+            pools = lookupPool();
+            logger.debug("Pool from JNDI lookup: " + pools);
 
-            if (pool == null)
+            if (pools == null)
             {
                 synchronized (jndiMonitor)
                 {
-                    pool = lookupPool();
-                    logger.debug("Pool from second JNDI lookup: " + pool);
-                    if (pool == null)
+                    pools = lookupPool();
+                    logger.debug("Pool from second JNDI lookup: " + pools);
+                    if (pools == null)
                     {
-                        pool = new LdapConnectionPool();
-                        profiler.checkpoint("Created LDAP connection pool");
+                        LdapConfig config = LdapConfig.getLdapConfig();
+                        pools = createPools(config);
                         InitialContext ic = new InitialContext();
-                        ic.bind(LDAP_POOL_JNDI_NAME, pool);
-                        profiler.checkpoint("Bound LDAP pool to JNDI");
-                        logger.debug("Bound LDAP pool to JNDI");
+                        ic.bind(LDAP_POOL_JNDI_NAME, pools);
+                        profiler.checkpoint("Bound LDAP pools to JNDI");
+                        logger.debug("Bound LDAP pools to JNDI");
                     }
                 }
             }
@@ -177,17 +183,105 @@ public class LdapPersistence
         }
     }
 
-    private LdapConnectionPool lookupPool() throws NamingException
+    private ConnectionPools createPools(LdapConfig config)
+    {
+        Map<String,LdapConnectionPool> poolMap = new HashMap<String,LdapConnectionPool>(3);
+        poolMap.put(POOL_READONLY, new LdapConnectionPool(
+            config, config.getReadOnlyPool(), POOL_READONLY, true));
+        poolMap.put(POOL_READWRITE, new LdapConnectionPool(
+            config, config.getReadWritePool(), POOL_READWRITE, true));
+        poolMap.put(POOL_UNBOUNDREADONLY, new LdapConnectionPool(
+            config, config.getUnboundReadOnlyPool(), POOL_UNBOUNDREADONLY, false));
+        profiler.checkpoint("Created 3 LDAP connection pools");
+        return new ConnectionPools(poolMap, config);
+    }
+
+    private ConnectionPools lookupPool() throws NamingException
     {
         try
         {
             InitialContext ic = new InitialContext();
-            return (LdapConnectionPool) ic.lookup(LDAP_POOL_JNDI_NAME);
+            return (ConnectionPools) ic.lookup(LDAP_POOL_JNDI_NAME);
         }
         catch (NameNotFoundException e)
         {
             return null;
         }
+    }
+
+    private void poolCheck() throws TransientException
+    {
+        if (timeToCheckPool())
+        {
+            // check to see if the configuration has changed
+            logger.debug("checking for ldap config change");
+            LdapConfig newConfig = LdapConfig.getLdapConfig();
+            if (!newConfig.equals(pools.getConfig()))
+            {
+                logger.debug("Detected ldap configuration change, rebuilding pools");
+                boolean poolRecreated = false;
+                final ConnectionPools oldPools = pools;
+
+                synchronized (jndiMonitor)
+                {
+                    // check to see if another thread has already
+                    // done the work
+                    if (timeToCheckPool())
+                    {
+                        try
+                        {
+                            ConnectionPools newPools = createPools(newConfig);
+                            InitialContext ic = new InitialContext();
+                            try
+                            {
+                                ic.unbind(LDAP_POOL_JNDI_NAME);
+                            }
+                            catch (NamingException e)
+                            {
+                                logger.warn("Could not unbind previous JNDI instance", e);
+                            }
+                            ic.bind(LDAP_POOL_JNDI_NAME, pools);
+                            profiler.checkpoint("Rebuild pools");
+                            lastPoolCheck = System.currentTimeMillis();
+                            pools = newPools;
+                            poolRecreated = true;
+                        }
+                        catch (NamingException e)
+                        {
+                            logger.debug("JNDI Naming Exception: " + e.getMessage());
+                            throw new TransientException("JNDI Naming Exception", e);
+                        }
+                    }
+                }
+
+                if (poolRecreated)
+                {
+                    // close the old pool in a separate thread
+                    Runnable closeOldPools = new Runnable()
+                    {
+                        public void run()
+                        {
+                            logger.debug("Closing old pools...");
+                            oldPools.getPools().get(POOL_READONLY).shutdown();
+                            oldPools.getPools().get(POOL_READWRITE).shutdown();
+                            oldPools.getPools().get(POOL_UNBOUNDREADONLY).shutdown();
+                            logger.debug("Old pools closed.");
+                        }
+                    };
+                    Thread closePoolsThread = new Thread(closeOldPools);
+                    closePoolsThread.start();
+                }
+            }
+            else
+            {
+                lastPoolCheck = System.currentTimeMillis();
+            }
+        }
+    }
+
+    private boolean timeToCheckPool()
+    {
+        return (System.currentTimeMillis() - lastPoolCheck) > POOL_CHECK_INTERVAL_MILLESCONDS;
     }
 
 }
