@@ -70,7 +70,7 @@ package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -90,7 +90,17 @@ public class RemoveGroupMemberAction extends AbstractGroupAction
     {
         Group group = groupPersistence.getGroup(this.groupName);
         Group toRemove = new Group(this.groupMemberName);
-        if (!group.getGroupMembers().remove(toRemove))
+
+        boolean removedMember = false;
+        if (group.getGroupMembers().remove(toRemove))
+        {
+            removedMember = true;
+        }
+        if (group.getGroupAdmins().remove(toRemove))
+        {
+            removedMember = true;
+        }
+        if (!removedMember)
         {
             throw new GroupNotFoundException(this.groupMemberName);
         }
