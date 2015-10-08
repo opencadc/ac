@@ -248,7 +248,7 @@ class LdapConnections
             }
             if (autoConfigUnboundReadOnlyConn != null)
             {
-                log.debug("Releasing read only auto config connection.");
+                log.debug("Releasing unbound read only auto config connection.");
                 persistence.releaseConnection(LdapPersistence.POOL_UNBOUNDREADONLY, autoConfigUnboundReadOnlyConn);
                 profiler.checkpoint("Release read only connection");
             }
@@ -267,7 +267,7 @@ class LdapConnections
             }
             if (manualConfigUnboundReadOnlyConn != null)
             {
-                log.debug("Releasing read only manual config connection.");
+                log.debug("Releasing unbound read only manual config connection.");
                 unboundReadOnlyPool.releaseConnection(manualConfigUnboundReadOnlyConn);
             }
         }
