@@ -85,7 +85,7 @@ import ca.nrc.cadc.profiler.Profiler;
  * Class that provides access to the LdapConnectionPool through
  * JNDI binding.
  */
-public class LdapPersistence
+public abstract class LdapPersistence
 {
 
     // pool names
@@ -103,7 +103,7 @@ public class LdapPersistence
     // are created.
     private static Object jndiMonitor = new Object();
 
-    LdapPersistence()
+    protected LdapPersistence()
     {
         initPools();
     }
