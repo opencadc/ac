@@ -123,7 +123,11 @@ public class GMSClient implements TransferListener
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
     
+    // client needs to know which servcie it is bound to and lookup
+    // endpoints using RegistryClient
     private URI serviceURI;
+    
+    // storing baseURL is now considered bad form but fix is out of scope right now
     private String baseURL;
 
     public GMSClient(URI serviceURI)
@@ -149,6 +153,7 @@ public class GMSClient implements TransferListener
      * 
      * @param baseURL The URL of the supporting access control web service
      * obtained from the registry.
+     * @deprecated
      */
     public GMSClient(String baseURL)
         throws IllegalArgumentException
