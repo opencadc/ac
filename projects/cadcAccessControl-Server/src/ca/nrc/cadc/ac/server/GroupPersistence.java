@@ -116,8 +116,6 @@ public interface GroupPersistence<T extends Principal>
      *
      * @param group The group to create
      *
-     * @return created group
-     *
      * @throws GroupAlreadyExistsException If a group with the same ID already
      *                                     exists.
      * @throws TransientException If an temporary, unexpected problem occurred.
@@ -126,7 +124,7 @@ public interface GroupPersistence<T extends Principal>
      * @throws GroupNotFoundException if one of the groups in group members or
      * group admins does not exist in the server.
      */
-    Group addGroup(Group group)
+    void addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
                AccessControlException, UserNotFoundException,
                GroupNotFoundException;
@@ -149,14 +147,12 @@ public interface GroupPersistence<T extends Principal>
      *
      * @param group The group to update.
      *
-     * @return The newly updated group.
-     *
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserNotFoundException If owner or group members not valid users.
      */
-    Group modifyGroup(Group group)
+    void modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException;
 

@@ -73,6 +73,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -96,8 +97,6 @@ import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.Filter;
-import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.LDAPInterface;
 import com.unboundid.ldap.sdk.LDAPResult;
@@ -113,7 +112,6 @@ import com.unboundid.ldap.sdk.SearchResultListener;
 import com.unboundid.ldap.sdk.SearchResultReference;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
-import java.util.LinkedList;
 
 public class LdapGroupDAO<T extends Principal> extends LdapDAO
 {
@@ -133,7 +131,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
     };
 
     private Profiler profiler = new Profiler(LdapDAO.class);
-    LdapConnections connections;
 
     private LdapUserDAO<T> userPersist;
 
@@ -164,7 +161,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException If owner or a member not valid user.
      * @throws GroupNotFoundException
      */
-    public Group addGroup(final Group group)
+    public void addGroup(final Group group)
         throws GroupAlreadyExistsException, TransientException,
                UserNotFoundException, AccessControlException,
                GroupNotFoundException
@@ -187,10 +184,9 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Group newGroup = reactivateGroup(group);
-            if ( newGroup != null)
+            if (reactivateGroup(group))
             {
-                return newGroup;
+                return;
             }
             else
             {
@@ -213,22 +209,6 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                                   group.getGroupAdmins());
                 LdapDAO.checkLdapResult(result.getResultCode());
 
-                // AD: Search results sometimes come incomplete if
-                // connection is not reset - not sure why.
-
-                // BM: commented-out this workout with introduction
-                // of connection pools.  Reconnecting within a pool
-                // causes an error.
-
-                //getReadWriteConnection().reconnect();
-                try
-                {
-                    return getGroup(group.getID());
-                }
-                catch (GroupNotFoundException e)
-                {
-                    throw new RuntimeException("BUG: new group not found");
-                }
             }
         }
         catch (LDAPException e)
@@ -301,7 +281,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
      * @throws TransientException
      * @throws GroupAlreadyExistsException
      */
-    private Group reactivateGroup(final Group group)
+    private boolean reactivateGroup(final Group group)
         throws AccessControlException, UserNotFoundException,
         TransientException, GroupAlreadyExistsException
     {
@@ -323,7 +303,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
             if (searchResult == null)
             {
-                return null;
+                return false;
             }
 
             if (searchResult.getAttributeValue("nsaccountlock") == null)
@@ -334,7 +314,8 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             // activate group
             try
             {
-                return modifyGroup(null, group, true);
+                modifyGroup(null, group, true);
+                return true;
             }
             catch (GroupNotFoundException e)
             {

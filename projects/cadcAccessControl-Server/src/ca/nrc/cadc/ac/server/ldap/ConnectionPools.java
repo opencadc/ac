@@ -69,6 +69,8 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -81,10 +83,14 @@ public class ConnectionPools
 
     private Map<String,LdapConnectionPool> pools;
 
+    private long lastPoolCheck = System.currentTimeMillis();
+    private boolean isClosed;
+
     public ConnectionPools(Map<String,LdapConnectionPool> pools, LdapConfig config)
     {
         this.pools = pools;
         this.config = config;
+        isClosed = false;
     }
 
     public Map<String,LdapConnectionPool> getPools()
@@ -95,6 +101,33 @@ public class ConnectionPools
     public LdapConfig getConfig()
     {
         return config;
+    }
+
+    public long getLastPoolCheck()
+    {
+        return lastPoolCheck;
+    }
+
+    public void setLastPoolCheck(long lastPoolCheck)
+    {
+        this.lastPoolCheck = lastPoolCheck;
+    }
+
+    public void close()
+    {
+        Collection<LdapConnectionPool> allPools = pools.values();
+        Iterator<LdapConnectionPool> i = allPools.iterator();
+        while (i.hasNext())
+        {
+            LdapConnectionPool next = i.next();
+            next.shutdown();
+        }
+        isClosed = true;
+    }
+
+    public boolean isClosed()
+    {
+        return isClosed;
     }
 
 }

@@ -74,8 +74,6 @@ import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import com.unboundid.ldap.sdk.LDAPException;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -149,7 +147,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         }
     }
 
-    public Group addGroup(Group group)
+    public void addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
                AccessControlException, UserNotFoundException,
                GroupNotFoundException
@@ -161,8 +159,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         {
             userDAO = new LdapUserDAO<T>(conns);
             groupDAO = new LdapGroupDAO<T>(conns, userDAO);
-            Group ret = groupDAO.addGroup(group);
-            return ret;
+            groupDAO.addGroup(group);
         }
         finally
         {
@@ -189,7 +186,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         }
     }
 
-    public Group modifyGroup(Group group)
+    public void modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException
     {
@@ -200,8 +197,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         {
             userDAO = new LdapUserDAO<T>(conns);
             groupDAO = new LdapGroupDAO<T>(conns, userDAO);
-            Group ret = groupDAO.modifyGroup(group);
-            return ret;
+            groupDAO.modifyGroup(group);
         }
         finally
         {

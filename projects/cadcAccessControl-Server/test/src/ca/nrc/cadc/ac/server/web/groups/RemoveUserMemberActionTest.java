@@ -68,14 +68,8 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.MemberNotFoundException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.util.Log4jInit;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
 
 import java.security.Principal;
 
@@ -85,8 +79,13 @@ import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.*;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityType;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  *
@@ -153,7 +152,8 @@ public class RemoveUserMemberActionTest
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(modified);
+            groupPersistence.modifyGroup(group);
+            EasyMock.expectLastCall();
             EasyMock.replay(groupPersistence);
 
             RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType);
