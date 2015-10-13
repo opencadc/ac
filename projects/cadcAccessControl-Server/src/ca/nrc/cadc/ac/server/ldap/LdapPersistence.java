@@ -270,7 +270,7 @@ public abstract class LdapPersistence
                             {
                                 logger.warn("Could not unbind previous JNDI instance", e);
                             }
-                            ic.bind(LDAP_POOL_JNDI_NAME, pools);
+                            ic.bind(LDAP_POOL_JNDI_NAME, newPools);
                             profiler.checkpoint("Rebuild pools");
                             poolRecreated = true;
                         }

@@ -169,14 +169,6 @@ public class LdapConnectionPool
         profiler.checkpoint("Pool closed.");
     }
 
-    @Override
-    public void finalize()
-    {
-        // just in case the client doesn't call shutdown()
-        if (!pool.isClosed())
-            pool.close();
-    }
-
     private LDAPConnectionPool createPool(LdapConfig config, LdapPool poolConfig, String poolName, String bindID, String bindPW)
 
     {
