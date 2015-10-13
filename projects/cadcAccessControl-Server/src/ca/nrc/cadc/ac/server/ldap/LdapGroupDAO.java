@@ -177,21 +177,26 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     "Support for groups properties not available");
         }
 
-        if (!isCreatorOwner(group.getOwner()))
-        {
-            throw new AccessControlException("Group owner must be creator");
-        }
+        // BM: Changed so that the group owner is set to be the
+        // user in the subject
+        //if (!isCreatorOwner(group.getOwner()))
+        //{
+        //    throw new AccessControlException("Group owner must be creator");
+        //}
 
         try
         {
+            // make the owner the calling user
+            DN ownerDN = this.getSubjectDN();
+            User<X500Principal> owner = userPersist.getX500User(ownerDN);
+            group.setOwner(owner);
+
             if (reactivateGroup(group))
             {
                 return;
             }
             else
             {
-
-                DN ownerDN = userPersist.getUserDN(group.getOwner());
 
                 // add group to groups tree
                 LDAPResult result = addGroup(getGroupDN(group.getID()),

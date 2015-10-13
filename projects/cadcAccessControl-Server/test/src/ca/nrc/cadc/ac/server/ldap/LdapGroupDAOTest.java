@@ -85,7 +85,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.Role;
@@ -680,34 +679,36 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             }
         });
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().addGroup(new Group("foo", unknownUser));
-                    fail("addGroup with unknown user should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-
-                String groupID = getGroupID();
-                getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
-                Group group = getGroupDAO().getGroup(groupID);
-
-                try
-                {
-                    getGroupDAO().addGroup(group);
-                    fail("addGroup with existing group should throw " +
-                         "GroupAlreadyExistsException");
-                }
-                catch (GroupAlreadyExistsException ignore) {}
-
-                getGroupDAO().deleteGroup(group.getID());
-                return null;
-            }
-        });
+        // BM: No longer applicable: groups have their owner set to the calling
+        // user automatically in the service.
+//        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+//        {
+//            public Object run() throws Exception
+//            {
+//                try
+//                {
+//                    getGroupDAO().addGroup(new Group("foo", unknownUser));
+//                    fail("addGroup with unknown user should throw " +
+//                         "AccessControlException");
+//                }
+//                catch (AccessControlException ignore) {}
+//
+//                String groupID = getGroupID();
+//                getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
+//                Group group = getGroupDAO().getGroup(groupID);
+//
+//                try
+//                {
+//                    getGroupDAO().addGroup(group);
+//                    fail("addGroup with existing group should throw " +
+//                         "GroupAlreadyExistsException");
+//                }
+//                catch (GroupAlreadyExistsException ignore) {}
+//
+//                getGroupDAO().deleteGroup(group.getID());
+//                return null;
+//            }
+//        });
     }
 
     @Test
@@ -788,7 +789,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         {
             public Object run() throws Exception
             {
-                getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
+                //getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
                 try
                 {
                     getGroupDAO().modifyGroup(new Group("foo", daoTestUser1));
