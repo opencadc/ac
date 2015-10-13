@@ -289,19 +289,19 @@ class LdapConnections
     @Override
     public void finalize()
     {
-        if (readOnlyPool != null)
+        if (readOnlyPool != null && persistence == null)
         {
             log.debug("Closing manual config readonly connection pool--should only see this " +
             		"message when running unit tests.");
             readOnlyPool.shutdown();
         }
-        if (readWritePool != null)
+        if (readWritePool != null && persistence == null)
         {
             log.debug("Closing manual config readwrite connection pool--should only see this " +
                     "message when running unit tests.");
             readWritePool.shutdown();
         }
-        if (unboundReadOnlyPool != null)
+        if (unboundReadOnlyPool != null && persistence == null)
         {
             log.debug("Closing manual config unboundreadonly connection pool--should only see this " +
                     "message when running unit tests.");
