@@ -818,14 +818,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             }
         });
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                getGroupDAO().deleteGroup(groupID);setUpBeforeClass();
-                return null;
-            }
-        });
     }
 
     @Test
