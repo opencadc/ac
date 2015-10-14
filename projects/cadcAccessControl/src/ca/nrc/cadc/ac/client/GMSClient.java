@@ -104,6 +104,7 @@ import ca.nrc.cadc.ac.GroupsReader;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
@@ -784,11 +785,11 @@ public class GMSClient implements TransferListener
         Subject cur = AuthenticationUtil.getCurrentSubject();
         if (cur == null)
             throw new IllegalArgumentException("no subject");
-        Set<Principal> ps = cur.getPrincipals();
+        Set<HttpPrincipal> ps = cur.getPrincipals(HttpPrincipal.class); // hack
         if (ps.isEmpty())
             throw new IllegalArgumentException("no principals");
         Principal p = ps.iterator().next();
-        
+        log.debug("getCurrentID: " + p.getClass());
         return p;
     }
     
