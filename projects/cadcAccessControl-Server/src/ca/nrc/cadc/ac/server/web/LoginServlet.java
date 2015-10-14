@@ -83,8 +83,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
-import com.unboundid.ldap.sdk.LDAPException;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -93,13 +91,14 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthenticatorImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
+
+import com.unboundid.ldap.sdk.LDAPException;
 
 @SuppressWarnings("serial")
 public class LoginServlet<T extends Principal> extends HttpServlet
@@ -136,7 +135,7 @@ public class LoginServlet<T extends Principal> extends HttpServlet
         }
         catch(Exception ex)
         {
-            log.error("failed to init: " + ex);
+            throw new ExceptionInInitializerError(ex);
         }
     }
     /**
