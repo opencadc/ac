@@ -792,7 +792,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 //getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
                 try
                 {
-                    getGroupDAO().modifyGroup(new Group("foo", daoTestUser1));
+                    getGroupDAO().modifyGroup(new Group("fooBOGUSASFgomsi",
+                                                        daoTestUser1));
                     fail("modifyGroup with unknown user should throw " +
                          "GroupNotFoundException");
                 }
@@ -821,7 +822,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         {
             public Object run() throws Exception
             {
-                getGroupDAO().deleteGroup(groupID);
+                getGroupDAO().deleteGroup(groupID);setUpBeforeClass();
                 return null;
             }
         });

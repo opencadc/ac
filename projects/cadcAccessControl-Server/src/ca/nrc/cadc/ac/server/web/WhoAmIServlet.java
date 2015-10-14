@@ -169,8 +169,12 @@ public class WhoAmIServlet extends HttpServlet
         // Take the first one.
         final String redirectUrl =
             String.format(redirectURL.toString(), webPrincipal.getName());
-        log.debug("redirecting to " + redirectUrl);
-        response.sendRedirect(redirectUrl);
+        final URI redirectURI = URI.create(redirectUrl);
+
+        log.debug("redirecting to " + redirectURI.toASCIIString());
+
+        response.sendRedirect(redirectURI.getPath() + "?"
+                              + redirectURI.getQuery());
     }
 
     /**

@@ -124,7 +124,7 @@ public class WhoAmIServletTest
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
         expect(mockRequest.getScheme()).andReturn("http");
 
-        mockResponse.sendRedirect("http://mysite.com/ac/users/CADCtest?idType=HTTP");
+        mockResponse.sendRedirect("/ac/users/CADCtest?idType=HTTP");
         expectLastCall().once();
 
         expect(mockRegistry.getServiceURL(URI.create(AC.GMS_SERVICE_URI),
