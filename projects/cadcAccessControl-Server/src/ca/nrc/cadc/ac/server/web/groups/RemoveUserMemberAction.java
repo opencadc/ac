@@ -99,26 +99,22 @@ public class RemoveUserMemberAction extends AbstractGroupAction
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
+
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User<Principal> toRemove = new User(userPrincipal);
+        User<Principal> user = getUserPersistence().getAugmentedUser(userPrincipal);
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+        X500Principal x500Principal = x500Principals.iterator().next();
+        User<X500Principal> toRemove = new User<X500Principal>(x500Principal);
+
+        // User members is a Set of User<X500Principal>
         if (!group.getUserMembers().remove(toRemove))
         {
             throw new MemberNotFoundException();
         }
-
-//        User<Principal> user = getUserPersistence().getAugmentedUser(userPrincipal);
-//        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-//        X500Principal x500Principal = x500Principals.iterator().next();
-//
-//        if (!group.getUserMembers().remove(x500Principal))
-//        {
-//            throw new MemberNotFoundException();
-//        }
         groupPersistence.modifyGroup(group);
 
         List<String> deletedMembers = new ArrayList<String>();
         deletedMembers.add(toRemove.getUserID().getName());
-//        deletedMembers.add(user.getUserID().getName());
         logGroupInfo(group.getID(), deletedMembers, null);
     }
 

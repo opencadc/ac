@@ -91,20 +91,6 @@ public class RemoveGroupMemberAction extends AbstractGroupAction
         Group group = groupPersistence.getGroup(this.groupName);
         Group toRemove = new Group(this.groupMemberName);
 
-//        boolean removedMember = false;
-//        if (group.getGroupMembers().remove(toRemove))
-//        {
-//            removedMember = true;
-//        }
-//        if (group.getGroupAdmins().remove(toRemove))
-//        {
-//            removedMember = true;
-//        }
-//        if (!removedMember)
-//        {
-//            throw new GroupNotFoundException(this.groupMemberName);
-//        }
-
         if (!group.getGroupMembers().remove(toRemove))
         {
             throw new GroupNotFoundException(this.groupMemberName);
