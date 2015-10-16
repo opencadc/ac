@@ -94,43 +94,12 @@ public class JsonUserListReaderWriterTest
 
         testSubject.write(users, writer);
 
-        final JSONObject expected = new JSONObject("{\r\n" +
-                                                   "  \"@xmlns\" : \"\",\r\n" +
-                                                   "\"users\": [\r\n" +
-                                                   "  \r\n" +
-                                                   "  {\r\n" +
-                                                   "    \"userID\" : {\r\n" +
-                                                   "      \"identity\" : {\r\n" +
-                                                   "        \"@type\" : \"HTTP\",\r\n" +
-                                                   "        \"$\" : 0\r\n" +
-                                                   "      }\r\n" +
-                                                   "    }\r\n" +
-                                                   "  },\r\n" +
-                                                   "  {\r\n" +
-                                                   "    \"userID\" : {\r\n" +
-                                                   "      \"identity\" : {\r\n" +
-                                                   "        \"@type\" : \"HTTP\",\r\n" +
-                                                   "        \"$\" : 1\r\n" +
-                                                   "      }\r\n" +
-                                                   "    }\r\n" +
-                                                   "  },\r\n" +
-                                                   "  {\r\n" +
-                                                   "    \"userID\" : {\r\n" +
-                                                   "      \"identity\" : {\r\n" +
-                                                   "        \"@type\" : \"HTTP\",\r\n" +
-                                                   "        \"$\" : 2\r\n" +
-                                                   "      }\r\n" +
-                                                   "    }\r\n" +
-                                                   "  },\r\n" +
-                                                   "  {\r\n" +
-                                                   "    \"userID\" : {\r\n" +
-                                                   "      \"identity\" : {\r\n" +
-                                                   "        \"@type\" : \"HTTP\",\r\n" +
-                                                   "        \"$\" : 3\r\n" +
-                                                   "      }\r\n" +
-                                                   "    }\r\n" +
-                                                   "  }\r\n" +
-                                                   "]}");
+        final JSONObject expected =
+                new JSONObject("{\"users\":{\"user\":[{\"userID\":" +
+                               "{\"identity\":{\"$\":\"0\",\"@type\":\"HTTP\"}}}," +
+                               "{\"userID\":{\"identity\":{\"$\":\"1\",\"@type\":\"HTTP\"}}}," +
+                               "{\"userID\":{\"identity\":{\"$\":\"2\",\"@type\":\"HTTP\"}}}," +
+                               "{\"userID\":{\"identity\":{\"$\":\"3\",\"@type\":\"HTTP\"}}}]}}");
         final JSONObject result = new JSONObject(writer.toString());
 
         JSONAssert.assertEquals(expected, result, true);

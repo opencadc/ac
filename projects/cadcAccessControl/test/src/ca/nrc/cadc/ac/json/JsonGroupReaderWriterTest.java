@@ -87,7 +87,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
-import java.util.Date;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -95,12 +95,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
 public class JsonGroupReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
+    private static Logger log = Logger
+            .getLogger(JsonGroupReaderWriterTest.class);
 
     @BeforeClass
     public static void setUpClass()
@@ -118,8 +118,10 @@ public class JsonGroupReaderWriterTest
             Group g = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
-        catch (IllegalArgumentException e) {}
-        
+        catch (IllegalArgumentException e)
+        {
+        }
+
         try
         {
             InputStream in = null;
@@ -127,8 +129,10 @@ public class JsonGroupReaderWriterTest
             Group g = reader.read(in);
             fail("null InputStream should throw IOException");
         }
-        catch (IOException e) {}
-        
+        catch (IOException e)
+        {
+        }
+
         try
         {
             Reader r = null;
@@ -136,12 +140,14 @@ public class JsonGroupReaderWriterTest
             Group g = reader.read(r);
             fail("null element should throw ReaderException");
         }
-        catch (IllegalArgumentException e) {}
+        catch (IllegalArgumentException e)
+        {
+        }
     }
-     
+
     @Test
     public void testWriterExceptions()
-        throws Exception
+            throws Exception
     {
         try
         {
@@ -149,15 +155,17 @@ public class JsonGroupReaderWriterTest
             writer.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
         }
-        catch (WriterException e) {}
+        catch (WriterException e)
+        {
+        }
     }
-     
+
     @Test
     public void testMinimalReadWrite()
-        throws Exception
+            throws Exception
     {
         Group expected = new Group("groupID");
-                
+
         StringBuilder json = new StringBuilder();
         JsonGroupWriter writer = new JsonGroupWriter();
         writer.write(expected, json);
@@ -171,7 +179,7 @@ public class JsonGroupReaderWriterTest
 
     @Test
     public void testMaximalReadWrite()
-        throws Exception
+            throws Exception
     {
         User<Principal> owner = new User<Principal>(new HttpPrincipal("foo"));
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
@@ -213,13 +221,47 @@ public class JsonGroupReaderWriterTest
         JsonGroupReader reader = new JsonGroupReader();
         Group actual = reader.read(json);
 
+        // Sort them so the tests work in Java 8.
+        // (List implementation changed)
+        final List<GroupProperty> sortedExpectedProperties =
+                new ArrayList<GroupProperty>(expected.getProperties());
+        final List<GroupProperty> sortedActualProperties =
+                new ArrayList<GroupProperty>(actual.getProperties());
+
+        Collections.sort(sortedExpectedProperties,
+                         new GroupPropertyComparator());
+        Collections.sort(sortedActualProperties, new GroupPropertyComparator());
+
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.description, actual.description);
         assertEquals(expected.lastModified, actual.lastModified);
-        assertEquals(expected.getProperties(), actual.getProperties());
+        assertEquals("Properties don't match.", sortedExpectedProperties,
+                     sortedActualProperties);
         assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
         assertEquals(expected.getUserMembers(), actual.getUserMembers());
     }
-    
+
+    class GroupPropertyComparator implements Comparator<GroupProperty>
+    {
+        @Override
+        public int compare(GroupProperty o1, GroupProperty o2)
+        {
+            final int keyComp = o1.getKey()
+                    .compareTo(o2.getKey());
+            final int result;
+
+            if (keyComp == 0)
+            {
+                result = o1.getValue().toString().compareTo(
+                        o2.getValue().toString());
+            }
+            else
+            {
+                result = keyComp;
+            }
+
+            return result;
+        }
+    }
 }

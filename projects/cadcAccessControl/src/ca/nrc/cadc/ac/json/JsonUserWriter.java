@@ -102,9 +102,7 @@ public class JsonUserWriter extends UserWriter
             throw new WriterException("null User");
         }
 
-        Element children = getElement(user);
-        Element userElement = new Element("user");
-        userElement.addContent(children);
+        Element userElement = getElement(user);
         Document document = new Document();
         document.setRootElement(userElement);
 

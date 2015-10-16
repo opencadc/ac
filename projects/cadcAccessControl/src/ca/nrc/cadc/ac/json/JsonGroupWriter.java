@@ -100,9 +100,7 @@ public class JsonGroupWriter extends GroupWriter
             throw new WriterException("null group");
         }
 
-        Element children = getElement(group);
-        Element groupElement = new Element("group");
-        groupElement.addContent(children);
+        Element groupElement = getElement(group, true);
         Document document = new Document();
         document.setRootElement(groupElement);
 
