@@ -151,8 +151,8 @@ public class UserListWriter extends AbstractReaderWriter
      * @return A JDOM Group list representation.
      * @throws WriterException
      */
-    protected final <T extends Principal> Element getElement(Collection<User<T>> users)
-        throws WriterException
+    protected final <T extends Principal> Element getElement(
+            Collection<User<T>> users) throws WriterException
     {
         Element usersElement = new Element("users");
 

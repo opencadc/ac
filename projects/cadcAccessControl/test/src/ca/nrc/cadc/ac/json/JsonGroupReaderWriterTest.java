@@ -109,8 +109,7 @@ public class JsonGroupReaderWriterTest
     }
 
     @Test
-    public void testReaderExceptions()
-        throws Exception
+    public void testReaderExceptions() throws Exception
     {
         try
         {

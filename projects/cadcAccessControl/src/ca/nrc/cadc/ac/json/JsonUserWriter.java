@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -94,7 +95,7 @@ public class JsonUserWriter extends UserWriter
      */
     @Override
     public<T extends Principal> void write(User<T> user, Writer writer)
-        throws IOException, WriterException
+        throws IOException
     {
         if (user == null)
         {
@@ -108,10 +109,15 @@ public class JsonUserWriter extends UserWriter
         document.setRootElement(userElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
 
-        jsonOutputter.output(document, writer);
+        try
+        {
+            jsonOutputter.output(document, writer);
+        }
+        catch (JSONException e)
+        {
+            throw new IOException(e);
+        }
     }
 
 }
