@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -91,31 +92,30 @@ public class JsonUserListWriter extends UserListWriter
      * @param users  Users to write.
      * @param writer Writer to write to.
      * @throws IOException     if the writer fails to write.
-     * @throws WriterException
      */
     @Override
     public <T extends Principal> void write(Collection<User<T>> users, Writer writer)
-        throws IOException, WriterException
+        throws IOException
     {
         if (users == null)
         {
             throw new WriterException("null users");
         }
 
-        Element usersElement = new Element("users");
-        for (User<? extends Principal> user : users)
-        {
-            Element userElement = new Element(("user"));
-            userElement.addContent(getElement(user));
-        }
+        Element usersElement = getElement(users);
         Document document = new Document();
         document.setRootElement(usersElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
 
-        jsonOutputter.output(document, writer);
+        try
+        {
+            jsonOutputter.output(document, writer);
+        }
+        catch (JSONException e)
+        {
+            throw new IOException(e);
+        }
     }
 
 }

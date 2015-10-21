@@ -75,6 +75,7 @@ import ca.nrc.cadc.ac.xml.UserRequestWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -95,24 +96,27 @@ public class JsonUserRequestWriter extends UserRequestWriter
      */
     @Override
     public <T extends Principal> void write(UserRequest<T> userRequest, Writer writer)
-        throws IOException, WriterException
+        throws IOException
     {
         if (userRequest == null)
         {
             throw new WriterException("null UserRequest");
         }
 
-        Element children = getElement(userRequest);
-        Element userRequestElement = new Element("userRequest");
-        userRequestElement.addContent(children);
+        Element userRequestElement = getElement(userRequest);
         Document document = new Document();
         document.setRootElement(userRequestElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
 
-        jsonOutputter.output(document, writer);
+        try
+        {
+            jsonOutputter.output(document, writer);
+        }
+        catch (JSONException e)
+        {
+            throw new IOException(e);
+        }
     }
 
 }
