@@ -72,6 +72,7 @@ package ca.nrc.cadc.ac.client;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
@@ -129,7 +130,7 @@ public class GMSClientTest
                 {
                     @Override
                     HttpDownload createDisplayUsersHTTPDownload(
-                            List<User<HttpPrincipal>> webUsers) throws IOException
+                            List<User<? extends Principal>> webUsers) throws IOException
                     {
                         return mockHTTPDownload;
                     }

@@ -68,29 +68,23 @@
 
 package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.ac.json.JsonUserListReader;
 import ca.nrc.cadc.net.InputStreamWrapper;
-import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
-import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.security.Principal;
 import java.util.List;
+
 
 public class JsonUserListInputStreamWrapper implements InputStreamWrapper
 {
-    private static final Logger LOGGER = Logger
-            .getLogger(JsonUserListInputStreamWrapper.class);
-    private final List<User<HttpPrincipal>> output;
+    private final List<User<? extends Principal>> output;
 
 
     public JsonUserListInputStreamWrapper(
-        final List<User<HttpPrincipal>> output)
+            final List<User<? extends Principal>> output)
     {
         this.output = output;
     }
@@ -105,50 +99,8 @@ public class JsonUserListInputStreamWrapper implements InputStreamWrapper
     @Override
     public void read(final InputStream inputStream) throws IOException
     {
-        String line = null;
+        final JsonUserListReader reader = new JsonUserListReader();
 
-        try
-        {
-            final InputStreamReader inReader =
-                    new InputStreamReader(inputStream);
-            final BufferedReader reader = new BufferedReader(inReader);
-
-            while (StringUtil.hasText(line = reader.readLine()))
-            {
-                // Deal with arrays stuff.
-                while (line.startsWith("[") || line.startsWith(","))
-                {
-                    line = line.substring(1);
-                }
-
-                while (line.endsWith("]") || line.endsWith(","))
-                {
-                    line = line.substring(0, (line.length() - 1));
-                }
-
-                if (StringUtil.hasText(line))
-                {
-                    LOGGER.debug(String.format("Reading: %s", line));
-
-                    final JSONObject jsonObject = new JSONObject(line);
-                    final User<HttpPrincipal> webUser =
-                            new User<HttpPrincipal>(
-                                    new HttpPrincipal(jsonObject
-                                                              .getString("id")));
-                    final String firstName = jsonObject.getString("firstName");
-                    final String lastName = jsonObject.getString("lastName");
-
-                    webUser.details
-                            .add(new PersonalDetails(firstName, lastName));
-
-                    output.add(webUser);
-                }
-            }
-        }
-        catch (Exception bug)
-        {
-            throw new IOException(bug + (StringUtil.hasText(line)
-                                         ? "Error line is " + line : ""));
-        }
+        output.addAll(reader.read(inputStream));
     }
 }

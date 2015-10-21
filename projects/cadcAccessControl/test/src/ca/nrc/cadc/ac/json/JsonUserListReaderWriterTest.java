@@ -18,10 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * JsonUserListReaderWriterTest TODO describe class
@@ -103,6 +100,13 @@ public class JsonUserListReaderWriterTest
         final JSONObject result = new JSONObject(writer.toString());
 
         JSONAssert.assertEquals(expected, result, true);
+
+        JsonUserListReader reader = new JsonUserListReader();
+        final InputStream in =
+                new ByteArrayInputStream(expected.toString().getBytes());
+        final Collection<User<Principal>> readBackIn = reader.read(in);
+
+        assertEquals("Size is wrong.", 4, readBackIn.size());
     }
 
     @Test

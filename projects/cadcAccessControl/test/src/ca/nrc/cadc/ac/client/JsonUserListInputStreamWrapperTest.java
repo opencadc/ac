@@ -68,15 +68,22 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 
@@ -85,18 +92,34 @@ public class JsonUserListInputStreamWrapperTest
     @Test
     public void readInputStream() throws Exception
     {
-        final List<User<HttpPrincipal>> output =
-                new ArrayList<User<HttpPrincipal>>();
+        final List<User<? extends Principal>> output =
+                new ArrayList<User<? extends Principal>>();
         final JsonUserListInputStreamWrapper testSubject =
                 new JsonUserListInputStreamWrapper(output);
+        final JsonUserListWriter userListWriter = new JsonUserListWriter();
+        final Writer writer = new StringWriter();
+        final Collection<User<HttpPrincipal>> users =
+                new ArrayList<User<HttpPrincipal>>();
+
+        users.add(new User<HttpPrincipal>(new HttpPrincipal("CADCTest")));
+
+        final User<HttpPrincipal> user2 =
+                new User<HttpPrincipal>(new HttpPrincipal("User_2"));
+
+        user2.details.add(new PersonalDetails("User", "Two"));
+
+        users.add(user2);
+
+        userListWriter.write(users, writer);
+
         final InputStream inputStream =
-                new ByteArrayInputStream("[{\"id\":\"CADCTest\",\"firstName\":\"CADCtest\",\"lastName\":\"USER\"}\n,{\"id\":\"User_2\",\"firstName\":\"User\",\"lastName\":\"2\"}]".getBytes());
+                new ByteArrayInputStream(writer.toString().getBytes());
 
         testSubject.read(inputStream);
 
         assertEquals("First item is wrong.", "CADCTest",
                      output.get(0).getUserID().getName());
-        assertEquals("First item is wrong.", "User_2",
+        assertEquals("Second item is wrong.", "User_2",
                      output.get(1).getUserID().getName());
     }
 }

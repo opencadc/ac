@@ -223,10 +223,10 @@ public class GMSClient implements TransferListener
      * @return List of HTTP Principal users.
      * @throws IOException Any errors in reading.
      */
-    public List<User<HttpPrincipal>> getDisplayUsers() throws IOException
+    public List<User<? extends Principal>> getDisplayUsers() throws IOException
     {
-        final List<User<HttpPrincipal>> webUsers =
-                new ArrayList<User<HttpPrincipal>>();
+        final List<User<? extends Principal>> webUsers =
+                new ArrayList<User<? extends Principal>>();
         final HttpDownload httpDownload =
                     createDisplayUsersHTTPDownload(webUsers);
 
@@ -272,7 +272,7 @@ public class GMSClient implements TransferListener
      * @throws IOException      Any writing/reading errors.
      */
     HttpDownload createDisplayUsersHTTPDownload(
-            final List<User<HttpPrincipal>> webUsers) throws IOException
+            final List<User<? extends Principal>> webUsers) throws IOException
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
