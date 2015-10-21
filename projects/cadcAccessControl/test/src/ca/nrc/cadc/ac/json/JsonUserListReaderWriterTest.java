@@ -85,18 +85,28 @@ public class JsonUserListReaderWriterTest
 
         for (int i = 0; i < 4; i++)
         {
-            users.add(new User<HttpPrincipal>(
-                    new HttpPrincipal(Integer.toString(i))));
+            final User<HttpPrincipal> user = new User<HttpPrincipal>(
+                    new HttpPrincipal(Integer.toString(i)));
+
+            user.details.add(new PersonalDetails(Integer.toString(i),
+                                                 "NUMBER_"));
+
+            if ((i % 2) == 0)
+            {
+                user.details.add(new PosixDetails(88l + i, 88l + i, "/tmp"));
+            }
+
+            users.add(user);
         }
 
         testSubject.write(users, writer);
 
         final JSONObject expected =
-                new JSONObject("{\"users\":{\"user\":[{\"userID\":" +
-                               "{\"identity\":{\"$\":\"0\",\"@type\":\"HTTP\"}}}," +
-                               "{\"userID\":{\"identity\":{\"$\":\"1\",\"@type\":\"HTTP\"}}}," +
-                               "{\"userID\":{\"identity\":{\"$\":\"2\",\"@type\":\"HTTP\"}}}," +
-                               "{\"userID\":{\"identity\":{\"$\":\"3\",\"@type\":\"HTTP\"}}}]}}");
+                new JSONObject("{\"users\":{\"user\":[" +
+                               "{\"details\":{\"userDetails\":[{\"firstName\":{\"$\":\"0\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"},{\"uid\":{\"$\":\"88\"},\"gid\":{\"$\":\"88\"},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"}]},\"userID\":{\"identity\":{\"$\":\"0\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"1\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"1\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"userDetails\":[{\"uid\":{\"$\":\"90\"},\"gid\":{\"$\":\"90\"},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"},{\"firstName\":{\"$\":\"2\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}]},\"userID\":{\"identity\":{\"$\":\"2\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"3\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"3\",\"@type\":\"HTTP\"}}}]}}");
         final JSONObject result = new JSONObject(writer.toString());
 
         JSONAssert.assertEquals(expected, result, true);

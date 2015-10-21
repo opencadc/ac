@@ -82,6 +82,7 @@ import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.util.StringUtil;
 import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
@@ -662,8 +663,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                     next.getAttributeValue(LDAP_LAST_NAME).trim();
                 final String uid = next.getAttributeValue(LDAP_UID).trim();
                 User<Principal> user = new User<Principal>(new HttpPrincipal(uid));
-                PersonalDetails pd = new PersonalDetails(firstName, lastName);
-                user.details.add(pd);
+
+                // Only add Personal Details if it is relevant.
+                if (StringUtil.hasLength(firstName)
+                    && StringUtil.hasLength(lastName))
+                {
+                    user.details.add(new PersonalDetails(firstName, lastName));
+                }
+
                 users.add(user);
             }
         }
