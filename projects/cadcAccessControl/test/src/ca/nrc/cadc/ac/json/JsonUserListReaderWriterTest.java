@@ -6,63 +6,57 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import org.apache.log4j.Logger;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.*;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.*;
+
 
 /**
  * JsonUserListReaderWriterTest TODO describe class
  */
 public class JsonUserListReaderWriterTest
 {
-    private static Logger log = Logger
-            .getLogger(JsonUserListReaderWriterTest.class);
-
     @Test
     public void testReaderExceptions()
             throws Exception
     {
         try
         {
-            String s = null;
             JsonUserListReader reader = new JsonUserListReader();
-            List<User<Principal>> u = reader.read(s);
+            reader.read((String) null);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e)
         {
+            // Good
         }
 
         try
         {
-            InputStream in = null;
             JsonUserListReader reader = new JsonUserListReader();
-            List<User<Principal>> u = reader.read(in);
+            reader.read((InputStream) null);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e)
         {
+            // Good
         }
 
         try
         {
-            Reader r = null;
             JsonUserListReader reader = new JsonUserListReader();
-            List<User<Principal>> u = reader.read(r);
+            reader.read((Reader) null);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e)
         {
+            // Good
         }
     }
 
@@ -79,7 +73,7 @@ public class JsonUserListReaderWriterTest
     {
         final JsonUserListWriter testSubject = new JsonUserListWriter();
 
-        final Collection<User<HttpPrincipal>> users =
+        final List<User<HttpPrincipal>> users =
                 new ArrayList<User<HttpPrincipal>>();
         final Writer writer = new StringWriter();
 
@@ -109,7 +103,7 @@ public class JsonUserListReaderWriterTest
                                "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"3\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"3\",\"@type\":\"HTTP\"}}}]}}");
         final JSONObject result = new JSONObject(writer.toString());
 
-        JSONAssert.assertEquals(expected, result, true);
+        JSONAssert.assertEquals(expected, result, false);
 
         JsonUserListReader reader = new JsonUserListReader();
         final InputStream in =
@@ -131,6 +125,7 @@ public class JsonUserListReaderWriterTest
         }
         catch (WriterException e)
         {
+            // Good
         }
     }
 
