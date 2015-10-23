@@ -99,7 +99,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         // get the configuration of the development server from and config files...
         config = getLdapConfig();
     }

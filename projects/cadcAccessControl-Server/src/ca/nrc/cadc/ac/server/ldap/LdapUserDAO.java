@@ -213,12 +213,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             BindRequest bindRequest = new SimpleBindRequest(
                 getUserDN(username, config.getUsersDN()), password);
-//
-//            String server = config.getReadOnlyPool().getServers().get(0);
-//            int port = config.getPort();
-//            LDAPConnection conn = new LDAPConnection(LdapDAO.getSocketFactory(config), server,
-//                    config.getPort());
-//            BindResult bindResult = conn.bind(bindRequest);
 
             LDAPConnection conn = this.getUnboundReadConnection();
             BindResult bindResult = conn.bind(bindRequest);
@@ -244,46 +238,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                 throw new AccessControlException("Invalid username");
             }
+            else if (e.getResultCode() == ResultCode.UNWILLING_TO_PERFORM)
+            {
+                throw new AccessControlException("Account inactivated");
+            }
 
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
-    }
-
-    /**
-     * @return
-     * @throws TransientException
-     */
-    public Collection<HttpPrincipal> getCadcIDs() throws TransientException
-    {
-        Filter filter = Filter.createPresenceFilter("uid");
-        String[] attributes = new String[]{"uid"};
-
-        SearchRequest searchRequest =
-                new SearchRequest(config.getUsersDN(),
-                                  SearchScope.ONE, filter, attributes);
-
-        SearchResult searchResult = null;
-        try
-        {
-            searchResult = getReadOnlyConnection().search(searchRequest);
-        }
-        catch (LDAPSearchException e)
-        {
-            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
-            {
-                logger.debug("Could not find users root", e);
-                throw new IllegalStateException("Could not find users root");
-            }
-        }
-
-        LdapDAO.checkLdapResult(searchResult.getResultCode());
-        Collection<HttpPrincipal> userIDs = new HashSet<HttpPrincipal>();
-        for (SearchResultEntry next : searchResult.getSearchEntries())
-        {
-            userIDs.add(new HttpPrincipal(next.getAttributeValue("uid")));
-        }
-
-        return userIDs;
     }
 
     /**
@@ -479,6 +440,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             filter = Filter.createEqualityFilter(searchField, userID.getName());
+            filter = Filter.createANDFilter(filter,
+                Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock")));
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -569,6 +532,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
+            filter = Filter.createANDFilter(filter,
+                Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock")));
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("search filter: " + filter);
 
@@ -641,6 +606,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
         Filter filter =  Filter.createPresenceFilter(LDAP_UID);
+        filter = Filter.createANDFilter(filter,
+            Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock")));
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
