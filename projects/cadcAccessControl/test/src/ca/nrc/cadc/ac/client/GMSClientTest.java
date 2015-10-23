@@ -72,6 +72,7 @@ package ca.nrc.cadc.ac.client;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,9 +82,7 @@ import javax.security.auth.Subject;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.net.HttpDownload;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -98,9 +97,6 @@ import static org.easymock.EasyMock.*;
 
 public class GMSClientTest
 {
-
-    private static final Logger log = Logger.getLogger(GMSClientTest.class);
-
     public GMSClientTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
@@ -110,15 +106,9 @@ public class GMSClientTest
     public void testGetDisplayUsers() throws Exception
     {
         final HttpDownload mockHTTPDownload = createMock(HttpDownload.class);
-        final GMSClient testSubject = new GMSClient("http://mysite.com/users")
-        {
-            @Override
-            HttpDownload createDisplayUsersHTTPDownload(
-                    List<User<HttpPrincipal>> webUsers) throws IOException
-            {
-                return mockHTTPDownload;
-            }
-        };
+        final RegistryClient mockRegistryClient =
+                createMock(RegistryClient.class);
+        final URI serviceURI = URI.create("http://mysite.com/users");
 
         mockHTTPDownload.setRequestProperty("Accept", "application/json");
         expectLastCall().once();
@@ -131,176 +121,187 @@ public class GMSClientTest
         expect(mockHTTPDownload.getContentType()).andReturn(
                 "application/json").once();
 
-        replay(mockHTTPDownload);
+        expect(mockRegistryClient.getServiceURL(serviceURI, "https")).andReturn(
+                new URL("http://mysite.com/users/endpoint"));
+
+        replay(mockHTTPDownload, mockRegistryClient);
+        final GMSClient testSubject =
+                new GMSClient(serviceURI, mockRegistryClient)
+                {
+                    @Override
+                    HttpDownload createDisplayUsersHTTPDownload(
+                            List<User<? extends Principal>> webUsers) throws IOException
+                    {
+                        return mockHTTPDownload;
+                    }
+                };
+
         testSubject.getDisplayUsers();
-        verify(mockHTTPDownload);
+        verify(mockHTTPDownload, mockRegistryClient);
     }
 
 
     @Test
-    public void testUserIsSubject()
+    public void testUserIsSubject() throws Exception
     {
-        try
-        {
-            Subject subject = new Subject();
-            HttpPrincipal userID = new HttpPrincipal("test");
-            HttpPrincipal userID2 = new HttpPrincipal("test2");
-            subject.getPrincipals().add(userID);
+        Subject subject = new Subject();
+        HttpPrincipal userID = new HttpPrincipal("test");
+        HttpPrincipal userID2 = new HttpPrincipal("test2");
+        subject.getPrincipals().add(userID);
 
-            RegistryClient regClient = new RegistryClient();
-            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
-                                                  "https");
-            GMSClient client = new GMSClient(baseURL.toString());
+        final RegistryClient mockRegistryClient =
+                createMock(RegistryClient.class);
 
-            Assert.assertFalse(client.userIsSubject(null, null));
-            Assert.assertFalse(client.userIsSubject(userID, null));
-            Assert.assertFalse(client.userIsSubject(null, subject));
-            Assert.assertFalse(client.userIsSubject(userID2, subject));
-            Assert.assertTrue(client.userIsSubject(userID, subject));
+        final URI serviceURI = URI.create("http://mysite.com/users");
 
-            HttpPrincipal userID3 = new HttpPrincipal("test3");
-            subject.getPrincipals().add(userID3);
+        expect(mockRegistryClient.getServiceURL(serviceURI, "https")).andReturn(
+                new URL("http://mysite.com/users/endpoint"));
 
-            Assert.assertTrue(client.userIsSubject(userID, subject));
-            Assert.assertFalse(client.userIsSubject(userID2, subject));
-            Assert.assertTrue(client.userIsSubject(userID3, subject));
-        }
-        catch (Throwable t)
-        {
-            log.error("Unexpected exception", t);
-            Assert.fail("Unexpected exception: " + t.getMessage());
-        }
+        replay(mockRegistryClient);
+        GMSClient client = new GMSClient(serviceURI, mockRegistryClient);
+
+        Assert.assertFalse(client.userIsSubject(null, null));
+        Assert.assertFalse(client.userIsSubject(userID, null));
+        Assert.assertFalse(client.userIsSubject(null, subject));
+        Assert.assertFalse(client.userIsSubject(userID2, subject));
+        Assert.assertTrue(client.userIsSubject(userID, subject));
+
+        HttpPrincipal userID3 = new HttpPrincipal("test3");
+        subject.getPrincipals().add(userID3);
+
+        Assert.assertTrue(client.userIsSubject(userID, subject));
+        Assert.assertFalse(client.userIsSubject(userID2, subject));
+        Assert.assertTrue(client.userIsSubject(userID3, subject));
+        verify(mockRegistryClient);
     }
 
     @Test
-    public void testGroupCaching()
+    public void testGroupCaching() throws Exception
     {
-        try
+        Subject subject = new Subject();
+        final HttpPrincipal test1UserID = new HttpPrincipal("test");
+        subject.getPrincipals().add(test1UserID);
+
+        final URI serviceURI = URI.create("http://mysite.com/users");
+        final RegistryClient mockRegistryClient =
+                createMock(RegistryClient.class);
+
+        expect(mockRegistryClient.getServiceURL(serviceURI, "https")).andReturn(
+                new URL("http://mysite.com/users/endpoint"));
+
+        replay(mockRegistryClient);
+        final GMSClient client = new GMSClient(serviceURI, mockRegistryClient);
+        verify(mockRegistryClient);
+
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
-            Subject subject = new Subject();
-            final HttpPrincipal test1UserID = new HttpPrincipal("test");
-            subject.getPrincipals().add(test1UserID);
-
-            RegistryClient regClient = new RegistryClient();
-            URL baseURL = regClient.getServiceURL(new URI(AC.GMS_SERVICE_URI),
-                                                  "https");
-            final GMSClient client = new GMSClient(baseURL.toString());
-
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+            @Override
+            public Object run() throws Exception
             {
-                @Override
-                public Object run() throws Exception
-                {
 
-                    List<Group> initial = client
-                            .getCachedGroups(test1UserID, Role.MEMBER, true);
-                    Assert.assertNull("Cache should be null", initial);
+                List<Group> initial = client
+                        .getCachedGroups(test1UserID, Role.MEMBER, true);
+                Assert.assertNull("Cache should be null", initial);
 
-                    // add single group as isMember might do
-                    Group group0 = new Group("0");
-                    client.addCachedGroup(test1UserID, group0, Role.MEMBER);
-                    List<Group> actual = client
-                            .getCachedGroups(test1UserID, Role.MEMBER, true);
-                    Assert.assertNull("Cache should be null", actual);
+                // add single group as isMember might do
+                Group group0 = new Group("0");
+                client.addCachedGroup(test1UserID, group0, Role.MEMBER);
+                List<Group> actual = client
+                        .getCachedGroups(test1UserID, Role.MEMBER, true);
+                Assert.assertNull("Cache should be null", actual);
 
-                    Group g = client
-                            .getCachedGroup(test1UserID, "0", Role.MEMBER);
-                    Assert.assertNotNull("cached group from incomplete cache", g);
+                Group g = client
+                        .getCachedGroup(test1UserID, "0", Role.MEMBER);
+                Assert.assertNotNull("cached group from incomplete cache", g);
 
-                    // add all groups like getMemberships might do
-                    List<Group> expected = new ArrayList<Group>();
-                    Group group1 = new Group("1");
-                    Group group2 = new Group("2");
-                    expected.add(group0);
-                    expected.add(group1);
-                    expected.add(group2);
+                // add all groups like getMemberships might do
+                List<Group> expected = new ArrayList<Group>();
+                Group group1 = new Group("1");
+                Group group2 = new Group("2");
+                expected.add(group0);
+                expected.add(group1);
+                expected.add(group2);
 
-                    client.setCachedGroups(test1UserID, expected, Role.MEMBER);
+                client.setCachedGroups(test1UserID, expected, Role.MEMBER);
 
-                    actual = client
-                            .getCachedGroups(test1UserID, Role.MEMBER, true);
-                    Assert.assertEquals("Wrong cached groups", expected, actual);
+                actual = client
+                        .getCachedGroups(test1UserID, Role.MEMBER, true);
+                Assert.assertEquals("Wrong cached groups", expected, actual);
 
-                    // check against another role
-                    actual = client
-                            .getCachedGroups(test1UserID, Role.OWNER, true);
-                    Assert.assertNull("Cache should be null", actual);
+                // check against another role
+                actual = client
+                        .getCachedGroups(test1UserID, Role.OWNER, true);
+                Assert.assertNull("Cache should be null", actual);
 
-                    // check against another userid
-                    final HttpPrincipal anotherUserID = new HttpPrincipal("anotheruser");
-                    actual = client
-                            .getCachedGroups(anotherUserID, Role.MEMBER, true);
-                    Assert.assertNull("Cache should be null", actual);
+                // check against another userid
+                final HttpPrincipal anotherUserID = new HttpPrincipal("anotheruser");
+                actual = client
+                        .getCachedGroups(anotherUserID, Role.MEMBER, true);
+                Assert.assertNull("Cache should be null", actual);
 
-                    return null;
-                }
-            });
+                return null;
+            }
+        });
 
-            subject = new Subject();
-            final HttpPrincipal test2UserID = new HttpPrincipal("test2");
-            subject.getPrincipals().add(test2UserID);
+        subject = new Subject();
+        final HttpPrincipal test2UserID = new HttpPrincipal("test2");
+        subject.getPrincipals().add(test2UserID);
 
-            // do the same but as a different user
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-            {
-                @Override
-                public Object run() throws Exception
-                {
-
-                    List<Group> initial = client
-                            .getCachedGroups(test2UserID, Role.MEMBER, true);
-                    Assert.assertNull("Cache should be null", initial);
-
-                    List<Group> expected = new ArrayList<Group>();
-                    Group group1 = new Group("1");
-                    Group group2 = new Group("2");
-                    expected.add(group1);
-                    expected.add(group2);
-
-                    client.setCachedGroups(test2UserID, expected, Role.MEMBER);
-
-                    List<Group> actual = client
-                            .getCachedGroups(test2UserID, Role.MEMBER, true);
-                    Assert.assertEquals("Wrong cached groups", expected, actual);
-
-                    // check against another role
-                    actual = client
-                            .getCachedGroups(test2UserID, Role.OWNER, true);
-                    Assert.assertNull("Cache should be null", actual);
-
-                    // check against another userid
-                    final HttpPrincipal anotherUserID = new HttpPrincipal("anotheruser");
-                    actual = client
-                            .getCachedGroups(anotherUserID, Role.MEMBER, true);
-                    Assert.assertNull("Cache should be null", actual);
-
-                    return null;
-                }
-            });
-
-            // do the same without a subject
-
-            List<Group> initial = client
-                    .getCachedGroups(test1UserID, Role.MEMBER, true);
-            Assert.assertNull("Cache should be null", initial);
-
-            List<Group> newgroups = new ArrayList<Group>();
-            Group group1 = new Group("1");
-            Group group2 = new Group("2");
-            newgroups.add(group1);
-            newgroups.add(group2);
-
-            client.setCachedGroups(test1UserID, newgroups, Role.MEMBER);
-
-            List<Group> actual = client
-                    .getCachedGroups(test1UserID, Role.MEMBER, true);
-            Assert.assertNull("Cache should still be null", actual);
-        }
-        catch (Throwable t)
+        // do the same but as a different user
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
-            log.error("Unexpected exception", t);
-            Assert.fail("Unexpected exception: " + t.getMessage());
-        }
+            @Override
+            public Object run() throws Exception
+            {
+
+                List<Group> initial = client
+                        .getCachedGroups(test2UserID, Role.MEMBER, true);
+                Assert.assertNull("Cache should be null", initial);
+
+                List<Group> expected = new ArrayList<Group>();
+                Group group1 = new Group("1");
+                Group group2 = new Group("2");
+                expected.add(group1);
+                expected.add(group2);
+
+                client.setCachedGroups(test2UserID, expected, Role.MEMBER);
+
+                List<Group> actual = client
+                        .getCachedGroups(test2UserID, Role.MEMBER, true);
+                Assert.assertEquals("Wrong cached groups", expected, actual);
+
+                // check against another role
+                actual = client
+                        .getCachedGroups(test2UserID, Role.OWNER, true);
+                Assert.assertNull("Cache should be null", actual);
+
+                // check against another userid
+                final HttpPrincipal anotherUserID = new HttpPrincipal("anotheruser");
+                actual = client
+                        .getCachedGroups(anotherUserID, Role.MEMBER, true);
+                Assert.assertNull("Cache should be null", actual);
+
+                return null;
+            }
+        });
+
+        // do the same without a subject
+
+        List<Group> initial = client
+                .getCachedGroups(test1UserID, Role.MEMBER, true);
+        Assert.assertNull("Cache should be null", initial);
+
+        List<Group> newgroups = new ArrayList<Group>();
+        Group group1 = new Group("1");
+        Group group2 = new Group("2");
+        newgroups.add(group1);
+        newgroups.add(group2);
+
+        client.setCachedGroups(test1UserID, newgroups, Role.MEMBER);
+
+        List<Group> actual = client
+                .getCachedGroups(test1UserID, Role.MEMBER, true);
+        Assert.assertNull("Cache should still be null", actual);
     }
 
 }

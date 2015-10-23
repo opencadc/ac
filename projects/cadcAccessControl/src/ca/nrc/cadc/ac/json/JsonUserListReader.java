@@ -76,7 +76,6 @@ import org.jdom2.Document;
 import org.json.JSONException;
 
 import java.io.Reader;
-import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Scanner;
@@ -93,11 +92,10 @@ public class JsonUserListReader extends UserListReader
      * @param reader Reader.
      * @return users List of Users.
      * @throws ReaderException
-     * @throws URISyntaxException
      */
     @Override
     public List<User<Principal>> read(Reader reader)
-        throws URISyntaxException, ReaderException
+        throws ReaderException
     {
         if (reader == null)
         {
@@ -112,6 +110,7 @@ public class JsonUserListReader extends UserListReader
             JsonInputter jsonInputter = new JsonInputter();
             jsonInputter.getListElementMap().put("identities", "identity");
             jsonInputter.getListElementMap().put("details", "userDetails");
+            jsonInputter.getListElementMap().put("users", "user");
 
             Document document = jsonInputter.input(json);
             return getUserList(document.getRootElement());

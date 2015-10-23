@@ -121,7 +121,7 @@ public class UserListReader extends AbstractReaderWriter
      * @throws java.net.URISyntaxException
      */
     public List<User<Principal>> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException
     {
         if (in == null)
         {
@@ -146,10 +146,9 @@ public class UserListReader extends AbstractReaderWriter
      * @return List of Users.
      * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
     public List<User<Principal>> read(Reader reader)
-        throws ReaderException, IOException, URISyntaxException
+        throws ReaderException, IOException
     {
         if (reader == null)
         {
@@ -185,11 +184,10 @@ public class UserListReader extends AbstractReaderWriter
      *
      * @param element The Users JDOM element.
      * @return A List of User objects.
-     * @throws URISyntaxException
      * @throws ReaderException
      */
     protected final List<User<Principal>> getUserList(Element element)
-        throws URISyntaxException, ReaderException
+        throws ReaderException
     {
         List<User<Principal>> users = new ArrayList<User<Principal>>();
 

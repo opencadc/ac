@@ -6,62 +6,116 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import org.apache.log4j.Logger;
+import org.json.JSONObject;
 import org.junit.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.*;
 import java.security.Principal;
-import java.util.List;
+import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+
 
 /**
  * JsonUserListReaderWriterTest TODO describe class
  */
 public class JsonUserListReaderWriterTest
 {
-    private static Logger log = Logger.getLogger(JsonUserListReaderWriterTest.class);
-
     @Test
     public void testReaderExceptions()
-        throws Exception
+            throws Exception
     {
         try
         {
-            String s = null;
             JsonUserListReader reader = new JsonUserListReader();
-            List<User<Principal>> u = reader.read(s);
+            reader.read((String) null);
             fail("null String should throw IllegalArgumentException");
         }
-        catch (IllegalArgumentException e) {}
+        catch (IllegalArgumentException e)
+        {
+            // Good
+        }
 
         try
         {
-            InputStream in = null;
             JsonUserListReader reader = new JsonUserListReader();
-            List<User<Principal>> u = reader.read(in);
+            reader.read((InputStream) null);
             fail("null InputStream should throw IOException");
         }
-        catch (IOException e) {}
+        catch (IOException e)
+        {
+            // Good
+        }
 
         try
         {
-            Reader r = null;
             JsonUserListReader reader = new JsonUserListReader();
-            List<User<Principal>> u = reader.read(r);
+            reader.read((Reader) null);
             fail("null Reader should throw IllegalArgumentException");
         }
-        catch (IllegalArgumentException e) {}
+        catch (IllegalArgumentException e)
+        {
+            // Good
+        }
+    }
+
+    /**
+     * Test the JSON Output writer.
+     * <p/>
+     * TODO - Warning!  The JSONAssert testing library fails parsing of the
+     * todo - JSON, so this test was changed to use String compare instead.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testWriter() throws Exception
+    {
+        final JsonUserListWriter testSubject = new JsonUserListWriter();
+
+        final List<User<HttpPrincipal>> users =
+                new ArrayList<User<HttpPrincipal>>();
+        final Writer writer = new StringWriter();
+
+        for (int i = 0; i < 4; i++)
+        {
+            final User<HttpPrincipal> user = new User<HttpPrincipal>(
+                    new HttpPrincipal(Integer.toString(i)));
+
+            user.details.add(new PersonalDetails(Integer.toString(i),
+                                                 "NUMBER_"));
+
+            if ((i % 2) == 0)
+            {
+                user.details.add(new PosixDetails(88l + i, 88l + i, "/tmp"));
+            }
+
+            users.add(user);
+        }
+
+        testSubject.write(users, writer);
+
+        final JSONObject expected =
+                new JSONObject("{\"users\":{\"user\":[" +
+                               "{\"details\":{\"userDetails\":[{\"firstName\":{\"$\":\"0\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"},{\"uid\":{\"$\":\"88\"},\"gid\":{\"$\":\"88\"},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"}]},\"userID\":{\"identity\":{\"$\":\"0\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"1\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"1\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"userDetails\":[{\"uid\":{\"$\":\"90\"},\"gid\":{\"$\":\"90\"},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"},{\"firstName\":{\"$\":\"2\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}]},\"userID\":{\"identity\":{\"$\":\"2\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"3\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"3\",\"@type\":\"HTTP\"}}}]}}");
+        final JSONObject result = new JSONObject(writer.toString());
+
+        JSONAssert.assertEquals(expected, result, false);
+
+        JsonUserListReader reader = new JsonUserListReader();
+        final InputStream in =
+                new ByteArrayInputStream(expected.toString().getBytes());
+        final Collection<User<Principal>> readBackIn = reader.read(in);
+
+        assertEquals("Size is wrong.", 4, readBackIn.size());
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
+            throws Exception
     {
         try
         {
@@ -69,12 +123,15 @@ public class JsonUserListReaderWriterTest
             writer.write(null, new StringBuilder());
             fail("null User should throw WriterException");
         }
-        catch (WriterException e) {}
+        catch (WriterException e)
+        {
+            // Good
+        }
     }
 
     @Test
     public void testReadWrite()
-        throws Exception
+            throws Exception
     {
         User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
         expected.getIdentities().add(new NumericPrincipal(123));

@@ -129,28 +129,36 @@ public class GMSClient implements TransferListener
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
 
-    // client needs to know which servcie it is bound to and lookup
-    // endpoints using RegistryClient
-    private URI serviceURI;
-
     private String baseURL;
 
-    public GMSClient(URI serviceURI)
+
+    /**
+     * Slightly more complete constructor.  Tests can override the
+     * RegistryClient.
+     *
+     * @param serviceURI            The service URI.
+     * @param registryClient        The Registry Client.
+     */
+    public GMSClient(URI serviceURI, RegistryClient registryClient)
     {
-        this.serviceURI = serviceURI;
         try
         {
-            RegistryClient reg = new RegistryClient();
-            URL base = reg.getServiceURL(serviceURI, "https");
+            URL base = registryClient.getServiceURL(serviceURI, "https");
             if (base == null)
                 throw new IllegalArgumentException("service not found with https access: " + serviceURI);
             this.baseURL = base.toExternalForm();
+
+            log.debug("AC Service URI: " + this.baseURL);
         }
         catch(MalformedURLException ex)
         {
             throw new RuntimeException("BUG: failed to construct GMS base URL", ex);
         }
-        finally { }
+    }
+
+    public GMSClient(URI serviceURI)
+    {
+        this(serviceURI, new RegistryClient());
     }
 
     /**
@@ -215,10 +223,10 @@ public class GMSClient implements TransferListener
      * @return List of HTTP Principal users.
      * @throws IOException Any errors in reading.
      */
-    public List<User<HttpPrincipal>> getDisplayUsers() throws IOException
+    public List<User<? extends Principal>> getDisplayUsers() throws IOException
     {
-        final List<User<HttpPrincipal>> webUsers =
-                new ArrayList<User<HttpPrincipal>>();
+        final List<User<? extends Principal>> webUsers =
+                new ArrayList<User<? extends Principal>>();
         final HttpDownload httpDownload =
                     createDisplayUsersHTTPDownload(webUsers);
 
@@ -264,7 +272,7 @@ public class GMSClient implements TransferListener
      * @throws IOException      Any writing/reading errors.
      */
     HttpDownload createDisplayUsersHTTPDownload(
-            final List<User<HttpPrincipal>> webUsers) throws IOException
+            final List<User<? extends Principal>> webUsers) throws IOException
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
