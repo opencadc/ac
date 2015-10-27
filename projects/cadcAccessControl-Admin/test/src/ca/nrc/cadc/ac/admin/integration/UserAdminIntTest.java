@@ -66,13 +66,15 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.admin;
+package ca.nrc.cadc.ac.admin.integration;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.admin.ContextFactoryImpl;
+import ca.nrc.cadc.ac.admin.Main;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.DNPrincipal;
@@ -80,31 +82,28 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class UserAdminTest
+
+public class UserAdminIntTest
 {
-    private static final Logger log = Logger.getLogger(UserAdminTest.class);
+    private static final Logger log = Logger.getLogger(UserAdminIntTest.class);
 
-    static final String EXEC_CMD = "./test/scripts/userAdminTest";
+    private final OutputStream output = new ByteArrayOutputStream();
+    private final OutputStream error = new ByteArrayOutputStream();
 
     static String testCert;
     static LdapConfig config;
@@ -115,7 +114,8 @@ public class UserAdminTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
-        testCert = "build/test/class/cadcauthtest1.pem";
+        testCert = System.getProperty("user.dir")
+                   + "/build/test/class/cadcauthtest1.pem";
 
         config = LdapConfig.getLdapConfig();
 
@@ -127,10 +127,10 @@ public class UserAdminTest
     {
         String[] args = new String[] { "--list" };
 
-        List<String> output = doTest(args, 0);
+        doTest(args);
 
-        log.debug("number users found: " + output.size());
-        assertFalse("output is empty", output.isEmpty());
+        log.debug("number users found: " + output.toString());
+        assertTrue("output is empty", StringUtil.hasText(output.toString()));
     }
 
     @Test
@@ -138,10 +138,10 @@ public class UserAdminTest
     {
         String[] args = new String[] { "--list-pending" };
 
-        List<String> output = doTest(args, 0);
+        doTest(args);
 
-        log.debug("number pending users found: " + output.size());
-        assertFalse("output is empty", output.isEmpty());
+        log.debug("number pending users found: " + output.toString());
+        assertTrue("output is empty", StringUtil.hasText(output.toString()));
     }
 
     @Test
@@ -153,20 +153,12 @@ public class UserAdminTest
 
         String[] args = new String[] { "--view=" + userID };
 
-        List<String> output = doTest(args, 0);
+        doTest(args);
         log.debug("output: " + output);
 
-        assertFalse("output is empty", output.isEmpty());
-
-        boolean found = false;
-        for (String line : output)
-        {
-            if (line.contains(userID))
-            {
-                found = true;
-            }
-        }
-        assertTrue("User not found", found);
+        assertTrue("output is empty", StringUtil.hasText(output.toString()));
+        assertTrue("User ID not found in output.",
+                   output.toString().contains(userID));
     }
 
     @Test
@@ -178,20 +170,12 @@ public class UserAdminTest
 
         String[] args = new String[] { "--view=" + userID };
 
-        List<String> output = doTest(args, 0);
+        doTest(args);
         log.debug("output: " + output);
 
-        assertFalse("output is empty", output.isEmpty());
-
-        boolean found = false;
-        for (String line : output)
-        {
-            if (line.contains(userID))
-            {
-                found = true;
-            }
-        }
-        assertTrue("User not found", found);
+        assertTrue("output is empty", StringUtil.hasText(output.toString()));
+        assertTrue("User ID not found in output.",
+                   output.toString().contains(userID));
     }
 
     @Test
@@ -201,11 +185,14 @@ public class UserAdminTest
 
         String[] args = new String[] { "--view=" + userID };
 
-        List<String> output = doTest(args, 0);
-        log.debug("output: " + output);
+        doTest(args);
+        final String outputMessage = output.toString();
+        final String errorMessage = error.toString();
+        log.debug("output: " + outputMessage);
 
-        assertFalse(output.isEmpty());
-        assertTrue(output.iterator().next().contains("not found"));
+        assertTrue(outputMessage.contains("not found"));
+        assertFalse("Should not have error (" + errorMessage + ")",
+                    StringUtil.hasLength(errorMessage));
     }
 
     @Test
@@ -217,20 +204,12 @@ public class UserAdminTest
 
         String[] args = new String[] { "--approve=" + userID };
 
-        List<String> output = doTest(args, 0);
+        doTest(args);
         log.debug("output: " + output);
 
-        assertFalse("output is empty", output.isEmpty());
-
-        boolean found = false;
-        for (String line : output)
-        {
-            if (line.contains("was approved"))
-            {
-                found = true;
-            }
-        }
-        assertTrue("User not approved", found);
+        assertTrue("output is empty", StringUtil.hasText(output.toString()));
+        assertTrue("User not approved.",
+                   output.toString().contains("was approved"));
 
         User<Principal> deletedUser = getUser(userID, true, false);
         User<Principal> approvedUser = getUser(userID, false, true);
@@ -243,11 +222,15 @@ public class UserAdminTest
 
         String[] args = new String[] { "--approve=" + userID };
 
-        List<String> output = doTest(args, 0);
-        log.debug("output: " + output);
+        doTest(args);
 
-        assertFalse(output.isEmpty());
-        assertTrue(output.iterator().next().contains("not found"));
+        final String outputMessage = output.toString();
+        final String errorMessage = error.toString();
+        log.debug("output: " + outputMessage);
+
+        assertTrue(outputMessage.contains("not found"));
+        assertFalse("Should not have error (" + errorMessage + ")",
+                    StringUtil.hasLength(errorMessage));
     }
 
     @Test
@@ -259,13 +242,18 @@ public class UserAdminTest
 
         String[] args = new String[] { "--reject=" + userID };
 
-        List<String> output = doTest(args, 0);
-        log.debug("output: " + output);
+        doTest(args);
 
-        assertFalse(output.isEmpty());
-        assertTrue(output.iterator().next().contains("was rejected"));
+        final String outputMessage = output.toString();
+        final String errorMessage = error.toString();
+        log.debug("output: " + outputMessage);
 
-        User<Principal> deletedUser = getUser(userID, isPending, false);
+        assertTrue("Should contain was rejected.",
+                   outputMessage.contains("was rejected"));
+        assertFalse("Should not have error (" + errorMessage + ")",
+                    StringUtil.hasLength(errorMessage));
+
+        getUser(userID, isPending, false);
     }
 
     @Test
@@ -275,11 +263,15 @@ public class UserAdminTest
 
         String[] args = new String[] { "--reject=" + userID };
 
-        List<String> output = doTest(args, 0);
-        log.debug("output: " + output);
+        doTest(args);
 
-        assertFalse(output.isEmpty());
-        assertTrue(output.iterator().next().contains("not found"));
+        final String outputMessage = output.toString();
+        final String errorMessage = error.toString();
+        log.debug("output: " + outputMessage);
+
+        assertTrue(outputMessage.contains("not found"));
+        assertFalse("Should not have error (" + errorMessage + ")",
+                    StringUtil.hasLength(errorMessage));
     }
 
     String getUserID()
@@ -287,36 +279,15 @@ public class UserAdminTest
         return "CadcAdminIntTestUser-" + System.currentTimeMillis();
     }
 
-    List<String> doTest(String[] args, int expectedExitValue)
-        throws IOException, InterruptedException
+    void doTest(String[] args) throws Exception
     {
-        String[] exec = new String[args.length + 2];
-        exec[0] = EXEC_CMD;
-        exec[1] = "--cert=" + testCert;
+        final String[] programArgs = new String[args.length + 1];
+        System.arraycopy(args, 0, programArgs, 0, args.length);
+        programArgs[programArgs.length - 1] = "--cert=" + testCert;
 
-        System.arraycopy(args, 0, exec, 2, args.length);
-        for (int i = 0; i < exec.length; i++)
-        {
-            log.debug("arg[" + i + "] = " + exec[i]);
-        }
-
-        ProcessBuilder pb = new ProcessBuilder(exec);
-        Process process = pb.start();
-
-        int exitValue = process.waitFor();
-
-        BufferedReader reader = new BufferedReader(
-            new InputStreamReader(process.getInputStream()));
-        List<String> output = new ArrayList<String>();
-        String line;
-        while ((line = reader.readLine()) != null)
-        {
-            output.add(line);
-        }
-
-        log.debug("Exit value: " + exitValue);
-        assertEquals("exit value", expectedExitValue, exitValue);
-        return output;
+        final Main testSubject = new Main(new PrintStream(output),
+                                          new PrintStream(error));
+        testSubject.execute(programArgs);
     }
 
     void addUser(final String username, final boolean isPending)

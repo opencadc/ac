@@ -67,85 +67,101 @@
 ************************************************************************
 -->
 
-    
+
 <project default="build" basedir=".">
 
-    <property environment="env"/>
-    <property file="local.build.properties" />
-    
-    <property file="${env.A}/compilers/setup.ant.java.properties" />
-    <import file="${env.A}/compilers/setup.ant.java.targets.xml"/>
+  <property environment="env"/>
+  <property file="local.build.properties"/>
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+  <property file="${env.A}/compilers/setup.ant.java.properties"/>
+  <import file="${env.A}/compilers/setup.ant.java.targets.xml"/>
 
-    <property file="local.build.properties" />
-    
-    <property name="project" value="userAdmin" />
+  <!-- developer convenience: place for extra targets and properties -->
+  <import file="extras.xml" optional="true"/>
 
-    <!-- JAR files to be included in classpath and war file -->
-    <property name="cadcAC"		        value="${lib}/cadcAccessControl.jar" />
-    <property name="cadcAC-Server"      value="${lib}/cadcAccessControl-Server.jar" />
-    <property name="cadcLog"		    value="${lib}/cadcLog.jar" />
-    <property name="cadcUtil"		    value="${lib}/cadcUtil.jar" />
-    <property name="log4j"			    value="${ext.lib}/log4j.jar" />
-    <property name="commons-logging"    value="${ext.lib}/commons-logging.jar" />
-    <property name="unboundid"          value="${ext.lib}/unboundid-ldapsdk-se.jar" />
+  <property file="local.build.properties"/>
 
-    <property name="jars" value="${cadcAC}:${cadcAC-Server}:${cadcUtil}:${log4j}" />
+  <property name="project" value="userAdmin"/>
 
-    <property name="client.cadc.jars"       value="${cadcAC}:${cadcAC-Server}:${cadcLog}:${cadcUtil}" />
-    <property name="client.external.jars"   value="${unboundid}:${log4j}" />
+  <!-- JAR files to be included in classpath and war file -->
+  <property name="cadcAC" value="${lib}/cadcAccessControl.jar"/>
+  <property name="cadcAC-Server" value="${lib}/cadcAccessControl-Server.jar"/>
+  <property name="cadcLog" value="${lib}/cadcLog.jar"/>
+  <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
+  <property name="log4j" value="${ext.lib}/log4j.jar"/>
+  <property name="commons-logging" value="${ext.lib}/commons-logging.jar"/>
+  <property name="unboundid" value="${ext.lib}/unboundid-ldapsdk-se.jar"/>
 
-    <property name="jars"       value="${cadc}:${external}" />
+  <property name="jars"
+            value="${cadcAC}:${cadcAC-Server}:${cadcUtil}:${log4j}"/>
 
-    <target name="build" depends="compile,manifest">
-        <jar jarfile="${build}/lib/${project}.jar"
-             basedir="${build}/class" update="no"
-             manifest="${build}/tmp/${project}.mf">
-            <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
+  <property name="client.cadc.jars"
+            value="${cadcAC}:${cadcAC-Server}:${cadcLog}:${cadcUtil}"/>
+  <property name="client.external.jars" value="${unboundid}:${log4j}"/>
 
-    <target name="setup-test" depends="init">
-        <copy overwrite="true"
-              file="${env.A}/test-certificates/x509_CADCAuthtest1.pem"
-              tofile="build/test/class/cadcauthtest1.pem"/>
-    </target>
+  <property name="jars" value="${cadc}:${external}"/>
 
-    <target name="manifest">
-        <pathconvert property="client.flat.manifest" pathsep=" ">
-            <mapper type="flatten"/>
-            <path> <pathelement path="${client.cadc.jars}"/> </path>
-            <path> <pathelement path="${client.external.jars}"/> </path>
-        </pathconvert>
-        <pathconvert property="client.non-flat.manifest" pathsep=" ">
-            <path> <pathelement path="${client.cadc.jars}"/> </path>
-            <path> <pathelement path="${client.external.jars}"/> </path>
-        </pathconvert>
+  <target name="build" depends="compile,manifest">
+    <jar jarfile="${build}/lib/${project}.jar"
+         basedir="${build}/class" update="no"
+         manifest="${build}/tmp/${project}.mf">
+      <include name="ca/nrc/cadc/**"/>
+    </jar>
+  </target>
 
-        <manifest file="${build}/tmp/${project}.mf" mode="replace">
-            <attribute name="Main-Class" value="ca.nrc.cadc.ac.admin.Main"/>
-            <attribute name="Class-Path" value="${client.flat.manifest} ${client.non-flat.manifest}"/>
-        </manifest>
-    </target>
+  <target name="setup-test" depends="init">
+    <copy overwrite="true"
+          file="${env.A}/test-certificates/x509_CADCAuthtest1.pem"
+          tofile="build/test/class/cadcauthtest1.pem"/>
+  </target>
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="cadcLog"          value="${lib}/cadcLog.jar" />
-    <property name="junit"          value="${ext.dev}/junit.jar" />
+  <target name="manifest">
+    <pathconvert property="client.flat.manifest" pathsep=" ">
+      <mapper type="flatten"/>
+      <path>
+        <pathelement path="${client.cadc.jars}"/>
+      </path>
+      <path>
+        <pathelement path="${client.external.jars}"/>
+      </path>
+    </pathconvert>
+    <pathconvert property="client.non-flat.manifest" pathsep=" ">
+      <path>
+        <pathelement path="${client.cadc.jars}"/>
+      </path>
+      <path>
+        <pathelement path="${client.external.jars}"/>
+      </path>
+    </pathconvert>
 
-    <property name="testingJars" value="${cadcLog}:${junit}:${unboundid}" />
+    <manifest file="${build}/tmp/${project}.mf" mode="replace">
+      <attribute name="Main-Class" value="ca.nrc.cadc.ac.admin.Main"/>
+      <attribute name="Class-Path"
+                 value="${client.flat.manifest} ${client.non-flat.manifest}"/>
+    </manifest>
+  </target>
 
-    <target name="single-test" depends="compile,compile-test,setup-test">
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${jars}:${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.admin.UserAdminTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
+  <!-- JAR files needed to run the test suite -->
+  <property name="cadcLog" value="${lib}/cadcLog.jar"/>
+  <property name="asm"        value="${ext.dev}/asm.jar" />
+  <property name="cglib"      value="${ext.dev}/cglib.jar" />
+  <property name="easymock"   value="${ext.dev}/easymock.jar" />
+  <property name="junit"      value="${ext.dev}/junit.jar" />
+  <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
+
+  <property name="testingJars"
+            value="${junit}:${asm}:${cglib}:${easymock}:${objenesis}:{unboundid}:${cadcLog}"/>
+
+  <target name="int-test" depends="build,compile-test,setup-test">
+    <echo message="Running test suite..."/>
+    <junit printsummary="yes" haltonfailure="yes" fork="yes">
+      <classpath>
+        <pathelement path="${build}/class"/>
+        <pathelement path="${build}/test/class"/>
+        <pathelement path="${jars}:${testingJars}"/>
+      </classpath>
+      <test name="ca.nrc.cadc.ac.admin.integration.UserAdminIntTest"/>
+      <formatter type="plain" usefile="false"/>
+    </junit>
+  </target>
 </project>

@@ -74,11 +74,9 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedAction;
 
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
+
 
 /**
  * Provide attributes and methods that apply to all commands.
@@ -87,16 +85,18 @@ import ca.nrc.cadc.net.TransientException;
  */
 public abstract class AbstractCommand implements PrivilegedAction<Object>
 {
-    private static final Logger log = Logger.getLogger(AbstractCommand.class);
-
     protected PrintStream systemOut = System.out;
     protected PrintStream systemErr = System.err;
+
+    private UserPersistence<Principal> userPersistence;
+
 	   
-    protected abstract void doRun() throws AccessControlException, TransientException;
+    protected abstract void doRun()
+            throws AccessControlException, TransientException;
     
     /**
      * Set the system out.
-     * @param printStream
+     * @param printStream       The stream to write System.out to .
      */
     public void setSystemOut(PrintStream printStream)
     {
@@ -105,7 +105,7 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
     
     /**
      * Set the system err.
-     * @param printStream
+     * @param printStream       The stream to write System.err to.
      */
     public void setSystemErr(PrintStream printStream)
     {
@@ -134,11 +134,14 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
         return null;
     }
 
-    protected <T extends Principal> UserPersistence<T> getUserPersistence()
+    protected void setUserPersistence(
+            final UserPersistence<Principal> userPersistence)
     {
-        System.setProperty("java.naming.factory.initial", ContextFactoryImpl.class.getName());
+        this.userPersistence = userPersistence;
+    }
 
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.createUserPersistence();
+    public UserPersistence<Principal> getUserPersistence()
+    {
+        return userPersistence;
     }
 }
