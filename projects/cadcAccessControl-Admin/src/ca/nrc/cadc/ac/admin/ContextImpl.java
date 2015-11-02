@@ -71,33 +71,34 @@ package ca.nrc.cadc.ac.admin;
 
 import javax.naming.Binding;
 import javax.naming.Context;
-import javax.naming.InitialContext;
 import javax.naming.Name;
 import javax.naming.NameClassPair;
 import javax.naming.NameParser;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 
 /**
  * A Simple JNDI context.
  */
 public class ContextImpl implements Context
 {
-    Map<String,Object> map = new HashMap<String,Object>(1);
+    private final static ConcurrentMap<String,Object> POOL_MAP =
+            new ConcurrentHashMap<>(1);
 
     @Override
     public Object lookup(String name) throws NamingException
     {
-        return map.get(name);
+        return POOL_MAP.get(name);
     }
 
     @Override
     public void bind(String name, Object value) throws NamingException
     {
-        map.put(name,  value);
+        POOL_MAP.put(name, value);
     }
 
     @Override

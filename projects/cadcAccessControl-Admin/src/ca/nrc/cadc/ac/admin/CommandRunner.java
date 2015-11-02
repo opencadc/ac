@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,106 +62,78 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
 
 package ca.nrc.cadc.ac.admin;
 
-import java.io.PrintStream;
-import java.security.Principal;
-import java.security.cert.CertificateException;
-
-import javax.security.auth.Subject;
-
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.net.TransientException;
 import org.apache.log4j.Logger;
 
-/**
- * A command line admin tool for LDAP users.
- * 
- * @author yeunga
- *
- */
-public class Main
+import javax.security.auth.Subject;
+import java.security.Principal;
+
+
+public class CommandRunner
 {
-    private static Logger log = Logger.getLogger(Main.class);
-    
-    private final PrintStream systemOut;
-    private final PrintStream systemErr;
+    private final static Logger LOGGER = Logger.getLogger(CommandRunner.class);
+    private final CmdLineParser commandLineParser;
+    private final UserPersistence<Principal> userPersistence;
 
 
-    public Main(PrintStream systemOut, PrintStream systemErr)
+    public CommandRunner(final CmdLineParser commandLineParser,
+                         final UserPersistence<Principal> userPersistence)
     {
-        this.systemOut = systemOut;
-        this.systemErr = systemErr;
-    }
-
-    public Main()
-    {
-        systemOut = System.out;
-        systemErr = System.err;
+        this.commandLineParser = commandLineParser;
+        this.userPersistence = userPersistence;
     }
 
 
     /**
-     * Execute the specified utility.
-     * @param args   The arguments passed in to this programme.
-     */
-    public static void main(final String[] args)
-    {
-        final Main main = new Main();
-
-        try
-        {
-            main.execute(args);
-        }
-        catch(UsageException | CertificateException e)
-        {
-            System.exit(0);
-        }
-        catch(Exception t)
-        {
-            System.exit(-1);
-        }
-    }
-
-    /**
-     * Execute this class's function.  This is to be run by tests.
+     * Run a suitable action command.
      *
-     * @param args          The string arguments.
-     * @throws Exception    Any issue arising.
      */
-    public void execute(final String[] args) throws Exception
+    public void run() throws UserNotFoundException, TransientException
     {
-        try
+        if (commandLineParser.proceed())
         {
-            final CmdLineParser parser = new CmdLineParser(args, systemOut,
-                                                           systemErr);
+            AbstractCommand command = commandLineParser.getCommand();
+            command.setUserPersistence(userPersistence);
 
-            // Set the necessary JNDI system property for lookups.
-            System.setProperty("java.naming.factory.initial",
-                               ContextFactoryImpl.class.getName());
+            if (commandLineParser.getSubject() == null)
+            {
+                // no credential, but command works with an anonymous user
+                LOGGER.debug("running as anon user");
+                command.run();
+            }
+            else
+            {
+                Subject subject = commandLineParser.getSubject();
+                LOGGER.debug("running as " + subject);
 
-            final CommandRunner runner =
-                    new CommandRunner(parser, new PluginFactory().
-                            createUserPersistence());
-
-            runner.run();
+                // augment the subject
+                if (subject.getPrincipals().isEmpty())
+                {
+                    throw new RuntimeException("BUG: subject with no principals");
+                }
+                Principal userID = subject.getPrincipals().iterator().next();
+                User<Principal> subjectUser =
+                        userPersistence.getAugmentedUser(userID);
+                for (Principal identity : subjectUser.getIdentities())
+                {
+                    subject.getPrincipals().add(identity);
+                }
+                LOGGER.debug("augmented subject: " + subject);
+                Subject.doAs(subject, command);
+            }
         }
-        catch(UsageException e)
+        else
         {
-            systemErr.println("ERROR: " + e.getMessage());
-            systemOut.println(CmdLineParser.getUsage());
-            throw e;
-        }
-        catch(Exception t)
-        {
-            systemErr.println("ERROR: " + t.getMessage());
-            t.printStackTrace(systemErr);
-            throw t;
+            throw new IllegalStateException("Not ready to proceed.");
         }
     }
 }
