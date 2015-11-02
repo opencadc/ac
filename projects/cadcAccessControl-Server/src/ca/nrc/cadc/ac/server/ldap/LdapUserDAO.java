@@ -441,8 +441,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             filter = Filter.createEqualityFilter(searchField, userID.getName());
-            filter = Filter.createANDFilter(filter,
-                Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock")));
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -533,8 +531,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
-            filter = Filter.createANDFilter(filter,
-                Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock")));
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("search filter: " + filter);
 
@@ -607,8 +603,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         final Collection<User<Principal>> users = new ArrayList<User<Principal>>();
 
         Filter filter =  Filter.createPresenceFilter(LDAP_UID);
-        filter = Filter.createANDFilter(filter,
-            Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock")));
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
@@ -876,13 +870,17 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
 
-        try
+        // getUser does not yet support nsaccountlock
+        if (!markDelete)
         {
-            getUser(userID, usersDN);
-            throw new RuntimeException(
-                "BUG: " + userID.getName() + " not deleted in " + usersDN);
+            try
+            {
+                getUser(userID, usersDN);
+                throw new RuntimeException(
+                    "BUG: " + userID.getName() + " not deleted in " + usersDN);
+            }
+            catch (UserNotFoundException ignore) {}
         }
-        catch (UserNotFoundException ignore) {}
     }
 
     /**

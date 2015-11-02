@@ -542,12 +542,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
                     userDAO.deleteUser(expected.getUserID());
 
-                    try
-                    {
-                        userDAO.getUser(expected.getUserID());
-                        fail("found deleted user");
-                    }
-                    catch (UserNotFoundException expected) {}
                     return null;
                 }
                 catch (Exception e)
@@ -593,13 +587,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     userDAO.deletePendingUser(expected.getUserID());
-
-                    try
-                    {
-                        userDAO.getPendingUser(expected.getUserID());
-                        fail("found deleted pending user");
-                    }
-                    catch (UserNotFoundException expected) {}
 
                     return null;
                 }
@@ -745,14 +732,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testGetUsers() throws Exception
     {
-        // anonymous access
-//        try
-//        {
-//            getUserDAO().getUsers();
-//            fail("anonymous request should throw exception");
-//        }
-//        catch (AccessControlException expected) {}
-
         // authenticated access
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
@@ -782,14 +761,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testGetPendingUsers() throws Exception
     {
-        // anonymous access
-        try
-        {
-            getUserDAO().getPendingUsers();
-            fail("anonymous request should throw exception");
-        }
-        catch (AccessControlException expected) {}
-
         // authenticated access
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());
