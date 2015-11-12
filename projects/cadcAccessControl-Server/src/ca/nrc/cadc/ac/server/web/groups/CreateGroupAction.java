@@ -74,7 +74,6 @@ import java.util.List;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 
@@ -92,26 +91,26 @@ public class CreateGroupAction extends AbstractGroupAction
     {
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
-        Group newGroup = groupPersistence.addGroup(group);
+        groupPersistence.addGroup(group);
         syncOut.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(newGroup, syncOut.getWriter());
+        groupWriter.write(group, syncOut.getWriter());
 
         List<String> addedMembers = null;
-        if ((newGroup.getUserMembers().size() > 0) ||
-            (newGroup.getGroupMembers().size() > 0))
+        if ((group.getUserMembers().size() > 0) ||
+            (group.getGroupMembers().size() > 0))
         {
             addedMembers = new ArrayList<String>();
-            for (Group gr : newGroup.getGroupMembers())
+            for (Group gr : group.getGroupMembers())
             {
                 addedMembers.add(gr.getID());
             }
-            for (User usr : newGroup.getUserMembers())
+            for (User usr : group.getUserMembers())
             {
                 addedMembers.add(usr.getUserID().getName());
             }
         }
-        logGroupInfo(newGroup.getID(), null, addedMembers);
+        logGroupInfo(group.getID(), null, addedMembers);
     }
 
 }

@@ -76,6 +76,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
@@ -114,7 +115,6 @@ import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import java.net.URI;
 
 
 /**
@@ -136,24 +136,36 @@ public class GMSClient implements TransferListener
     // storing baseURL is now considered bad form but fix is out of scope right now
     private String baseURL;
 
-    public GMSClient(URI serviceURI)
+
+    /**
+     * Slightly more complete constructor.  Tests can override the
+     * RegistryClient.
+     *
+     * @param serviceURI            The service URI.
+     * @param registryClient        The Registry Client.
+     */
+    public GMSClient(URI serviceURI, RegistryClient registryClient)
     {
-        this.serviceURI = serviceURI;
         try
         {
-            RegistryClient reg = new RegistryClient();
-            URL base = reg.getServiceURL(serviceURI, "https");
+            URL base = registryClient.getServiceURL(serviceURI, "https");
             if (base == null)
                 throw new IllegalArgumentException("service not found with https access: " + serviceURI);
             this.baseURL = base.toExternalForm();
+
+            log.debug("AC Service URI: " + this.baseURL);
         }
         catch(MalformedURLException ex)
         {
             throw new RuntimeException("BUG: failed to construct GMS base URL", ex);
         }
-        finally { }
     }
-    
+
+    public GMSClient(URI serviceURI)
+    {
+        this(serviceURI, new RegistryClient());
+    }
+
     /**
      * Constructor.
      *
@@ -216,10 +228,10 @@ public class GMSClient implements TransferListener
      * @return List of HTTP Principal users.
      * @throws IOException Any errors in reading.
      */
-    public List<User<HttpPrincipal>> getDisplayUsers() throws IOException
+    public List<User<? extends Principal>> getDisplayUsers() throws IOException
     {
-        final List<User<HttpPrincipal>> webUsers =
-                new ArrayList<User<HttpPrincipal>>();
+        final List<User<? extends Principal>> webUsers =
+                new ArrayList<User<? extends Principal>>();
         final HttpDownload httpDownload =
                     createDisplayUsersHTTPDownload(webUsers);
 
@@ -265,7 +277,7 @@ public class GMSClient implements TransferListener
      * @throws IOException      Any writing/reading errors.
      */
     HttpDownload createDisplayUsersHTTPDownload(
-            final List<User<HttpPrincipal>> webUsers) throws IOException
+            final List<User<? extends Principal>> webUsers) throws IOException
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
@@ -672,10 +684,10 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
-        
+
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName 
-                + "/userMembers/" + NetUtil.encode(userID.getName()) 
+        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName
+                + "/userMembers/" + NetUtil.encode(userID.getName())
                 + "?idType=" + userIDType);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
@@ -795,11 +807,11 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        
+
         log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
-        
-        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName 
-                + "/userMembers/" + NetUtil.encode(userID.getName()) 
+
+        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName
+                + "/userMembers/" + NetUtil.encode(userID.getName())
                 + "?idType=" + userIDType);
 
         log.debug("removeUserMember: " + removeUserMemberURL.toString());
@@ -865,22 +877,22 @@ public class GMSClient implements TransferListener
         log.debug("getCurrentID: " + p.getClass());
         return p;
     }
-    
+
     /**
      * Get memberships for the current user (subject).
-     * 
+     *
      * @param role
      * @return A list of groups for which the current user has the role.
      * @throws AccessControlException
-     * @throws ca.nrc.cadc.ac.UserNotFoundException 
-     * @throws java.io.IOException 
+     * @throws ca.nrc.cadc.ac.UserNotFoundException
+     * @throws java.io.IOException
      */
-    public List<Group> getMemberships(Role role) 
+    public List<Group> getMemberships(Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
         return getMemberships(getCurrentUserID(), role);
     }
-    
+
     /**
      * Get all the memberships of the user of a certain role.
      *
@@ -1082,19 +1094,19 @@ public class GMSClient implements TransferListener
 
     /**
      * Check group membership of the current Subject.
-     * 
+     *
      * @param groupName
      * @return
      * @throws UserNotFoundException
      * @throws AccessControlException
-     * @throws IOException 
+     * @throws IOException
      */
     public boolean isMember(String groupName)
         throws UserNotFoundException, AccessControlException, IOException
     {
         return isMember(getCurrentUserID(), groupName, Role.MEMBER);
     }
-    
+
     /**
      * Check if userID is a member of groupName.
      *

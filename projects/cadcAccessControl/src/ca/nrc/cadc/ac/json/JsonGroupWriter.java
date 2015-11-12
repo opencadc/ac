@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -92,30 +93,27 @@ public class JsonGroupWriter extends GroupWriter
      * @throws WriterException
      */
     @Override
-    public void write(Group group, Writer writer)
-        throws IOException, WriterException
+    public void write(Group group, Writer writer) throws IOException
     {
         if (group == null)
         {
             throw new WriterException("null group");
         }
 
-        Element children = getElement(group);
-        Element groupElement = new Element("group");
-        groupElement.addContent(children);
+        Element groupElement = getElement(group, true);
         Document document = new Document();
         document.setRootElement(groupElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("properties");
-        jsonOutputter.getListElementNames().add("userMembers");
-        jsonOutputter.getListElementNames().add("groupMembers");
-        jsonOutputter.getListElementNames().add("userAdmins");
-        jsonOutputter.getListElementNames().add("groupAdmins");
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
 
-        jsonOutputter.output(document, writer);
+        try
+        {
+            jsonOutputter.output(document, writer);
+        }
+        catch (JSONException e)
+        {
+            throw new IOException(e);
+        }
     }
 
 }

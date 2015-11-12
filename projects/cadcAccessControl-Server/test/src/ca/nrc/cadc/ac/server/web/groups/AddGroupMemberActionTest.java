@@ -68,18 +68,21 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.fail;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.util.Log4jInit;
-import java.security.Principal;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import static org.easymock.EasyMock.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -141,7 +144,8 @@ public class AddGroupMemberActionTest
 
             expect(groupPersistence.getGroup("group")).andReturn(group);
             expect(groupPersistence.getGroup("member")).andReturn(member);
-            expect(groupPersistence.modifyGroup(group)).andReturn(modified);
+            groupPersistence.modifyGroup(group);
+            EasyMock.expectLastCall();
 
             replay(groupPersistence);
 

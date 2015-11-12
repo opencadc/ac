@@ -76,6 +76,7 @@ import java.security.cert.CertificateException;
 import javax.security.auth.Subject;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.PluginFactory;
 import org.apache.log4j.Logger;
 
 /**
@@ -88,70 +89,79 @@ public class Main
 {
     private static Logger log = Logger.getLogger(Main.class);
     
-    private static PrintStream systemOut = System.out;
-    private static PrintStream systemErr = System.err;
- 
+    private final PrintStream systemOut;
+    private final PrintStream systemErr;
+
+
+    public Main(PrintStream systemOut, PrintStream systemErr)
+    {
+        this.systemOut = systemOut;
+        this.systemErr = systemErr;
+    }
+
+    public Main()
+    {
+        systemOut = System.out;
+        systemErr = System.err;
+    }
+
+
     /**
      * Execute the specified utility.
      * @param args   The arguments passed in to this programme.
      */
-    public static void main(String[] args)
+    public static void main(final String[] args)
+    {
+        final Main main = new Main();
+
+        try
+        {
+            main.execute(args);
+        }
+        catch(UsageException | CertificateException e)
+        {
+            System.exit(0);
+        }
+        catch(Exception t)
+        {
+            System.exit(-1);
+        }
+    }
+
+    /**
+     * Execute this class's function.  This is to be run by tests.
+     *
+     * @param args          The string arguments.
+     * @throws Exception    Any issue arising.
+     */
+    public void execute(final String[] args) throws Exception
     {
         try
         {
-            CmdLineParser parser = new CmdLineParser(args, systemOut, systemErr);
+            final CmdLineParser parser = new CmdLineParser(args, systemOut,
+                                                           systemErr);
 
-            if (parser.proceed())
-            {  
-                AbstractCommand command = parser.getCommand();
-                if (parser.getSubject() == null)
-                {
-                    // no credential, but command works with an anonymous user
-                    log.debug("running as anon user");
-                    command.run();
-                }
-                else
-                {
-                    Subject subject = parser.getSubject();
-                    log.debug("running as " + subject);
+            // Set the necessary JNDI system property for lookups.
+            System.setProperty("java.naming.factory.initial",
+                               ContextFactoryImpl.class.getName());
 
-                    // augment the subject
-                    if (subject.getPrincipals().isEmpty())
-                    {
-                        throw new RuntimeException("BUG: subject with no principals");
-                    }
-                    Principal userID = subject.getPrincipals().iterator().next();
-                    User<Principal> subjectUser = command.getUserPersistence().getAugmentedUser(userID);
-                    for (Principal identity: subjectUser.getIdentities())
-                    {
-                        subject.getPrincipals().add(identity);
-                    }
-                    log.debug("augmented subject: " + subject);
-                    Subject.doAs(subject, command);
-                }
-            }
-            else
-            {
-                systemOut.println(CmdLineParser.getUsage());
-            }
+            final CommandRunner runner =
+                    new CommandRunner(parser, new PluginFactory().
+                            createUserPersistence());
+
+            runner.run();
         }
         catch(UsageException e)
         {
             systemErr.println("ERROR: " + e.getMessage());
-    		systemOut.println(CmdLineParser.getUsage());
-            System.exit(0);
+            systemOut.println(CmdLineParser.getUsage());
+            throw e;
         }
-        catch(CertificateException e)
-        {
-            systemErr.println("ERROR: " + e.getMessage());
-            e.printStackTrace(systemErr);
-            System.exit(0);
-        }
-        catch(Throwable t)
+        catch(Exception t)
         {
             systemErr.println("ERROR: " + t.getMessage());
             t.printStackTrace(systemErr);
-            System.exit(-1);
+            throw t;
         }
     }
 }

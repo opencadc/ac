@@ -75,9 +75,9 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.unboundid.ldap.sdk.LDAPConnection;
-
 import ca.nrc.cadc.util.Log4jInit;
+
+import com.unboundid.ldap.sdk.LDAPConnection;
 
 public class LdapConnectionsTest
 {
@@ -86,8 +86,8 @@ public class LdapConnectionsTest
 
     public LdapConnectionsTest()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
-        Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.INFO);
     }
 
     @Test
@@ -95,26 +95,35 @@ public class LdapConnectionsTest
     {
         try
         {
+            LdapConnectionPool readPool = EasyMock.createMock(LdapConnectionPool.class);
+            LdapConnectionPool writePool = EasyMock.createMock(LdapConnectionPool.class);
+            LdapConnectionPool unReadPool = EasyMock.createMock(LdapConnectionPool.class);
+
             LDAPConnection readConn = new LDAPConnection();
             LDAPConnection writeConn = new LDAPConnection();
             LDAPConnection unReadConn = new LDAPConnection();
+
             LdapPersistence persistence = EasyMock.createMock(LdapPersistence.class);
 
-            EasyMock.expect(persistence.getConnection(LdapPersistence.POOL_READONLY)).andReturn(readConn).once();
-            EasyMock.expect(persistence.getConnection(LdapPersistence.POOL_READWRITE)).andReturn(writeConn).once();
-            EasyMock.expect(persistence.getConnection(LdapPersistence.POOL_UNBOUNDREADONLY)).andReturn(unReadConn).once();
+            EasyMock.expect(persistence.getPool(LdapPersistence.POOL_READONLY)).andReturn(readPool).once();
+            EasyMock.expect(persistence.getPool(LdapPersistence.POOL_READWRITE)).andReturn(writePool).once();
+            EasyMock.expect(persistence.getPool(LdapPersistence.POOL_UNBOUNDREADONLY)).andReturn(unReadPool).once();
             EasyMock.expect(persistence.getCurrentConfig()).andReturn(null).once();
 
-            persistence.releaseConnection(LdapPersistence.POOL_READONLY, readConn);
+            EasyMock.expect(readPool.getConnection()).andReturn(readConn).once();
+            EasyMock.expect(writePool.getConnection()).andReturn(writeConn).once();
+            EasyMock.expect(unReadPool.getConnection()).andReturn(unReadConn).once();
+
+            readPool.releaseConnection(readConn);
             EasyMock.expectLastCall().once();
 
-            persistence.releaseConnection(LdapPersistence.POOL_READWRITE, writeConn);
+            writePool.releaseConnection(writeConn);
             EasyMock.expectLastCall().once();
 
-            persistence.releaseConnection(LdapPersistence.POOL_UNBOUNDREADONLY, unReadConn);
+            unReadPool.releaseConnection(unReadConn);
             EasyMock.expectLastCall().once();
 
-            EasyMock.replay(persistence);
+            EasyMock.replay(persistence, readPool, writePool, unReadPool);
 
             LdapConnections connections = new LdapConnections(persistence);
 
@@ -135,7 +144,7 @@ public class LdapConnectionsTest
 
             connections.releaseConnections();
 
-            EasyMock.verify(persistence);
+            EasyMock.verify(persistence, readPool, writePool, unReadPool);
 
         }
         catch (Exception e)

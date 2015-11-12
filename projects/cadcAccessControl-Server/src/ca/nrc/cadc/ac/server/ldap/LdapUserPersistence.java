@@ -68,6 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collection;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -77,19 +83,6 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
 import com.unboundid.ldap.sdk.DN;
-import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPConnectionPool;
-import com.unboundid.ldap.sdk.LDAPException;
-
-import org.apache.log4j.Logger;
-
-import java.security.AccessControlException;
-import java.security.GeneralSecurityException;
-import java.security.Principal;
-import java.util.Collection;
-
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
 
 public class LdapUserPersistence<T extends Principal> extends LdapPersistence implements UserPersistence<T>
 {

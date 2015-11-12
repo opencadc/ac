@@ -72,7 +72,6 @@ package ca.nrc.cadc.ac.client;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import java.net.URI;
-import java.net.URL;
 import java.security.PrivilegedAction;
 
 import javax.security.auth.Subject;
@@ -82,7 +81,6 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.CertCmdArgUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.ArgumentMap;
 import ca.nrc.cadc.util.Log4jInit;
 import java.security.AccessControlContext;
@@ -123,18 +121,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
     private GMSClientMain()
     {
-        RegistryClient regClient = new RegistryClient();
-        URL acURL = null;
-        try
-        {
-            acURL = regClient.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"), "https");
-        }
-        catch (Exception e)
-        {
-            log.error("FAIL", e);
-        }
-        log.info("GMS service URL: " + acURL);
-        client = new GMSClient(acURL.toString());
+        client = new GMSClient(URI.create("ivo://cadc.nrc.ca/canfargms"));
     }
 
     public static void main(String[] args)
@@ -165,7 +152,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
         Subject subject = CertCmdArgUtil.initSubject(argMap, true);
 
-        Object response = null;
+        final Object response;
 
         if (subject != null)
             response = Subject.doAs(subject, main);
@@ -243,7 +230,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 String member = argMap.getValue(ARG_USERID);
                 if (member == null)
                     throw new IllegalArgumentException("No user specified");
-                
+
                 client.removeUserMember(group, new HttpPrincipal(member));
             }
             else if (command.equals(ARG_ADD_ADMIN))
@@ -282,13 +269,13 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
-                
+
                 AccessControlContext accessControlContext = AccessController.getContext();
                 Subject subject = Subject.getSubject(accessControlContext);
                 Set<X500Principal> principals = subject.getPrincipals(X500Principal.class);
                 X500Principal p = principals.iterator().next();
-                
-                Group g = new Group(group, new User(p));
+
+                Group g = new Group(group, new User<X500Principal>(p));
                 g.getUserMembers().add(g.getOwner());
                 client.createGroup(g);
             }
@@ -297,31 +284,31 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
-             
+
                 Group g = client.getGroup(group);
                 System.out.println("found: " + g.getID());
                 System.out.println("\t" + g.description);
                 System.out.println("owner: " + g.getOwner());
-                
+
                 for (User u : g.getUserAdmins())
                     System.out.println("admin: " + u);
-                
+
                 for (Group ga : g.getGroupAdmins())
                     System.out.println("admin: " + ga);
-                
+
                 for (User u : g.getUserMembers())
                     System.out.println("member: " + u);
-                
+
                 for (Group gm : g.getGroupMembers())
                     System.out.println("member: " + gm);
-                
+
             }
             else if (command.equals(ARG_DELETE_GROUP))
             {
                 String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
-             
+
                 client.deleteGroup(group);
             }
 

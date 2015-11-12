@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2015.                            (c) 2015.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,117 +62,78 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
 
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
+package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.net.TransientException;
+import org.apache.log4j.Logger;
 
-public interface GroupPersistence<T extends Principal>
+import javax.security.auth.Subject;
+import java.security.Principal;
+
+
+public class CommandRunner
 {
-    /**
-     * Call if this object is to be shut down.
-     */
-    void destroy();
+    private final static Logger LOGGER = Logger.getLogger(CommandRunner.class);
+    private final CmdLineParser commandLineParser;
+    private final UserPersistence<Principal> userPersistence;
+
+
+    public CommandRunner(final CmdLineParser commandLineParser,
+                         final UserPersistence<Principal> userPersistence)
+    {
+        this.commandLineParser = commandLineParser;
+        this.userPersistence = userPersistence;
+    }
+
 
     /**
-     * Get all group names.
+     * Run a suitable action command.
      *
-     * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<String> getGroupNames()
-            throws TransientException, AccessControlException;
+    public void run() throws UserNotFoundException, TransientException
+    {
+        if (commandLineParser.proceed())
+        {
+            AbstractCommand command = commandLineParser.getCommand();
+            command.setUserPersistence(userPersistence);
 
-    /**
-     * Get the group with the given Group ID.
-     *
-     * @param groupID The Group ID.
-     *
-     * @return A Group instance
-     *
-     * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Group getGroup(String groupID)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException;
+            if (commandLineParser.getSubject() == null)
+            {
+                // no credential, but command works with an anonymous user
+                LOGGER.debug("running as anon user");
+                command.run();
+            }
+            else
+            {
+                Subject subject = commandLineParser.getSubject();
+                LOGGER.debug("running as " + subject);
 
-    /**
-     * Creates the group.
-     *
-     * @param group The group to create
-     *
-     * @throws GroupAlreadyExistsException If a group with the same ID already
-     *                                     exists.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     * @throws UserNotFoundException If owner or a member not valid user.
-     * @throws GroupNotFoundException if one of the groups in group members or
-     * group admins does not exist in the server.
-     */
-    void addGroup(Group group)
-        throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException,
-               GroupNotFoundException;
-
-    /**
-     * Deletes the group.
-     *
-     * @param groupID The Group ID.
-     *
-     * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    void deleteGroup(String groupID)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException;
-
-    /**
-     * Modify the given group.
-     *
-     * @param group The group to update.
-     *
-     * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     * @throws UserNotFoundException If owner or group members not valid users.
-     */
-    void modifyGroup(Group group)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException, UserNotFoundException;
-
-    /**
-     * Obtain a Collection of Groups that fit the given query.
-     *
-     * @param userID The userID.
-     * @param role Role of the user, either owner, member, or read/write.
-     * @param groupID The Group ID.
-     *
-     * @return Collection of Groups matching the query, or empty Collection.
-     *         Never null.
-     *
-     * @throws UserNotFoundException If owner or group members not valid users.
-     * @throws ca.nrc.cadc.ac.GroupNotFoundException
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    Collection<Group> getGroups(T userID, Role role, String groupID)
-        throws UserNotFoundException, GroupNotFoundException,
-               TransientException, AccessControlException;
-
+                // augment the subject
+                if (subject.getPrincipals().isEmpty())
+                {
+                    throw new RuntimeException("BUG: subject with no principals");
+                }
+                Principal userID = subject.getPrincipals().iterator().next();
+                User<Principal> subjectUser =
+                        userPersistence.getAugmentedUser(userID);
+                for (Principal identity : subjectUser.getIdentities())
+                {
+                    subject.getPrincipals().add(identity);
+                }
+                LOGGER.debug("augmented subject: " + subject);
+                Subject.doAs(subject, command);
+            }
+        }
+        else
+        {
+            throw new IllegalStateException("Not ready to proceed.");
+        }
+    }
 }

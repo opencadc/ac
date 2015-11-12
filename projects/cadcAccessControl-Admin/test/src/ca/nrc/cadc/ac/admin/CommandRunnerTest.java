@@ -66,60 +66,133 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.client;
+package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.easymock.EasyMock.*;
 
 
-public class JsonUserListInputStreamWrapperTest
+@SuppressWarnings("unchecked")
+public class CommandRunnerTest
 {
+    final CmdLineParser mockParser = createMock(CmdLineParser.class);
+    final UserPersistence mockUserPersistence =
+            createMock(UserPersistence.class);
+
+
     @Test
-    public void readInputStream() throws Exception
+    public void listUsers() throws Exception
     {
-        final List<User<? extends Principal>> output =
-                new ArrayList<User<? extends Principal>>();
-        final JsonUserListInputStreamWrapper testSubject =
-                new JsonUserListInputStreamWrapper(output);
-        final JsonUserListWriter userListWriter = new JsonUserListWriter();
-        final Writer writer = new StringWriter();
-        final Collection<User<HttpPrincipal>> users =
-                new ArrayList<User<HttpPrincipal>>();
+        final CommandRunner testSubject =
+                new CommandRunner(mockParser, mockUserPersistence);
+        final List<User<Principal>> userData = new ArrayList<>();
+        final Principal p = new HttpPrincipal("TEST USER");
 
-        users.add(new User<HttpPrincipal>(new HttpPrincipal("CADCTest")));
+        userData.add(new User<>(p));
 
-        final User<HttpPrincipal> user2 =
-                new User<HttpPrincipal>(new HttpPrincipal("User_2"));
+        expect(mockParser.proceed()).andReturn(true).once();
+        expect(mockParser.getSubject()).andReturn(null).once();
+        expect(mockParser.getCommand()).andReturn(new ListActiveUsers());
 
-        user2.details.add(new PersonalDetails("User", "Two"));
+        expect(mockUserPersistence.getUsers()).andReturn(userData).once();
+        replay(mockParser, mockUserPersistence);
 
-        users.add(user2);
+        testSubject.run();
 
-        userListWriter.write(users, writer);
+        verify(mockParser, mockUserPersistence);
+    }
 
-        final InputStream inputStream =
-                new ByteArrayInputStream(writer.toString().getBytes());
+    @Test
+    public void listPendingUsers() throws Exception
+    {
+        final CommandRunner testSubject =
+                new CommandRunner(mockParser, mockUserPersistence);
+        final List<User<HttpPrincipal>> userData = new ArrayList<>();
 
-        testSubject.read(inputStream);
+        userData.add(new User<>(new HttpPrincipal("PENDING USER")));
 
-        assertEquals("First item is wrong.", "CADCTest",
-                     output.get(0).getUserID().getName());
-        assertEquals("Second item is wrong.", "User_2",
-                     output.get(1).getUserID().getName());
+        expect(mockParser.proceed()).andReturn(true).once();
+        expect(mockParser.getSubject()).andReturn(null).once();
+        expect(mockParser.getCommand()).andReturn(new ListPendingUsers());
+
+        expect(mockUserPersistence.getPendingUsers()).andReturn(userData).once();
+        replay(mockParser, mockUserPersistence);
+
+        testSubject.run();
+
+        verify(mockParser, mockUserPersistence);
+    }
+
+    @Test
+    public void viewUser() throws Exception
+    {
+        final CommandRunner testSubject =
+                new CommandRunner(mockParser, mockUserPersistence);
+        final HttpPrincipal principalData = new HttpPrincipal("TESTUSER");
+        final User<HttpPrincipal> userData = new User<>(principalData);
+
+        expect(mockParser.proceed()).andReturn(true).once();
+        expect(mockParser.getSubject()).andReturn(null).once();
+        expect(mockParser.getCommand()).andReturn(new ViewUser("TESTUSER"));
+
+        expect(mockUserPersistence.getUser(principalData)).
+                andReturn(userData).once();
+        replay(mockParser, mockUserPersistence);
+
+        testSubject.run();
+
+        verify(mockParser, mockUserPersistence);
+    }
+
+    @Test
+    public void approveUser() throws Exception
+    {
+        final CommandRunner testSubject =
+                new CommandRunner(mockParser, mockUserPersistence);
+        final HttpPrincipal principalData = new HttpPrincipal("PENDINGUSER");
+        final User<HttpPrincipal> userData = new User<>(principalData);
+
+        expect(mockParser.proceed()).andReturn(true).once();
+        expect(mockParser.getSubject()).andReturn(null).once();
+        expect(mockParser.getCommand()).andReturn(
+                new ApproveUser("PENDINGUSER"));
+
+        expect(mockUserPersistence.approvePendingUser(principalData)).
+                andReturn(userData).once();
+        replay(mockParser, mockUserPersistence);
+
+        testSubject.run();
+
+        verify(mockParser, mockUserPersistence);
+    }
+
+    @Test
+    public void rejectUser() throws Exception
+    {
+        final CommandRunner testSubject =
+                new CommandRunner(mockParser, mockUserPersistence);
+        final HttpPrincipal principalData = new HttpPrincipal("PENDINGUSER");
+
+        expect(mockParser.proceed()).andReturn(true).once();
+        expect(mockParser.getSubject()).andReturn(null).once();
+        expect(mockParser.getCommand()).andReturn(
+                new RejectUser("PENDINGUSER"));
+
+        mockUserPersistence.deletePendingUser(principalData);
+        expectLastCall().once();
+
+        replay(mockParser, mockUserPersistence);
+
+        testSubject.run();
+
+        verify(mockParser, mockUserPersistence);
     }
 }
