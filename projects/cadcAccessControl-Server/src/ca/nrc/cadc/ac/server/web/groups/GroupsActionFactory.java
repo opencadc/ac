@@ -74,6 +74,7 @@ import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletRequest;
 
+import ca.nrc.cadc.net.NetUtil;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.web.WebUtil;
@@ -247,7 +248,7 @@ public abstract class GroupsActionFactory
                     }
                     else if (memberCategory.equals("userMembers"))
                     {
-                        String memberUserID = segments[2];
+                        String memberUserID = NetUtil.decode(segments[2]);
                         String memberUserIDType = request.getParameter("idType");
                         action = new RemoveUserMemberAction(groupName, memberUserID, memberUserIDType);
                     }
