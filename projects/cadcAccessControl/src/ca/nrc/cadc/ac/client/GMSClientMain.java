@@ -102,6 +102,8 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
     public static final String ARG_ADD_MEMBER = "add-member";
     public static final String ARG_DEL_MEMBER = "remove-member";
+    public static final String ARG_ADD_ADMIN = "add-admin";
+    public static final String ARG_DEL_ADMIN = "remove-admin";
     public static final String ARG_CREATE_GROUP = "create";
     public static final String ARG_GET_GROUP = "get";
     public static final String ARG_DELETE_GROUP = "delete";
@@ -189,17 +191,27 @@ public class GMSClientMain implements PrivilegedAction<Object>
         
         if (argMap.isSet(ARG_DEL_MEMBER))
             return ARG_DEL_MEMBER;
+        
+        if (argMap.isSet(ARG_ADD_ADMIN))
+            return ARG_ADD_ADMIN;
+        
+        if (argMap.isSet(ARG_DEL_ADMIN))
+            return ARG_DEL_ADMIN;
 
         throw new IllegalArgumentException("No valid commands");
     }
 
     private static void usage()
     {
-        System.out.println("--add-member --group=<g> --userid=<u>");
-        System.out.println("--remove-member --group=<g> --userid=<u>");
         System.out.println("--create --group=<g>");
         System.out.println("--get --group=<g>");
         System.out.println("--delete --group=<g>");
+        System.out.println();
+        System.out.println("--add-member --group=<g> --userid=<u>");
+        System.out.println("--remove-member --group=<g> --userid=<u>");
+        System.out.println();
+        System.out.println("--add-admin --group=<g> --userid=<u>");
+        System.out.println("--remove-admin --group=<g> --userid=<u>");
     }
 
     @Override
@@ -233,6 +245,37 @@ public class GMSClientMain implements PrivilegedAction<Object>
                     throw new IllegalArgumentException("No user specified");
                 
                 client.removeUserMember(group, new HttpPrincipal(member));
+            }
+            else if (command.equals(ARG_ADD_ADMIN))
+            {
+                String group = argMap.getValue(ARG_GROUP);
+                String userID = argMap.getValue(ARG_USERID);
+
+                if (group == null)
+                    throw new IllegalArgumentException("No group specified");
+
+                if (userID == null)
+                    throw new IllegalArgumentException("No userid specified");
+                User user = new User(new HttpPrincipal(userID));
+                
+                Group cur = client.getGroup(group);
+                cur.getUserAdmins().add(user);
+                client.updateGroup(cur);
+            }
+            else if (command.equals(ARG_DEL_MEMBER))
+            {
+                String group = argMap.getValue(ARG_GROUP);
+                if (group == null)
+                    throw new IllegalArgumentException("No group specified");
+
+                String userID = argMap.getValue(ARG_USERID);
+                if (userID == null)
+                    throw new IllegalArgumentException("No user specified");
+                User user = new User(new HttpPrincipal(userID));
+                
+                Group cur = client.getGroup(group);
+                cur.getUserAdmins().remove(user);
+                client.updateGroup(cur);
             }
             else if (command.equals(ARG_CREATE_GROUP))
             {
