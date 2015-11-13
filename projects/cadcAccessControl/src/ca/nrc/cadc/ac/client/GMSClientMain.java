@@ -85,6 +85,8 @@ import ca.nrc.cadc.util.ArgumentMap;
 import ca.nrc.cadc.util.Log4jInit;
 import java.security.AccessControlContext;
 import java.security.AccessController;
+import java.security.Principal;
+import java.util.Iterator;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
@@ -243,13 +245,37 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
                 if (userID == null)
                     throw new IllegalArgumentException("No userid specified");
-                User user = new User(new HttpPrincipal(userID));
+                HttpPrincipal hp = new HttpPrincipal(userID);
                 
                 Group cur = client.getGroup(group);
-                cur.getUserAdmins().add(user);
-                client.updateGroup(cur);
+                boolean update = true;
+                Iterator<User<? extends Principal>> iter = cur.getUserAdmins().iterator();
+                while (iter.hasNext())
+                {
+                    User<? extends Principal> admin = iter.next();
+                    for (Principal p : admin.getIdentities())
+                    {
+                        if (p instanceof HttpPrincipal)
+                        {
+                            HttpPrincipal ahp = (HttpPrincipal) p;
+                            if (hp.equals(ahp))
+                            {
+                                update = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (update)
+                {   
+                    cur.getUserAdmins().add(new User(hp));
+                    client.updateGroup(cur);
+                    log.info("admin added: " + userID);
+                }
+                else
+                    log.info("admin found: " + userID);
             }
-            else if (command.equals(ARG_DEL_MEMBER))
+            else if (command.equals(ARG_DEL_ADMIN))
             {
                 String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
@@ -258,11 +284,35 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 String userID = argMap.getValue(ARG_USERID);
                 if (userID == null)
                     throw new IllegalArgumentException("No user specified");
-                User user = new User(new HttpPrincipal(userID));
+                HttpPrincipal hp = new HttpPrincipal(userID);
                 
                 Group cur = client.getGroup(group);
-                cur.getUserAdmins().remove(user);
-                client.updateGroup(cur);
+                boolean update = false;
+                Iterator<User<? extends Principal>> iter = cur.getUserAdmins().iterator();
+                while (iter.hasNext())
+                {
+                    User<? extends Principal> admin = iter.next();
+                    for (Principal p : admin.getIdentities())
+                    {
+                        if (p instanceof HttpPrincipal)
+                        {
+                            HttpPrincipal ahp = (HttpPrincipal) p;
+                            if (hp.equals(ahp))
+                            {
+                                iter.remove();
+                                update = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (update)
+                {   
+                    client.updateGroup(cur);
+                    log.info("admin removed: " + userID);
+                }
+                else
+                    log.info("admin not found: " + userID);
             }
             else if (command.equals(ARG_CREATE_GROUP))
             {
