@@ -79,6 +79,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
@@ -656,7 +657,10 @@ public abstract class AbstractReaderWriter
             Element identitiesElement = new Element("identities");
             for (Principal identity : identities)
             {
-                identitiesElement.addContent(getElement(identity));
+                // userID is in this list, so only include alternate identities
+                // in the output
+                if (!AuthenticationUtil.equals(identity, user.getUserID()))
+                    identitiesElement.addContent(getElement(identity));
             }
             userElement.addContent(identitiesElement);
         }

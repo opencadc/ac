@@ -92,6 +92,7 @@ public class User<T extends Principal>
             throw new IllegalArgumentException("null userID");
         }
         this.userID = userID;
+        identities.add(userID);
     }
 
     public Set<Principal> getIdentities()
