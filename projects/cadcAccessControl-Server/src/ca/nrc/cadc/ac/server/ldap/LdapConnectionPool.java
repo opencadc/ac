@@ -77,11 +77,14 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
 import com.unboundid.ldap.sdk.FewestConnectionsServerSet;
+import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPConnectionOptions;
 import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.RoundRobinServerSet;
+import com.unboundid.ldap.sdk.SearchRequest;
+import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.ServerSet;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 
@@ -138,6 +141,19 @@ public class LdapConnectionPool
             synchronized (poolMonitor)
             {
                 conn = pool.getConnection();
+                profiler.checkpoint("pool.getConnection");
+
+                // BM: This query to the base dn (starting at dc=) has the
+                // effect of clearing any proxied authorization state associated
+                // with the receiving ldap server connection.  Without this in
+                // place, proxied authorization information is sometimes ignored.
+                logger.debug("Testing connection");
+                int dcIndex = currentConfig.getGroupsDN().indexOf("dc=");
+                String dcDN = currentConfig.getGroupsDN().substring(dcIndex);
+                Filter filter = Filter.createEqualityFilter("dc", "*");
+                SearchRequest searchRequest = new SearchRequest(dcDN, SearchScope.BASE, filter, new String[] {"entrydn"});
+                conn.search(searchRequest);
+                profiler.checkpoint("pool.initConnection");
             }
             logger.debug(poolName + " pool statistics after borrow:\n" + pool.getConnectionPoolStatistics());
             profiler.checkpoint("get " + poolName + " only connection");
