@@ -70,7 +70,6 @@ package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -78,7 +77,6 @@ import ca.nrc.cadc.net.NetUtil;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.web.WebUtil;
-import ca.nrc.cadc.util.StringUtil;
 
 /**
  * This class provides static methods for each of the http methods for

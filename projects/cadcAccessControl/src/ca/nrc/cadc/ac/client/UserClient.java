@@ -84,6 +84,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.NetUtil;
 
 
 /**
@@ -211,7 +212,7 @@ public class UserClient
 		try
 		{
 		    String userID = principal.getName();
-			URL url = new URL(this.baseURL + "/users/" + userID +
+			URL url = new URL(this.baseURL + "/users/" + NetUtil.encode(userID) +
 					"?idType=" + this.getIdType(principal) + "&detail=identity");
 			log.debug("getURL(): returned url ="
 					+ ""

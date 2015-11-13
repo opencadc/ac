@@ -75,6 +75,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.net.NetUtil;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.x500.X500Principal;
@@ -110,7 +111,8 @@ public abstract class UserActionFactory
                 }
                 else if (segments.length == 1)
                 {
-                    User user = getUser(segments[0], request.getParameter("idType"), path);
+                    String userID = NetUtil.decode(segments[0]);
+                    User user = getUser(userID, request.getParameter("idType"));
                     action = new GetUserAction(user.getUserID(), request.getParameter("detail"));
                 }
 
@@ -198,7 +200,8 @@ public abstract class UserActionFactory
 
                 if (segments.length == 1)
                 {
-                    User user = getUser(segments[0], request.getParameter("idType"), path);
+                    String userID = NetUtil.decode(segments[0]);
+                    User user = getUser(userID, request.getParameter("idType"));
                     action = new DeleteUserAction(user.getUserID());
                 }
 
@@ -227,8 +230,7 @@ public abstract class UserActionFactory
     }
 
     private static User<? extends Principal> getUser(final String userName,
-                                                     final String idType,
-                                                     final String path)
+                                                     final String idType)
     {
         if (idType == null || idType.isEmpty())
         {
