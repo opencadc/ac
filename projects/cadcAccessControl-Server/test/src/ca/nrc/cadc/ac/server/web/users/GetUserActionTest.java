@@ -76,6 +76,7 @@ import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 import org.junit.Test;
 
 import javax.security.auth.Subject;
@@ -86,15 +87,22 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
-import java.util.HashSet;
 import java.util.Set;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class GetUserActionTest
 {
+    private static final Logger log = Logger.getLogger(GetUserActionTest.class);
+    
+    static
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac.server", Level.INFO);
+    }
+    
     @Test
     public void writeUserXML() throws Exception
     {
@@ -241,6 +249,9 @@ public class GetUserActionTest
         testSubject.doAction();
 
         String actualUser = writer.toString();
+        
+        log.debug("expected:\n" + expectedUser);
+        log.debug("actual:\n" + actualUser);
 
         assertEquals(expectedUser, actualUser);
 

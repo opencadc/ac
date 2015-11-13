@@ -652,7 +652,7 @@ public abstract class AbstractReaderWriter
 
         // identities
         Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty())
+        if (identities.size() > 1) // includes alternate identies
         {
             Element identitiesElement = new Element("identities");
             for (Principal identity : identities)
