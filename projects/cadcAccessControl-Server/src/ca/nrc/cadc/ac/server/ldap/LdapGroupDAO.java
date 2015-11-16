@@ -618,7 +618,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
             // All the user administrators may have been removed.
             // account for that.
-            if (group.getUserAdmins().isEmpty())
+            if (group.getUserAdmins().size() != existingUserAdmins.size())
             {
                 adminChanges = true;
             }
