@@ -325,7 +325,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             // activate group
             try
             {
-                modifyGroup(null, group, true);
+                modifyGroup(group, true);
                 return true;
             }
             catch (GroupNotFoundException e)
@@ -555,11 +555,11 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throws GroupNotFoundException, TransientException,
                    AccessControlException, UserNotFoundException
     {
-        Group existing = getGroup(group.getID()); //group must exists first
-        return modifyGroup(existing, group, false);
+        getGroup(group.getID()); //group must exists first
+        return modifyGroup(group, false);
     }
 
-    private Group modifyGroup(final Group existing, final Group group, boolean withActivate)
+    private Group modifyGroup(final Group group, boolean withActivate)
             throws UserNotFoundException, TransientException,
                    AccessControlException, GroupNotFoundException
     {
@@ -569,16 +569,12 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                     "Support for groups properties not available");
         }
 
-        boolean adminChanges = false;
-
         List<Modification> mods = new ArrayList<Modification>();
         List<Modification> adminMods = new ArrayList<Modification>();
         if (withActivate)
         {
             mods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
-            adminMods
-                    .add(new Modification(ModificationType.DELETE, "nsaccountlock"));
-            adminChanges = true;
+            adminMods.add(new Modification(ModificationType.DELETE, "nsaccountlock"));
         }
 
         if (StringUtil.hasText(group.description))
@@ -610,95 +606,52 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             }
 
             Set<String> newAdmins = new HashSet<String>();
-            Set<User<? extends Principal>> existingUserAdmins = new HashSet<User<? extends Principal>>(0);
-            if (existing != null)
+            for (User<?> member : group.getUserAdmins())
             {
-                existingUserAdmins = existing.getUserAdmins();
+                DN memberDN = userPersist.getUserDN(member);
+                newAdmins.add(memberDN.toNormalizedString());
             }
-
-            // All the user administrators may have been removed.
-            // account for that.
-            if (group.getUserAdmins().size() != existingUserAdmins.size())
+            for (Group gr : group.getGroupAdmins())
             {
-                adminChanges = true;
-            }
-            else
-            {
-                for (User<?> member : group.getUserAdmins())
+                if (!checkGroupExists(gr.getID()))
                 {
-                    DN memberDN = userPersist.getUserDN(member);
-                    newAdmins.add(memberDN.toNormalizedString());
-                    if (!existingUserAdmins.contains(member))
-                    {
-                        adminChanges = true;
-                    }
+                    throw new GroupNotFoundException(gr.getID());
                 }
+                DN grDN = getGroupDN(gr.getID());
+                newAdmins.add(grDN.toNormalizedString());
             }
 
-            Set<Group> existingGroupAdmins = new HashSet<Group>(0);
-            if (existing != null)
-            {
-                existingGroupAdmins = existing.getGroupAdmins();
-            }
-
-            // All the group administrators may have been removed.
-            // account for that.
-            if (group.getGroupAdmins().isEmpty())
-            {
-                adminChanges = true;
-            }
-            else
-            {
-                for (Group gr : group.getGroupAdmins())
-                {
-                    if (!checkGroupExists(gr.getID()))
-                    {
-                        throw new GroupNotFoundException(gr.getID());
-                    }
-
-                    DN grDN = getGroupDN(gr.getID());
-                    newAdmins.add(grDN.toNormalizedString());
-                    if (!existingGroupAdmins.contains(gr))
-                    {
-                        adminChanges = true;
-                    }
-                }
-            }
-
-            mods.add(new Modification(ModificationType.REPLACE, "uniquemember",
-                                      (String[]) newMembers
-                                              .toArray(new String[newMembers
-                                                      .size()])));
-            adminMods
-                    .add(new Modification(ModificationType.REPLACE, "uniquemember",
+            // modify the admin group
+            adminMods.add(new Modification(ModificationType.REPLACE, "uniquemember",
                                           (String[]) newAdmins
                                                   .toArray(new String[newAdmins
                                                           .size()])));
 
-            // modify admin group first (if necessary)
-            if (adminChanges)
-            {
-                ModifyRequest modifyRequest = new ModifyRequest(getAdminGroupDN(group.getID()), adminMods);
+            ModifyRequest adminModify =
+                    new ModifyRequest(getAdminGroupDN(group.getID()), adminMods);
 
-                modifyRequest.addControl(
-                        new ProxiedAuthorizationV2RequestControl(
-                                "dn:" + getSubjectDN().toNormalizedString()));
+            adminModify.addControl(
+                    new ProxiedAuthorizationV2RequestControl(
+                            "dn:" + getSubjectDN().toNormalizedString()));
 
-                LdapDAO.checkLdapResult(getReadWriteConnection()
-                                                .modify(modifyRequest)
-                                                .getResultCode());
-            }
+            LdapDAO.checkLdapResult(
+                getReadWriteConnection().modify(adminModify).getResultCode());
 
-            // modify the group itself now
-            ModifyRequest modifyRequest = new ModifyRequest(getGroupDN(group.getID()), mods);
+            // modify the group itself
+            mods.add(new Modification(ModificationType.REPLACE, "uniquemember",
+                (String[]) newMembers
+                    .toArray(new String[newMembers
+                        .size()])));
+
+            ModifyRequest modifyRequest =
+                new ModifyRequest(getGroupDN(group.getID()), mods);
 
             modifyRequest.addControl(
                     new ProxiedAuthorizationV2RequestControl(
                             "dn:" + getSubjectDN().toNormalizedString()));
 
-            LdapDAO.checkLdapResult(getReadWriteConnection()
-                                            .modify(modifyRequest)
-                                            .getResultCode());
+            LdapDAO.checkLdapResult(
+                getReadWriteConnection().modify(modifyRequest).getResultCode());
         }
         catch (LDAPException e1)
         {

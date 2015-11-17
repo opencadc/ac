@@ -244,11 +244,19 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
+                    expectGroup.getUserAdmins().remove(daoTestUser3);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
                     // groupAdmins
                     Group adminGroup = new Group(getGroupID(), daoTestUser1);
                     getGroupDAO().addGroup(adminGroup);
                     adminGroup = getGroupDAO().getGroup(adminGroup.getID());
                     expectGroup.getGroupAdmins().add(adminGroup);
+                    actualGroup = getGroupDAO().modifyGroup(expectGroup);
+                    assertGroupsEqual(expectGroup, actualGroup);
+
+                    expectGroup.getGroupAdmins().remove(adminGroup);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
