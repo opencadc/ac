@@ -155,25 +155,25 @@ public abstract class LdapPersistence
                         pools.close();
                     }
                 }
-
-                // unbind the pool
-                try
-                {
-                    InitialContext ic = new InitialContext();
-                    ic.unbind(LDAP_POOL_JNDI_NAME);
-                }
-                catch (NamingException e)
-                {
-                    logger.warn("Could not unbind ldap pools", e);
-                }
             }
         }
         catch (NamingException e)
         {
             throw new IllegalStateException("JNDI error", e);
         }
-
-
+        finally
+        {
+            // unbind the pool
+            try
+            {
+                InitialContext ic = new InitialContext();
+                ic.unbind(LDAP_POOL_JNDI_NAME);
+            }
+            catch (NamingException e)
+            {
+                logger.warn("Could not unbind ldap pools", e);
+            }
+        }
     }
 
     private void initPools()
@@ -187,13 +187,32 @@ public abstract class LdapPersistence
             {
                 synchronized (jndiMonitor)
                 {
-                    pools = lookupPools();
-                    logger.debug("Pool from second JNDI lookup: " + pools);
+                    try
+                    {
+                        pools = lookupPools();
+                        logger.debug("Pool from second JNDI lookup: " + pools);
+                    }
+                    catch (Throwable t)
+                    {
+                        logger.warn("Failure looking up pool from JNDI, re-initializing", t);
+                        pools = null;
+                    }
                     if (pools == null)
                     {
                         LdapConfig config = LdapConfig.getLdapConfig();
                         pools = createPools(config);
                         InitialContext ic = new InitialContext();
+                        try
+                        {
+                            // unbind just to be safe
+                            ic.unbind(LDAP_POOL_JNDI_NAME);
+                            logger.warn("Unbound previously bound pool");
+                        }
+                        catch (NamingException e)
+                        {
+                            // happens when nothing to unbind, expected
+                            logger.debug("No pool to unbind");
+                        }
                         ic.bind(LDAP_POOL_JNDI_NAME, pools);
                         profiler.checkpoint("Bound LDAP pools to JNDI");
                         logger.debug("Bound LDAP pools to JNDI");

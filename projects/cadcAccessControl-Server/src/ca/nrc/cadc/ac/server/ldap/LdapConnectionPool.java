@@ -185,6 +185,11 @@ public class LdapConnectionPool
         profiler.checkpoint("Pool closed.");
     }
 
+    public String getName()
+    {
+        return poolName;
+    }
+
     private LDAPConnectionPool createPool(LdapConfig config, LdapPool poolConfig, String poolName, String bindID, String bindPW)
 
     {

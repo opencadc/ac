@@ -73,6 +73,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 /**
  * The object that is bound in JNDI to hold the LDAP pools.
  */
@@ -82,6 +84,7 @@ public class ConnectionPools
     private LdapConfig config;
 
     private Map<String,LdapConnectionPool> pools;
+    private static final Logger logger = Logger.getLogger(ConnectionPools.class);
 
     private long lastPoolCheck = System.currentTimeMillis();
     private boolean isClosed;
@@ -120,7 +123,14 @@ public class ConnectionPools
         while (i.hasNext())
         {
             LdapConnectionPool next = i.next();
-            next.shutdown();
+            try
+            {
+                next.shutdown();
+            }
+            catch (Throwable t)
+            {
+                logger.warn("Could not shutdown pool " + next.getName(), t);
+            }
         }
         isClosed = true;
     }
