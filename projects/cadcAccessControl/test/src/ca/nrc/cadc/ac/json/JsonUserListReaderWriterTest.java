@@ -6,6 +6,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -13,6 +14,8 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import java.io.*;
 import java.security.Principal;
 import java.util.*;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import static org.junit.Assert.*;
 
@@ -22,6 +25,13 @@ import static org.junit.Assert.*;
  */
 public class JsonUserListReaderWriterTest
 {
+    private static final Logger log = Logger.getLogger(JsonUserListReaderWriterTest.class);
+    
+    static
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+    
     @Test
     public void testReaderExceptions()
             throws Exception
@@ -80,9 +90,9 @@ public class JsonUserListReaderWriterTest
         for (int i = 0; i < 4; i++)
         {
             final User<HttpPrincipal> user = new User<HttpPrincipal>(
-                    new HttpPrincipal(Integer.toString(i)));
+                    new HttpPrincipal("u"+Integer.toString(i)));
 
-            user.details.add(new PersonalDetails(Integer.toString(i),
+            user.details.add(new PersonalDetails("f"+Integer.toString(i),
                                                  "NUMBER_"));
 
             if ((i % 2) == 0)
@@ -96,16 +106,20 @@ public class JsonUserListReaderWriterTest
         testSubject.write(users, writer);
 
         final JSONObject expected =
-                new JSONObject("{\"users\":{\"user\":[" +
-                               "{\"details\":{\"userDetails\":[{\"firstName\":{\"$\":\"0\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"},{\"uid\":{\"$\":\"88\"},\"gid\":{\"$\":\"88\"},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"}]},\"userID\":{\"identity\":{\"$\":\"0\",\"@type\":\"HTTP\"}}}," +
-                               "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"1\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"1\",\"@type\":\"HTTP\"}}}," +
-                               "{\"details\":{\"userDetails\":[{\"uid\":{\"$\":\"90\"},\"gid\":{\"$\":\"90\"},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"},{\"firstName\":{\"$\":\"2\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}]},\"userID\":{\"identity\":{\"$\":\"2\",\"@type\":\"HTTP\"}}}," +
-                               "{\"details\":{\"userDetails\":{\"firstName\":{\"$\":\"3\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}},\"userID\":{\"identity\":{\"$\":\"3\",\"@type\":\"HTTP\"}}}]}}");
-        final JSONObject result = new JSONObject(writer.toString());
+                new JSONObject("{\"users\":{\"$\":[" +
+                               "{\"details\":{\"$\":[{\"firstName\":{\"$\":\"f0\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"},{\"uid\":{\"$\":88},\"gid\":{\"$\":88},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"}]},\"userID\":{\"identity\":{\"$\":\"u0\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"$\":[{\"firstName\":{\"$\":\"f1\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}]},\"userID\":{\"identity\":{\"$\":\"u1\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"$\":[{\"uid\":{\"$\":90},\"gid\":{\"$\":90},\"homeDirectory\":{\"$\":\"/tmp\"},\"@type\":\"posixDetails\"},{\"firstName\":{\"$\":\"f2\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}]},\"userID\":{\"identity\":{\"$\":\"u2\",\"@type\":\"HTTP\"}}}," +
+                               "{\"details\":{\"$\":[{\"firstName\":{\"$\":\"f3\"},\"lastName\":{\"$\":\"NUMBER_\"},\"@type\":\"personalDetails\"}]},\"userID\":{\"identity\":{\"$\":\"u3\",\"@type\":\"HTTP\"}}}]}}");
+        
+        String json = writer.toString();
+        log.debug("user list:\n" + json);
+        final JSONObject result = new JSONObject(json);
 
         JSONAssert.assertEquals(expected, result, false);
 
         JsonUserListReader reader = new JsonUserListReader();
+        
         final InputStream in =
                 new ByteArrayInputStream(expected.toString().getBytes());
         final Collection<User<Principal>> readBackIn = reader.read(in);
