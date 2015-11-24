@@ -180,8 +180,17 @@ public abstract class LdapPersistence
     {
         try
         {
-            ConnectionPools pools = lookupPools();
-            logger.debug("Pool from first JNDI lookup: " + pools);
+            ConnectionPools pools = null;
+            try
+            {
+                pools = lookupPools();
+                logger.debug("Pool from first JNDI lookup: " + pools);
+            }
+            catch (Throwable t)
+            {
+                logger.warn("Failure looking up pool from JNDI, re-initializing", t);
+                pools = null;
+            }
 
             if (pools == null)
             {
