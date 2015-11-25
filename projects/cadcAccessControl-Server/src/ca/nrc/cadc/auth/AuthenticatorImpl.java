@@ -71,6 +71,7 @@ package ca.nrc.cadc.auth;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
@@ -149,6 +150,19 @@ public class AuthenticatorImpl implements Authenticator
                 log.debug("Null identities after augment");
             }
             subject.getPrincipals().addAll(user.getIdentities());
+            if (user.appData != null)
+            {
+                try
+                {
+                    GroupMemberships gms = (GroupMemberships) user.appData;
+                    subject.getPrivateCredentials().add(gms);
+                }
+                catch(Exception bug)
+                {
+                    throw new RuntimeException("BUG: found User.appData but could not store in Subject as GroupMemberships cache", bug);
+                    
+                }
+            }
             profiler.checkpoint("augmentSubject");
         }
         catch (UserNotFoundException e)

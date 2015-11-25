@@ -132,39 +132,6 @@ public abstract class LdapDAO
         connections.releaseConnections();
     }
 
-    protected DN getSubjectDN()
-        throws LDAPException
-    {
-        if (subjDN == null)
-        {
-            Subject callerSubject = Subject.getSubject(AccessController.getContext());
-            if (callerSubject == null)
-            {
-                throw new AccessControlException("Caller not authenticated.");
-            }
-
-            Set<Principal> principals = callerSubject.getPrincipals();
-            if (principals.isEmpty())
-            {
-                throw new AccessControlException("Caller not authenticated.");
-            }
-
-            for (Principal p : principals)
-            {
-                if (p instanceof DNPrincipal)
-                {
-                    subjDN = new DN(p.getName());
-                }
-            }
-
-            if (subjDN == null)
-            {
-                throw new AccessControlException("Identity of caller unknown.");
-            }
-        }
-        return subjDN;
-    }
-
     /**
      * Checks the Ldap result code, and if the result is not SUCCESS,
      * throws an appropriate exception. This is the place to decide on

@@ -458,26 +458,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         }
 
-        // anonymous access should throw exception
-        subject = new Subject();
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run()
-                throws Exception
-            {
-                try
-                {
-                    final LdapUserDAO<HttpPrincipal> userDAO = getUserDAO();
-                    userDAO.modifyUser(testUser2);
-                    fail("should throw exception if subject and user are not the same");
-                }
-                catch (Exception ignore)
-                {
-                }
-                return null;
-            }
-        });
-
         // update the user
         subject.getPrincipals().add(testUser2.getUserID());
         subject.getPrincipals().add(testUser2DNPrincipal);
@@ -599,89 +579,10 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     }
 
     /**
-     * Test of getUserGroups method, of class LdapUserDAO.
-     */
-    @Test
-    public void testGetUserGroups() throws Exception
-    {
-        Subject subject = new Subject();
-        subject.getPrincipals().add(testUser.getUserID());
-        subject.getPrincipals().add(testUser1DNPrincipal);
-
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    Collection<DN> groups = getUserDAO().getUserGroups(testUser.getUserID(),
-                        false);
-                    assertNotNull("Groups should not be null.", groups);
-
-                    for (DN groupDN : groups)
-                    {
-                        log.debug(groupDN);
-                    }
-
-                    groups = getUserDAO().getUserGroups(testUser.getUserID(),
-                        true);
-                    assertNotNull("Groups should not be null.", groups);
-                    for (DN groupDN : groups)
-                    {
-                        log.debug(groupDN);
-                    }
-
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
-    }
-
-    /**
-     * Test of getUserGroups method, of class LdapUserDAO.
-     */
-    @Test
-    public void testIsMember() throws Exception
-    {
-        Subject subject = new Subject();
-        subject.getPrincipals().add(testUser.getUserID());
-        subject.getPrincipals().add(testUser1DNPrincipal);
-
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    boolean isMember = getUserDAO().isMember(testUser.getUserID(), "foo");
-                    assertFalse("Membership should not exist.", isMember);
-
-                    String  groupDN = "cn=cadcdaotestgroup1," + config.getGroupsDN();
-                    isMember = getUserDAO().isMember(testUser.getUserID(),
-                        groupDN);
-                    assertTrue("Membership should exist.", isMember);
-
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
-    }
-
-    /**
      * Test of getMember.
      */
     @Test
-    public void testGetMember() throws Exception
+    public void testGetX500User() throws Exception
     {
         Subject subject = new Subject();
         subject.getPrincipals().add(testUser.getUserID());

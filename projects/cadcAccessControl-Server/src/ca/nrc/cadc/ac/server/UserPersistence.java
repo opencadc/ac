@@ -92,10 +92,9 @@ public interface UserPersistence<T extends Principal>
      *
      * @param user      The user request to put into the active users tree.
      *
-     * @return User instance.
-     *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
     void addUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
@@ -106,10 +105,9 @@ public interface UserPersistence<T extends Principal>
      *
      * @param user      The user request to put into the pending users tree.
      *
-     * @return User instance.
-     *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
     void addPendingUser(UserRequest<T> user)
         throws TransientException, AccessControlException,

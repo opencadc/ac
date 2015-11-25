@@ -108,9 +108,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
     static String daoTestEntryDN1 = "uid=cadcdaotest1,ou=users,ou=ds,dc=testcanfar";
     static String daoTestEntryDN2 = "uid=cadcdaotest2,ou=users,ou=ds,dc=testcanfar";
+    static String daoTestEntryDN3 = "uid=cadcdaotest3,ou=users,ou=ds,dc=testcanfar";
 
     static DNPrincipal daoDNPrincipal1;
     static DNPrincipal daoDNPrincipal2;
+    static DNPrincipal daoDNPrincipal3;
 
     static X500Principal daoTestPrincipal1;
     static X500Principal daoTestPrincipal2;
@@ -146,8 +148,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         daoDNPrincipal2 = new DNPrincipal(daoTestEntryDN2);
 
         daoTestUser1 = new User<X500Principal>(daoTestPrincipal1);
+        daoTestUser1.getIdentities().add(daoDNPrincipal1);
         daoTestUser2 = new User<X500Principal>(daoTestPrincipal2);
+        daoTestUser2.getIdentities().add(daoDNPrincipal2);
         daoTestUser3 = new User<X500Principal>(daoTestPrincipal3);
+        daoTestUser3.getIdentities().add(daoDNPrincipal3);
         unknownUser = new User<X500Principal>(unknownPrincipal);
 
         daoTestUser1Subject = new Subject();
@@ -322,261 +327,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     }
 
     @Test
-    public void testSearchOwnerGroups() throws Exception
-    {
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    String groupID = getGroupID();
-                    Group testGroup = new Group(groupID, daoTestUser1);
-                    getGroupDAO().addGroup(testGroup);
-                    testGroup = getGroupDAO().getGroup(testGroup.getID());
-
-                    Collection<Group> groups =
-                            getGroupDAO().getGroups(daoTestUser1.getUserID(),
-                                                    Role.OWNER, null);
-                    assertNotNull(groups);
-
-                    boolean found = false;
-                    for (Group group : groups)
-                    {
-                        if (group.getID().equals(group.getID()))
-                        {
-                            found = true;
-                        }
-                    }
-                    if (!found)
-                    {
-                        fail("Group for owner not found");
-                    }
-
-                    groups = getGroupDAO().getGroups(daoTestUser1.getUserID(),
-                                                     Role.OWNER, groupID);
-                    assertNotNull(groups);
-                    assertEquals(1, groups.size());
-                    assertTrue(groups.iterator().next().equals(testGroup));
-
-                    getGroupDAO().deleteGroup(groupID);
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-    }
-
-    @Test
-    public void testSearchMemberGroups() throws Exception
-    {
-        final String groupID = getGroupID();
-        final String testGroup1ID = groupID + ".1";
-        final String testGroup2ID = groupID + ".2";
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    Group testGroup1 = new Group(testGroup1ID, daoTestUser1);
-                    testGroup1.getUserMembers().add(daoTestUser2);
-                    getGroupDAO().addGroup(testGroup1);
-                    testGroup1 = getGroupDAO().getGroup(testGroup1.getID());
-                    log.debug("add group: " + testGroup1ID);
-
-                    Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
-                    testGroup2.getUserMembers().add(daoTestUser2);
-                    getGroupDAO().addGroup(testGroup2);
-                    testGroup2 = getGroupDAO().getGroup(testGroup2.getID());
-                    log.debug("add group: " + testGroup2ID);
-                    Thread.sleep(1000); //sleep to let memberof plugin in LDAP do its work
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    Collection<Group> groups =
-                            getGroupDAO().getGroups(daoTestUser2.getUserID(),
-                                                    Role.MEMBER, null);
-
-                    assertNotNull(groups);
-                    assertTrue(groups.size() >= 2);
-
-                    log.debug("testSearchMemberGroups groups found: " + groups.size());
-                    boolean found1 = false;
-                    boolean found2 = false;
-                    for (Group group : groups)
-                    {
-                        log.debug("member group: " + group.getID());
-                        if (group.getID().equals(testGroup1ID))
-                        {
-                            found1 = true;
-                        }
-                        if (group.getID().equals(testGroup2ID))
-                        {
-                            found2 = true;
-                        }
-                    }
-                    if (!found1)
-                    {
-                        fail("Test group 1 not found");
-                    }
-                    if (!found2)
-                    {
-                        fail("Test group 2 not found");
-                    }
-
-                    groups = getGroupDAO().getGroups(daoTestUser2.getUserID(),
-                                                     Role.MEMBER, testGroup1ID);
-                    assertNotNull(groups);
-                    assertTrue(groups.size() == 1);
-                    assertTrue(groups.iterator().next().getID().equals(testGroup1ID));
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().deleteGroup(testGroup1ID);
-                    getGroupDAO().deleteGroup(testGroup2ID);
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-    }
-
-    @Test
-    public void testSearchAdminGroups() throws Exception
-    {
-        final String groupID = getGroupID();
-        final String testGroup1ID = groupID + ".1";
-        final String testGroup2ID = groupID + ".2";
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    Group testGroup1 = new Group(testGroup1ID, daoTestUser1);
-                    testGroup1.getUserAdmins().add(daoTestUser2);
-                    getGroupDAO().addGroup(testGroup1);
-                    testGroup1 = getGroupDAO().getGroup(testGroup1.getID());
-                    log.debug("add group: " + testGroup1ID);
-
-                    Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
-                    testGroup2.getUserAdmins().add(daoTestUser2);
-                    getGroupDAO().addGroup(testGroup2);
-                    testGroup2 = getGroupDAO().getGroup(testGroup2.getID());
-                    log.debug("add group: " + testGroup2ID);
-                    Thread.sleep(1000); // sleep to let memberof plugin do its work
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    Collection<Group> groups =
-                            getGroupDAO().getGroups(daoTestUser2.getUserID(),
-                                                    Role.ADMIN, null);
-
-                    log.debug("testSearchAdminGroups groups found: " + groups.size());
-                    assertNotNull(groups);
-                    assertTrue(groups.size() >= 2);
-
-                    boolean found1 = false;
-                    boolean found2 = false;
-                    for (Group group : groups)
-                    {
-                        log.debug("admin group: " + group.getID());
-                        if (group.getID().equalsIgnoreCase(testGroup1ID))
-                        {
-                            found1 = true;
-                        }
-                        if (group.getID().equalsIgnoreCase(testGroup2ID))
-                        {
-                            found2 = true;
-                        }
-                    }
-                    if (!found1)
-                    {
-                        fail("Admin group " + testGroup1ID + " not found");
-                    }
-                    if (!found2)
-                    {
-                        fail("Admin group " + testGroup2ID + " not found");
-                    }
-
-                    groups = getGroupDAO().getGroups(daoTestUser2.getUserID(),
-                                                     Role.ADMIN, testGroup1ID);
-                    assertNotNull(groups);
-                    assertTrue(groups.size() == 1);
-                    assertTrue(groups.iterator().next().getID().equals(testGroup1ID));
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().deleteGroup(testGroup1ID);
-                    getGroupDAO().deleteGroup(testGroup2ID);
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-                return null;
-            }
-        });
-    }
-
-    @Test
     public void testGetGroupNames() throws Exception
     {
         final String groupID = getGroupID();
@@ -670,56 +420,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     }
 
     @Test
-    public void testAddGroupExceptions() throws Exception
-    {
-        Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().addGroup(new Group(getGroupID(), daoTestUser1));
-                    fail("addGroup with anonymous access should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
-
-        // BM: No longer applicable: groups have their owner set to the calling
-        // user automatically in the service.
-//        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-//        {
-//            public Object run() throws Exception
-//            {
-//                try
-//                {
-//                    getGroupDAO().addGroup(new Group("foo", unknownUser));
-//                    fail("addGroup with unknown user should throw " +
-//                         "AccessControlException");
-//                }
-//                catch (AccessControlException ignore) {}
-//
-//                String groupID = getGroupID();
-//                getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
-//                Group group = getGroupDAO().getGroup(groupID);
-//
-//                try
-//                {
-//                    getGroupDAO().addGroup(group);
-//                    fail("addGroup with existing group should throw " +
-//                         "GroupAlreadyExistsException");
-//                }
-//                catch (GroupAlreadyExistsException ignore) {}
-//
-//                getGroupDAO().deleteGroup(group.getID());
-//                return null;
-//            }
-//        });
-    }
-
-    @Test
     public void testGetGroupExceptions() throws Exception
     {
         final String groupID = getGroupID();
@@ -740,52 +440,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 return null;
             }
         });
-
-        Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().getGroup(groupID);
-                    fail("getGroup with anonymous access should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().getGroup(groupID);
-                    //fail("getGroup with anonymous access should throw " +
-                    //     "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
-
-        // All access ACI's will allow anonymous access
-//        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
-//        {
-//            public Object run() throws Exception
-//            {
-//                try
-//                {
-//                    getGroupDAO().getGroup(groupID);
-//                    fail("getGroup with anonymous access should throw " +
-//                         "AccessControlException");
-//                }
-//                catch (AccessControlException ignore) {}
-//                return null;
-//            }
-//        });
     }
 
     @Test
@@ -810,22 +464,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 return null;
             }
         });
-
-        Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().getGroup(groupID);
-                    fail("getGroup with anonymous access should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
-
     }
 
     @Test
@@ -849,94 +487,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 return null;
             }
         });
-
-        Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().deleteGroup(groupID);
-                    fail("deleteGroup with anonymous access should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                getGroupDAO().deleteGroup(groupID);
-                return null;
-            }
-        });
-    }
-
-    @Test
-    public void testSearchGroupsExceptions() throws Exception
-    {
-        final String groupID = getGroupID();
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
-
-                try
-                {
-                    getGroupDAO().getGroups(unknownPrincipal, Role.OWNER,
-                                               groupID);
-                    fail("searchGroups with unknown user should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-
-                return null;
-            }
-        });
-
-        Subject.doAs(anonSubject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    getGroupDAO().getGroups(daoTestPrincipal1, Role.OWNER,
-                                               groupID);
-                    fail("searchGroups with anonymous access should throw " +
-                         "AccessControlException");
-                }
-                catch (AccessControlException ignore) {}
-                return null;
-            }
-        });
-
-        //
-        // change the user
-//        Subject.doAs(daoTestUser2Subject, new PrivilegedExceptionAction<Object>()
-//        {
-//            public Object run() throws Exception
-//            {
-//                try
-//                {
-//                    Group group = getGroupDAO().getGroup(groupID);
-//                    assertTrue(group == null);
-//
-//                    fail("searchGroups with un-authorized user should throw " +
-//                         "AccessControlException");
-//                }
-//                catch (AccessControlException ignore)
-//                {
-//
-//                }
-//
-//                return null;
-//            }
-//        });
 
         Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
         {

@@ -1208,7 +1208,7 @@ public class GMSClient implements TransferListener
             Set<GroupMemberships> gset = subject.getPrivateCredentials(GroupMemberships.class);
             if (gset == null || gset.isEmpty())
             {
-                GroupMemberships mems = new GroupMemberships();
+                GroupMemberships mems = new GroupMemberships(new User(userID));
                 subject.getPrivateCredentials().add(mems);
                 return mems;
             }
@@ -1250,15 +1250,7 @@ public class GMSClient implements TransferListener
         if (mems == null)
             return; // no cache
 
-        List<Group> groups = mems.memberships.get(role);
-        if (groups == null)
-        {
-            groups = new ArrayList<Group>();
-            mems.complete.put(role, Boolean.FALSE);
-            mems.memberships.put(role, groups);
-        }
-        if (!groups.contains(group))
-            groups.add(group);
+        mems.add(group, role);
     }
 
     protected void setCachedGroups(Principal userID, List<Group> groups, Role role)
@@ -1267,20 +1259,7 @@ public class GMSClient implements TransferListener
         if (mems == null)
             return; // no cache
 
-        log.debug("Caching groups for " + userID + ", role " + role);
-        List<Group> cur = mems.memberships.get(role);
-        if (cur == null)
-        {
-            cur = new ArrayList<Group>();
-            mems.complete.put(role, Boolean.FALSE);
-            mems.memberships.put(role, cur);
-        }
-        for (Group group : groups)
-        {
-            if (!cur.contains(group))
-                cur.add(group);
-            mems.complete.put(role, Boolean.TRUE);
-        }
+        mems.add(groups, role);
     }
 
     protected boolean userIsSubject(Principal userID, Subject subject)
@@ -1298,34 +1277,6 @@ public class GMSClient implements TransferListener
             }
         }
         return false;
-    }
-
-    /**
-     * Class used to hold list of groups in which a user is known to be a member.
-     */
-    protected class GroupMemberships implements Comparable
-    {
-        Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
-        Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
-
-        protected GroupMemberships()
-        {
-        }
-
-        // only allow one in a set - makes clearCache simple too
-        public boolean equals(Object rhs)
-        {
-            if (rhs != null && rhs instanceof GroupMemberships)
-                return true;
-            return false;
-        }
-
-        public int compareTo(Object t)
-        {
-            if (this.equals(t))
-                return 0;
-            return -1; // wonder if this is sketchy
-        }
     }
 
 }
