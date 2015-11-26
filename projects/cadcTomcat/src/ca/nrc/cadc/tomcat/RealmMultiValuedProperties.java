@@ -1,14 +1,14 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2010.                            (c) 2010.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,77 +62,92 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
--->
+*/
 
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+/**
+ * A properties file reader that allows a property to have multiple values.
+ * The <code>java.util.Properties</code> class is a HashTable so only permits one
+ * value.
+ *
+ * This class is a fork of ca.nrc.cadc.util.MultiValuedProperties.  It was forked
+ * to allow the realm implementation to be deployed without library dependencies.
+ *
+ * @author pdowler
+ */
+public class RealmMultiValuedProperties
+{
+    private Map<String, List<String>> props;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+    public RealmMultiValuedProperties() { }
 
-    <property name="project" value="cadcTomcat" />
+    public List<String> getProperty(String name)
+    {
+        if (props == null)
+            return null;
+        return props.get(name);
+    }
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+    public Set<String> keySet()
+    {
+        if (props == null)
+            return null;
+        return props.keySet();
+    }
 
-    <property name="cadc"               value="${lib}/cadcUtil.jar" />
-    <property name="log4j"              value="${ext.lib}/log4j.jar" />
-    <property name="tomcat"             value="${ext.lib}/catalina.jar:${ext.lib}/tomcat-util.jar:${ext.lib}/tomcat-coyote.jar" />
-    <property name="jars"               value="${cadc}:${log4j}:${tomcat}" />
+    public void load(InputStream istream)
+        throws IOException
+    {
+        this.props = new HashMap<String, List<String>>();
 
-    <target name="build" depends="simpleJar" />
-    
-    <target name="test-resources">
-        <copy todir="${build}/class">
-            <fileset dir="src/resources">
-                <include name="**.properties" />
-            </fileset>
-        </copy>
-        <jar jarfile="${build}/tmp/test.jar"
-                basedir="${build}/class"
-                update="no">
-            <include name="ca/nrc/cadc/reg/client/**" />
-            <include name="**.properties" />
-        </jar>
-    </target>
+        String strLine, key, value;
+        char firstChar;
+        List<String> valueList;
+        int idxColon, lineLength;
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="dev.junit" value="${ext.dev}/junit.jar" />
-    <property name="servlet" value="${ext.lib}/servlet-api.jar" />
-    <property name="log" value="${ext.lib}/commons-logging.jar" />
-    <property name="juli" value="${ext.lib}/tomcat-juli.jar" />
-    <property name="tomcatUtil" value="${ext.lib}/tomcat-util.jar" />
-    <property name="test" value="${build}/tmp/test.jar" />
-    <property name="testingJars" value="${dev.junit}:${servlet}:${log}:${juli}:${tomcatUtil}:${test}" />
-    
-    <!-- Run the test suite -->
-    <target name="test" depends="compile-test,test-resources">
-        <echo message="Running test" />
+        BufferedReader br = new BufferedReader(new InputStreamReader(istream));
+        //Read File Line By Line
+        while ((strLine = br.readLine()) != null)
+        {
+            strLine = strLine.trim();
+            lineLength = strLine.length();
+            if (lineLength == 0)
+                continue;
 
-        <!-- Run the junit test suite -->
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/test/class" />
-                <pathelement path="${build}/class" />
-                <pathelement path="${jars}:${testingJars}" />
-            </classpath>
+            firstChar = strLine.charAt(0);
+            if (firstChar == '#' || firstChar == '!') //comment line
+                continue;
 
-            <test name="ca.nrc.cadc.tomcat.CadcBasicAuthenticatorTest"/>
-            <test name="ca.nrc.cadc.tomcat.RealmRegistryClientTest"/>
-            <formatter type="plain" usefile="false"/>
-        </junit>
-    </target>
-    
-</project>
+            idxColon = strLine.indexOf('=');
+            if (idxColon == 0) // "=foo"
+                continue;
+
+            key = strLine.substring(0, idxColon).trim();
+            value = strLine.substring(idxColon + 1).trim();
+
+            valueList = props.get(key);
+            if (valueList == null) // the key is not in parameters yet
+            {
+                valueList = new ArrayList<String>();
+                props.put(key, valueList);
+            }
+            valueList.add(value);
+        }
+        //Close the buffered reader
+        br.close();
+    }
+}

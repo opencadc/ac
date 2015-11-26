@@ -1,14 +1,14 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2010.                            (c) 2010.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 *  All rights reserved                  Tous droits réservés
-*                                       
+*
 *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 *  expressed, implied, or               énoncée, implicite ou légale,
 *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
 *  software without specific prior      de ce logiciel sans autorisation
 *  written permission.                  préalable et particulière
 *                                       par écrit.
-*                                       
+*
 *  This file is part of the             Ce fichier fait partie du projet
 *  OpenCADC project.                    OpenCADC.
-*                                       
+*
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
 *  any later version.                   toute version ultérieure.
-*                                       
+*
 *  OpenCADC is distributed in the       OpenCADC est distribué
 *  hope that it will be useful,         dans l’espoir qu’il vous
 *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
 *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 *  General Public License for           Générale Publique GNU Affero
 *  more details.                        pour plus de détails.
-*                                       
+*
 *  You should have received             Vous devriez avoir reçu une
 *  a copy of the GNU Affero             copie de la Licence Générale
 *  General Public License along         Publique GNU Affero avec
@@ -62,77 +62,87 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
--->
+*/
 
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+import java.io.IOException;
+import java.net.URISyntaxException;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+import junit.framework.Assert;
 
-    <property name="project" value="cadcTomcat" />
+import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+public class CadcBasicAuthenticatorTest
+{
 
-    <property name="cadc"               value="${lib}/cadcUtil.jar" />
-    <property name="log4j"              value="${ext.lib}/log4j.jar" />
-    <property name="tomcat"             value="${ext.lib}/catalina.jar:${ext.lib}/tomcat-util.jar:${ext.lib}/tomcat-coyote.jar" />
-    <property name="jars"               value="${cadc}:${log4j}:${tomcat}" />
+    private static Logger log = Logger.getLogger(CadcBasicAuthenticatorTest.class);
 
-    <target name="build" depends="simpleJar" />
-    
-    <target name="test-resources">
-        <copy todir="${build}/class">
-            <fileset dir="src/resources">
-                <include name="**.properties" />
-            </fileset>
-        </copy>
-        <jar jarfile="${build}/tmp/test.jar"
-                basedir="${build}/class"
-                update="no">
-            <include name="ca/nrc/cadc/reg/client/**" />
-            <include name="**.properties" />
-        </jar>
-    </target>
+    static
+    {
+        RealmUtil.initLogging();
+        Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
+    }
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="dev.junit" value="${ext.dev}/junit.jar" />
-    <property name="servlet" value="${ext.lib}/servlet-api.jar" />
-    <property name="log" value="${ext.lib}/commons-logging.jar" />
-    <property name="juli" value="${ext.lib}/tomcat-juli.jar" />
-    <property name="tomcatUtil" value="${ext.lib}/tomcat-util.jar" />
-    <property name="test" value="${build}/tmp/test.jar" />
-    <property name="testingJars" value="${dev.junit}:${servlet}:${log}:${juli}:${tomcatUtil}:${test}" />
-    
-    <!-- Run the test suite -->
-    <target name="test" depends="compile-test,test-resources">
-        <echo message="Running test" />
+    @Test
+    public void testValidCredentials()
+    {
+        try
+        {
+            TestAuthenticator auth = new TestAuthenticator(true);
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
 
-        <!-- Run the junit test suite -->
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/test/class" />
-                <pathelement path="${build}/class" />
-                <pathelement path="${jars}:${testingJars}" />
-            </classpath>
+            Assert.assertNotNull(p);
+            Assert.assertEquals("wrong num roles", 1, p.getRoles().length);
+            Assert.assertEquals("wrong role", "public", p.getRoles()[0]);
+            Assert.assertNull(p.getPassword());
+        }
+        catch (Exception e)
+        {
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
 
-            <test name="ca.nrc.cadc.tomcat.CadcBasicAuthenticatorTest"/>
-            <test name="ca.nrc.cadc.tomcat.RealmRegistryClientTest"/>
-            <formatter type="plain" usefile="false"/>
-        </junit>
-    </target>
-    
-</project>
+    @Test
+    public void testInvalidCredentials()
+    {
+        try
+        {
+            TestAuthenticator auth = new TestAuthenticator(false);
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
+
+            Assert.assertNull(p);
+        }
+        catch (Exception e)
+        {
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    class TestAuthenticator extends CadcBasicAuthenticator
+    {
+        private boolean authenticate;
+
+        TestAuthenticator(boolean authenticate)
+        {
+            this.authenticate = authenticate;
+        }
+
+        @Override
+        boolean login(String username, String credentials)
+                throws URISyntaxException, IOException
+        {
+            return authenticate;
+        }
+    }
+
+}
