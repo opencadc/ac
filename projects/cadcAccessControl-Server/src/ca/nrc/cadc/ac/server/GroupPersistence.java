@@ -79,30 +79,35 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 
-public abstract interface GroupPersistence<T extends Principal>
+public interface GroupPersistence<T extends Principal>
 {
     /**
+     * Call if this object is to be shut down.
+     */
+    void destroy();
+
+    /**
      * Get all group names.
-     * 
+     *
      * @return A collection of strings.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<String> getGroupNames()
+    Collection<String> getGroupNames()
             throws TransientException, AccessControlException;
-    
+
     /**
      * Get the group with the given Group ID.
      *
      * @param groupID The Group ID.
-     * 
+     *
      * @return A Group instance
      *
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Group getGroup(String groupID)
+    Group getGroup(String groupID)
         throws GroupNotFoundException, TransientException,
                AccessControlException;
 
@@ -110,8 +115,6 @@ public abstract interface GroupPersistence<T extends Principal>
      * Creates the group.
      *
      * @param group The group to create
-     * 
-     * @return created group
      *
      * @throws GroupAlreadyExistsException If a group with the same ID already
      *                                     exists.
@@ -121,9 +124,9 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws GroupNotFoundException if one of the groups in group members or
      * group admins does not exist in the server.
      */
-    public abstract Group addGroup(Group group)
+    void addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException, 
+               AccessControlException, UserNotFoundException,
                GroupNotFoundException;
 
     /**
@@ -135,7 +138,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract void deleteGroup(String groupID)
+    void deleteGroup(String groupID)
         throws GroupNotFoundException, TransientException,
                AccessControlException;
 
@@ -143,15 +146,13 @@ public abstract interface GroupPersistence<T extends Principal>
      * Modify the given group.
      *
      * @param group The group to update.
-     * 
-     * @return The newly updated group.
-     * 
+     *
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserNotFoundException If owner or group members not valid users.
      */
-    public abstract Group modifyGroup(Group group)
+    void modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException;
 
@@ -161,7 +162,7 @@ public abstract interface GroupPersistence<T extends Principal>
      * @param userID The userID.
      * @param role Role of the user, either owner, member, or read/write.
      * @param groupID The Group ID.
-     * 
+     *
      * @return Collection of Groups matching the query, or empty Collection.
      *         Never null.
      *
@@ -170,9 +171,8 @@ public abstract interface GroupPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public abstract Collection<Group> getGroups(T userID, Role role, 
-                                                String groupID)
+    Collection<Group> getGroups(T userID, Role role, String groupID)
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
-    
+
 }

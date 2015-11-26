@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -78,11 +79,10 @@ import ca.nrc.cadc.db.ConnectionConfig;
 import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import ca.nrc.cadc.util.StringUtil;
 
 /**
- * Reads and stores the LDAP configuration information. The information 
- * 
+ * Reads and stores the LDAP configuration information.
+ *
  * @author adriand
  *
  */
@@ -90,25 +90,127 @@ public class LdapConfig
 {
     private static final Logger logger = Logger.getLogger(LdapConfig.class);
 
-    public static final String CONFIG = LdapConfig.class.getSimpleName() + 
-                                        ".properties";
-    public static final String LDAP_SERVER = "server";
+    public static final String CONFIG = LdapConfig.class.getSimpleName() + ".properties";
+
+    public static final String READONLY_PREFIX = "readOnly.";
+    public static final String READWRITE_PREFIX = "readWrite.";
+    public static final String UB_READONLY_PREFIX = "unboundReadOnly.";
+    public static final String POOL_SERVERS = "servers";
+    public static final String POOL_INIT_SIZE = "poolInitSize";
+    public static final String POOL_MAX_SIZE = "poolMaxSize";
+    public static final String POOL_POLICY = "poolPolicy";
+    public static final String MAX_WAIT = "maxWait";
+    public static final String CREATE_IF_NEEDED = "createIfNeeded";
+
+    public static final String LDAP_DBRC_ENTRY = "dbrcHost";
     public static final String LDAP_PORT = "port";
     public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
-    public static final String LDAP_USERS_DN = "usersDn";
-    public static final String LDAP_GROUPS_DN = "groupsDn";
-    public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDn";
+    public static final String LDAP_USERS_DN = "usersDN";
+    public static final String LDAP_USER_REQUESTS_DN = "userRequestsDN";
+    public static final String LDAP_GROUPS_DN = "groupsDN";
+    public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDN";
 
     private final static int SECURE_PORT = 636;
 
+    public enum PoolPolicy
+    {
+        roundRobin,
+        fewestConnections;
+    };
+
+    public class LdapPool
+    {
+        private List<String> servers;
+        private int initSize;
+        private int maxSize;
+        private PoolPolicy policy;
+        private long maxWait;
+        private boolean createIfNeeded;
+
+        public List<String> getServers()
+        {
+            return servers;
+        }
+        public int getInitSize()
+        {
+            return initSize;
+        }
+        public int getMaxSize()
+        {
+            return maxSize;
+        }
+        public PoolPolicy getPolicy()
+        {
+            return policy;
+        }
+        public long getMaxWait()
+        {
+            return maxWait;
+        }
+        public boolean getCreateIfNeeded()
+        {
+            return createIfNeeded;
+        }
+
+        @Override
+        public String toString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append(" Servers: ");
+            for (String server : servers)
+            {
+                sb.append(" [" + server + "]");
+            }
+            sb.append(" initSize: " + initSize);
+            sb.append(" maxSize: " + maxSize);
+            sb.append(" policy: " + policy);
+            sb.append(" maxWait: " + maxWait);
+            sb.append(" createIfNeeded: " + createIfNeeded);
+            return sb.toString();
+        }
+
+        @Override
+        public boolean equals(Object other)
+        {
+            if (other == null || !(other instanceof LdapPool))
+                return false;
+
+            LdapPool l = (LdapPool) other;
+
+            if (! l.servers.equals(servers))
+                return false;
+
+            if (l.initSize != initSize)
+                return false;
+
+            if (l.maxSize != maxSize)
+                return false;
+
+            if ( !(l.policy.equals(policy)))
+                return false;
+
+            if ( !(l.maxWait == maxWait))
+                return false;
+
+            if ( !(l.createIfNeeded == createIfNeeded))
+                return false;
+
+            return true;
+        }
+    };
+
+    private LdapPool readOnlyPool = new LdapPool();
+    private LdapPool readWritePool = new LdapPool();
+    private LdapPool unboundReadOnlyPool = new LdapPool();
+    private int port;
     private String usersDN;
+    private String userRequestsDN;
     private String groupsDN;
     private String adminGroupsDN;
-    private String server;
-    private int port;
     private String proxyUserDN;
     private String proxyPasswd;
-    
+    private String dbrcHost;
+
     public String getProxyUserDN()
     {
         return proxyUserDN;
@@ -121,135 +223,145 @@ public class LdapConfig
 
     public static LdapConfig getLdapConfig()
     {
-        return getLdapConfig(CONFIG);
+        return loadLdapConfig(CONFIG);
     }
 
-    public static LdapConfig getLdapConfig(final String ldapProperties)
+    public static LdapConfig loadLdapConfig(String ldapProperties)
     {
         logger.debug("Reading LDAP properties from: " + ldapProperties);
         PropertiesReader pr = new PropertiesReader(ldapProperties);
-        
+
         MultiValuedProperties config = pr.getAllProperties();
-        
         if (config == null || config.keySet() == null)
         {
             throw new RuntimeException("failed to read any LDAP property ");
         }
-        
-        List<String> prop = config.getProperty(LDAP_SERVER);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_SERVER);
-        }
-        String server = prop.get(0);
 
-        prop = config.getProperty(LDAP_PORT);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + LDAP_PORT);
-        }
-        int port = Integer.valueOf(prop.get(0));
-        
-        prop = config.getProperty(LDAP_SERVER_PROXY_USER);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + 
-                    LDAP_SERVER_PROXY_USER);
-        }
-        String ldapProxy = prop.get(0);
-        
-        prop = config.getProperty(LDAP_USERS_DN);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_USERS_DN);
-        }
-        String ldapUsersDn = prop.get(0);
+        LdapConfig ldapConfig = new LdapConfig();
 
-        prop = config.getProperty(LDAP_GROUPS_DN);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_GROUPS_DN);
-        }
-        String ldapGroupsDn = prop.get(0);
-        
-        prop = config.getProperty(LDAP_ADMIN_GROUPS_DN);
-        if ((prop == null) || (prop.size() != 1))
-        {
-            throw new RuntimeException("failed to read property " + 
-                                       LDAP_ADMIN_GROUPS_DN);
-        }
-        String ldapAdminGroupsDn = prop.get(0);
-        
-        DBConfig dbConfig;
+        loadPoolConfig(ldapConfig.readOnlyPool, pr, READONLY_PREFIX);
+        loadPoolConfig(ldapConfig.readWritePool, pr, READWRITE_PREFIX);
+        loadPoolConfig(ldapConfig.unboundReadOnlyPool, pr, UB_READONLY_PREFIX);
+
+        ldapConfig.dbrcHost = getProperty(pr, LDAP_DBRC_ENTRY);
+        ldapConfig.port = Integer.valueOf(getProperty(pr, LDAP_PORT));
+        ldapConfig.proxyUserDN = getProperty(pr, LDAP_SERVER_PROXY_USER);
+        ldapConfig.usersDN = getProperty(pr, LDAP_USERS_DN);
+        ldapConfig.userRequestsDN = getProperty(pr, LDAP_USER_REQUESTS_DN);
+        ldapConfig.groupsDN = getProperty(pr, LDAP_GROUPS_DN);
+        ldapConfig.adminGroupsDN = getProperty(pr, LDAP_ADMIN_GROUPS_DN);
+
         try
         {
-            dbConfig = new DBConfig();
-        } 
+            DBConfig dbConfig = new DBConfig();
+            ConnectionConfig cc = dbConfig.getConnectionConfig(ldapConfig.dbrcHost, ldapConfig.proxyUserDN);
+            if ( (cc == null) || (cc.getUsername() == null) || (cc.getPassword() == null))
+            {
+                throw new RuntimeException("failed to find connection info in ~/.dbrc");
+            }
+            ldapConfig.proxyPasswd = cc.getPassword();
+        }
         catch (FileNotFoundException e)
         {
             throw new RuntimeException("failed to find .dbrc file ");
-        } 
+        }
         catch (IOException e)
         {
             throw new RuntimeException("failed to read .dbrc file ");
         }
-        ConnectionConfig cc = dbConfig.getConnectionConfig(server, ldapProxy);
-        if ( (cc == null) || (cc.getUsername() == null) || (cc.getPassword() == null))
-        {
-            throw new RuntimeException("failed to find connection info in ~/.dbrc");
-        }
-        
-        return new LdapConfig(server, Integer.valueOf(port), cc.getUsername(), 
-                              cc.getPassword(), ldapUsersDn, ldapGroupsDn,
-                              ldapAdminGroupsDn);
-    }
-    
 
-    public LdapConfig(String server, int port, String proxyUserDN, 
-                      String proxyPasswd, String usersDN, String groupsDN,
-                      String adminGroupsDN)
+        return ldapConfig;
+    }
+
+    private static void loadPoolConfig(LdapPool pool, PropertiesReader pr, String prefix)
     {
-        if (!StringUtil.hasText(server))
+        pool.servers = getMultiProperty(pr, prefix + POOL_SERVERS);
+        pool.initSize = Integer.valueOf(getProperty(pr, prefix + POOL_INIT_SIZE));
+        pool.maxSize = Integer.valueOf(getProperty(pr, prefix + POOL_MAX_SIZE));
+        pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
+        pool.maxWait = Long.valueOf(getProperty(pr, prefix + MAX_WAIT));
+        pool.createIfNeeded = Boolean.valueOf(getProperty(pr, prefix + CREATE_IF_NEEDED));
+    }
+
+    private static String getProperty(PropertiesReader properties, String key)
+    {
+        String prop = properties.getFirstPropertyValue(key);
+        if (prop == null)
         {
-            throw new IllegalArgumentException("Illegal LDAP server name");
+            throw new RuntimeException("failed to read property " + key);
         }
-        if (port < 0)
-        {
-            throw new IllegalArgumentException("Illegal LDAP server port: " + 
-                                               port);
-        }
-        if (!StringUtil.hasText(proxyUserDN))
-        {
-            throw new IllegalArgumentException("Illegal Admin DN");
-        }
-        if (!StringUtil.hasText(proxyPasswd))
-        {
-            throw new IllegalArgumentException("Illegal Admin password");
-        }
-        if (!StringUtil.hasText(usersDN))
-        {
-            throw new IllegalArgumentException("Illegal users LDAP DN");
-        }
-        if (!StringUtil.hasText(groupsDN))
-        {
-            throw new IllegalArgumentException("Illegal groups LDAP DN");
-        }
-        if (!StringUtil.hasText(adminGroupsDN))
-        {
-            throw new IllegalArgumentException("Illegal admin groups LDAP DN");
-        }
-        
-        this.server = server;
-        this.port = port;
-        this.proxyUserDN = proxyUserDN;
-        this.proxyPasswd = proxyPasswd;
-        this.usersDN = usersDN;
-        this.groupsDN = groupsDN;
-        this.adminGroupsDN = adminGroupsDN;
-        logger.debug(toString());
+        return prop;
+    }
+
+    private static List<String> getMultiProperty(PropertiesReader properties, String key)
+    {
+        String prop = getProperty(properties, key);
+
+        if (prop == null)
+            throw new RuntimeException("failed to read property " + key);
+
+        String[] props = prop.split(" ");
+        return Arrays.asList(props);
+    }
+
+    @Override
+    public boolean equals(Object other)
+    {
+        if (other == null || !(other instanceof LdapConfig))
+            return false;
+
+        LdapConfig l = (LdapConfig) other;
+
+        if (l.port != port)
+            return false;
+
+        if ( !(l.usersDN.equals(usersDN)))
+            return false;
+
+        if ( !(l.userRequestsDN.equals(userRequestsDN)))
+            return false;
+
+        if ( !(l.groupsDN.equals(groupsDN)))
+            return false;
+
+        if ( !(l.adminGroupsDN.equals(adminGroupsDN)))
+            return false;
+
+        if ( !(l.proxyUserDN.equals(proxyUserDN)))
+            return false;
+
+        if ( !(l.dbrcHost.equals(dbrcHost)))
+            return false;
+
+        if ( !(l.readOnlyPool.equals(readOnlyPool)))
+            return false;
+
+        if ( !(l.readWritePool.equals(readWritePool)))
+            return false;
+
+        if ( !(l.unboundReadOnlyPool.equals(unboundReadOnlyPool)))
+            return false;
+
+        return true;
+    }
+
+    private LdapConfig()
+    {
+    }
+
+    public LdapPool getReadOnlyPool()
+    {
+        return readOnlyPool;
+    }
+
+    public LdapPool getReadWritePool()
+    {
+        return readWritePool;
+    }
+
+    public LdapPool getUnboundReadOnlyPool()
+    {
+        return unboundReadOnlyPool;
     }
 
     public String getUsersDN()
@@ -257,19 +369,24 @@ public class LdapConfig
         return this.usersDN;
     }
 
+    public String getUserRequestsDN()
+    {
+        return this.userRequestsDN;
+    }
+
     public String getGroupsDN()
     {
         return this.groupsDN;
     }
-    
+
     public String getAdminGroupsDN()
     {
         return this.adminGroupsDN;
     }
 
-    public String getServer()
+    public String getDbrcHost()
     {
-        return this.server;
+        return this.dbrcHost;
     }
 
     public int getPort()
@@ -295,14 +412,13 @@ public class LdapConfig
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("server = ");
-        sb.append(server);
-        sb.append(" port = ");
-        sb.append(port);
-        sb.append(" proxyUserDN = ");
-        sb.append(proxyUserDN);
-        sb.append(" proxyPasswd = ");
-        sb.append(proxyPasswd);
-        return sb.toString(); 
+        sb.append(" ReadOnlyPool: [" + readOnlyPool + "]");
+        sb.append(" ReadWritePool: [" + readWritePool + "]");
+        sb.append(" UnboundReadOnlyPool: [" + unboundReadOnlyPool + "]");
+        sb.append(" Port: " + port);
+        sb.append(" dbrcHost: " + dbrcHost);
+        sb.append(" proxyUserDN: " + proxyUserDN);
+
+        return sb.toString();
     }
 }

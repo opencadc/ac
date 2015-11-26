@@ -65,7 +65,9 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac;
+ */
+
+package ca.nrc.cadc.ac;
 
 import static org.junit.Assert.*;
 

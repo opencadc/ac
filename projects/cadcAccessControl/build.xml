@@ -89,14 +89,15 @@
 
     <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
 	<property name="cadcRegistryClient" value="${lib}/cadcRegistryClient.jar" />
-    
+
+    <property name="json"       value="${ext.lib}/json.jar" />
     <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="javacsv"      value="${ext.lib}/javacsv.jar" />
+    <property name="javacsv"    value="${ext.lib}/javacsv.jar" />
     <property name="log4j"      value="${ext.lib}/log4j.jar" />
     <property name="unboundid"  value="${ext.lib}/unboundid-ldapsdk-se.jar" />
 
 
-    <property name="jars" value="${jdom2}:${log4j}:${javacsv}:${unboundid}:${cadcUtil}:${cadcRegistryClient}" />
+    <property name="jars" value="${json}:${jdom2}:${log4j}:${javacsv}:${unboundid}:${cadcUtil}:${cadcRegistryClient}" />
     
     <target name="build" depends="compile">
         <jar jarfile="${build}/lib/${project}.jar"
@@ -114,6 +115,19 @@
     <property name="junit"      value="${ext.dev}/junit.jar" />
     <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
     
-    <property name="testingJars" value="${build}/class:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+
+    <target name="single-test" depends="compile,compile-test">
+        <echo message="Running test suite..." />
+        <junit printsummary="yes" haltonfailure="yes" fork="yes">
+            <classpath>
+                <pathelement path="${build}/class"/>
+                <pathelement path="${build}/test/class"/>
+                <pathelement path="${testingJars}"/>
+            </classpath>
+            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
+            <formatter type="plain" usefile="false" />
+        </junit>
+    </target>
 
 </project>

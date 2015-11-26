@@ -76,8 +76,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -92,24 +92,29 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 
-import ca.nrc.cadc.net.*;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupReader;
-import ca.nrc.cadc.ac.GroupWriter;
-import ca.nrc.cadc.ac.GroupsReader;
 import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.xml.GroupListReader;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpTransfer;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import java.net.URI;
 
 
 /**
@@ -119,11 +124,11 @@ import java.net.URI;
 public class GMSClient implements TransferListener
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
-    
+
     // socket factory to use when connecting
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
-    
+
     // client needs to know which servcie it is bound to and lookup
     // endpoints using RegistryClient
     private URI serviceURI;
@@ -131,27 +136,39 @@ public class GMSClient implements TransferListener
     // storing baseURL is now considered bad form but fix is out of scope right now
     private String baseURL;
 
-    public GMSClient(URI serviceURI)
+
+    /**
+     * Slightly more complete constructor.  Tests can override the
+     * RegistryClient.
+     *
+     * @param serviceURI            The service URI.
+     * @param registryClient        The Registry Client.
+     */
+    public GMSClient(URI serviceURI, RegistryClient registryClient)
     {
-        this.serviceURI = serviceURI;
         try
         {
-            RegistryClient reg = new RegistryClient();
-            URL base = reg.getServiceURL(serviceURI, "https");
+            URL base = registryClient.getServiceURL(serviceURI, "https");
             if (base == null)
                 throw new IllegalArgumentException("service not found with https access: " + serviceURI);
             this.baseURL = base.toExternalForm();
+
+            log.debug("AC Service URI: " + this.baseURL);
         }
         catch(MalformedURLException ex)
         {
             throw new RuntimeException("BUG: failed to construct GMS base URL", ex);
         }
-        finally { }
     }
-    
+
+    public GMSClient(URI serviceURI)
+    {
+        this(serviceURI, new RegistryClient());
+    }
+
     /**
      * Constructor.
-     * 
+     *
      * @param baseURL The URL of the supporting access control web service
      * obtained from the registry.
      * @deprecated
@@ -169,7 +186,7 @@ public class GMSClient implements TransferListener
         }
         catch (MalformedURLException e)
         {
-            throw new IllegalArgumentException("URL is malformed: " + 
+            throw new IllegalArgumentException("URL is malformed: " +
                                                e.getMessage());
         }
 
@@ -194,7 +211,7 @@ public class GMSClient implements TransferListener
         return null; // no custom eventID header
     }
 
-    
+
     /**
      * Get a list of groups.
      *
@@ -203,6 +220,68 @@ public class GMSClient implements TransferListener
     public List<Group> getGroups()
     {
         throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * Obtain all of the users as userID - name in JSON format.
+     *
+     * @return List of HTTP Principal users.
+     * @throws IOException Any errors in reading.
+     */
+    public List<User<? extends Principal>> getDisplayUsers() throws IOException
+    {
+        final List<User<? extends Principal>> webUsers =
+                new ArrayList<User<? extends Principal>>();
+        final HttpDownload httpDownload =
+                    createDisplayUsersHTTPDownload(webUsers);
+
+        httpDownload.setRequestProperty("Accept", "application/json");
+        httpDownload.run();
+
+        final Throwable error = httpDownload.getThrowable();
+
+        if (error != null)
+        {
+            final String errMessage = error.getMessage();
+            final int responseCode = httpDownload.getResponseCode();
+            log.debug("getDisplayUsers response " + responseCode + ": "
+                      + errMessage);
+            if ((responseCode == 401) || (responseCode == 403)
+                || (responseCode == -1))
+            {
+                throw new AccessControlException(errMessage);
+            }
+            else if (responseCode == 400)
+            {
+                throw new IllegalArgumentException(errMessage);
+            }
+            else
+            {
+                throw new IOException("HttpResponse (" + responseCode + ") - "
+                                      + errMessage);
+            }
+        }
+
+        log.debug("Content-Length: " + httpDownload.getContentLength());
+        log.debug("Content-Type: " + httpDownload.getContentType());
+
+        return webUsers;
+    }
+
+
+    /**
+     * Create a new HTTPDownload instance.  Testers can override as needed.
+     *
+     * @param webUsers          The User objects.
+     * @return                  HttpDownload instance.  Never null.
+     * @throws IOException      Any writing/reading errors.
+     */
+    HttpDownload createDisplayUsersHTTPDownload(
+            final List<User<? extends Principal>> webUsers) throws IOException
+    {
+        final URL usersListURL = new URL(this.baseURL + "/users");
+        return new HttpDownload(usersListURL,
+                                new JsonUserListInputStreamWrapper(webUsers));
     }
 
     /**
@@ -217,17 +296,18 @@ public class GMSClient implements TransferListener
      * @throws IOException
      */
     public Group createGroup(Group group)
-        throws GroupAlreadyExistsException, AccessControlException, 
+        throws GroupAlreadyExistsException, AccessControlException,
                UserNotFoundException, IOException
     {
         URL createGroupURL = new URL(this.baseURL + "/groups");
         log.debug("createGroupURL request to " + createGroupURL.toString());
-        
+
         // reset the state of the cache
         clearCache();
 
         StringBuilder groupXML = new StringBuilder();
-        GroupWriter.write(group, groupXML);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(group, groupXML);
         log.debug("createGroup: " + groupXML);
 
         byte[] bytes = groupXML.toString().getBytes("UTF-8");
@@ -243,8 +323,8 @@ public class GMSClient implements TransferListener
         {
             log.debug("createGroup throwable", error);
             // transfer returns a -1 code for anonymous uploads.
-            if ((transfer.getResponseCode() == -1) || 
-                (transfer.getResponseCode() == 401) || 
+            if ((transfer.getResponseCode() == -1) ||
+                (transfer.getResponseCode() == 401) ||
                 (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
@@ -268,7 +348,8 @@ public class GMSClient implements TransferListener
         try
         {
             log.debug("createGroup returned: " + retXML);
-            return GroupReader.read(retXML);
+            GroupReader groupReader = new GroupReader();
+            return groupReader.read(retXML);
         }
         catch (Exception bug)
         {
@@ -302,8 +383,8 @@ public class GMSClient implements TransferListener
         {
             log.debug("getGroup throwable (" + transfer.getResponseCode() + ")", error);
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) || 
-                (transfer.getResponseCode() == 401) || 
+            if ((transfer.getResponseCode() == -1) ||
+                (transfer.getResponseCode() == 401) ||
                 (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
@@ -323,7 +404,8 @@ public class GMSClient implements TransferListener
         {
             String groupXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getGroup returned: " + groupXML);
-            return GroupReader.read(groupXML);
+            GroupReader groupReader = new GroupReader();
+            return groupReader.read(groupXML);
         }
         catch (Exception bug)
         {
@@ -331,7 +413,7 @@ public class GMSClient implements TransferListener
             throw new RuntimeException(bug);
         }
     }
-    
+
     /**
      * Get the all group names.
      *
@@ -385,7 +467,7 @@ public class GMSClient implements TransferListener
             log.debug("getGroupNames response " + responseCode + ": " +
                       errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403) || 
+            if ((responseCode == 401) || (responseCode == 403) ||
                     (responseCode == -1))
             {
                 throw new AccessControlException(errMessage);
@@ -420,27 +502,28 @@ public class GMSClient implements TransferListener
     {
         URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
         log.debug("updateGroup request to " + updateGroupURL.toString());
-        
+
         // reset the state of the cache
         clearCache();
 
         StringBuilder groupXML = new StringBuilder();
-        GroupWriter.write(group, groupXML);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(group, groupXML);
         log.debug("updateGroup: " + groupXML);
-        
-        HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(), 
+
+        HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(),
                                          "application/xml", true);
         transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.setTransferListener(this);
         transfer.run();
-        
-        
+
+
         Throwable error = transfer.getThrowable();
         if (error != null)
         {
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) || 
-                (transfer.getResponseCode() == 401) || 
+            if ((transfer.getResponseCode() == -1) ||
+                (transfer.getResponseCode() == 401) ||
                 (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
@@ -458,12 +541,13 @@ public class GMSClient implements TransferListener
             }
             throw new IOException(error);
         }
-        
+
         try
         {
             String retXML = transfer.getResponseBody();
             log.debug("getGroup returned: " + retXML);
-            return GroupReader.read(retXML);
+            GroupReader groupReader = new GroupReader();
+            return groupReader.read(retXML);
         }
         catch (Exception bug)
         {
@@ -485,11 +569,11 @@ public class GMSClient implements TransferListener
     {
         URL deleteGroupURL = new URL(this.baseURL + "/groups/" + groupName);
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
-        
+
         // reset the state of the cache
         clearCache();
 
-        HttpURLConnection conn = 
+        HttpURLConnection conn =
                 (HttpURLConnection) deleteGroupURL.openConnection();
         conn.setRequestMethod("DELETE");
 
@@ -510,14 +594,14 @@ public class GMSClient implements TransferListener
         {
             throw new AccessControlException(e.getMessage());
         }
-        
+
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("deleteGroup response " + responseCode + ": " + 
+            log.debug("deleteGroup response " + responseCode + ": " +
                       errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403) || 
+            if ((responseCode == 401) || (responseCode == 403) ||
                     (responseCode == -1))
             {
                 throw new AccessControlException(errMessage);
@@ -548,11 +632,11 @@ public class GMSClient implements TransferListener
         throws IllegalArgumentException, GroupNotFoundException,
                AccessControlException, IOException
     {
-        URL addGroupMemberURL = new URL(this.baseURL + "/groups/" + 
-                                        targetGroupName + "/groupMembers/" + 
+        URL addGroupMemberURL = new URL(this.baseURL + "/groups/" +
+                                        targetGroupName + "/groupMembers/" +
                                         groupMemberName);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
-        
+
         // reset the state of the cache
         clearCache();
 
@@ -568,8 +652,8 @@ public class GMSClient implements TransferListener
             final int responseCode = httpUpload.getResponseCode();
             final String errMessage = error.getMessage();
 
-            if ((responseCode == -1) || 
-                (responseCode == 401) || 
+            if ((responseCode == -1) ||
+                (responseCode == 401) ||
                 (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
@@ -599,14 +683,15 @@ public class GMSClient implements TransferListener
     public void addUserMember(String targetGroupName, Principal userID)
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
+        log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
+
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String encodedUserID = URLEncoder.encode(userID.getName(), "UTF-8");
-        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + 
-                                       targetGroupName + "/userMembers/" + 
-                                       encodedUserID + "?idType=" + userIDType);
+        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName
+                + "/userMembers/" + NetUtil.encode(userID.getName())
+                + "?idType=" + userIDType);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
-        
+
         // reset the state of the cache
         clearCache();
 
@@ -622,8 +707,8 @@ public class GMSClient implements TransferListener
             final int responseCode = httpUpload.getResponseCode();
             final String errMessage = error.getMessage();
 
-            if ((responseCode == -1) || 
-                (responseCode == 401) || 
+            if ((responseCode == -1) ||
+                (responseCode == 401) ||
                 (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
@@ -652,20 +737,20 @@ public class GMSClient implements TransferListener
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
-    public void removeGroupMember(String targetGroupName, 
+    public void removeGroupMember(String targetGroupName,
                                   String groupMemberName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
-        URL removeGroupMemberURL = new URL(this.baseURL + "/groups/" + 
-                                           targetGroupName + "/groupMembers/" + 
+        URL removeGroupMemberURL = new URL(this.baseURL + "/groups/" +
+                                           targetGroupName + "/groupMembers/" +
                                            groupMemberName);
-        log.debug("removeGroupMember request to " + 
+        log.debug("removeGroupMember request to " +
                   removeGroupMemberURL.toString());
-        
+
         // reset the state of the cache
         clearCache();
 
-        HttpURLConnection conn = 
+        HttpURLConnection conn =
                 (HttpURLConnection) removeGroupMemberURL.openConnection();
         conn.setRequestMethod("DELETE");
 
@@ -675,23 +760,23 @@ public class GMSClient implements TransferListener
             ((HttpsURLConnection) conn)
                     .setSSLSocketFactory(getSSLSocketFactory());
         }
-        
-        // Try to handle anonymous access and throw AccessControlException 
+
+        // Try to handle anonymous access and throw AccessControlException
         int responseCode = -1;
         try
         {
             responseCode = conn.getResponseCode();
         }
         catch (Exception ignore) {}
-        
+
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("removeGroupMember response " + responseCode + ": " + 
+            log.debug("removeGroupMember response " + responseCode + ": " +
                       errMessage);
 
-            if ((responseCode == -1) || 
-                (responseCode == 401) || 
+            if ((responseCode == -1) ||
+                (responseCode == 401) ||
                 (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
@@ -722,19 +807,19 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String encodedUserID = URLEncoder.encode(userID.toString(), "UTF-8");
-        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + 
-                                          targetGroupName + "/userMembers/" + 
-                                          encodedUserID + "?idType=" + 
-                                          userIDType);
 
-        log.debug("removeUserMember request to " +
-                  removeUserMemberURL.toString());
-        
+        log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
+
+        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName
+                + "/userMembers/" + NetUtil.encode(userID.getName())
+                + "?idType=" + userIDType);
+
+        log.debug("removeUserMember: " + removeUserMemberURL.toString());
+
         // reset the state of the cache
         clearCache();
 
-        HttpURLConnection conn = 
+        HttpURLConnection conn =
                 (HttpURLConnection) removeUserMemberURL.openConnection();
         conn.setRequestMethod("DELETE");
 
@@ -744,8 +829,8 @@ public class GMSClient implements TransferListener
             ((HttpsURLConnection) conn)
                     .setSSLSocketFactory(getSSLSocketFactory());
         }
-        
-        // Try to handle anonymous access and throw AccessControlException 
+
+        // Try to handle anonymous access and throw AccessControlException
         int responseCode = -1;
         try
         {
@@ -756,11 +841,11 @@ public class GMSClient implements TransferListener
         if (responseCode != 200)
         {
             String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("removeUserMember response " + responseCode + ": " + 
+            log.debug("removeUserMember response " + responseCode + ": " +
                       errMessage);
 
-            if ((responseCode == -1) || 
-                (responseCode == 401) || 
+            if ((responseCode == -1) ||
+                (responseCode == 401) ||
                 (responseCode == 403))
             {
                 throw new AccessControlException(errMessage);
@@ -792,32 +877,32 @@ public class GMSClient implements TransferListener
         log.debug("getCurrentID: " + p.getClass());
         return p;
     }
-    
+
     /**
      * Get memberships for the current user (subject).
-     * 
+     *
      * @param role
      * @return A list of groups for which the current user has the role.
      * @throws AccessControlException
-     * @throws ca.nrc.cadc.ac.UserNotFoundException 
-     * @throws java.io.IOException 
+     * @throws ca.nrc.cadc.ac.UserNotFoundException
+     * @throws java.io.IOException
      */
-    public List<Group> getMemberships(Role role) 
+    public List<Group> getMemberships(Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
         return getMemberships(getCurrentUserID(), role);
     }
-    
+
     /**
      * Get all the memberships of the user of a certain role.
-     * 
+     *
      * @param userID Identifies the user.
      * @param role The role to look up.
      * @return A list of groups for which the user has the role.
      * @throws UserNotFoundException If the user does not exist.
-     * @throws AccessControlException If not allowed to peform the search.
+     * @throws AccessControlException If not allowed to perform the search.
      * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException If an unknown error occured.
+     * @throws IOException If an unknown error occurred.
      */
     public List<Group> getMemberships(Principal userID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
@@ -826,26 +911,24 @@ public class GMSClient implements TransferListener
         {
             throw new IllegalArgumentException("userID and role are required.");
         }
-        
+
         List<Group> cachedGroups = getCachedGroups(userID, role, true);
         if (cachedGroups != null)
         {
             return cachedGroups;
         }
-        
+
         String idType = AuthenticationUtil.getPrincipalType(userID);
         String id = userID.getName();
         String roleString = role.getValue();
-        
+
         StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
         searchGroupURL.append("/search?");
-        
-        searchGroupURL.append("ID=").append(URLEncoder.encode(id, "UTF-8"));
-        searchGroupURL.append("&IDTYPE=")
-                .append(URLEncoder.encode(idType, "UTF-8"));
-        searchGroupURL.append("&ROLE=")
-                .append(URLEncoder.encode(roleString, "UTF-8"));
-        
+
+        searchGroupURL.append("ID=").append(NetUtil.encode(id));
+        searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
+        searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
+
         log.debug("getMemberships request to " + searchGroupURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         URL url = new URL(searchGroupURL.toString());
@@ -859,8 +942,8 @@ public class GMSClient implements TransferListener
         {
             log.debug("getMemberships throwable", error);
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) || 
-                (transfer.getResponseCode() == 401) || 
+            if ((transfer.getResponseCode() == -1) ||
+                (transfer.getResponseCode() == 401) ||
                 (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
@@ -880,7 +963,8 @@ public class GMSClient implements TransferListener
         {
             String groupsXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getMemberships returned: " + groupsXML);
-            List<Group> groups = GroupsReader.read(groupsXML);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> groups = groupListReader.read(groupsXML);
             setCachedGroups(userID, groups, role);
             return groups;
         }
@@ -890,14 +974,14 @@ public class GMSClient implements TransferListener
             throw new RuntimeException(bug);
         }
     }
-    
+
     /**
      * Return the group, specified by paramter groupName, if the user,
      * identified by userID, is a member of that group.  Return null
      * otherwise.
-     * 
+     *
      * This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
-     *  
+     *
      * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @return The group or null of the user is not a member.
@@ -911,12 +995,12 @@ public class GMSClient implements TransferListener
     {
         return getMembership(userID, groupName, Role.MEMBER);
     }
-    
+
     /**
      * Return the group, specified by paramter groupName, if the user,
      * identified by userID, is a member (of type role) of that group.
      * Return null otherwise.
-     * 
+     *
      * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @param role The membership role to search.
@@ -933,28 +1017,25 @@ public class GMSClient implements TransferListener
         {
             throw new IllegalArgumentException("userID and role are required.");
         }
-        
+
         Group cachedGroup = getCachedGroup(userID, groupName, role);
         if (cachedGroup != null)
         {
             return cachedGroup;
         }
-        
+
         String idType = AuthenticationUtil.getPrincipalType(userID);
         String id = userID.getName();
         String roleString = role.getValue();
-        
+
         StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
         searchGroupURL.append("/search?");
 
-        searchGroupURL.append("ID=").append(URLEncoder.encode(id, "UTF-8"));
-        searchGroupURL.append("&IDTYPE=")
-                .append(URLEncoder.encode(idType, "UTF-8"));
-        searchGroupURL.append("&ROLE=")
-                .append(URLEncoder.encode(roleString, "UTF-8"));
-        searchGroupURL.append("&GROUPID=")
-                .append(URLEncoder.encode(groupName, "UTF-8"));
-        
+        searchGroupURL.append("ID=").append(NetUtil.encode(id));
+        searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
+        searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
+        searchGroupURL.append("&GROUPID=").append(NetUtil.encode(groupName));
+
         log.debug("getMembership request to " + searchGroupURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         URL url = new URL(searchGroupURL.toString());
@@ -968,8 +1049,8 @@ public class GMSClient implements TransferListener
         {
             log.debug("getMembership throwable", error);
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) || 
-                (transfer.getResponseCode() == 401) || 
+            if ((transfer.getResponseCode() == -1) ||
+                (transfer.getResponseCode() == 401) ||
                 (transfer.getResponseCode() == 403))
             {
                 throw new AccessControlException(error.getMessage());
@@ -989,7 +1070,8 @@ public class GMSClient implements TransferListener
         {
             String groupsXML = new String(out.toByteArray(), "UTF-8");
             log.debug("getMembership returned: " + groupsXML);
-            List<Group> groups = GroupsReader.read(groupsXML);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> groups = groupListReader.read(groupsXML);
             if (groups.size() == 0)
             {
                 return null;
@@ -1009,27 +1091,27 @@ public class GMSClient implements TransferListener
             throw new RuntimeException(bug);
         }
     }
-    
+
     /**
      * Check group membership of the current Subject.
-     * 
+     *
      * @param groupName
      * @return
      * @throws UserNotFoundException
      * @throws AccessControlException
-     * @throws IOException 
+     * @throws IOException
      */
     public boolean isMember(String groupName)
         throws UserNotFoundException, AccessControlException, IOException
     {
         return isMember(getCurrentUserID(), groupName, Role.MEMBER);
     }
-    
+
     /**
      * Check if userID is a member of groupName.
-     * 
+     *
      * This is equivalent to isMember(userID, groupName, Role.MEMBER)
-     * 
+     *
      * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @return True if the user is a member of the group
@@ -1043,10 +1125,10 @@ public class GMSClient implements TransferListener
     {
         return isMember(userID, groupName, Role.MEMBER);
     }
-    
+
     /**
      * Check if userID is a member (of type role) of groupName.
-     * 
+     *
      * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @param role The type of membership.
@@ -1074,19 +1156,19 @@ public class GMSClient implements TransferListener
         this.sslSocketFactory = sslSocketFactory;
         clearCache();
     }
-    
+
     private int subjectHashCode = 0;
     private SSLSocketFactory getSSLSocketFactory()
     {
         AccessControlContext ac = AccessController.getContext();
         Subject s = Subject.getSubject(ac);
-        
+
         // no real Subject: can only use the one from setSSLSocketFactory
         if (s == null || s.getPrincipals().isEmpty())
         {
             return sslSocketFactory;
         }
-        
+
         // lazy init
         if (this.mySocketFactory == null)
         {
@@ -1098,13 +1180,13 @@ public class GMSClient implements TransferListener
         {
             int c = s.hashCode();
             if (c != subjectHashCode)
-                throw new IllegalStateException("Illegal use of " 
+                throw new IllegalStateException("Illegal use of "
                         + this.getClass().getSimpleName()
                         + ": subject change not supported for internal SSLSocketFactory");
         }
         return this.mySocketFactory;
     }
-    
+
     protected void clearCache()
     {
         AccessControlContext acContext = AccessController.getContext();
@@ -1119,7 +1201,7 @@ public class GMSClient implements TransferListener
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
-        
+
         // only consult cache if the userID is of the calling subject
         if (userIsSubject(userID, subject))
         {
@@ -1135,7 +1217,7 @@ public class GMSClient implements TransferListener
         }
         return null; // no cache
     }
-    
+
     protected Group getCachedGroup(Principal userID, String groupID, Role role)
     {
         List<Group> groups = getCachedGroups(userID, role, false);
@@ -1157,7 +1239,7 @@ public class GMSClient implements TransferListener
         Boolean cacheState = mems.complete.get(role);
         if (!complete || Boolean.TRUE.equals(cacheState))
             return mems.memberships.get(role);
-        
+
         // caller wanted complete and we don't have that
         return null;
     }
@@ -1167,7 +1249,7 @@ public class GMSClient implements TransferListener
         GroupMemberships mems = getGroupCache(userID);
         if (mems == null)
             return; // no cache
-        
+
         List<Group> groups = mems.memberships.get(role);
         if (groups == null)
         {
@@ -1178,13 +1260,13 @@ public class GMSClient implements TransferListener
         if (!groups.contains(group))
             groups.add(group);
     }
-    
+
     protected void setCachedGroups(Principal userID, List<Group> groups, Role role)
     {
         GroupMemberships mems = getGroupCache(userID);
         if (mems == null)
             return; // no cache
-        
+
         log.debug("Caching groups for " + userID + ", role " + role);
         List<Group> cur = mems.memberships.get(role);
         if (cur == null)
@@ -1200,14 +1282,14 @@ public class GMSClient implements TransferListener
             mems.complete.put(role, Boolean.TRUE);
         }
     }
-    
+
     protected boolean userIsSubject(Principal userID, Subject subject)
     {
         if (userID == null || subject == null)
         {
             return false;
         }
-        
+
         for (Principal subjectPrincipal : subject.getPrincipals())
         {
             if (AuthenticationUtil.equals(subjectPrincipal, userID))
@@ -1225,7 +1307,7 @@ public class GMSClient implements TransferListener
     {
         Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
         Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
-        
+
         protected GroupMemberships()
         {
         }

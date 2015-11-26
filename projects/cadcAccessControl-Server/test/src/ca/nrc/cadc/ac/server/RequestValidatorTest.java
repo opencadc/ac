@@ -69,17 +69,19 @@
 package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.server.web.AddUserMemberActionTest;
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
+import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
-import java.security.Principal;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 /**
@@ -89,7 +91,7 @@ import static org.junit.Assert.*;
 public class RequestValidatorTest
 {
     private final static Logger log = Logger.getLogger(AddUserMemberActionTest.class);
-    
+
     @BeforeClass
     public static void setUpClass()
     {
@@ -103,16 +105,16 @@ public class RequestValidatorTest
     public void testValidate()
     {
         try
-        {   
+        {
             RequestValidator rv = new RequestValidator();
-            
+
             try
             {
                 rv.validate(null);
                 fail("null parameter list should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             List<Parameter> paramList = new ArrayList<Parameter>();
             try
             {
@@ -120,7 +122,7 @@ public class RequestValidatorTest
                 fail("empty parameter list should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             paramList.add(new Parameter("IDTYPE", "idtype"));
             paramList.add(new Parameter("ROLE", "role"));
             try
@@ -129,7 +131,7 @@ public class RequestValidatorTest
                 fail("missing ID parameter should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
             paramList.add(new Parameter("ROLE", "role"));
@@ -139,7 +141,7 @@ public class RequestValidatorTest
                 fail("missing IDTYPE parameter should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
             paramList.add(new Parameter("IDTYPE", "idtype"));
@@ -149,10 +151,10 @@ public class RequestValidatorTest
                 fail("missing ROLE parameter should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", AuthenticationUtil.AUTH_TYPE_HTTP));
+            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", "foo"));
             try
             {
@@ -160,10 +162,10 @@ public class RequestValidatorTest
                 fail("invalid ROLE parameter should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", AuthenticationUtil.AUTH_TYPE_HTTP));
+            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", "foo"));
             paramList.add(new Parameter("GROUPID", ""));
             try
@@ -172,20 +174,20 @@ public class RequestValidatorTest
                 fail("empty GROUPID parameter value should throw IllegalArgumentException");
             }
             catch (IllegalArgumentException ignore) {}
-            
+
             paramList.clear();
             paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", AuthenticationUtil.AUTH_TYPE_HTTP));
+            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
             rv.validate(paramList);
-            
+
             assertNotNull(rv.getPrincipal());
             assertNotNull(rv.getRole());
             assertNull(rv.getGroupID());
-            
+
             paramList.add(new Parameter("GROUPID", "bar"));
             rv.validate(paramList);
-            
+
             assertNotNull(rv.getPrincipal());
             assertNotNull(rv.getRole());
             assertNotNull(rv.getGroupID());
@@ -196,5 +198,5 @@ public class RequestValidatorTest
             fail("unexpected error: " + t.getMessage());
         }
     }
-    
+
 }

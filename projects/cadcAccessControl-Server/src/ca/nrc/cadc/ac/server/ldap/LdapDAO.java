@@ -68,96 +68,76 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+
+import com.unboundid.ldap.sdk.BindRequest;
+import com.unboundid.ldap.sdk.BindResult;
+import com.unboundid.ldap.sdk.DN;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPConnectionPool;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPInterface;
+import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SimpleBindRequest;
 
 import org.apache.log4j.Logger;
 
-import java.security.*;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+import javax.security.auth.Subject;
+import java.security.AccessControlException;
+import java.security.AccessController;
+import java.security.GeneralSecurityException;
+import java.security.Principal;
 import java.util.Set;
-
-import com.unboundid.ldap.sdk.*;
-
-import ca.nrc.cadc.auth.*;
-import ca.nrc.cadc.net.TransientException;
 
 
 public abstract class LdapDAO
 {
 	private static final Logger logger = Logger.getLogger(LdapDAO.class);
-	
-    private LDAPConnection conn;
 
-    LdapConfig config;
+    private LdapConnections connections;
+    protected LdapConfig config;
+
     DN subjDN = null;
 
-    public LdapDAO(LdapConfig config)
+    private Profiler profiler = new Profiler(LdapDAO.class);
+
+    public LdapDAO(LdapConnections connections)
     {
-        if (config == null)
-        {
-            throw new IllegalArgumentException("LDAP config required");
-        }
-        this.config = config;
+        this.connections = connections;
+        config = connections.getCurrentConfig();
+        logger.debug("New LdapDAO instance, config: " + config);
+    }
+
+    public LDAPConnection getReadOnlyConnection() throws TransientException
+    {
+        return connections.getReadOnlyConnection();
+    }
+
+    public LDAPConnection getReadWriteConnection() throws TransientException
+    {
+        return connections.getReadWriteConnection();
+    }
+
+    public LDAPConnection getUnboundReadConnection() throws TransientException
+    {
+        return connections.getUnboundReadOnlyConnection();
     }
 
     public void close()
     {
-        if (conn != null)
-        {
-            conn.close();
-        }
+        connections.releaseConnections();
     }
 
-    protected LDAPConnection getConnection()
-            throws LDAPException, AccessControlException
-    {
-        if (conn == null)
-        {
-            conn = new LDAPConnection(getSocketFactory(), config.getServer(),
-                                      config.getPort());
-            conn.bind(config.getAdminUserDN(), config.getAdminPasswd());
-        }
-
-        return conn;
-    }
-
-    private SocketFactory getSocketFactory()
-    {
-        final SocketFactory socketFactory;
-
-        if (config.isSecure())
-        {
-            socketFactory = createSSLSocketFactory();
-        }
-        else
-        {
-            socketFactory = SocketFactory.getDefault();
-        }
-
-        return socketFactory;
-    }
-
-    private SSLSocketFactory createSSLSocketFactory()
-    {
-        try
-        {
-            return new com.unboundid.util.ssl.SSLUtil().
-                    createSSLSocketFactory();
-        }
-        catch (GeneralSecurityException e)
-        {
-            throw new RuntimeException("Unexpected error.", e);
-        }
-    }
-
-    protected DN getSubjectDN() throws LDAPException
+    protected DN getSubjectDN()
+        throws LDAPException
     {
         if (subjDN == null)
         {
-            Subject callerSubject =
-                    Subject.getSubject(AccessController.getContext());
+            Subject callerSubject = Subject.getSubject(AccessController.getContext());
             if (callerSubject == null)
             {
                 throw new AccessControlException("Caller not authenticated.");
@@ -169,48 +149,18 @@ public abstract class LdapDAO
                 throw new AccessControlException("Caller not authenticated.");
             }
 
-            String ldapField = null;
             for (Principal p : principals)
             {
-                if (p instanceof HttpPrincipal)
+                if (p instanceof DNPrincipal)
                 {
-                    ldapField = "(uid=" + p.getName() + ")";
-                    break;
-                }
-                if (p instanceof NumericPrincipal)
-                {
-                    ldapField = "(entryid=" + p.getName() + ")";
-                    break;
-                }
-                if (p instanceof X500Principal)
-                {
-                    ldapField = "(distinguishedname=" + p.getName() + ")";
-                    break;
-                }
-                if (p instanceof OpenIdPrincipal)
-                {
-                    ldapField = "(openid=" + p.getName() + ")";
-                    break;
+                    subjDN = new DN(p.getName());
                 }
             }
 
-            if (ldapField == null)
+            if (subjDN == null)
             {
                 throw new AccessControlException("Identity of caller unknown.");
             }
-
-            SearchResult searchResult =
-                    getConnection().search(config.getUsersDN(), SearchScope.ONE,
-                                           ldapField, "entrydn");
-
-            if (searchResult.getEntryCount() < 1)
-            {
-                throw new AccessControlException(
-                        "No LDAP account when search with rule " + ldapField);
-            }
-
-            subjDN = (searchResult.getSearchEntries().get(0))
-                    .getAttributeValueAsDN("entrydn");
         }
         return subjDN;
     }
@@ -227,12 +177,12 @@ public abstract class LdapDAO
             throws TransientException
     {
     	logger.debug("Ldap result: " + code);
-    	if (code == ResultCode.SUCCESS 
-                || code == ResultCode.NO_SUCH_OBJECT)
+
+    	if (code == ResultCode.SUCCESS || code == ResultCode.NO_SUCH_OBJECT)
         {
             return;
         }
-        
+
         if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
         {
             throw new AccessControlException("Not authorized ");
@@ -245,20 +195,51 @@ public abstract class LdapDAO
         {
             throw new IllegalArgumentException("Error in Ldap parameters ");
         }
-        else if (code == ResultCode.BUSY 
-                || code == ResultCode.CONNECT_ERROR)
+        else if (code == ResultCode.BUSY || code == ResultCode.CONNECT_ERROR)
         {
             throw new TransientException("Connection problems ");
         }
-        else if (code == ResultCode.TIMEOUT
-                || code == ResultCode.TIME_LIMIT_EXCEEDED)
+        else if (code == ResultCode.TIMEOUT || code == ResultCode.TIME_LIMIT_EXCEEDED)
         {
             throw new TransientException("ldap timeout");
         }
-        else
+        else if (code == ResultCode.INVALID_DN_SYNTAX)
         {
-            throw new RuntimeException("Ldap error (" + code.getName() + ")");
+            throw new IllegalArgumentException("Invalid DN syntax");
         }
+
+        throw new RuntimeException("Ldap error (" + code.getName() + ")");
     }
 
+
+    static SocketFactory getSocketFactory(LdapConfig config)
+    {
+        final SocketFactory socketFactory;
+
+        if (config.isSecure())
+        {
+            socketFactory = createSSLSocketFactory();
+            Profiler profiler = new Profiler(LdapDAO.class);
+            profiler.checkpoint("createSSLSocketFactory");
+        }
+        else
+        {
+            socketFactory = SocketFactory.getDefault();
+        }
+
+        return socketFactory;
+    }
+
+    static SSLSocketFactory createSSLSocketFactory()
+    {
+        try
+        {
+            return new com.unboundid.util.ssl.SSLUtil().
+                    createSSLSocketFactory();
+        }
+        catch (GeneralSecurityException e)
+        {
+            throw new RuntimeException("Unexpected error.", e);
+        }
+    }
 }

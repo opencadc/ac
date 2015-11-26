@@ -68,34 +68,40 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.security.PrivilegedExceptionAction;
-
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-
+import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPInterface;
 
+import java.security.PrivilegedAction;
 import org.apache.log4j.Level;
-import org.junit.Test;
 import org.junit.BeforeClass;
-import static org.junit.Assert.*;
+import org.junit.Test;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import java.security.PrivilegedExceptionAction;
+import org.junit.Assert;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 
 public class LdapDAOTest extends AbstractLdapDAOTest
 {
     static LdapConfig config;
-    
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         // get the configuration of the development server from and config files...
-        config = getLdapConfig();        
+        config = getLdapConfig();
     }
     @Test
     public void testLdapBindConnection() throws Exception
@@ -110,8 +116,9 @@ public class LdapDAOTest extends AbstractLdapDAOTest
         Subject subject = new Subject();
 
         subject.getPrincipals().add(httpPrincipal);
-        
-        final LdapDAOTestImpl ldapDao = new LdapDAOTestImpl(config);
+
+        LdapConnections connections = new LdapConnections(config);
+        final LdapDAOTestImpl ldapDao = new LdapDAOTestImpl(connections);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -119,7 +126,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    testConnection(ldapDao.getConnection());
+                    testConnection(ldapDao.getReadOnlyConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -128,18 +135,18 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-               
+
 
         subject = new Subject();
         subject.getPrincipals().add(subjPrincipal);
-        
+
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
                 try
                 {
-                    testConnection(ldapDao.getConnection());
+                    testConnection(ldapDao.getReadOnlyConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -148,9 +155,9 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-        
-        
-        NumericPrincipal numPrincipal = new NumericPrincipal(1866);       
+
+
+        NumericPrincipal numPrincipal = new NumericPrincipal(1866);
         subject.getPrincipals().add(numPrincipal);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -160,7 +167,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
                 try
                 {
 
-                    testConnection(ldapDao.getConnection());
+                    testConnection(ldapDao.getReadOnlyConnection());
                     return null;
                 }
                 catch (Exception e)
@@ -170,6 +177,41 @@ public class LdapDAOTest extends AbstractLdapDAOTest
             }
         });
 
+    }
+
+    @Test
+    public void testGetSubjectDN() throws Exception
+    {
+        DN expected = new DN("uid=foo,ou=bar,dc=net");
+        final DNPrincipal dnPrincipal = new DNPrincipal(expected.toNormalizedString());
+
+        Subject subject = new Subject();
+        subject.getPrincipals().add(new HttpPrincipal("foo"));
+        subject.getPrincipals().add(new X500Principal("uid=foo,o=bar"));
+        subject.getPrincipals().add(dnPrincipal);
+
+        LdapConfig config = LdapConfig.loadLdapConfig("LdapConfig.test.properties");
+        LdapConnections conn = new LdapConnections(config);
+        final LdapDAO ldapDAO = new LdapDAO(conn) { }; // abstract
+
+        DN actual = Subject.doAs(subject, new PrivilegedAction<DN>()
+        {
+            public DN run()
+            {
+                try
+                {
+                    return ldapDAO.getSubjectDN();
+                }
+                catch(LDAPException ex)
+                {
+                    Assert.fail("getSubjectDN threw " + ex);
+                }
+                return null;
+            }
+        } );
+
+        assertNotNull("DN is null", actual);
+        assertEquals("DN's do not match", expected.toNormalizedString(), actual.toNormalizedString());
     }
 
     private void testConnection(final LDAPConnection ldapCon)

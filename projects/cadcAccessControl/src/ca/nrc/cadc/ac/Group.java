@@ -96,6 +96,8 @@ public class Group
     
     public String description;
     public Date lastModified;
+
+    public Group() {}
     
     /**
      * Ctor.
