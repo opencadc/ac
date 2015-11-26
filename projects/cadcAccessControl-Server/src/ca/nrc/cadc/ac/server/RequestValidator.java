@@ -87,7 +87,7 @@ public class RequestValidator
 {
     private static final Logger log = Logger.getLogger(RequestValidator.class);
     
-    private Principal principal;
+    //private Principal principal;
     private Role role;
     private String groupID;
     
@@ -95,7 +95,7 @@ public class RequestValidator
 
     private void clear()
     {
-        this.principal = null;
+        //this.principal = null;
         this.role = null;
         this.groupID = null;
     }
@@ -110,30 +110,30 @@ public class RequestValidator
         }
 
         // ID
-        String param = ParameterUtil.findParameterValue("ID", paramList);
-        if (param == null || param.trim().isEmpty())
-        {
-            throw new IllegalArgumentException(
-                    "ID parameter required but not found");
-        }
-        String userID = param.trim();
-        log.debug("ID: " + userID);
+        //String param = ParameterUtil.findParameterValue("ID", paramList);
+        //if (param == null || param.trim().isEmpty())
+        //{
+        //    throw new IllegalArgumentException(
+        //            "ID parameter required but not found");
+        //}
+        //String userID = param.trim();
+        //log.debug("ID: " + userID);
 
         // TYPE
-        param = ParameterUtil.findParameterValue("IDTYPE", paramList);
-        if (param == null || param.trim().isEmpty())
-        {
-            throw new IllegalArgumentException(
-                    "IDTYPE parameter required but not found");
-        }
+        //param = ParameterUtil.findParameterValue("IDTYPE", paramList);
+        //if (param == null || param.trim().isEmpty())
+        //{
+        //    throw new IllegalArgumentException(
+        //            "IDTYPE parameter required but not found");
+        //}
         
-        principal = 
-            AuthenticationUtil.createPrincipal(userID, 
-                                               param.trim());
-        log.debug("TYPE: " + param.trim());
+        //principal = 
+        //    AuthenticationUtil.createPrincipal(userID, 
+        //                                       param.trim());
+        //log.debug("TYPE: " + param.trim());
         
         // ROLE
-        param = ParameterUtil.findParameterValue("ROLE", paramList);
+        String param = ParameterUtil.findParameterValue("ROLE", paramList);
         if (param == null || param.trim().isEmpty())
         {
             throw new IllegalArgumentException(
@@ -154,10 +154,10 @@ public class RequestValidator
         log.debug("GROUPID: " + groupID);
     }
     
-    public Principal getPrincipal()
-    {
-        return principal;
-    }
+    //public Principal getPrincipal()
+    //{
+    //    return principal;
+    //}
 
     public Role getRole()
     {

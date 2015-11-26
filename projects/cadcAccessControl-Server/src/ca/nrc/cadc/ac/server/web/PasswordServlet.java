@@ -68,12 +68,10 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Logger;
@@ -86,9 +84,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
-import java.util.TreeSet;
+import java.util.Set;
 
 /**
  * Servlet to handle password changes.  Passwords are an integral part of the
@@ -130,6 +127,7 @@ public class PasswordServlet extends HttpServlet
         try
         {
             final Subject subject = AuthenticationUtil.getSubject(request);
+            logInfo.setSubject(subject);
             if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
                 logInfo.setMessage("Unauthorized subject");
@@ -141,20 +139,11 @@ public class PasswordServlet extends HttpServlet
                 {
                     public Object run() throws Exception
                     {
-                        User<Principal> user;
-                        try
-                        {
-                            user = userPersistence.getUser(subject.getPrincipals().iterator().next());
-                        }
-                        catch (UserNotFoundException e)
-                        {
-                            throw new AccessControlException("User not found");
-                        }
-
-                        Subject logSubject = new Subject(false, user.getIdentities(),
-                                                         new TreeSet(), new TreeSet());
-
-                        logInfo.setSubject(logSubject);
+                        
+                        Set<HttpPrincipal> pset = subject.getPrincipals(HttpPrincipal.class);
+                        if (pset.isEmpty())
+                            throw new IllegalStateException("no HttpPrincipal in subject");
+                        HttpPrincipal userID = pset.iterator().next();
 
                         String oldPassword = request.getParameter("old_password");
                         String newPassword = request.getParameter("new_password");
@@ -162,7 +151,7 @@ public class PasswordServlet extends HttpServlet
                         {
                             if (StringUtil.hasText(newPassword))
                             {
-                                userPersistence.setPassword(user, oldPassword, newPassword);
+                                userPersistence.setPassword(userID, oldPassword, newPassword);
                             }
                             else
                             {

@@ -192,7 +192,7 @@ public class ACSearchRunner implements JobRunner
             rv.validate(job.getParameterList());
 
             // only allow users to search themselves...
-            Principal userBeingSearched = rv.getPrincipal();
+            //Principal userBeingSearched = rv.getPrincipal();
 
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.createGroupPersistence();

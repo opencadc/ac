@@ -454,7 +454,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
             throws GroupNotFoundException, TransientException,
                    AccessControlException
     {
-        logger.debug("getGroup: " + groupDN + " attrs: " + attributes.length);
+        logger.info("getGroup: " + groupDN + " attrs: " + attributes.length);
         String loggableGroupID = xgroupID;
         if (loggableGroupID == null)
         {
@@ -464,8 +464,9 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
 
         try
         {
-            Filter filter = Filter
-                    .createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
+            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter("nsaccountlock"));
+            filter = Filter.createANDFilter(filter,
+                    Filter.createEqualityFilter("entrydn", groupDN.toNormalizedString()));
 
             SearchRequest searchRequest =
                     new SearchRequest(groupDN.toNormalizedString(),

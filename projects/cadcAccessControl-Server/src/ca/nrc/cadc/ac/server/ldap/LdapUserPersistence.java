@@ -81,6 +81,7 @@ import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
@@ -455,11 +456,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException   If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void setPassword(User<T> user, final String oldPassword, final String newPassword)
+    public void setPassword(HttpPrincipal userID, String oldPassword, String newPassword)
             throws UserNotFoundException, TransientException, AccessControlException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
-        if ( !isMatch(caller, user) )
+        if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
         
         LdapUserDAO<T> userDAO = null;
@@ -467,7 +468,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         try
         {
             userDAO = new LdapUserDAO<T>(conns);
-            userDAO.setPassword(user, oldPassword, newPassword);
+            if (userDAO.doLogin(userID.getName(), oldPassword))
+            {
+                // oldPassword is correct
+                userDAO.setPassword(userID, oldPassword, newPassword);
+            }
         }
         finally
         {
@@ -491,7 +496,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         return false;
     }
     
-    private boolean isMatch(Subject caller, T userID)
+    private boolean isMatch(Subject caller, Principal userID)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");

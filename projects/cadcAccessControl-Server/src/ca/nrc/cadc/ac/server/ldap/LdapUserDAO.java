@@ -217,7 +217,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         try
         {
             BindRequest bindRequest = new SimpleBindRequest(
-                getUserDN(username, config.getUsersDN()), password);
+                getUserDN(username, config.getUsersDN()), new String(password));
 
             LDAPConnection conn = this.getUnboundReadConnection();
             BindResult bindResult = conn.bind(bindRequest);
@@ -795,37 +795,35 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
-     * @param user
+     * @param userID
      * @param oldPassword   current password.
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
      * @throws TransientException   If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void setPassword(User<T> user, final String oldPassword, final String newPassword)
+    public void setPassword(HttpPrincipal userID, String oldPassword, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         try
         {
+            User user = new User(userID);
             DN userDN = getUserDN(user);
-            String username = null;
-            for (Principal p : user.getIdentities())
-            {
-                if (p instanceof HttpPrincipal)
-                    username = p.getName();
-            }
 
-            BindRequest bindRequest = new SimpleBindRequest(
-                    getUserDN(username, config.getUsersDN()), oldPassword);
-            LDAPConnection conn = this.getUnboundReadConnection();
-            conn.bind(bindRequest);
+            //BindRequest bindRequest = new SimpleBindRequest(
+            //        getUserDN(username, config.getUsersDN()), oldPassword);
+            //LDAPConnection conn = this.getUnboundReadConnection();
+            //conn.bind(bindRequest);
 
+            LDAPConnection conn = this.getReadWriteConnection();
+            
             PasswordModifyExtendedRequest passwordModifyRequest =
                 new PasswordModifyExtendedRequest(
-                    userDN.toNormalizedString(), oldPassword, newPassword);
+                    userDN.toNormalizedString(), new String(oldPassword), new String(newPassword));
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
                     conn.processExtendedOperation(passwordModifyRequest);
+            
             LdapDAO.checkLdapResult(passwordModifyResult.getResultCode());
         }
         catch (LDAPException e)

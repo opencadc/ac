@@ -278,23 +278,44 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
             else
             {
                 List<Group> groups = getGroupCache(caller, role);
+                log.info("getGroups  " + role + ": " + groups.size());
                 Collection<Group> ret = new ArrayList<Group>(groups.size());
                 Iterator<Group> i = groups.iterator();
                 while ( i.hasNext() )
                 {
                     Group g = i.next();
-                    //if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
-                    //{
-                        Group g2 = groupDAO.getGroup(g.getID());
-                        ret.add(g2);
-                    //}
-                    //else
-                    //    ret.add(g);
+                    if (groupID == null || g.getID().equalsIgnoreCase(groupID))
+                    {
+                        //if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
+                        //{
+                        try
+                        {
+                            Group g2 = groupDAO.getGroup(g.getID());
+                            log.info("role " + role + " loaded: " + g2);
+                            ret.add(g2);
+                        }
+                        catch(GroupNotFoundException contentBug)
+                        {
+                            log.info("skip: " + g.getID() + ": " + contentBug);
+                        }
+                        //}
+                        //else
+                        //    ret.add(g);
+                    }
                 }
                 return ret;
             }
-            
         }
+        catch(TransientException ex)
+        {
+            log.error("getGroups fail", ex);
+            throw ex;
+        }
+        //catch (GroupNotFoundException ex)
+        //{
+        //    log.error("getGroups fail", ex);
+        //    throw ex;
+        //}
         finally
         {
             conns.releaseConnections();

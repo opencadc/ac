@@ -793,7 +793,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final char[] password = "foo".toCharArray();
         final char[] newPassword = "bar".toCharArray();
 
-        HttpPrincipal httpPrincipal = new HttpPrincipal(username);
+        final HttpPrincipal httpPrincipal = new HttpPrincipal(username);
 
         testUser2 = new User<HttpPrincipal>(httpPrincipal);
         testUser2.getIdentities().add(httpPrincipal);
@@ -852,7 +852,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<HttpPrincipal> userDAO = getUserDAO();
-                    userDAO.setPassword(testUser2, String.valueOf(password),
+                    userDAO.setPassword(httpPrincipal, String.valueOf(password),
                         String.valueOf(newPassword));
                     fail("should throw exception if subject and user are not the same");
                 }
@@ -874,7 +874,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO<HttpPrincipal> userDAO = getUserDAO();
-                    userDAO.setPassword(testUser2, String.valueOf(password),
+                    userDAO.setPassword(httpPrincipal, String.valueOf(password),
                         String.valueOf(newPassword));
                 }
                 catch (Exception e)
