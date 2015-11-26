@@ -68,6 +68,24 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
@@ -79,20 +97,6 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.util.Set;
 
 public class UserServlet<T extends Principal> extends HttpServlet
 {
@@ -102,8 +106,7 @@ public class UserServlet<T extends Principal> extends HttpServlet
 
     public static final String USER_PERSISTENCE_REF = "userPersistence";
 
-    private String notAugmentedX500User;
-    private String notAugmentedHttpUser;
+    private List<Subject> notAugmentedSubjects;
 
     private UserPersistence<T> userPersistence;
 
@@ -114,10 +117,33 @@ public class UserServlet<T extends Principal> extends HttpServlet
 
         try
         {
-            this.notAugmentedX500User = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500User");
-            this.notAugmentedHttpUser = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpUser");
-            log.debug("notAugmentedX500User: " + notAugmentedX500User);
-            log.debug("notAugmentedHttpUser: " + notAugmentedHttpUser);
+            String x500Users = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500Principals");
+            log.debug("notAugmentedX500Users: " + x500Users);
+
+            String httpUsers = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpPrincipals");
+            log.debug("notAugmentedHttpUsers: " + httpUsers);
+
+            String[] x500List = new String[0];
+            String[] httpList = new String[0];
+            if (x500Users != null && httpUsers != null)
+            {
+                x500List = x500Users.split(" ");
+                httpList = httpUsers.split(" ");
+            }
+
+            if (x500List.length != httpList.length)
+            {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+            }
+
+            notAugmentedSubjects = new ArrayList<Subject>(x500Users.length());
+            for (int i=0; i<x500List.length; i++)
+            {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500List[i]));
+                s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                notAugmentedSubjects.add(s);
+            }
 
             PluginFactory pluginFactory = new PluginFactory();
             userPersistence = pluginFactory.createUserPersistence();
@@ -156,13 +182,14 @@ public class UserServlet<T extends Principal> extends HttpServlet
             // Special case: if the calling subject has a servops X500Principal,
             // AND it is a GET request, do not augment the subject.
             Subject subject;
-            if (action instanceof GetUserAction && isNotAugmentedSubject(request))
+            Subject notAugmentedSubject = getNotAugmentedSubject(request);
+            if (action instanceof GetUserAction && notAugmentedSubject != null)
             {
                 profiler.checkpoint("check not augmented user");
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
-                logInfo.user = notAugmentedHttpUser;
+                logInfo.setSubject(notAugmentedSubject);
                 profiler.checkpoint("set not augmented user");
             }
             else
@@ -288,8 +315,13 @@ public class UserServlet<T extends Principal> extends HttpServlet
         }
     }
 
-    protected boolean isNotAugmentedSubject(HttpServletRequest request)
+    protected Subject getNotAugmentedSubject(HttpServletRequest request)
     {
+        if (notAugmentedSubjects == null || notAugmentedSubjects.isEmpty())
+        {
+            return null;
+        }
+
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
 
@@ -297,22 +329,35 @@ public class UserServlet<T extends Principal> extends HttpServlet
         {
             if (principal instanceof X500Principal)
             {
-                if (principal.getName().equalsIgnoreCase(notAugmentedX500User))
+                for (Subject s : notAugmentedSubjects)
                 {
-                    log.debug("found notAugmentedX500User " + notAugmentedX500User);
-                    return true;
+                    Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
+                    for (X500Principal p2 : x500Principals)
+                    {
+                        if (p2.getName().equalsIgnoreCase(principal.getName()))
+                        {
+                            return s;
+                        }
+                    }
                 }
             }
+
             if (principal instanceof HttpPrincipal)
             {
-                if (principal.getName().equalsIgnoreCase(notAugmentedHttpUser))
+                for (Subject s : notAugmentedSubjects)
                 {
-                    log.debug("found notAugmentedHttpUser " + notAugmentedHttpUser);
-                    return true;
+                    Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
+                    for (HttpPrincipal p2 : httpPrincipals)
+                    {
+                        if (p2.getName().equalsIgnoreCase(principal.getName()))
+                        {
+                            return s;
+                        }
+                    }
                 }
             }
         }
 
-        return false;
+        return null;
     }
 }
