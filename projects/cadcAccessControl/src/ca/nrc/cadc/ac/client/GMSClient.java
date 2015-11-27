@@ -869,10 +869,10 @@ public class GMSClient implements TransferListener
     {
         Subject cur = AuthenticationUtil.getCurrentSubject();
         if (cur == null)
-            throw new IllegalArgumentException("no subject");
+            return null; // throw new IllegalArgumentException("no subject");
         Set<HttpPrincipal> ps = cur.getPrincipals(HttpPrincipal.class); // hack
         if (ps.isEmpty())
-            throw new IllegalArgumentException("no principals");
+            return null; // throw new IllegalArgumentException("no principals");
         Principal p = ps.iterator().next();
         log.debug("getCurrentID: " + p.getClass());
         return p;
@@ -893,40 +893,33 @@ public class GMSClient implements TransferListener
         return getMemberships(getCurrentUserID(), role);
     }
 
-    /**
-     * Get all the memberships of the user of a certain role.
-     *
-     * @param userID Identifies the user.
-     * @param role The role to look up.
-     * @return A list of groups for which the user has the role.
-     * @throws UserNotFoundException If the user does not exist.
-     * @throws AccessControlException If not allowed to perform the search.
-     * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException If an unknown error occurred.
-     */
-    public List<Group> getMemberships(Principal userID, Role role)
+    
+    private List<Group> getMemberships(Principal userID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        if (userID == null || role == null)
+        if (role == null)
         {
-            throw new IllegalArgumentException("userID and role are required.");
+            throw new IllegalArgumentException("role are required.");
         }
 
-        List<Group> cachedGroups = getCachedGroups(userID, role, true);
-        if (cachedGroups != null)
+        if (userID != null)
         {
-            return cachedGroups;
+            List<Group> cachedGroups = getCachedGroups(userID, role, true);
+            if (cachedGroups != null)
+            {
+                return cachedGroups;
+            }
         }
 
-        String idType = AuthenticationUtil.getPrincipalType(userID);
-        String id = userID.getName();
+        //String idType = AuthenticationUtil.getPrincipalType(userID);
+        //String id = userID.getName();
         String roleString = role.getValue();
 
         StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
         searchGroupURL.append("/search?");
 
-        searchGroupURL.append("ID=").append(NetUtil.encode(id));
-        searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
+        //searchGroupURL.append("ID=").append(NetUtil.encode(id));
+        //searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
         searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
 
         log.debug("getMemberships request to " + searchGroupURL.toString());
@@ -976,13 +969,12 @@ public class GMSClient implements TransferListener
     }
 
     /**
-     * Return the group, specified by paramter groupName, if the user,
+     * Return the group, specified by parameter groupName, if the user,
      * identified by userID, is a member of that group.  Return null
      * otherwise.
      *
      * This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
      *
-     * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @return The group or null of the user is not a member.
      * @throws UserNotFoundException If the user does not exist.
@@ -990,10 +982,10 @@ public class GMSClient implements TransferListener
      * @throws IllegalArgumentException If a parameter is null.
      * @throws IOException If an unknown error occured.
      */
-    public Group getMembership(Principal userID, String groupName)
+    public Group getMembership(String groupName)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return getMembership(userID, groupName, Role.MEMBER);
+        return getMembership(groupName, Role.MEMBER);
     }
 
     /**
@@ -1010,29 +1002,33 @@ public class GMSClient implements TransferListener
      * @throws IllegalArgumentException If a parameter is null.
      * @throws IOException If an unknown error occured.
      */
-    public Group getMembership(Principal userID, String groupName, Role role)
+    public Group getMembership(String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        if (userID == null || groupName == null || role == null)
+        if (groupName == null || role == null)
         {
-            throw new IllegalArgumentException("userID and role are required.");
+            throw new IllegalArgumentException("groupName and role are required.");
         }
 
-        Group cachedGroup = getCachedGroup(userID, groupName, role);
-        if (cachedGroup != null)
+        Principal userID = getCurrentUserID();
+        if (userID != null)
         {
-            return cachedGroup;
+            Group cachedGroup = getCachedGroup(userID, groupName, role);
+            if (cachedGroup != null)
+            {
+                return cachedGroup;
+            }
         }
 
-        String idType = AuthenticationUtil.getPrincipalType(userID);
-        String id = userID.getName();
+        //String idType = AuthenticationUtil.getPrincipalType(userID);
+        //String id = userID.getName();
         String roleString = role.getValue();
 
         StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
         searchGroupURL.append("/search?");
 
-        searchGroupURL.append("ID=").append(NetUtil.encode(id));
-        searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
+        //searchGroupURL.append("ID=").append(NetUtil.encode(id));
+        //searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
         searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
         searchGroupURL.append("&GROUPID=").append(NetUtil.encode(groupName));
 
@@ -1072,7 +1068,7 @@ public class GMSClient implements TransferListener
             log.debug("getMembership returned: " + groupsXML);
             GroupListReader groupListReader = new GroupListReader();
             List<Group> groups = groupListReader.read(groupsXML);
-            if (groups.size() == 0)
+            if (groups.isEmpty())
             {
                 return null;
             }
@@ -1083,7 +1079,7 @@ public class GMSClient implements TransferListener
                 return ret;
             }
             throw new IllegalStateException(
-                    "Duplicate membership for " + id + " in group " + groupName);
+                    "Duplicate membership for " + userID + " in group " + groupName);
         }
         catch (Exception bug)
         {
@@ -1104,44 +1100,28 @@ public class GMSClient implements TransferListener
     public boolean isMember(String groupName)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return isMember(getCurrentUserID(), groupName, Role.MEMBER);
+        return isMember(groupName, Role.MEMBER);
     }
-
+    
     /**
-     * Check if userID is a member of groupName.
-     *
-     * This is equivalent to isMember(userID, groupName, Role.MEMBER)
-     *
-     * @param userID Identifies the user.
-     * @param groupName Identifies the group.
-     * @return True if the user is a member of the group
-     * @throws UserNotFoundException If the user does not exist.
-     * @throws AccessControlException If not allowed to peform the search.
-     * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException If an unknown error occured.
+     * 
+     * @param groupName
+     * @param role
+     * @return
+     * @throws UserNotFoundException
+     * @throws AccessControlException
+     * @throws IOException 
      */
-    public boolean isMember(Principal userID, String groupName)
+    public boolean isMember(String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return isMember(userID, groupName, Role.MEMBER);
+        return isMember(getCurrentUserID(), groupName, role);
     }
 
-    /**
-     * Check if userID is a member (of type role) of groupName.
-     *
-     * @param userID Identifies the user.
-     * @param groupName Identifies the group.
-     * @param role The type of membership.
-     * @return True if the user is a member of the group
-     * @throws UserNotFoundException If the user does not exist.
-     * @throws AccessControlException If not allowed to peform the search.
-     * @throws IllegalArgumentException If a parameter is null.
-     * @throws IOException If an unknown error occured.
-     */
-    public boolean isMember(Principal userID, String groupName, Role role)
+    private boolean isMember(Principal userID, String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        Group group = getMembership(userID, groupName, role);
+        Group group = getMembership(groupName, role);
         return group != null;
     }
 
@@ -1208,7 +1188,7 @@ public class GMSClient implements TransferListener
             Set<GroupMemberships> gset = subject.getPrivateCredentials(GroupMemberships.class);
             if (gset == null || gset.isEmpty())
             {
-                GroupMemberships mems = new GroupMemberships();
+                GroupMemberships mems = new GroupMemberships(new User(userID));
                 subject.getPrivateCredentials().add(mems);
                 return mems;
             }
@@ -1236,9 +1216,9 @@ public class GMSClient implements TransferListener
         if (mems == null)
             return null; // no cache
 
-        Boolean cacheState = mems.complete.get(role);
+        Boolean cacheState = mems.isComplete(role);
         if (!complete || Boolean.TRUE.equals(cacheState))
-            return mems.memberships.get(role);
+            return mems.getMemberships(role);
 
         // caller wanted complete and we don't have that
         return null;
@@ -1250,15 +1230,7 @@ public class GMSClient implements TransferListener
         if (mems == null)
             return; // no cache
 
-        List<Group> groups = mems.memberships.get(role);
-        if (groups == null)
-        {
-            groups = new ArrayList<Group>();
-            mems.complete.put(role, Boolean.FALSE);
-            mems.memberships.put(role, groups);
-        }
-        if (!groups.contains(group))
-            groups.add(group);
+        mems.add(group, role);
     }
 
     protected void setCachedGroups(Principal userID, List<Group> groups, Role role)
@@ -1267,20 +1239,7 @@ public class GMSClient implements TransferListener
         if (mems == null)
             return; // no cache
 
-        log.debug("Caching groups for " + userID + ", role " + role);
-        List<Group> cur = mems.memberships.get(role);
-        if (cur == null)
-        {
-            cur = new ArrayList<Group>();
-            mems.complete.put(role, Boolean.FALSE);
-            mems.memberships.put(role, cur);
-        }
-        for (Group group : groups)
-        {
-            if (!cur.contains(group))
-                cur.add(group);
-            mems.complete.put(role, Boolean.TRUE);
-        }
+        mems.add(groups, role);
     }
 
     protected boolean userIsSubject(Principal userID, Subject subject)
@@ -1298,34 +1257,6 @@ public class GMSClient implements TransferListener
             }
         }
         return false;
-    }
-
-    /**
-     * Class used to hold list of groups in which a user is known to be a member.
-     */
-    protected class GroupMemberships implements Comparable
-    {
-        Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
-        Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
-
-        protected GroupMemberships()
-        {
-        }
-
-        // only allow one in a set - makes clearCache simple too
-        public boolean equals(Object rhs)
-        {
-            if (rhs != null && rhs instanceof GroupMemberships)
-                return true;
-            return false;
-        }
-
-        public int compareTo(Object t)
-        {
-            if (this.equals(t))
-                return 0;
-            return -1; // wonder if this is sketchy
-        }
     }
 
 }

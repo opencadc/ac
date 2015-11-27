@@ -69,21 +69,19 @@
 
 package ca.nrc.cadc.auth;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
 
-import java.security.AccessControlException;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
@@ -149,6 +147,24 @@ public class AuthenticatorImpl implements Authenticator
                 log.debug("Null identities after augment");
             }
             subject.getPrincipals().addAll(user.getIdentities());
+            if (user.appData != null)
+            {
+                log.debug("found: " + user.appData.getClass().getName());
+                try
+                {
+                    GroupMemberships gms = (GroupMemberships) user.appData;
+                    for (Group g : gms.getMemberships(Role.ADMIN))
+                        log.debug("GroupMemberships admin: " + g.getID());
+                    for (Group g : gms.getMemberships(Role.MEMBER))
+                        log.debug("GroupMemberships member: " + g.getID());
+                    subject.getPrivateCredentials().add(gms);
+                }
+                catch(Exception bug)
+                {
+                    throw new RuntimeException("BUG: found User.appData but could not store in Subject as GroupMemberships cache", bug);
+                    
+                }
+            }
             profiler.checkpoint("augmentSubject");
         }
         catch (UserNotFoundException e)

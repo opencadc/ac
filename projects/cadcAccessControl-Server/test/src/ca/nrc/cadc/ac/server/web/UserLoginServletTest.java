@@ -31,6 +31,8 @@ public class UserLoginServletTest
     }
     // BM: Disabled test because it tries to augment the users' subject which
     // fails due to an JNDI lookup/bind error.
+    // PD: GroupPersistence API change to getGroups() mans the tests must be run
+    // inside a Subject.doAs which means the mock setup needs to be rethought entirely
     //@Test
     public void getCheckCanImpersonate() throws Throwable
     {
@@ -97,19 +99,19 @@ public class UserLoginServletTest
                 try
                 {
                     EasyMock.expect(
-                            mockGp.getGroups(new HttpPrincipal("proxyUser"),
+                            mockGp.getGroups( //new HttpPrincipal("proxyUser"),
                                     Role.MEMBER, proxyGroup)).andReturn(
                             proxyGroups);
                     EasyMock.expect(
-                            mockGp.getGroups(new HttpPrincipal("nonProxyUser"),
+                            mockGp.getGroups( //new HttpPrincipal("nonProxyUser"),
                                     Role.MEMBER, proxyGroup)).andReturn(
                             new HashSet<Group>());
                     EasyMock.expect(
-                            mockGp.getGroups(new HttpPrincipal("user"),
+                            mockGp.getGroups( //new HttpPrincipal("user"),
                                     Role.MEMBER, nonImpersonGroup)).andReturn(
                             new HashSet<Group>());
                     EasyMock.expect(
-                            mockGp.getGroups(new HttpPrincipal("niUser"),
+                            mockGp.getGroups( //new HttpPrincipal("niUser"),
                                     Role.MEMBER, nonImpersonGroup)).andReturn(
                             niGroups);
                     replay(mockGp);

@@ -72,8 +72,8 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
-import com.unboundid.ldap.sdk.DN;
 
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -92,10 +92,9 @@ public interface UserPersistence<T extends Principal>
      *
      * @param user      The user request to put into the active users tree.
      *
-     * @return User instance.
-     *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
     void addUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
@@ -106,10 +105,9 @@ public interface UserPersistence<T extends Principal>
      *
      * @param user      The user request to put into the pending users tree.
      *
-     * @return User instance.
-     *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
     void addPendingUser(UserRequest<T> user)
         throws TransientException, AccessControlException,
@@ -256,14 +254,14 @@ public interface UserPersistence<T extends Principal>
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
-     * @param user
+     * @param userID
      * @param oldPassword   current password.
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
      * @throws TransientException   If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    void setPassword(User<T> user, final String oldPassword, final String newPassword)
+    void setPassword(HttpPrincipal userID, String oldPassword, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException;
 
 }

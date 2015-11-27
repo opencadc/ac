@@ -179,41 +179,6 @@ public class LdapDAOTest extends AbstractLdapDAOTest
 
     }
 
-    @Test
-    public void testGetSubjectDN() throws Exception
-    {
-        DN expected = new DN("uid=foo,ou=bar,dc=net");
-        final DNPrincipal dnPrincipal = new DNPrincipal(expected.toNormalizedString());
-
-        Subject subject = new Subject();
-        subject.getPrincipals().add(new HttpPrincipal("foo"));
-        subject.getPrincipals().add(new X500Principal("uid=foo,o=bar"));
-        subject.getPrincipals().add(dnPrincipal);
-
-        LdapConfig config = LdapConfig.loadLdapConfig("LdapConfig.test.properties");
-        LdapConnections conn = new LdapConnections(config);
-        final LdapDAO ldapDAO = new LdapDAO(conn) { }; // abstract
-
-        DN actual = Subject.doAs(subject, new PrivilegedAction<DN>()
-        {
-            public DN run()
-            {
-                try
-                {
-                    return ldapDAO.getSubjectDN();
-                }
-                catch(LDAPException ex)
-                {
-                    Assert.fail("getSubjectDN threw " + ex);
-                }
-                return null;
-            }
-        } );
-
-        assertNotNull("DN is null", actual);
-        assertEquals("DN's do not match", expected.toNormalizedString(), actual.toNormalizedString());
-    }
-
     private void testConnection(final LDAPConnection ldapCon)
     {
         assertTrue("Not connected but should be.", ldapCon.isConnected());

@@ -253,8 +253,7 @@ public class LoginServlet<T extends Principal> extends HttpServlet
                 public Object run() throws Exception
                 {
 
-                    if (groupPersistence.getGroups(new HttpPrincipal(proxyUser), Role.MEMBER,
-                            proxyGroup).size() == 0)
+                    if (groupPersistence.getGroups(Role.MEMBER, proxyGroup).isEmpty())
                     {
                         throw new AccessControlException(PROXY_ACCESS
                                 + proxyUser + " as " + userID
@@ -275,8 +274,7 @@ public class LoginServlet<T extends Principal> extends HttpServlet
                 public Object run()
                     throws Exception
                 {
-                    if (groupPersistence.getGroups(new HttpPrincipal(userID), Role.MEMBER,
-                        nonImpersonGroup).size() != 0)
+                    if (!groupPersistence.getGroups(Role.MEMBER, nonImpersonGroup).isEmpty())
                     {
                         throw new AccessControlException(PROXY_ACCESS
                             + proxyUser + " as " + userID

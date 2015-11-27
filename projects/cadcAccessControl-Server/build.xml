@@ -115,11 +115,13 @@
 
     <!-- Why do the tests need this configuration in two places? -->
     <!-- jenkinsd 2015.07.20 -->
+    <!--
     <copy overwrite="true" file="test/LdapConfig.test.properties"
           todir="build/test/class"/>
     <mkdir dir="${user.home}/config" />
     <copy overwrite="true" file="test/LdapConfig.test.properties"
           todir="${user.home}/config/"/>
+    -->
   </target>
 
   <!-- JAR files needed to run the test suite -->
