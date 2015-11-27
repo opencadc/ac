@@ -890,11 +890,11 @@ public class GMSClient implements TransferListener
     public List<Group> getMemberships(Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return getMemberships(getCurrentUserID(), role);
+        return getMemberships(null, role);
     }
 
     
-    private List<Group> getMemberships(Principal userID, Role role)
+    private List<Group> getMemberships(Principal ignore, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
         if (role == null)
@@ -902,6 +902,7 @@ public class GMSClient implements TransferListener
             throw new IllegalArgumentException("role are required.");
         }
 
+        Principal userID = getCurrentUserID();
         if (userID != null)
         {
             List<Group> cachedGroups = getCachedGroups(userID, role, true);
