@@ -156,7 +156,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         {
             userDAO = new LdapUserDAO<T>(conns);
             groupDAO = new LdapGroupDAO<T>(conns, userDAO);
-            Group ret = groupDAO.getGroup(groupName);
+            Group ret = groupDAO.getGroup(groupName, true);
             if (allowed || isOwner(callerSubject, ret))
                 return ret;
             throw new AccessControlException("permission denied");
@@ -202,9 +202,8 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         {
             userDAO = new LdapUserDAO<T>(conns);
             groupDAO = new LdapGroupDAO<T>(conns, userDAO);
-            Group g = groupDAO.getGroup(groupName);
+            Group g = groupDAO.getGroup(groupName, false);
             if (isOwner(callerSubject, g)) 
-                // TODO: pass g into the delete so it doesn't have to do another get
                 groupDAO.deleteGroup(groupName);
             else
                 throw new AccessControlException("permission denied");
@@ -231,7 +230,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
             groupDAO = new LdapGroupDAO<T>(conns, userDAO);
             if (!allowed)
             {
-                Group g = groupDAO.getGroup(group.getID());
+                Group g = groupDAO.getGroup(group.getID(), false);
                 if (isOwner(callerSubject, g))
                     allowed = true;
             }
@@ -278,7 +277,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
             else
             {
                 List<Group> groups = getGroupCache(caller, role);
-                log.info("getGroups  " + role + ": " + groups.size());
+                log.debug("getGroups  " + role + ": " + groups.size());
                 Collection<Group> ret = new ArrayList<Group>(groups.size());
                 Iterator<Group> i = groups.iterator();
                 while ( i.hasNext() )
@@ -286,21 +285,22 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
                     Group g = i.next();
                     if (groupID == null || g.getID().equalsIgnoreCase(groupID))
                     {
-                        //if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
-                        //{
-                        try
+                        if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
                         {
-                            Group g2 = groupDAO.getGroup(g.getID());
-                            log.info("role " + role + " loaded: " + g2);
-                            ret.add(g2);
+                            try
+                            {
+                                Group g2 = groupDAO.getGroup(g.getID(), false);
+                                log.debug("role " + role + " loaded: " + g2);
+                                ret.add(g2);
+                            }
+                            catch(GroupNotFoundException contentBug)
+                            {
+                                log.error("group: " + g.getID() + " in cache but not found", contentBug);
+                                // skip and continue so user gets something
+                            }
                         }
-                        catch(GroupNotFoundException contentBug)
-                        {
-                            log.info("skip: " + g.getID() + ": " + contentBug);
-                        }
-                        //}
-                        //else
-                        //    ret.add(g);
+                        else
+                            ret.add(g);
                     }
                 }
                 return ret;
@@ -311,11 +311,6 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
             log.error("getGroups fail", ex);
             throw ex;
         }
-        //catch (GroupNotFoundException ex)
-        //{
-        //    log.error("getGroups fail", ex);
-        //    throw ex;
-        //}
         finally
         {
             conns.releaseConnections();
@@ -332,7 +327,7 @@ public class LdapGroupPersistence<T extends Principal> extends LdapPersistence i
         if (gset == null || gset.isEmpty())
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
-        return gms.memberships.get(role);
+        return gms.getMemberships(role);
     }
     
     // true if the current subject is a member: using GroupMemberships cache

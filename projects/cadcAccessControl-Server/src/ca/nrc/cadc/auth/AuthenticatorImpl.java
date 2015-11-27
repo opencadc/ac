@@ -149,13 +149,13 @@ public class AuthenticatorImpl implements Authenticator
             subject.getPrincipals().addAll(user.getIdentities());
             if (user.appData != null)
             {
-                log.info("found: " + user.appData.getClass().getName());
+                log.debug("found: " + user.appData.getClass().getName());
                 try
                 {
                     GroupMemberships gms = (GroupMemberships) user.appData;
-                    for (Group g : gms.memberships.get(Role.ADMIN))
+                    for (Group g : gms.getMemberships(Role.ADMIN))
                         log.debug("GroupMemberships admin: " + g.getID());
-                    for (Group g : gms.memberships.get(Role.MEMBER))
+                    for (Group g : gms.getMemberships(Role.MEMBER))
                         log.debug("GroupMemberships member: " + g.getID());
                     subject.getPrivateCredentials().add(gms);
                 }

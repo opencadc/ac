@@ -92,6 +92,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
+import org.junit.Assert;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {
@@ -191,14 +192,14 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 {
                     Group expectGroup = new Group(getGroupID(), daoTestUser1);
                     getGroupDAO().addGroup(expectGroup);
-                    Group actualGroup = getGroupDAO().getGroup(expectGroup.getID());
-                    log.debug("addGroup: " + expectGroup.getID());
+                    Group actualGroup = getGroupDAO().getGroup(expectGroup.getID(), true);
+                    log.info("addGroup: " + expectGroup.getID());
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     Group otherGroup = new Group(getGroupID(), daoTestUser1);
                     getGroupDAO().addGroup(otherGroup);
-                    otherGroup = getGroupDAO().getGroup(otherGroup.getID());
-                    log.debug("addGroup: " + otherGroup.getID());
+                    otherGroup = getGroupDAO().getGroup(otherGroup.getID(), true);
+                    log.info("addGroup: " + otherGroup.getID());
 
                     // modify group fields
                     // description
@@ -256,7 +257,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     // groupAdmins
                     Group adminGroup = new Group(getGroupID(), daoTestUser1);
                     getGroupDAO().addGroup(adminGroup);
-                    adminGroup = getGroupDAO().getGroup(adminGroup.getID());
+                    adminGroup = getGroupDAO().getGroup(adminGroup.getID(), true);
                     expectGroup.getGroupAdmins().add(adminGroup);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
@@ -279,39 +280,40 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     getGroupDAO().deleteGroup(expectGroup.getID());
                     try
                     {
-                        getGroupDAO().getGroup(expectGroup.getID());
+                        getGroupDAO().getGroup(expectGroup.getID(), false);
                         fail("get on deleted group should throw exception");
                     }
                     catch (GroupNotFoundException ignore) {}
+                    log.info("deleted group: " + expectGroup.getID());
 
                     // reactivate the group
-                    getGroupDAO().addGroup(expectGroup);
-                    actualGroup = getGroupDAO().getGroup(expectGroup.getID());
-                    // add group no longer returns an object
-                    //assertTrue(actualGroup instanceof ActivatedGroup);
-                    assertGroupsEqual(expectGroup, actualGroup);
-
-                    // get the activated group
-                    actualGroup = getGroupDAO().getGroup(expectGroup.getID());
-                    assertGroupsEqual(expectGroup, actualGroup);
+                    Group reactGroup = new Group(expectGroup.getID(), expectGroup.getOwner());
+                    getGroupDAO().addGroup(reactGroup);
+                    log.info("create (reactivate) group: " + expectGroup.getID());
+                    actualGroup = getGroupDAO().getGroup(expectGroup.getID(), true);
+                    assertTrue(actualGroup.getUserMembers().isEmpty());
+                    assertTrue(actualGroup.getGroupMembers().isEmpty());
+                    assertTrue(actualGroup.getUserAdmins().isEmpty());
+                    assertTrue(actualGroup.getGroupAdmins().isEmpty());
+                    Assert.assertTrue(actualGroup.getProperties().isEmpty());
 
                     // create another group and make expected group
                     // member of that group. Delete expected group after
                     Group expectGroup2 = new Group(getGroupID(), daoTestUser1);
-                    expectGroup2.getGroupAdmins().add(expectGroup);
-                    expectGroup2.getGroupMembers().add(expectGroup);
+                    expectGroup2.getGroupAdmins().add(actualGroup);
+                    expectGroup2.getGroupMembers().add(actualGroup);
                     getGroupDAO().addGroup(expectGroup2);
-                    Group actualGroup2 = getGroupDAO().getGroup(expectGroup2.getID());
+                    Group actualGroup2 = getGroupDAO().getGroup(expectGroup2.getID(), true);
                     log.debug("addGroup: " + expectGroup2.getID());
                     assertGroupsEqual(expectGroup2, actualGroup2);
 
                     // delete the group
-                    getGroupDAO().deleteGroup(expectGroup.getID());
-                    // now expectGroup should not be member of admin of
-                    // expectGroup2
-                    expectGroup2.getGroupAdmins().remove(expectGroup);
-                    expectGroup2.getGroupMembers().remove(expectGroup);
-                    actualGroup2 = getGroupDAO().getGroup(expectGroup2.getID());
+                    getGroupDAO().deleteGroup(actualGroup.getID());
+                    
+                    // should not be member of admin of expectGroup2
+                    expectGroup2.getGroupAdmins().remove(actualGroup);
+                    expectGroup2.getGroupMembers().remove(actualGroup);
+                    actualGroup2 = getGroupDAO().getGroup(expectGroup2.getID(), true);
                     log.debug("addGroup: " + expectGroup2.getID());
                     assertGroupsEqual(expectGroup2, actualGroup2);
 
@@ -319,7 +321,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 }
                 catch (Exception e)
                 {
-                    e.printStackTrace();
+                    log.error("unexpected exception", e);
                     throw new Exception("Problems", e);
                 }
             }
@@ -341,12 +343,12 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 {
                     Group testGroup1 = new Group(testGroup1ID, daoTestUser1);
                     getGroupDAO().addGroup(testGroup1);
-                    testGroup1 = getGroupDAO().getGroup(testGroup1.getID());
+                    testGroup1 = getGroupDAO().getGroup(testGroup1.getID(), true);
                     log.debug("add group: " + testGroup1ID);
 
                     Group testGroup2 = new Group(testGroup2ID, daoTestUser1);
                     getGroupDAO().addGroup(testGroup2);
-                    testGroup2 = getGroupDAO().getGroup(testGroup2.getID());
+                    testGroup2 = getGroupDAO().getGroup(testGroup2.getID(), true);
                     log.debug("add group: " + testGroup2ID);
                     //Thread.sleep(1000); // sleep to let memberof plugin do its work
                 }
@@ -430,7 +432,15 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    getGroupDAO().getGroup(groupID);
+                    getGroupDAO().getGroup(groupID, false);
+                    fail("getGroup with unknown group should throw " +
+                         "GroupNotFoundException");
+                }
+                catch (GroupNotFoundException ignore) {}
+                
+                try
+                {
+                    getGroupDAO().getGroup(groupID, true);
                     fail("getGroup with unknown group should throw " +
                          "GroupNotFoundException");
                 }
@@ -475,24 +485,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         {
             public Object run() throws Exception
             {
-                try
-                {
-                    getGroupDAO().deleteGroup(groupID);
-                    fail("deleteGroup with unknown group should throw " +
-                         "GroupNotFoundException");
-                }
-                catch (GroupNotFoundException ignore) {}
-
-                getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
-                return null;
-            }
-        });
-
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                getGroupDAO().deleteGroup(groupID);
+                getGroupDAO().deleteGroup(groupID); // should silently succeed
                 return null;
             }
         });

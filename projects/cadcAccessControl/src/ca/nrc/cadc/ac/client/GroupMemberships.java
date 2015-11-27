@@ -89,14 +89,34 @@ public class GroupMemberships implements Comparable
     private static final Logger log = Logger.getLogger(GroupMemberships.class);
 
     private User user;
-    public Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
-    public Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
+    private Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
+    private Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
 
-    public GroupMemberships() { }
+    public GroupMemberships() { init(); }
     
     public GroupMemberships(User user) 
     {
         this.user = user;
+        init();
+    }
+    
+    public boolean isComplete(Role role)
+    {
+        return complete.get(role);
+    }
+    
+    public List<Group> getMemberships(Role role)
+    {
+        return memberships.get(role);
+    }
+    
+    private void init()
+    {
+        for (Role role : Role.values())
+        {
+            complete.put(role, Boolean.FALSE);
+            memberships.put(role, new ArrayList<Group>());
+        }
     }
 
     public User getUser()
@@ -107,12 +127,6 @@ public class GroupMemberships implements Comparable
     public void add(Group group, Role role)
     {
         List<Group> groups = memberships.get(role);
-        if (groups == null)
-        {
-            groups = new ArrayList<Group>();
-            complete.put(role, Boolean.FALSE);
-            memberships.put(role, groups);
-        }
         if (!groups.contains(group))
             groups.add(group);
     }
@@ -120,12 +134,6 @@ public class GroupMemberships implements Comparable
     public void add(List<Group> groups, Role role)
     {
         List<Group> cur = memberships.get(role);
-        if (cur == null)
-        {
-            cur = new ArrayList<Group>();
-            complete.put(role, Boolean.FALSE);
-            memberships.put(role, cur);
-        }
         for (Group group : groups)
         {
             if (!cur.contains(group))

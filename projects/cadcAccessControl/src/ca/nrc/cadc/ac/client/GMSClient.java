@@ -1216,9 +1216,9 @@ public class GMSClient implements TransferListener
         if (mems == null)
             return null; // no cache
 
-        Boolean cacheState = mems.complete.get(role);
+        Boolean cacheState = mems.isComplete(role);
         if (!complete || Boolean.TRUE.equals(cacheState))
-            return mems.memberships.get(role);
+            return mems.getMemberships(role);
 
         // caller wanted complete and we don't have that
         return null;

@@ -144,8 +144,15 @@ public abstract class LdapDAO
             throws TransientException
     {
     	logger.debug("Ldap result: " + code);
-
-    	if (code == ResultCode.SUCCESS || code == ResultCode.NO_SUCH_OBJECT)
+        checkLdapResult(code, false);
+    }
+    
+    protected static void checkLdapResult(ResultCode code, boolean ignoreNoSuchAttribute)
+            throws TransientException
+    {
+    	if ( code == ResultCode.SUCCESS 
+                || code == ResultCode.NO_SUCH_OBJECT
+                || (ignoreNoSuchAttribute && code == ResultCode.NO_SUCH_ATTRIBUTE) )
         {
             return;
         }
