@@ -71,11 +71,8 @@ package ca.nrc.cadc.ac;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
-
-import ca.nrc.cadc.auth.AuthenticationUtil;
-
 import javax.security.auth.x500.X500Principal;
-
+import ca.nrc.cadc.auth.AuthenticationUtil;
 
 public class User<T extends Principal>
 {
@@ -84,7 +81,12 @@ public class User<T extends Principal>
     private Set<Principal> identities = new HashSet<Principal>();
 
     public Set<UserDetails> details = new HashSet<UserDetails>();
-
+    
+    /**
+     * Applications can stash some extra stuff here.
+     */
+    public Object appData;
+    
     public User(final T userID)
     {
         if (userID == null)

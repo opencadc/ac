@@ -123,38 +123,7 @@ public class RequestValidatorTest
             }
             catch (IllegalArgumentException ignore) {}
 
-            paramList.add(new Parameter("IDTYPE", "idtype"));
-            paramList.add(new Parameter("ROLE", "role"));
-            try
-            {
-                rv.validate(paramList);
-                fail("missing ID parameter should throw IllegalArgumentException");
-            }
-            catch (IllegalArgumentException ignore) {}
-
             paramList.clear();
-            paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("ROLE", "role"));
-            try
-            {
-                rv.validate(paramList);
-                fail("missing IDTYPE parameter should throw IllegalArgumentException");
-            }
-            catch (IllegalArgumentException ignore) {}
-
-            paramList.clear();
-            paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", "idtype"));
-            try
-            {
-                rv.validate(paramList);
-                fail("missing ROLE parameter should throw IllegalArgumentException");
-            }
-            catch (IllegalArgumentException ignore) {}
-
-            paramList.clear();
-            paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", "foo"));
             try
             {
@@ -164,9 +133,7 @@ public class RequestValidatorTest
             catch (IllegalArgumentException ignore) {}
 
             paramList.clear();
-            paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
-            paramList.add(new Parameter("ROLE", "foo"));
+            paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
             paramList.add(new Parameter("GROUPID", ""));
             try
             {
@@ -176,19 +143,15 @@ public class RequestValidatorTest
             catch (IllegalArgumentException ignore) {}
 
             paramList.clear();
-            paramList.add(new Parameter("ID", "foo"));
-            paramList.add(new Parameter("IDTYPE", IdentityType.USERNAME.getValue()));
             paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
             rv.validate(paramList);
 
-            assertNotNull(rv.getPrincipal());
             assertNotNull(rv.getRole());
             assertNull(rv.getGroupID());
 
             paramList.add(new Parameter("GROUPID", "bar"));
             rv.validate(paramList);
 
-            assertNotNull(rv.getPrincipal());
             assertNotNull(rv.getRole());
             assertNotNull(rv.getGroupID());
         }

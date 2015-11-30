@@ -192,44 +192,14 @@ public class ACSearchRunner implements JobRunner
             rv.validate(job.getParameterList());
 
             // only allow users to search themselves...
-            Principal userBeingSearched = rv.getPrincipal();
-
-            boolean idMatch = false;
-            if (userBeingSearched instanceof X500Principal)
-            {
-                Set<X500Principal> x500Principals = subject.getPrincipals(X500Principal.class);
-                Iterator<X500Principal> i = x500Principals.iterator();
-                while (i.hasNext())
-                {
-                    X500Principal next = i.next();
-                    log.debug(String.format("Comparing x500: [%s][%s]",
-                            next.getName(), userBeingSearched.getName()));
-                    if (AuthenticationUtil.equals(next, userBeingSearched))
-                        idMatch = true;
-                }
-            }
-            else if (userBeingSearched instanceof HttpPrincipal)
-            {
-                Set<HttpPrincipal> httpPrincipals = subject.getPrincipals(HttpPrincipal.class);
-                Iterator<HttpPrincipal> i = httpPrincipals.iterator();
-                while (i.hasNext())
-                {
-                    HttpPrincipal next = i.next();
-                    log.debug(String.format("Comparing http: [%s][%s]",
-                            next.getName(), userBeingSearched.getName()));
-                    if (next.equals(userBeingSearched))
-                        idMatch = true;
-                }
-            }
-            if (!idMatch)
-                throw new AccessControlException("Can only search oneself.");
+            //Principal userBeingSearched = rv.getPrincipal();
 
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.createGroupPersistence();
             Collection<Group> groups;
             try
             {
-                groups = dao.getGroups(rv.getPrincipal(), rv.getRole(), rv.getGroupID());
+                groups = dao.getGroups(rv.getRole(), rv.getGroupID());
             }
             catch(GroupNotFoundException ignore)
             {
