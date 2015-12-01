@@ -70,25 +70,22 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.io.PrintStream;
-import java.security.Principal;
 import java.security.cert.CertificateException;
 
-import javax.security.auth.Subject;
-
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.PluginFactory;
 import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.server.PluginFactory;
 
 /**
  * A command line admin tool for LDAP users.
- * 
+ *
  * @author yeunga
  *
  */
 public class Main
 {
     private static Logger log = Logger.getLogger(Main.class);
-    
+
     private final PrintStream systemOut;
     private final PrintStream systemErr;
 
@@ -117,14 +114,15 @@ public class Main
         try
         {
             main.execute(args);
+            System.exit(0);
         }
         catch(UsageException | CertificateException e)
         {
-            System.exit(0);
+            System.exit(-1);
         }
         catch(Exception t)
         {
-            System.exit(-1);
+            System.exit(-2);
         }
     }
 
@@ -138,18 +136,26 @@ public class Main
     {
         try
         {
+
             final CmdLineParser parser = new CmdLineParser(args, systemOut,
                                                            systemErr);
 
-            // Set the necessary JNDI system property for lookups.
-            System.setProperty("java.naming.factory.initial",
-                               ContextFactoryImpl.class.getName());
+            if (parser.isHelpCommand())
+            {
+                systemOut.println(CmdLineParser.getUsage());
+            }
+            else
+            {
+                // Set the necessary JNDI system property for lookups.
+                System.setProperty("java.naming.factory.initial",
+                                   ContextFactoryImpl.class.getName());
 
-            final CommandRunner runner =
-                    new CommandRunner(parser, new PluginFactory().
-                            createUserPersistence());
+                final CommandRunner runner =
+                        new CommandRunner(parser, new PluginFactory().
+                                createUserPersistence());
 
-            runner.run();
+                runner.run();
+            }
         }
         catch(UsageException e)
         {

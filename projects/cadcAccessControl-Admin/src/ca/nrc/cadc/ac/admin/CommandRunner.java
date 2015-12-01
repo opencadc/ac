@@ -68,14 +68,22 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.net.TransientException;
-import org.apache.log4j.Logger;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.security.auth.Subject;
-import java.security.Principal;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.DelegationToken;
+import ca.nrc.cadc.auth.PrincipalExtractor;
+import ca.nrc.cadc.auth.SSOCookieCredential;
+import ca.nrc.cadc.auth.X509CertificateChain;
+import ca.nrc.cadc.net.TransientException;
 
 
 public class CommandRunner
@@ -99,41 +107,47 @@ public class CommandRunner
      */
     public void run() throws UserNotFoundException, TransientException
     {
-        if (commandLineParser.proceed())
+        AbstractCommand command = commandLineParser.getCommand();
+        command.setUserPersistence(userPersistence);
+
+        Principal userIDPrincipal = null;
+        if (command instanceof AbstractUserCommand)
         {
-            AbstractCommand command = commandLineParser.getCommand();
-            command.setUserPersistence(userPersistence);
+            userIDPrincipal = ((AbstractUserCommand) command).getPrincipal();
+        }
 
-            if (commandLineParser.getSubject() == null)
-            {
-                // no credential, but command works with an anonymous user
-                LOGGER.debug("running as anon user");
-                command.run();
-            }
-            else
-            {
-                Subject subject = commandLineParser.getSubject();
-                LOGGER.debug("running as " + subject);
-
-                // augment the subject
-                if (subject.getPrincipals().isEmpty())
-                {
-                    throw new RuntimeException("BUG: subject with no principals");
-                }
-                Principal userID = subject.getPrincipals().iterator().next();
-                User<Principal> subjectUser =
-                        userPersistence.getAugmentedUser(userID);
-                for (Principal identity : subjectUser.getIdentities())
-                {
-                    subject.getPrincipals().add(identity);
-                }
-                LOGGER.debug("augmented subject: " + subject);
-                Subject.doAs(subject, command);
-            }
+        if (userIDPrincipal == null)
+        {
+            // no credential, but command works with an anonymous user
+            LOGGER.debug("running as anon user");
+            command.run();
         }
         else
         {
-            throw new IllegalStateException("Not ready to proceed.");
+            LOGGER.debug("running as " + userIDPrincipal.getName());
+            final Set<Principal> userPrincipals = new HashSet<Principal>(1);
+            userPrincipals.add(userIDPrincipal);
+            PrincipalExtractor principalExtractor = new PrincipalExtractor()
+            {
+                public Set<Principal> getPrincipals()
+                {
+                    return userPrincipals;
+                }
+                public X509CertificateChain getCertificateChain()
+                {
+                    return null;
+                }
+                public DelegationToken getDelegationToken()
+                {
+                    return null;
+                }
+                public SSOCookieCredential getSSOCookieCredential()
+                {
+                    return null;
+                }
+            };
+            Subject subject = AuthenticationUtil.getSubject(principalExtractor);
+            Subject.doAs(subject, command);
         }
     }
 }
