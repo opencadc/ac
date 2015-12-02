@@ -78,8 +78,10 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DelegationToken;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.SSOCookieCredential;
 import ca.nrc.cadc.auth.X509CertificateChain;
@@ -118,36 +120,51 @@ public class CommandRunner
 
         if (userIDPrincipal == null)
         {
-            // no credential, but command works with an anonymous user
-            LOGGER.debug("running as anon user");
-            command.run();
+            // run as the operator
+            LdapConfig config = LdapConfig.getLdapConfig();
+            String proxyDN = config.getProxyUserDN();
+            if (proxyDN == null)
+                throw new IllegalArgumentException("No ldap account in .dbrc");
+
+            String userIDLabel = "uid=";
+            int uidIndex = proxyDN.indexOf("uid=");
+            int commaIndex = proxyDN.indexOf(",", userIDLabel.length());
+            String userID = proxyDN.substring(uidIndex + userIDLabel.length(), commaIndex);
+            userIDPrincipal = new HttpPrincipal(userID);
         }
-        else
+
+        // run as the user
+        LOGGER.debug("running as " + userIDPrincipal.getName());
+        Set<Principal> userPrincipals = new HashSet<Principal>(1);
+        userPrincipals.add(userIDPrincipal);
+        AnonPrincipalExtractor principalExtractor = new AnonPrincipalExtractor(userPrincipals);
+        Subject subject = AuthenticationUtil.getSubject(principalExtractor);
+        Subject.doAs(subject, command);
+    }
+
+    class AnonPrincipalExtractor implements PrincipalExtractor
+    {
+        Set<Principal> principals;
+
+        AnonPrincipalExtractor(Set<Principal> principals)
         {
-            LOGGER.debug("running as " + userIDPrincipal.getName());
-            final Set<Principal> userPrincipals = new HashSet<Principal>(1);
-            userPrincipals.add(userIDPrincipal);
-            PrincipalExtractor principalExtractor = new PrincipalExtractor()
-            {
-                public Set<Principal> getPrincipals()
-                {
-                    return userPrincipals;
-                }
-                public X509CertificateChain getCertificateChain()
-                {
-                    return null;
-                }
-                public DelegationToken getDelegationToken()
-                {
-                    return null;
-                }
-                public SSOCookieCredential getSSOCookieCredential()
-                {
-                    return null;
-                }
-            };
-            Subject subject = AuthenticationUtil.getSubject(principalExtractor);
-            Subject.doAs(subject, command);
+            this.principals = principals;
+        }
+        public Set<Principal> getPrincipals()
+        {
+            return principals;
+        }
+        public X509CertificateChain getCertificateChain()
+        {
+            return null;
+        }
+        public DelegationToken getDelegationToken()
+        {
+            return null;
+        }
+        public SSOCookieCredential getSSOCookieCredential()
+        {
+            return null;
         }
     }
 }
