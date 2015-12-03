@@ -68,13 +68,11 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.Group;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -82,11 +80,9 @@ import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.auth.DNPrincipal;
-import ca.nrc.cadc.util.StringUtil;
-import com.unboundid.ldap.sdk.ModifyDNRequest;
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.Role;
@@ -97,26 +93,27 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.util.StringUtil;
 
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
 import com.unboundid.ldap.sdk.BindResult;
-import com.unboundid.ldap.sdk.Control;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.DeleteRequest;
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.LDAPResult;
 import com.unboundid.ldap.sdk.LDAPSearchException;
 import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.ModificationType;
+import com.unboundid.ldap.sdk.ModifyDNRequest;
 import com.unboundid.ldap.sdk.ModifyRequest;
 import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.ldap.sdk.SearchRequest;
@@ -124,7 +121,6 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
-import com.unboundid.ldap.sdk.controls.ProxiedAuthorizationV2RequestControl;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
 
@@ -505,7 +501,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
         logger.debug("x500principal: " + x500str);
-        user.getIdentities().add(new X500Principal(x500str));
+
+        if (x500str != null)
+            user.getIdentities().add(new X500Principal(x500str));
 
         String fname = searchResult.getAttributeValue(LDAP_FIRST_NAME);
         String lname = searchResult.getAttributeValue(LDAP_LAST_NAME);
@@ -561,7 +559,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                 searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME)));
             user.getIdentities().add(new DNPrincipal(
                 searchResult.getAttributeValue(LDAP_ENTRYDN)));
-            
+
             // cache memberOf values in the user
             GroupMemberships gms = new GroupMemberships(user);
             user.appData = gms; // add even if empty
@@ -597,7 +595,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             profiler.checkpoint("Done getAugmentedUser");
         }
     }
-    
+
     // some pretty horrible hacks to avoid querying LDAP for group details...
     private Group createGroupFromDN(DN groupDN)
     {
@@ -816,14 +814,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             //conn.bind(bindRequest);
 
             LDAPConnection conn = this.getReadWriteConnection();
-            
+
             PasswordModifyExtendedRequest passwordModifyRequest =
                 new PasswordModifyExtendedRequest(
                     userDN.toNormalizedString(), new String(oldPassword), new String(newPassword));
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
                     conn.processExtendedOperation(passwordModifyRequest);
-            
+
             LdapDAO.checkLdapResult(passwordModifyResult.getResultCode());
         }
         catch (LDAPException e)

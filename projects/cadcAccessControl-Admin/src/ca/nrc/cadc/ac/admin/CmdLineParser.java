@@ -72,13 +72,9 @@
 import java.io.PrintStream;
 import java.security.cert.CertificateException;
 
-import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.auth.CertCmdArgUtil;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.ArgumentMap;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.StringUtil;
@@ -88,18 +84,17 @@ import ca.nrc.cadc.util.StringUtil;
 /**
  * This class parses the command line input arguments.
  */
-public class CmdLineParser 
+public class CmdLineParser
 {
     private static Logger log = Logger.getLogger(CmdLineParser.class);
     private static final String APP_NAME = "userAdmin";
-    private static final String[] LOG_PACKAGES = 
+    private static final String[] LOG_PACKAGES =
 		{"ca.nrc.cadc.ac", "ca.nrc.cadc.auth", "ca.nrc.cadc.util"};
 
     // no need to proceed further if false
     private Level logLevel = Level.OFF;
-    private boolean proceed = true;
     private AbstractCommand command;
-    private Subject subject;
+    private boolean isHelpCommand = false;
 
     /**
      * Constructor.
@@ -108,21 +103,11 @@ public class CmdLineParser
      * @throws CertificateException Fail to get a certificate
      */
     public CmdLineParser(final String[] args, final PrintStream outStream,
-        final PrintStream errStream) throws UsageException, CertificateException 
+        final PrintStream errStream) throws UsageException, CertificateException
     {
         ArgumentMap am = new ArgumentMap( args );
     	this.setLogLevel(am);
     	this.parse(am, outStream, errStream);
-    }
-    
-    /**
-     * Return proceed status.
-     * @return true  program should proceed with further processing
-     *         false program should not proceed further
-     */
-    public boolean proceed()
-    {
-        return this.proceed;
     }
 
     /**
@@ -133,15 +118,7 @@ public class CmdLineParser
     {
     	return this.command;
     }
-    
-    /**
-     * Get the subject representing the user executing this user admin tool.
-     */
-    public Subject getSubject()
-    {
-    	return this.subject;
-    }
-    
+
     /**
      * Get the logging level.
      */
@@ -153,13 +130,13 @@ public class CmdLineParser
     /*
      * Set the log level.
      * @param am Input arguments
-     * @throws UsageException 
+     * @throws UsageException
      */
     protected void setLogLevel(final ArgumentMap am) throws UsageException
     {
     	int count = 0;
-    	
-        // only one log level is allowed 
+
+        // only one log level is allowed
     	if (am.isSet("v") || am.isSet("verbose"))
     	{
             this.logLevel = Level.INFO;
@@ -171,14 +148,14 @@ public class CmdLineParser
             this.logLevel = Level.DEBUG;
             count++;
     	}
-                    	
+
     	if (count >=2)
     	{
-            String msg = "--verbose and --debug are mutually exclusive options";            
+            String msg = "--verbose and --debug are mutually exclusive options";
             throw new UsageException(msg);
     	}
     	else
-    	{        	
+    	{
             // set the application log level
             for (String pkg : LOG_PACKAGES)
             {
@@ -186,7 +163,7 @@ public class CmdLineParser
             }
     	}
     }
-    
+
     protected boolean hasValue(final String userID) throws UsageException
     {
         if (!StringUtil.hasText(userID) ||userID.equalsIgnoreCase("true"))
@@ -199,11 +176,11 @@ public class CmdLineParser
             return true;
         }
     }
-    
+
     protected boolean isValid(final ArgumentMap am) throws UsageException
     {
     	int count = 0;
-    	
+
         // only one command is allowed per command line
     	if (am.isSet("list"))
     	{
@@ -217,7 +194,7 @@ public class CmdLineParser
             this.command = new ListPendingUsers();
             count++;
     	}
-    	
+
     	String userID = am.getValue("view");
     	if (userID != null	)
     	{
@@ -225,10 +202,10 @@ public class CmdLineParser
     	    {
                 this.command = new ViewUser(userID);
     	    }
-    		
+
             count++;
     	}
-    	
+
         userID = am.getValue("reject");
     	if (userID != null	)
     	{
@@ -236,10 +213,10 @@ public class CmdLineParser
     	    {
                 this.command = new RejectUser(userID);
     	    }
-    		
+
             count++;
     	}
-    	
+
         userID = am.getValue("approve");
     	if (userID != null	)
     	{
@@ -247,10 +224,10 @@ public class CmdLineParser
     	    {
                 this.command = new ApproveUser(userID);
     	    }
-    		
+
             count++;
     	}
-                    	
+
     	if (count == 1)
     	{
             return true;
@@ -258,7 +235,7 @@ public class CmdLineParser
     	else
     	{
             String msg;
-    		
+
             if (count == 0)
             {
                 msg = "Missing command or command is not supported.";
@@ -267,11 +244,11 @@ public class CmdLineParser
             {
                 msg = "Only one command can be specified.";
             }
-    	
+
             throw new UsageException(msg);
     	}
     }
-    
+
     /*
      * Parse the command line arguments.
      * @param ArgumentMap Command line arguments
@@ -281,46 +258,32 @@ public class CmdLineParser
     protected void parse(final ArgumentMap am, final PrintStream out,
         final PrintStream err) throws UsageException, CertificateException
     {
-        this.proceed = false;
 
         if (!am.isSet("h") && !am.isSet("help") && isValid(am))
         {
-            Subject subject = CertCmdArgUtil.initSubject(am, true);
-            
-            try 
-            {
-                SSLUtil.validateSubject(subject, null);
-                log.debug("subject: " + subject);
-                this.subject = subject;
-                this.proceed = true;
-            } 
-            catch (CertificateException e) 
-            {
-            	if (am.isSet("list"))
-            	{
-                    // we can use anonymous subject
-                     this.proceed = true;
-            	}
-            	else
-            	{
-                    throw e;
-            	}
-            }
-            
             // the following statements are executed only when proceed is true
             this.command.setSystemOut(out);
-            this.command.setSystemErr(err);            
+            this.command.setSystemErr(err);
         }
-    }    
+        else
+        {
+            isHelpCommand = true;
+        }
+    }
+
+    public boolean isHelpCommand()
+    {
+        return isHelpCommand;
+    }
 
     /**
-     * Provide the default command line usage. 
+     * Provide the default command line usage.
      */
     public static String getUsage()
     {
     	StringBuilder sb = new StringBuilder();
     	sb.append("\n");
-    	sb.append("Usage: " + APP_NAME + " [--cert=<path to pem file>] <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
+    	sb.append("Usage: " + APP_NAME + " <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
     	sb.append("Where command is\n");
     	sb.append("--list               :list users in the Users tree\n");
     	sb.append("                     :can be executed as an anonymous user\n");
@@ -334,6 +297,12 @@ public class CmdLineParser
     	sb.append("-v|--verbose         : Verbose mode print progress and error messages\n");
     	sb.append("-d|--debug           : Debug mode print all the logging messages\n");
     	sb.append("-h|--help            : Print this message and exit\n");
+    	sb.append("\n");
+        sb.append("Authentication and authorization:\n");
+        sb.append("  - An LdapConfig.properties file must exist in directory ~/config/\n");
+        sb.append("  - The corresponding host entry (devLdap or prodLdap) must exist\n");
+        sb.append("    in your ~/.dbrc file.");
+
     	return sb.toString();
     }
 }
