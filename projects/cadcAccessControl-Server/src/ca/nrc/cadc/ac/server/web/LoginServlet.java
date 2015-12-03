@@ -150,7 +150,17 @@ public class LoginServlet<T extends Principal> extends HttpServlet
         try
         {
             log.info(logInfo.start());
-            String userID = request.getParameter("username").trim();
+            String userID = request.getParameter("username");
+            String password = request.getParameter("password");
+
+            if (userID == null)
+                throw new IllegalArgumentException("Missing username");
+            if (password == null)
+                throw new IllegalArgumentException("Missing password");
+
+            userID = userID.trim();
+            password = password.trim();
+
             String proxyUser = null;
             String[] fields = userID.split(PROXY_USER_DELIM);
             if (fields.length == 2 )
@@ -159,33 +169,19 @@ public class LoginServlet<T extends Principal> extends HttpServlet
                 userID = fields[1].trim();
                 checkCanImpersonate(userID, proxyUser);
             }
-            String password = request.getParameter("password");
-            if (StringUtil.hasText(userID))
+            if ((StringUtil.hasText(proxyUser) &&
+                    userPersistence.doLogin(proxyUser, password)) ||
+                (!StringUtil.hasText(proxyUser) &&
+                        userPersistence.doLogin(userID, password)))
             {
-                if (StringUtil.hasText(password))
-                {
-                    if ((StringUtil.hasText(proxyUser) &&
-                            userPersistence.doLogin(proxyUser, password)) ||
-                        (!StringUtil.hasText(proxyUser) &&
-                                userPersistence.doLogin(userID, password)))
-                    {
-	            	    String token =
-	            	            new SSOCookieManager().generate(
-	            	                    new HttpPrincipal(userID, proxyUser));
-	            	    response.setContentType(CONTENT_TYPE);
-	            	    response.setContentLength(token.length());
-	            	    response.getWriter().write(token);
-                	}
-                }
-                else
-                {
-                	throw new IllegalArgumentException("Missing password");
-                }
-            }
-            else
-            {
-            	throw new IllegalArgumentException("Missing userid");
-            }
+        	    String token =
+        	            new SSOCookieManager().generate(
+        	                    new HttpPrincipal(userID, proxyUser));
+        	    response.setContentType(CONTENT_TYPE);
+        	    response.setContentLength(token.length());
+        	    response.getWriter().write(token);
+        	}
+
         }
         catch (IllegalArgumentException e)
         {
