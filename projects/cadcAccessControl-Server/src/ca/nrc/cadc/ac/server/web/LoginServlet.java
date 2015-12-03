@@ -153,9 +153,9 @@ public class LoginServlet<T extends Principal> extends HttpServlet
             String userID = request.getParameter("username");
             String password = request.getParameter("password");
 
-            if (userID == null)
+            if (userID == null || userID.length() == 0)
                 throw new IllegalArgumentException("Missing username");
-            if (password == null)
+            if (password == null || password.length() == 0)
                 throw new IllegalArgumentException("Missing password");
 
             userID = userID.trim();
