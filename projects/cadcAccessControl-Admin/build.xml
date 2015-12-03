@@ -81,7 +81,7 @@
 
   <property file="local.build.properties"/>
 
-  <property name="project" value="userAdmin"/>
+  <property name="project" value="cadcAccessControl-Admin"/>
 
   <!-- JAR files to be included in classpath and war file -->
   <property name="cadcAC" value="${lib}/cadcAccessControl.jar"/>
