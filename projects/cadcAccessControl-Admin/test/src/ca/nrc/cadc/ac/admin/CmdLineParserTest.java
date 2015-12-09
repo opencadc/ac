@@ -8,7 +8,7 @@
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
  *  All rights reserved                  Tous droits réservés
- *                                       
+ *
  *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
  *  expressed, implied, or               énoncée, implicite ou légale,
  *  statutory, of any kind with          de quelque nature que ce
@@ -31,10 +31,10 @@
  *  software without specific prior      de ce logiciel sans autorisation
  *  written permission.                  préalable et particulière
  *                                       par écrit.
- *                                       
+ *
  *  This file is part of the             Ce fichier fait partie du projet
  *  OpenCADC project.                    OpenCADC.
- *                                       
+ *
  *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
  *  you can redistribute it and/or       vous pouvez le redistribuer ou le
  *  modify it under the terms of         modifier suivant les termes de
@@ -44,7 +44,7 @@
  *  either version 3 of the              : soit la version 3 de cette
  *  License, or (at your option)         licence, soit (à votre gré)
  *  any later version.                   toute version ultérieure.
- *                                       
+ *
  *  OpenCADC is distributed in the       OpenCADC est distribué
  *  hope that it will be useful,         dans l’espoir qu’il vous
  *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -54,7 +54,7 @@
  *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
  *  General Public License for           Générale Publique GNU Affero
  *  more details.                        pour plus de détails.
- *                                       
+ *
  *  You should have received             Vous devriez avoir reçu une
  *  a copy of the GNU Affero             copie de la Licence Générale
  *  General Public License along         Publique GNU Affero avec
@@ -77,10 +77,10 @@ import org.junit.Test;
 
 
 /**
- * 
+ *
  */
 public class CmdLineParserTest
-{    
+{
     private static PrintStream sysOut = System.out;
     private static PrintStream sysErr = System.err;
 
@@ -98,7 +98,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
 		// case 2: long form
     	try
     	{
@@ -135,7 +135,7 @@ public class CmdLineParserTest
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
 	}
-	
+
     @Test
     public void testSetLogLevel()
     {
@@ -150,7 +150,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 2: verbose level
     	try
     	{
@@ -162,7 +162,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 3: debug level
     	try
     	{
@@ -174,10 +174,10 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 4: debug level
     	CmdLineParser parser = null;
-    	
+
     	try
     	{
     	    String[] mArgs = {"--list", "-d", "-v"};
@@ -193,10 +193,10 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	Assert.assertNull(parser);
     }
-    
+
     @Test
     public void testCommandValidation()
     {
@@ -216,7 +216,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 2: one --list command
     	try
     	{
@@ -229,7 +229,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 3: one --list-pending command
     	try
     	{
@@ -242,7 +242,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 4: one --view command
     	try
     	{
@@ -255,7 +255,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 5: one --reject command
     	try
     	{
@@ -268,11 +268,11 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 6: one --approve command
     	try
     	{
-    	    String[] dArgs = {"--approve=jdoe", "-d"};
+    	    String[] dArgs = {"--approve=jdoe", "--dn=dn", "-d"};
     	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
     	    Assert.assertTrue(parser.getCommand() instanceof ApproveUser);
@@ -281,11 +281,11 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 7: one command with no user ID
     	try
     	{
-    	    String[] dArgs = {"--approve", "-d"};
+    	    String[] dArgs = {"--approve", "--dn=dn", "-d"};
     	    new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
@@ -298,11 +298,11 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 8: one command with no user ID
     	try
     	{
-    	    String[] dArgs = {"--approve=", "-d"};
+    	    String[] dArgs = {"--approve=", "--dn=dn", "-d"};
     	    new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.fail("Should have received a UsageException.");
     	}
@@ -315,7 +315,7 @@ public class CmdLineParserTest
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
     	}
-    	
+
     	// case 8: more than one command
     	try
     	{

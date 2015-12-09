@@ -68,16 +68,21 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import org.junit.Test;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.easymock.EasyMock.*;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 
 @SuppressWarnings("unchecked")
@@ -86,6 +91,12 @@ public class CommandRunnerTest
     final CmdLineParser mockParser = createMock(CmdLineParser.class);
     final UserPersistence mockUserPersistence =
             createMock(UserPersistence.class);
+
+    public CommandRunnerTest()
+    {
+        // Set the necessary JNDI system property for lookups.
+        System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
+    }
 
 
     @Test
@@ -98,8 +109,6 @@ public class CommandRunnerTest
 
         userData.add(new User<>(p));
 
-        expect(mockParser.proceed()).andReturn(true).once();
-        expect(mockParser.getSubject()).andReturn(null).once();
         expect(mockParser.getCommand()).andReturn(new ListActiveUsers());
 
         expect(mockUserPersistence.getUsers()).andReturn(userData).once();
@@ -119,8 +128,6 @@ public class CommandRunnerTest
 
         userData.add(new User<>(new HttpPrincipal("PENDING USER")));
 
-        expect(mockParser.proceed()).andReturn(true).once();
-        expect(mockParser.getSubject()).andReturn(null).once();
         expect(mockParser.getCommand()).andReturn(new ListPendingUsers());
 
         expect(mockUserPersistence.getPendingUsers()).andReturn(userData).once();
@@ -139,8 +146,6 @@ public class CommandRunnerTest
         final HttpPrincipal principalData = new HttpPrincipal("TESTUSER");
         final User<HttpPrincipal> userData = new User<>(principalData);
 
-        expect(mockParser.proceed()).andReturn(true).once();
-        expect(mockParser.getSubject()).andReturn(null).once();
         expect(mockParser.getCommand()).andReturn(new ViewUser("TESTUSER"));
 
         expect(mockUserPersistence.getUser(principalData)).
@@ -160,13 +165,11 @@ public class CommandRunnerTest
         final HttpPrincipal principalData = new HttpPrincipal("PENDINGUSER");
         final User<HttpPrincipal> userData = new User<>(principalData);
 
-        expect(mockParser.proceed()).andReturn(true).once();
-        expect(mockParser.getSubject()).andReturn(null).once();
-        expect(mockParser.getCommand()).andReturn(
-                new ApproveUser("PENDINGUSER"));
+        expect(mockParser.getCommand()).andReturn(new ApproveUser("PENDINGUSER", "CN=DN"));
 
-        expect(mockUserPersistence.approvePendingUser(principalData)).
-                andReturn(userData).once();
+        expect(mockUserPersistence.approvePendingUser(principalData)).andReturn(userData).once();
+        expect(mockUserPersistence.getUser(principalData)).andReturn(userData).once();
+        expect(mockUserPersistence.modifyUser(userData)).andReturn(null).once();
         replay(mockParser, mockUserPersistence);
 
         testSubject.run();
@@ -181,8 +184,6 @@ public class CommandRunnerTest
                 new CommandRunner(mockParser, mockUserPersistence);
         final HttpPrincipal principalData = new HttpPrincipal("PENDINGUSER");
 
-        expect(mockParser.proceed()).andReturn(true).once();
-        expect(mockParser.getSubject()).andReturn(null).once();
         expect(mockParser.getCommand()).andReturn(
                 new RejectUser("PENDINGUSER"));
 

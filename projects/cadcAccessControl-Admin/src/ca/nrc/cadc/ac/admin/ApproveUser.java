@@ -72,6 +72,8 @@ package ca.nrc.cadc.ac.admin;
 import java.security.AccessControlException;
 import java.security.Principal;
 
+import javax.security.auth.x500.X500Principal;
+
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;
@@ -84,25 +86,59 @@ import ca.nrc.cadc.net.TransientException;
  * @author yeunga
  *
  */
-public class ApproveUser extends AbstractUserCommand 
+public class ApproveUser extends AbstractUserCommand
 {
     private static final Logger log = Logger.getLogger(ApproveUser.class);
-	
+    private String dn;
+
     /**
      * Constructor
      * @param userID Id of the pending user to be approved
      */
-    public ApproveUser(final String userID)
+    public ApproveUser(final String userID, final String dn)
     {
     	super(userID);
+    	this.dn = dn;
     }
-    
-    protected void execute() 
-	throws AccessControlException, UserNotFoundException, TransientException 
+
+    protected void execute()
+	throws AccessControlException, UserNotFoundException, TransientException
     {
-        User<Principal> user = this.getUserPersistence().approvePendingUser(this.getPrincipal());
-        String msg = "User " + this.getPrincipal().getName() + " was approved successfully.";
-        this.systemOut.println(msg);
+        X500Principal dnPrincipal = null;
+        try
+        {
+            dnPrincipal = new X500Principal(dn);
+        }
+        catch (Exception e)
+        {
+            throw new IllegalArgumentException("Invalid DN format: " + dn);
+        }
+
+        try
+        {
+            this.getUserPersistence().approvePendingUser(this.getPrincipal());
+            this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
+        }
+        catch (UserNotFoundException e)
+        {
+            this.systemOut.println("Could not find pending user " + this.getPrincipal());
+        }
+
+        User<Principal> user = null;
+        try
+        {
+            user = this.getUserPersistence().getUser(this.getPrincipal());
+        }
+        catch (UserNotFoundException e)
+        {
+            this.systemOut.println("Could not set user DN");
+            return;
+        }
+
+        user.getIdentities().add(dnPrincipal);
+        this.getUserPersistence().modifyUser(user);
+        this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + dn);
         this.printUser(user);
+
     }
 }
