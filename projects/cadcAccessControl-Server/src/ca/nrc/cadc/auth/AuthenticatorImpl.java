@@ -165,6 +165,7 @@ public class AuthenticatorImpl implements Authenticator
                     
                 }
             }
+            user.appData = null; // avoid loop that prevents GC???
             profiler.checkpoint("augmentSubject");
         }
         catch (UserNotFoundException e)

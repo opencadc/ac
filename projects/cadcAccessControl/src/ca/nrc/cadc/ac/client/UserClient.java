@@ -68,21 +68,21 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.Principal;
-import java.util.Iterator;
 import java.util.Set;
 
 import javax.security.auth.Subject;
-
-import ca.nrc.cadc.ac.*;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.NetUtil;
 
@@ -169,26 +169,36 @@ public class UserClient
     	}
     }
 
+
+
     protected Principal getPrincipal(final Subject subject)
     {
-    	Set<Principal> principals = subject.getPrincipals();
-    	Iterator<Principal> iterator = principals.iterator();
-    	if (iterator.hasNext())
-    	{
-    		Principal principal = iterator.next();
-    		if (iterator.hasNext())
-    		{
-    			// Should only have one principal
-        		final String msg = "Subject has more than one principal.";
-		        throw new IllegalArgumentException(msg);
-            }
+        if (subject == null || subject.getPrincipals() == null || subject.getPrincipals().isEmpty())
+        {
+            return null;
+        }
 
-            return principal;
-    	}
-    	else
-    	{
-    		return null;
-    	}
+        if (subject.getPrincipals().size() == 1)
+        {
+            return subject.getPrincipals().iterator().next();
+        }
+
+        // in the case that there is more than one principal in the
+        // subject, favor x500 principals then numeric principals
+        Set<X500Principal> x500Principals = subject.getPrincipals(X500Principal.class);
+        if (x500Principals.size() > 0)
+        {
+            return x500Principals.iterator().next();
+        }
+
+        Set<NumericPrincipal> numericPrincipals = subject.getPrincipals(NumericPrincipal.class);
+        if (numericPrincipals.size() > 0)
+        {
+            return numericPrincipals.iterator().next();
+        }
+
+        // just return the first one
+        return subject.getPrincipals().iterator().next();
     }
 
     protected Set<Principal> getPrincipals(ByteArrayOutputStream out)

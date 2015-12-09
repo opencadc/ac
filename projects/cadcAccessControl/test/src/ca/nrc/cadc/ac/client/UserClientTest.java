@@ -77,9 +77,12 @@ import java.security.Principal;
 
 import javax.management.remote.JMXPrincipal;
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -87,15 +90,12 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 
 public class UserClientTest
 {
-    
+
     private static final Logger log = Logger.getLogger(UserClientTest.class);
-    
+
     public UserClientTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
@@ -108,7 +108,7 @@ public class UserClientTest
     	// case 1: test construction with a null URL
         try
         {
-            new UserClient(null);            
+            new UserClient(null);
             Assert.fail("Null base URL should throw an illegalArgumentException.");
         }
         catch (IllegalArgumentException iae)
@@ -119,16 +119,16 @@ public class UserClientTest
         {
         	Assert.fail("Unexpected exception: " + t.getMessage());
         }
-        
+
         // case 2: test construction with a malformed URL
         try
         {
-            new UserClient("noSuchProtocol://localhost");            
+            new UserClient("noSuchProtocol://localhost");
             Assert.fail("Malformed URL should throw an illegalArgumentException.");
         }
         catch (IllegalArgumentException iae)
         {
-            Assert.assertTrue("Expecting 'URL is malformed'", 
+            Assert.assertTrue("Expecting 'URL is malformed'",
             		iae.getMessage().contains("URL is malformed"));
         }
         catch (Throwable t)
@@ -136,7 +136,7 @@ public class UserClientTest
         	Assert.fail("Unexpected exception: " + t.getMessage());
         }
     }
-    
+
     @Test
     public void testSubjectWithNoPrincipal()
     {
@@ -152,32 +152,10 @@ public class UserClientTest
     		Assert.fail("Unexpected exception: " + t.getMessage());
     	}
     }
-    
+
+
     @Test
-    public void testSubjectWithMultiplePrincipal() 
-    {
-        try
-        {
-            // test subject augmentation given a subject with more than one principal
-            Subject subject = new Subject();
-            subject.getPrincipals().add(new NumericPrincipal(4));
-            subject.getPrincipals().add(new HttpPrincipal("cadcauthtest1"));
-            this.createUserClient().augmentSubject(subject);
-            Assert.fail("Expecting an IllegalArgumentException.");
-        }
-        catch(IllegalArgumentException e)
-        {
-            String expected = "Subject has more than one principal.";
-            Assert.assertEquals(expected, e.getMessage());
-        }
-    	catch(Throwable t)
-    	{
-    		Assert.fail("Unexpected exception: " + t.getMessage());
-    	}
-    }
-    
-    @Test
-    public void testSubjectWithUnsupportedPrincipal() 
+    public void testSubjectWithUnsupportedPrincipal()
     {
     	Principal principal = new JMXPrincipal("APIName");
         try
@@ -198,7 +176,7 @@ public class UserClientTest
     		Assert.fail("Unexpected exception: " + t.getMessage());
     	}
     }
-   
+
     protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
     {
     	RegistryClient regClient = new RegistryClient();
@@ -206,5 +184,97 @@ public class UserClientTest
     	URL baseURL = regClient.getServiceURL(serviceURI, "https");
     	return new UserClient(baseURL.toString());
 
+    }
+
+    @Test
+    public void testGetSinglePrincipal()
+    {
+        try
+        {
+            RegistryClient rc = new RegistryClient();
+            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
+            UserClient c = new UserClient(u.toString());
+
+            Subject s = new Subject();
+            s.getPrincipals().add(new HttpPrincipal("bob"));
+            Principal p = c.getPrincipal(s);
+            Assert.assertTrue(p instanceof HttpPrincipal);
+            Assert.assertEquals("bob", p.getName());
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t);
+        }
+    }
+
+    @Test
+    public void testGetMultiplePrincipals1()
+    {
+        try
+        {
+            RegistryClient rc = new RegistryClient();
+            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
+            UserClient c = new UserClient(u.toString());
+
+            Subject s = new Subject();
+            s.getPrincipals().add(new HttpPrincipal("bob"));
+            s.getPrincipals().add(new NumericPrincipal(1));
+            Principal p = c.getPrincipal(s);
+            Assert.assertTrue(p instanceof NumericPrincipal);
+            Assert.assertEquals("1", p.getName());
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t);
+        }
+    }
+
+    @Test
+    public void testGetMultiplePrincipals2()
+    {
+        try
+        {
+            RegistryClient rc = new RegistryClient();
+            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
+            UserClient c = new UserClient(u.toString());
+
+            Subject s = new Subject();
+            s.getPrincipals().add(new NumericPrincipal(1));
+            s.getPrincipals().add(new HttpPrincipal("bob"));
+            Principal p = c.getPrincipal(s);
+            Assert.assertTrue(p instanceof NumericPrincipal);
+            Assert.assertEquals("1", p.getName());
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t);
+        }
+    }
+
+    @Test
+    public void testGetMultiplePrincipals3()
+    {
+        try
+        {
+            RegistryClient rc = new RegistryClient();
+            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
+            UserClient c = new UserClient(u.toString());
+
+            Subject s = new Subject();
+            s.getPrincipals().add(new NumericPrincipal(1));
+            s.getPrincipals().add(new X500Principal("CN=majorb"));
+            s.getPrincipals().add(new HttpPrincipal("bob"));
+            Principal p = c.getPrincipal(s);
+            Assert.assertTrue(p instanceof X500Principal);
+            Assert.assertEquals("CN=majorb", p.getName());
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t);
+        }
     }
 }
