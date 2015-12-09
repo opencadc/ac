@@ -70,11 +70,13 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.io.PrintStream;
+import java.security.Principal;
 import java.security.cert.CertificateException;
 
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 
 /**
  * A command line admin tool for LDAP users.
@@ -147,12 +149,10 @@ public class Main
             else
             {
                 // Set the necessary JNDI system property for lookups.
-                System.setProperty("java.naming.factory.initial",
-                                   ContextFactoryImpl.class.getName());
+                System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
 
-                final CommandRunner runner =
-                        new CommandRunner(parser, new PluginFactory().
-                                createUserPersistence());
+                UserPersistence<Principal> userPersistence = new PluginFactory().createUserPersistence();
+                final CommandRunner runner =  new CommandRunner(parser, userPersistence);
 
                 runner.run();
             }

@@ -294,13 +294,11 @@ public class CmdLineParser
     	sb.append("Usage: " + APP_NAME + " <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
     	sb.append("Where command is\n");
     	sb.append("--list                       : List users in the Users tree\n");
-    	sb.append("                               can be executed as an anonymous user\n");
     	sb.append("--list-pending               : List users in the UserRequests tree\n");
-    	sb.append("                               can be executed as an anonymous user\n");
     	sb.append("--view=<userid>              : Print the entire details of the user\n");
-    	sb.append("--approve=<userid> --dn=<dn> : Delete the user from the UserRequests tree\n");
-    	sb.append("                               and insert it into the Users tree\n");
-    	sb.append("--reject=<userid>            : Delete the user from the UserRequests tree\n");
+    	sb.append("--approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the\n");
+    	sb.append("                             : distinguished name to <dn>\n");
+    	sb.append("--reject=<userid>            : Delete this user request\n");
     	sb.append("\n");
     	sb.append("-v|--verbose                 : Verbose mode print progress and error messages\n");
     	sb.append("-d|--debug                   : Debug mode print all the logging messages\n");

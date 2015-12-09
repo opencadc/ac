@@ -205,7 +205,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @param password password to verify.
      * @return Boolean
      * @throws TransientException
-     * @throws UserNotFoundException
+     * @throws UserNotFoundExceptionjoellama
      */
     public Boolean doLogin(final String username, final String password)
         throws TransientException, UserNotFoundException
@@ -555,10 +555,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             int numericID = searchResult.getAttributeValueAsInteger(LDAP_NUMERICID);
             logger.debug("numericID is " + numericID);
             user.getIdentities().add(new NumericPrincipal(numericID));
-            user.getIdentities().add(new X500Principal(
-                searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME)));
-            user.getIdentities().add(new DNPrincipal(
-                searchResult.getAttributeValue(LDAP_ENTRYDN)));
+            String dn = searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME);
+            if (dn != null)
+            {
+                user.getIdentities().add(new X500Principal(dn));
+            }
+            user.getIdentities().add(new DNPrincipal(searchResult.getAttributeValue(LDAP_ENTRYDN)));
 
             // cache memberOf values in the user
             GroupMemberships gms = new GroupMemberships(user);
