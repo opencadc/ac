@@ -222,7 +222,15 @@ public class CmdLineParser
     	{
             if (this.hasValue(userID))
     	    {
-                this.command = new ApproveUser(userID);
+                String dn = am.getValue("dn");
+                if (dn != null)
+                {
+                    this.command = new ApproveUser(userID, dn);
+                }
+                else
+                {
+                    throw new UsageException("Missing parameter 'dn'");
+                }
     	    }
 
             count++;
@@ -285,18 +293,18 @@ public class CmdLineParser
     	sb.append("\n");
     	sb.append("Usage: " + APP_NAME + " <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
     	sb.append("Where command is\n");
-    	sb.append("--list               :list users in the Users tree\n");
-    	sb.append("                     :can be executed as an anonymous user\n");
-    	sb.append("--list-pending       :list users in the UserRequests tree\n");
-    	sb.append("                     :can be executed as an anonymous user\n");
-    	sb.append("--view=<userid>      :print the entire details of the user\n");
-    	sb.append("--approve=<userid>   :delete the user from the UserRequests tree\n");
-    	sb.append("                     :and insert it into the Users tree\n");
-    	sb.append("--reject=<userid>    :delete the user from the UserRequests tree\n");
+    	sb.append("--list                       : List users in the Users tree\n");
+    	sb.append("                               can be executed as an anonymous user\n");
+    	sb.append("--list-pending               : List users in the UserRequests tree\n");
+    	sb.append("                               can be executed as an anonymous user\n");
+    	sb.append("--view=<userid>              : Print the entire details of the user\n");
+    	sb.append("--approve=<userid> --dn=<dn> : Delete the user from the UserRequests tree\n");
+    	sb.append("                               and insert it into the Users tree\n");
+    	sb.append("--reject=<userid>            : Delete the user from the UserRequests tree\n");
     	sb.append("\n");
-    	sb.append("-v|--verbose         : Verbose mode print progress and error messages\n");
-    	sb.append("-d|--debug           : Debug mode print all the logging messages\n");
-    	sb.append("-h|--help            : Print this message and exit\n");
+    	sb.append("-v|--verbose                 : Verbose mode print progress and error messages\n");
+    	sb.append("-d|--debug                   : Debug mode print all the logging messages\n");
+    	sb.append("-h|--help                    : Print this message and exit\n");
     	sb.append("\n");
         sb.append("Authentication and authorization:\n");
         sb.append("  - An LdapConfig.properties file must exist in directory ~/config/\n");
