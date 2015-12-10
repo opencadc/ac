@@ -137,7 +137,8 @@ public class ApproveUser extends AbstractUserCommand
 
         user.getIdentities().add(dnPrincipal);
         this.getUserPersistence().modifyUser(user);
-        this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + dn);
+        String noWhiteSpaceDN = dn.replaceAll("\\s","");
+        this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + noWhiteSpaceDN);
         this.printUser(user);
 
     }
