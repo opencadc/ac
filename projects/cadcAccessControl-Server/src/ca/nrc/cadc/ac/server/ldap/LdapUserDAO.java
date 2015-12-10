@@ -73,6 +73,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -765,6 +766,19 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                 throw new UnsupportedOperationException(
                     "Support for users PosixDetails not available");
+            }
+        }
+
+        // set the x500 DNs if there
+        Set<X500Principal> x500Principals = userID.getIdentities(X500Principal.class);
+        if (x500Principals != null && !x500Principals.isEmpty())
+        {
+            Iterator<X500Principal> i = x500Principals.iterator();
+            X500Principal next = null;
+            while (i.hasNext())
+            {
+                next = i.next();
+                addModification(mods, LDAP_DISTINGUISHED_NAME, next.getName());
             }
         }
 

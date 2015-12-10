@@ -83,8 +83,6 @@ import java.util.Random;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.auth.DNPrincipal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
@@ -93,7 +91,9 @@ import org.junit.Test;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserDetails;
+import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
@@ -414,7 +414,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         HttpPrincipal principal = new HttpPrincipal(username);
         testUser2 = new User<HttpPrincipal>(principal);
         testUser2.getIdentities().add(principal);
-        testUser2.getIdentities().add(new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca"));
+
         // update nextNumericId
         nextUserNumericID = ran.nextInt(Integer.MAX_VALUE);
         testUser2.getIdentities().add(new NumericPrincipal(nextUserNumericID));
@@ -457,6 +457,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 pd.country = "country2";
             }
         }
+
+        // add a DN
+        testUser2.getIdentities().add(new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca"));
 
         // update the user
         subject.getPrincipals().add(testUser2.getUserID());
