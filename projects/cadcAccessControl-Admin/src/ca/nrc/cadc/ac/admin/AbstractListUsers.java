@@ -72,9 +72,11 @@ package ca.nrc.cadc.ac.admin;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.net.TransientException;
 
@@ -83,22 +85,46 @@ import ca.nrc.cadc.net.TransientException;
  * @author yeunga
  *
  */
-public abstract class AbstractListUsers extends AbstractCommand 
-{	
+public abstract class AbstractListUsers extends AbstractCommand
+{
     private static final Logger log = Logger.getLogger(AbstractListUsers.class);
-        
-    protected abstract Collection<User<Principal>> getUsers() 
+
+    protected abstract Collection<User<Principal>> getUsers()
     		throws AccessControlException, TransientException;
-        
+
     protected void doRun() throws AccessControlException, TransientException
     {
         Collection<User<Principal>> users = this.getUsers();
-		
+
         for (User<Principal> user : users)
         {
-            this.systemOut.println(user.getUserID().getName());
+            this.systemOut.println(getUserString(user));
         }
-        
+
         this.systemOut.println("Number of users = " + users.size());
+    }
+
+    private String getUserString(User user)
+    {
+        StringBuilder sb = new StringBuilder(user.getUserID().getName());
+
+        Set<PersonalDetails> detailSet = user.getDetails(PersonalDetails.class);
+        if (detailSet.size() > 0)
+        {
+            sb.append(" [");
+            PersonalDetails details = detailSet.iterator().next();
+            sb.append(details.getFirstName());
+            sb.append(" ");
+            sb.append(details.getLastName());
+            sb.append("]");
+            if (details.institute != null)
+            {
+                sb.append(" [");
+                sb.append(details.institute);
+                sb.append("]");
+            }
+        }
+        return sb.toString();
+
     }
 }
