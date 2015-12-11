@@ -136,6 +136,8 @@ public class CmdLineParser
     {
     	int count = 0;
 
+    	this.logLevel = Level.WARN;
+
         // only one log level is allowed
     	if (am.isSet("v") || am.isSet("verbose"))
     	{

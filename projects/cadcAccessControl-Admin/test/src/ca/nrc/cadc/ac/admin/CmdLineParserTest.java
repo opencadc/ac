@@ -92,7 +92,7 @@ public class CmdLineParserTest
     	{
     	    String[] mArgs = {"-h"};
     	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
+    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
     	}
     	catch (Exception e)
     	{
@@ -104,7 +104,7 @@ public class CmdLineParserTest
     	{
     	    String[] mArgs = {"--help"};
     	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
+    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
     	}
     	catch (Exception e)
     	{
@@ -116,7 +116,7 @@ public class CmdLineParserTest
     	{
     	    String[] mArgs = {"--list", "-h"};
     	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
+    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
     	}
     	catch (Exception e)
     	{
@@ -144,7 +144,7 @@ public class CmdLineParserTest
     	{
     	    String[] args = {"--list",};
     	    CmdLineParser parser = new CmdLineParser(args, sysOut, sysErr);
-    	    Assert.assertEquals(Level.OFF, parser.getLogLevel());
+    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
     	}
     	catch (Exception e)
     	{
