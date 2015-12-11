@@ -92,10 +92,11 @@
   <property name="commons-logging" value="${ext.lib}/commons-logging.jar"/>
   <property name="unboundid" value="${ext.lib}/unboundid-ldapsdk-se.jar"/>
   <property name="servlet-api" value="${ext.lib}/servlet-api.jar"/>
+  <property name="mail" value="${ext.lib}/mail.jar"/>
 
   <property name="cadc" value="${cadcAC}:${cadcAC-Server}:${cadcUtil}"/>
   <property name="client.cadc.jars" value="${cadcAC}:${cadcAC-Server}:${cadcLog}:${cadcUtil}"/>
-  <property name="client.external.jars" value="${unboundid}:${log4j}:${servlet-api}"/>
+  <property name="client.external.jars" value="${unboundid}:${log4j}:${servlet-api}:${mail}"/>
 
   <property name="jars" value="${cadc}:${client.cadc.jars}:${client.external.jars}"/>
 

@@ -71,14 +71,27 @@ package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.Date;
+import java.util.IllegalFormatException;
+import java.util.Properties;
+import java.util.Set;
 
+import javax.mail.Address;
+import javax.mail.Message;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  * This class approves the specified pending user by moving the user
@@ -89,6 +102,16 @@ import ca.nrc.cadc.net.TransientException;
 public class ApproveUser extends AbstractUserCommand
 {
     private static final Logger log = Logger.getLogger(ApproveUser.class);
+
+    private static final String EMAIL_CONFIG = "ac-admin-email.properties";
+
+    private static final String EMAIL_HOST = "smtp.host";
+    private static final String EMAIL_SENDER = "smtp.sender";
+    private static final String EMAIL_REPLYTO = "smtp.replyto";
+    private static final String EMAIL_BCC = "smtp.bcc";
+    private static final String EMAIL_SUBJECT = "mail.subject";
+    private static final String EMAIL_BODY = "mail.body";
+
     private String dn;
 
     /**
@@ -114,10 +137,13 @@ public class ApproveUser extends AbstractUserCommand
             throw new IllegalArgumentException("Invalid DN format: " + dn);
         }
 
+        boolean approved = false;
+
         try
         {
             this.getUserPersistence().approvePendingUser(this.getPrincipal());
             this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
+            approved = true;
         }
         catch (UserNotFoundException e)
         {
@@ -135,11 +161,117 @@ public class ApproveUser extends AbstractUserCommand
             return;
         }
 
+        if (approved)
+        {
+            // email the user if configuration is available
+            emailUser(user);
+        }
+
         user.getIdentities().add(dnPrincipal);
         this.getUserPersistence().modifyUser(user);
         String noWhiteSpaceDN = dn.replaceAll("\\s","");
         this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + noWhiteSpaceDN);
         this.printUser(user);
 
+    }
+
+    private void emailUser(User<Principal>  user)
+    {
+        try
+        {
+            PropertiesReader pr = new PropertiesReader(EMAIL_CONFIG);
+            String host = pr.getFirstPropertyValue(EMAIL_HOST);
+            String sender = pr.getFirstPropertyValue(EMAIL_SENDER);
+            String replyto = pr.getFirstPropertyValue(EMAIL_REPLYTO);
+            String subject = pr.getFirstPropertyValue(EMAIL_SUBJECT);
+            String body = pr.getFirstPropertyValue(EMAIL_BODY);
+            String bcc = pr.getFirstPropertyValue(EMAIL_BCC);
+
+            log.debug("email host: " + host);
+            log.debug("email sender: " + sender);
+            log.debug("email replyto: " + replyto);
+            log.debug("email subject: " + subject);
+            log.debug("email bcc: " + bcc);
+            log.debug("email body: " + body);
+
+            if (host == null || sender == null || subject == null || body == null || replyto == null)
+            {
+                // do not email, missing configuration
+                log.warn("Missing email configuration, not emailing user");
+                return;
+            }
+
+            Set<PersonalDetails> pds = user.getDetails(PersonalDetails.class);
+            String recipient = null;
+            if (pds != null && !pds.isEmpty())
+            {
+                PersonalDetails pd = pds.iterator().next();
+                recipient = pd.email;
+            }
+            if (recipient == null)
+            {
+                log.warn("No user email address, not emailing");
+                return;
+            }
+
+            HttpPrincipal p = user.getIdentities(HttpPrincipal.class).iterator().next();
+
+            // try to put the userid in the body
+            String populatedBody = null;
+            try
+            {
+                populatedBody = String.format(body, p.getName());
+            }
+            catch (IllegalFormatException e)
+            {
+                log.info("userid not inserted into message body");
+                populatedBody = null;
+            }
+
+            if (populatedBody == null)
+            {
+                populatedBody = body;
+            }
+
+            log.debug("email body populated: " + populatedBody);
+
+            // add the carriage returns
+            populatedBody = populatedBody.replaceAll("#", "\n");
+
+            log.debug("body with carriage returns: " + populatedBody);
+
+            Properties props = new Properties();
+            props.put("mail.smtp.host", host);
+            Session session = Session.getInstance(props, null);
+
+            try
+            {
+                MimeMessage msg = new MimeMessage(session);
+                Address senderAddress = new InternetAddress(sender);
+                Address recipientAddress = new InternetAddress(recipient);
+                Address replytoAddress = new InternetAddress(replyto);
+                msg.setFrom(senderAddress);
+                msg.setRecipient(Message.RecipientType.TO, recipientAddress);
+                msg.setReplyTo(new Address[] {replytoAddress});
+                if (bcc != null)
+                {
+                    Address bccAddress = new InternetAddress(bcc);
+                    msg.addRecipient(Message.RecipientType.BCC, bccAddress);
+                }
+                msg.setSubject(subject);
+                msg.setSentDate(new Date());
+                msg.setText(populatedBody);
+                Transport.send(msg);
+                this.systemOut.println("Emailed approval message to user.");
+            }
+            catch (Exception e)
+            {
+                log.warn("Failed to send email address: " + e.getMessage(), e);
+            }
+        }
+        catch (Exception e)
+        {
+            log.warn("Failed to email user", e);
+        }
     }
 }
