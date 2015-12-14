@@ -89,9 +89,10 @@
 
   <property name="cadcAccessControl" value="${lib}/cadcAccessControl.jar"/>
   <property name="cadcLog" value="${lib}/cadcLog.jar"/>
-  <property name="cadcRegistry" value="${lib}/cadcRegistryClient.jar"/>
+  <property name="cadcRegistry" value="${lib}/cadcRegistry.jar"/>
   <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
   <property name="cadcUWS" value="${lib}/cadcUWS.jar"/>
+  <property name="cadcUWS-Server" value="${lib}/cadcUWS-Server.jar"/>
   <property name="json" value="${ext.lib}/json.jar" />
   <property name="javacsv" value="${ext.lib}/javacsv.jar"/>
   <property name="jdom2" value="${ext.lib}/jdom2.jar"/>
@@ -101,7 +102,7 @@
   <property name="xerces" value="${ext.lib}/xerces.jar"/>
 
   <property name="jars"
-            value="${javacsv}:${jdom2}:${json}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}"/>
+            value="${javacsv}:${jdom2}:${json}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${cadcUWS-Server}"/>
 
   <target name="build" depends="compile">
     <jar jarfile="${build}/lib/${project}.jar"
