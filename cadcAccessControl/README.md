@@ -21,3 +21,4 @@ The cadcAccessControl module contains the shared model classes and exceptions us
 - easymock.jar (easymock-3.0.jar)
 - junit.jar (junit-4.6.jar)
 - objenesis.jar (objenesis-1.2.jar)
+- jsonassert.jar (jsonassert-1.2.3.jar)
