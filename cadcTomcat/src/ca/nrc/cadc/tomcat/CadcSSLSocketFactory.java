@@ -1,9 +1,9 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,66 +65,76 @@
 *  $Revision: 4 $
 *
 ************************************************************************
--->
+*/
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+import java.security.KeyStore;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+import org.apache.log4j.Logger;
+import org.apache.tomcat.util.net.AbstractEndpoint;
+import org.apache.tomcat.util.net.jsse.JSSESocketFactory;
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
 
-    <property name="project"    value="cadcAccessControl" />
+/**
+ * Custom factory implementation that will deliver the CADCX509TrustManager.
+ *
+ * @author majorb
+ *
+ */
+public class CadcSSLSocketFactory extends JSSESocketFactory
+{
 
-    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
-    <property name="cadcRegistryClient" value="${lib}/cadcRegistry.jar" />
+    private static Logger log = Logger.getLogger(CadcSSLSocketFactory.class);
 
-    <property name="json"       value="${ext.lib}/json.jar" />
-    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"      value="${ext.lib}/log4j.jar" />
+    public CadcSSLSocketFactory(AbstractEndpoint endpoint)
+    {
+        super(endpoint);
+    }
 
-    <property name="jars" value="${json}:${jdom2}:${log4j}:${cadcUtil}:${cadcRegistryClient}" />
-    
-    <target name="build" depends="compile">
-        <jar jarfile="${build}/lib/${project}.jar"
-                    basedir="${build}/class"
-                    update="no">
-                <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
+    @Override
+    public TrustManager[] getTrustManagers(java.lang.String keystoreType, java.lang.String keystoreProvider, java.lang.String algorithm) throws Exception
+    {
+        log.info("Creating CADC Trust Manager.");
+        KeyStore trustStore = super.getTrustStore(keystoreType, keystoreProvider);
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.lib}/xerces.jar" />
-    <property name="asm"        value="${ext.dev}/asm.jar" />
-    <property name="cglib"      value="${ext.dev}/cglib.jar" />
-    <property name="easymock"   value="${ext.dev}/easymock.jar" />
-    <property name="junit"      value="${ext.dev}/junit.jar" />
-    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
-    
-    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+        try
+        {
 
-    <target name="single-test" depends="compile,compile-test">
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509", "SunJSSE");
 
-</project>
+            log.debug("Initializing trust manager factory.");
+            tmf.init(trustStore);
+            log.debug("Trust manager factory initialzation complete.");
+            TrustManager tms [] = tmf.getTrustManagers();
+            X509TrustManager defaultTrustManager = null;
+
+            for (int i = 0; i < tms.length; i++) {
+                if (tms[i] instanceof X509TrustManager) {
+                    defaultTrustManager = (X509TrustManager) tms[i];
+                    log.debug("Tomcat default trust manager: " + tms[i].getClass().getName());
+                }
+            }
+
+            if (defaultTrustManager == null)
+            {
+                log.fatal("No default trust manager could be located.");
+                throw new ExceptionInInitializerError("CADCX509TrustManager didn't find a defualt x509 trust manager.");
+            }
+
+            TrustManager[] trustManagers = new TrustManager[] { new CadcX509TrustManager(defaultTrustManager) };
+            return trustManagers;
+
+        }
+        catch (Exception e)
+        {
+            log.fatal(e);
+            throw new ExceptionInInitializerError(e);
+        }
+
+    }
+}

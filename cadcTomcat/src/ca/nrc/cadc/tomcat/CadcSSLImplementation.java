@@ -1,9 +1,9 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,66 +65,43 @@
 *  $Revision: 4 $
 *
 ************************************************************************
--->
+*/
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+import org.apache.log4j.Logger;
+import org.apache.tomcat.util.net.AbstractEndpoint;
+import org.apache.tomcat.util.net.ServerSocketFactory;
+import org.apache.tomcat.util.net.jsse.JSSEImplementation;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+/**
+ * CADC Custom SSLImplementation that delivers a custom socket factory.
+ *
+ * @author majorb
+ *
+ */
+public class CadcSSLImplementation extends JSSEImplementation
+{
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+    private static Logger log = Logger.getLogger(CadcSSLImplementation.class);
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+    ServerSocketFactory serverSocketFactory = null;
 
-    <property name="project"    value="cadcAccessControl" />
+    public CadcSSLImplementation() throws ClassNotFoundException
+    {
+        super();
+    }
 
-    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
-    <property name="cadcRegistryClient" value="${lib}/cadcRegistry.jar" />
+    @Override
+    public ServerSocketFactory getServerSocketFactory(AbstractEndpoint endpoint)
+    {
+        if (serverSocketFactory == null)
+        {
+            log.debug("Constructing CADCSSLSocketFactory.");
+            serverSocketFactory = new CadcSSLSocketFactory(endpoint);
+        }
+        log.debug("Delivering CADCSSLSocketFactory.");
+        return serverSocketFactory;
+    }
 
-    <property name="json"       value="${ext.lib}/json.jar" />
-    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"      value="${ext.lib}/log4j.jar" />
-
-    <property name="jars" value="${json}:${jdom2}:${log4j}:${cadcUtil}:${cadcRegistryClient}" />
-    
-    <target name="build" depends="compile">
-        <jar jarfile="${build}/lib/${project}.jar"
-                    basedir="${build}/class"
-                    update="no">
-                <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
-
-    <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.lib}/xerces.jar" />
-    <property name="asm"        value="${ext.dev}/asm.jar" />
-    <property name="cglib"      value="${ext.dev}/cglib.jar" />
-    <property name="easymock"   value="${ext.dev}/easymock.jar" />
-    <property name="junit"      value="${ext.dev}/junit.jar" />
-    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
-    
-    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
-
-    <target name="single-test" depends="compile,compile-test">
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
-
-</project>
+}

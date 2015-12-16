@@ -1,9 +1,9 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2012.                            (c) 2012.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,66 +65,85 @@
 *  $Revision: 4 $
 *
 ************************************************************************
--->
+*/
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+import javax.net.ssl.X509TrustManager;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+import org.apache.log4j.Logger;
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+import ca.nrc.cadc.auth.X509CertificateChain;
 
-    <property name="project"    value="cadcAccessControl" />
+/**
+ * Custom trust manager implementation that will accept client proxy certificates.
+ *
+ * @author majorb
+ *
+ */
+public class CadcX509TrustManager implements X509TrustManager
+{
+    private static Logger log = Logger.getLogger(CadcX509TrustManager.class);
 
-    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
-    <property name="cadcRegistryClient" value="${lib}/cadcRegistry.jar" />
+    private X509TrustManager defaultTrustManager;
+    public CadcX509TrustManager(X509TrustManager defaultTrustManager)
+    {
+        this.defaultTrustManager = defaultTrustManager;
+    }
 
-    <property name="json"       value="${ext.lib}/json.jar" />
-    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"      value="${ext.lib}/log4j.jar" />
+    /*
+     * Remove any proxy entries and delegate to the default trust manager.
+     */
+    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                throws CertificateException
+    {
 
-    <property name="jars" value="${json}:${jdom2}:${log4j}:${cadcUtil}:${cadcRegistryClient}" />
-    
-    <target name="build" depends="compile">
-        <jar jarfile="${build}/lib/${project}.jar"
-                    basedir="${build}/class"
-                    update="no">
-                <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
+        log.debug("Checking if client chain is trusted.");
+        if (chain == null || chain.length == 0)
+        {
+            log.error("No certificates in chain.");
+            throw new CertificateException("No credentials provided.");
+        }
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.lib}/xerces.jar" />
-    <property name="asm"        value="${ext.dev}/asm.jar" />
-    <property name="cglib"      value="${ext.dev}/cglib.jar" />
-    <property name="easymock"   value="${ext.dev}/easymock.jar" />
-    <property name="junit"      value="${ext.dev}/junit.jar" />
-    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
-    
-    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+        // remove all but the end entity from the chain so that the default
+        // trust manager can authenticate proxy certificate chains as well as
+        // original certificate chains.
+        X509CertificateChain x509CertificateChain = new X509CertificateChain(chain, null);
+        X509Certificate endEntity = x509CertificateChain.getEndEntity();
+        if (endEntity == null)
+        {
+            log.error("Bug: Should always have an endEntity");
+            throw new CertificateException("Error extracting certifcate chain end entity.");
+        }
+        X509Certificate[] endEntityChain = new X509Certificate[] { endEntity };
 
-    <target name="single-test" depends="compile,compile-test">
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
+        // send the authentication to the default trust manager.
+        defaultTrustManager.checkClientTrusted(endEntityChain, authType);
+        log.debug("Client is trusted.");
+    }
 
-</project>
+    /**
+     * Delegate to the default trust manager.
+     */
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException
+    {
+        log.debug("Checking if server trusted.");
+        defaultTrustManager.checkServerTrusted(chain, authType);
+    }
+
+    /**
+     * Delegate to the default trust manager.
+     */
+    @Override
+    public X509Certificate[] getAcceptedIssuers()
+    {
+        X509Certificate[] acceptedIssuers = defaultTrustManager.getAcceptedIssuers();
+        log.debug("Trusting " + acceptedIssuers.length + " issuers.");
+        return acceptedIssuers;
+    }
+}

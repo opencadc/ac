@@ -73,12 +73,19 @@
   <property environment="env"/>
   <property file="local.build.properties"/>
 
-  <property file="${env.A}/compilers/setup.ant.java.properties"/>
-  <import file="${env.A}/compilers/setup.ant.java.targets.xml"/>
-
+  <!-- site-specific build properties or overrides of values in opencadc.properties -->
+  <property file="${env.CADC_PREFIX}/etc/local.properties" />
+  
+  <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
+  <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+  
+  <!-- default properties and targets -->
+  <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
+  <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+  
   <!-- developer convenience: place for extra targets and properties -->
-  <import file="extras.xml" optional="true"/>
-
+  <import file="extras.xml" optional="true" />
+  
   <property file="local.build.properties"/>
 
   <property name="project" value="cadcAccessControl-Admin"/>

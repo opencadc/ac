@@ -1,9 +1,9 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2010.                            (c) 2010.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,69 +62,87 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
--->
+*/
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+import java.io.IOException;
+import java.net.URISyntaxException;
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+import junit.framework.Assert;
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 
-    <property name="project"    value="cadcAccessControl" />
+public class CadcBasicAuthenticatorTest
+{
 
-    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
-    <property name="cadcRegistryClient" value="${lib}/cadcRegistry.jar" />
+    private static Logger log = Logger.getLogger(CadcBasicAuthenticatorTest.class);
 
-    <property name="json"       value="${ext.lib}/json.jar" />
-    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"      value="${ext.lib}/log4j.jar" />
+    static
+    {
+        RealmUtil.initLogging();
+        Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
+    }
 
-    <property name="jars" value="${json}:${jdom2}:${log4j}:${cadcUtil}:${cadcRegistryClient}" />
-    
-    <target name="build" depends="compile">
-        <jar jarfile="${build}/lib/${project}.jar"
-                    basedir="${build}/class"
-                    update="no">
-                <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
+    @Test
+    public void testValidCredentials()
+    {
+        try
+        {
+            TestAuthenticator auth = new TestAuthenticator(true);
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.lib}/xerces.jar" />
-    <property name="asm"        value="${ext.dev}/asm.jar" />
-    <property name="cglib"      value="${ext.dev}/cglib.jar" />
-    <property name="easymock"   value="${ext.dev}/easymock.jar" />
-    <property name="junit"      value="${ext.dev}/junit.jar" />
-    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
-    
-    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+            Assert.assertNotNull(p);
+            Assert.assertEquals("wrong num roles", 1, p.getRoles().length);
+            Assert.assertEquals("wrong role", "public", p.getRoles()[0]);
+            Assert.assertNull(p.getPassword());
+        }
+        catch (Exception e)
+        {
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
 
-    <target name="single-test" depends="compile,compile-test">
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
+    @Test
+    public void testInvalidCredentials()
+    {
+        try
+        {
+            TestAuthenticator auth = new TestAuthenticator(false);
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
 
-</project>
+            Assert.assertNull(p);
+        }
+        catch (Exception e)
+        {
+            log.error("Unexpected exception", e);
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    class TestAuthenticator extends CadcBasicAuthenticator
+    {
+        private boolean authenticate;
+
+        TestAuthenticator(boolean authenticate)
+        {
+            this.authenticate = authenticate;
+        }
+
+        @Override
+        boolean login(String username, String credentials)
+                throws URISyntaxException, IOException
+        {
+            return authenticate;
+        }
+    }
+
+}

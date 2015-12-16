@@ -1,9 +1,9 @@
-<!--
+/*
 ************************************************************************
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2015.                            (c) 2015.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,69 +62,74 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
--->
+*/
 
-<!DOCTYPE project>
-<project default="build" basedir=".">
-    <property environment="env"/>
-    <property file="local.build.properties" />
+package ca.nrc.cadc.tomcat;
 
-    <!-- site-specific build properties or overrides of values in opencadc.properties -->
-    <property file="${env.CADC_PREFIX}/etc/local.properties" />
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.varia.LevelRangeFilter;
 
-    <!-- site-specific targets, e.g. install, cannot duplicate those in opencadc.targets.xml -->
-    <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
+public class RealmUtil
+{
 
-    <!-- default properties and targets -->
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
+    private static final String ISO_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
-    <!-- developer convenience: place for extra targets and properties -->
-    <import file="extras.xml" optional="true" />
+    // SHORT_FORMAT applies to DEBUG and TRACE logging levels
+    private static final String SHORT_FORMAT = "%-4r [%t] %-5p %c{1} %x - %m\n";
 
-    <property name="project"    value="cadcAccessControl" />
+    // LONG_FORMAT applies to INFO, WARN, ERROR and FATAL logging levels
+    private static final String LONG_FORMAT = "%d{" + ISO_DATE_FORMAT
+                                              + "} [%t] %-5p %c{1} %x - %m\n";
 
-    <property name="cadcUtil"           value="${lib}/cadcUtil.jar" />
-    <property name="cadcRegistryClient" value="${lib}/cadcRegistry.jar" />
+    public static void initLogging()
+    {
+        // Clear all existing appenders, if there's any.
+        BasicConfigurator.resetConfiguration();
+        Logger.getRootLogger().setLevel(Level.ERROR); // must redo after reset
 
-    <property name="json"       value="${ext.lib}/json.jar" />
-    <property name="jdom2"      value="${ext.lib}/jdom2.jar" />
-    <property name="log4j"      value="${ext.lib}/log4j.jar" />
+        String errorLogFormat = LONG_FORMAT;
+        String infoLogFormat = LONG_FORMAT;
+        String debugLogFormat = SHORT_FORMAT;
 
-    <property name="jars" value="${json}:${jdom2}:${log4j}:${cadcUtil}:${cadcRegistryClient}" />
-    
-    <target name="build" depends="compile">
-        <jar jarfile="${build}/lib/${project}.jar"
-                    basedir="${build}/class"
-                    update="no">
-                <include name="ca/nrc/cadc/**" />
-        </jar>
-    </target>
+        // Appender for WARN, ERROR and FATAL with LONG_FORMAT message prefix
+        ConsoleAppender conAppenderHigh =
+                new ConsoleAppender(new PatternLayout(errorLogFormat));
+        LevelRangeFilter errorFilter = new LevelRangeFilter();
+        errorFilter.setLevelMax(Level.FATAL);
+        errorFilter.setLevelMin(Level.WARN);
+        errorFilter.setAcceptOnMatch(true);
+        conAppenderHigh.clearFilters();
+        conAppenderHigh.addFilter(errorFilter);
+        BasicConfigurator.configure(conAppenderHigh);
 
-    <!-- JAR files needed to run the test suite -->
-    <property name="xerces"     value="${ext.lib}/xerces.jar" />
-    <property name="asm"        value="${ext.dev}/asm.jar" />
-    <property name="cglib"      value="${ext.dev}/cglib.jar" />
-    <property name="easymock"   value="${ext.dev}/easymock.jar" />
-    <property name="junit"      value="${ext.dev}/junit.jar" />
-    <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
-    
-    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+        // Appender for INFO with LONG_FORMAT message prefix
+        ConsoleAppender conAppenderInfo =
+                new ConsoleAppender(new PatternLayout(infoLogFormat));
+        LevelRangeFilter infoFilter = new LevelRangeFilter();
+        infoFilter.setLevelMax(Level.INFO);
+        infoFilter.setLevelMin(Level.INFO);
+        infoFilter.setAcceptOnMatch(true);
+        conAppenderInfo.clearFilters();
+        conAppenderInfo.addFilter(infoFilter);
+        BasicConfigurator.configure(conAppenderInfo);
 
-    <target name="single-test" depends="compile,compile-test">
-        <echo message="Running test suite..." />
-        <junit printsummary="yes" haltonfailure="yes" fork="yes">
-            <classpath>
-                <pathelement path="${build}/class"/>
-                <pathelement path="${build}/test/class"/>
-                <pathelement path="${testingJars}"/>
-            </classpath>
-            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
-            <formatter type="plain" usefile="false" />
-        </junit>
-    </target>
+        // Appender for DEBUG and TRACE with LONG_FORMAT message prefix
+        ConsoleAppender conAppenderDebug =
+                new ConsoleAppender(new PatternLayout(debugLogFormat));
+        LevelRangeFilter debugFilter = new LevelRangeFilter();
+        debugFilter.setLevelMax(Level.DEBUG);
+        debugFilter.setLevelMin(Level.TRACE);
+        debugFilter.setAcceptOnMatch(true);
+        conAppenderDebug.clearFilters();
+        conAppenderDebug.addFilter(debugFilter);
+        BasicConfigurator.configure(conAppenderDebug);
+    }
 
-</project>
+}
