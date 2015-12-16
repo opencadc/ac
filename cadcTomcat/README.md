@@ -4,6 +4,12 @@ This module contains two plugins for Tomcat 7:
 - A authentication realm plugin
 - An SSL plugin to enable x509 Client Certificates to work directly with tomcat
 
+## Dependencies
+- catalina.jar (catalina-7.0.33.jar)
+- tomcat-util.jar (tomcat-util-7.0.33.jar)
+- tomcat-juli.jar (tomcat-juli-7.0.33.jar)
+- tomcat-coyote.jar (tomcat-coyote-7.0.33.jar)
+
 ## CADC Tomcat Realm Plugin
  
 This plugin will authenticate users who enter with a userid and password.  The authentication mechanism will call the access control web service (in module cadcAccessControl-Server) to see if the credentials are correct.
