@@ -18,11 +18,6 @@ Where command is:
 -v|--verbose                 : Verbose mode print progress and error messages
 -d|--debug                   : Debug mode print all the logging messages
 -h|--help                    : Print this message and exit
-
-Authentication and authorization:
-An LdapConfig.properties file must exist in directory ~/config/
-The corresponding host entry (devLdap or prodLdap) must exist
-in your ~/.dbrc file.
 ```
 
 ## Depdencies
