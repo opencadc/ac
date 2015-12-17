@@ -8,8 +8,8 @@ This module provides a command line tool for managing users.  It uses the persis
 Usage: userAdmin <command> [-v|--verbose|-d|--debug] [-h|--help]
 Where command is:
 
---list                       : List users in the Users tree
---list-pending               : List users in the UserRequests tree
+--list                       : List approved users
+--list-pending               : List users waiting for approval
 --view=<userid>              : Print the entire details of <user> (pending or not)
 --approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the
                              : distinguished name to <dn>
