@@ -94,7 +94,6 @@
   <property name="cadcUWS" value="${lib}/cadcUWS.jar"/>
   <property name="cadcUWS-Server" value="${lib}/cadcUWS-Server.jar"/>
   <property name="json" value="${ext.lib}/json.jar" />
-  <property name="javacsv" value="${ext.lib}/javacsv.jar"/>
   <property name="jdom2" value="${ext.lib}/jdom2.jar"/>
   <property name="log4j" value="${ext.lib}/log4j.jar"/>
   <property name="servlet" value="${ext.lib}/servlet-api.jar"/>
@@ -102,7 +101,7 @@
   <property name="xerces" value="${ext.lib}/xerces.jar"/>
 
   <property name="jars"
-            value="${javacsv}:${jdom2}:${json}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${cadcUWS-Server}"/>
+            value="${jdom2}:${json}:${log4j}:${servlet}:${unboundid}:${xerces}:${cadcAccessControl}:${cadcLog}:${cadcRegistry}:${cadcUtil}:${cadcUWS}:${cadcUWS-Server}"/>
 
   <target name="build" depends="compile">
     <jar jarfile="${build}/lib/${project}.jar"
@@ -113,33 +112,21 @@
   </target>
 
   <target name="setup-test" depends="init">
-
-    <!-- Why do the tests need this configuration in two places? -->
-    <!-- jenkinsd 2015.07.20 -->
-    <!--
-    <copy overwrite="true" file="test/LdapConfig.test.properties"
-          todir="build/test/class"/>
     <mkdir dir="${user.home}/config" />
     <copy overwrite="true" file="test/LdapConfig.test.properties"
           todir="${user.home}/config/"/>
-    -->
   </target>
 
   <!-- JAR files needed to run the test suite -->
   <property name="dev.junit" value="${ext.dev}/junit.jar"/>
-  <property name="dev.httpunit" value="${ext.dev}/httpunit.jar"/>
+  <property name="dev.asm"            value="${ext.dev}/asm.jar" />
+  <property name="dev.cglib"          value="${ext.dev}/cglib.jar" />
   <property name="dev.easyMock" value="${ext.dev}/easymock.jar"/>
   <property name="dev.objenesis" value="${ext.dev}/objenesis.jar"/>
   <property name="dev.jsonassert" value="${ext.dev}/jsonassert.jar" />
-  <property name="dev.selenium.server"
-            value="${ext.dev}/selenium-server-standalone.jar" />
-  <property name="lib.js" value="${ext.lib}/js.jar"/>
-  <property name="lib.nekoHTML" value="${ext.lib}/nekohtml.jar"/>
   <property name="lib.xerces" value="${ext.lib}/xerces.jar"/>
-  <property name="lib.commons-logging"
-            value="${ext.lib}/commons-logging.jar"/>
-  <property name="testingJars"
-            value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.httpunit}:${dev.easyMock}:${dev.selenium.server}:${dev.objenesis}:${lib.js}:${lib.nekoHTML}:${lib.xerces}"/>
+  <property name="lib.commons-logging" value="${ext.lib}/commons-logging.jar"/>
+  <property name="testingJars" value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.asm}:${dev.cglib}:${dev.easyMock}:${dev.objenesis}:${lib.xerces}"/>
 
   <target name="single-test" depends="compile,compile-test">
     <echo message="Running test suite..." />
