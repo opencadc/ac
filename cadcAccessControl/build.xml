@@ -111,8 +111,9 @@
     <property name="easymock"   value="${ext.dev}/easymock.jar" />
     <property name="junit"      value="${ext.dev}/junit.jar" />
     <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
+    <property name="jsonassert" value="${ext.dev}/jsonassert.jar" />
     
-    <property name="testingJars" value="${build}/class:${ext.dev}/jsonassert.jar:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+    <property name="testingJars" value="${build}/class:${jsonassert}:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
 
     <target name="single-test" depends="compile,compile-test">
         <echo message="Running test suite..." />
