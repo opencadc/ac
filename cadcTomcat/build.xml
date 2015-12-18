@@ -91,7 +91,14 @@
     <property name="tomcat"             value="${ext.lib}/catalina.jar:${ext.lib}/tomcat-util.jar:${ext.lib}/tomcat-coyote.jar" />
     <property name="jars"               value="${cadc}:${log4j}:${tomcat}" />
 
-    <target name="build" depends="compile" />
+    <target name="build" depends="compile">
+        <jar jarfile="${build}/lib/${project}.jar"
+                    basedir="${build}/class"
+                    update="no">
+                <include name="ca/nrc/cadc/**" />
+        </jar>
+    </target>
+
     
     <target name="test-resources">
         <copy todir="${build}/class">
