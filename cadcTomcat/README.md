@@ -15,8 +15,10 @@ This module contains two plugins for Tomcat 7:
 This plugin will authenticate users who enter with a userid and password.  The authentication mechanism will call the access control web service (in module cadcAccessControl-Server) to see if the credentials are correct.
  
 To use this plugin, add the following line to the <Host> element (within the <Service> element) in the tomcat 7 server.xml file:
- 
-> <Realm className="ca.nrc.cadc.tomcat.CadcBasicAuthenticator" />
+
+``` 
+<Realm className="ca.nrc.cadc.tomcat.CadcBasicAuthenticator" />
+```
  
 ## CADC SSL Plugin
  
