@@ -238,6 +238,7 @@ public class LdapGroupDAO<T extends Principal> extends LdapDAO
                 new Attribute("owner", ownerDN.toNormalizedString());
         attributes.add(ownerAttribute);
         attributes.add(new Attribute("objectClass", "groupofuniquenames"));
+        attributes.add(new Attribute("objectClass", "inetUser"));
         attributes.add(new Attribute("cn", groupID));
 
         if (StringUtil.hasText(description))
