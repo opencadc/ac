@@ -124,9 +124,10 @@
   <property name="dev.easyMock" value="${ext.dev}/easymock.jar"/>
   <property name="dev.objenesis" value="${ext.dev}/objenesis.jar"/>
   <property name="dev.jsonassert" value="${ext.dev}/jsonassert.jar" />
+  <property name="dev.mail"  value="${ext.dev}/mail.jar" />
   <property name="lib.xerces" value="${ext.lib}/xerces.jar"/>
   <property name="lib.commons-logging" value="${ext.lib}/commons-logging.jar"/>
-  <property name="testingJars" value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.asm}:${dev.cglib}:${dev.easyMock}:${dev.objenesis}:${lib.xerces}"/>
+  <property name="testingJars" value="${lib.commons-logging}:${dev.junit}:${dev.jsonassert}:${dev.asm}:${dev.cglib}:${dev.easyMock}:${dev.objenesis}:${lib.xerces}:${dev.mail}"/>
 
   <target name="single-test" depends="compile,compile-test">
     <echo message="Running test suite..." />
