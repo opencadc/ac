@@ -79,6 +79,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
@@ -96,6 +98,7 @@ public class CommandRunnerTest
     {
         // Set the necessary JNDI system property for lookups.
         System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
+        Logger.getLogger("ca.nrc.cadc.ac").setLevel(Level.INFO);
     }
 
 
