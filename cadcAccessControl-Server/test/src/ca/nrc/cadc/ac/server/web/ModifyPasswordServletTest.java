@@ -196,8 +196,7 @@ public class ModifyPasswordServletTest
         testModifyPasswordWithMissingPassword("oldPass", "", HttpServletResponse.SC_BAD_REQUEST);
     }
     
-    @Test
-    public void testModifyPasswordWithInternalServerError() throws Exception
+    public void testModifyPassword(final boolean hasInternalServerError) throws Exception
     {
         final String oldPassword = "oldPass";
         final String newPassword = "newPass";
@@ -206,7 +205,10 @@ public class ModifyPasswordServletTest
         final UserPersistence<?> mockUserPersistence =
                 createMock(UserPersistence.class);
         mockUserPersistence.setPassword(userID, oldPassword, newPassword);
-        expectLastCall().andThrow(new RuntimeException());
+        if (hasInternalServerError)
+        {
+            expectLastCall().andThrow(new RuntimeException());
+        }
 
         final Subject subject = new Subject();
         subject.getPrincipals().add(userID);
@@ -240,8 +242,11 @@ public class ModifyPasswordServletTest
         expect(mockRequest.getParameter("old_password")).andReturn(oldPassword).once();
         expect(mockRequest.getParameter("new_password")).andReturn(newPassword).once();
     
-        mockResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        expectLastCall().once();
+        if (hasInternalServerError)
+        {
+            mockResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            expectLastCall().once();
+        }
     
         replay(mockRequest, mockResponse, mockUserPersistence);
     
@@ -259,62 +264,18 @@ public class ModifyPasswordServletTest
         verify(mockRequest, mockResponse, mockUserPersistence);
     }
     
+    
+    @Test
+    public void testModifyPasswordWithInternalServerError() throws Exception
+    {
+        boolean hasInternalServerError = true;
+        testModifyPassword(hasInternalServerError);
+    }
+    
     @Test
     public void testModifyPasswordHappyPath() throws Exception
     {
-        final String oldPassword = "oldPass";
-        final String newPassword = "newPass";
-        HttpPrincipal userID = new HttpPrincipal("CADCtest");
-        
-        final UserPersistence<?> mockUserPersistence =
-                createMock(UserPersistence.class);
-        mockUserPersistence.setPassword(userID, oldPassword, newPassword);
-        
-        final Subject subject = new Subject();
-        subject.getPrincipals().add(userID);
-    
-        @SuppressWarnings("serial")
-        final ModifyPasswordServlet testSubject = new ModifyPasswordServlet()
-        {
-            @Override
-            public void init(final ServletConfig config) throws ServletException
-            {
-                super.init();
-
-                userPersistence = mockUserPersistence;
-            }
-           
-            @Override
-            Subject getSubject(final HttpServletRequest request)
-            {
-                return subject;
-            }
-        };
-        
-        final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
-        
-        expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
-        expect(mockRequest.getMethod()).andReturn("POST").once();
-        expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameter("old_password")).andReturn(oldPassword).once();
-        expect(mockRequest.getParameter("new_password")).andReturn(newPassword).once();
-    
-        replay(mockRequest, mockResponse, mockUserPersistence);
-    
-        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
-        {
-            @Override
-            public Void run() throws Exception
-            {
-                testSubject.init(null);
-                testSubject.doPost(mockRequest, mockResponse);
-                return null;
-            }
-        });
-    
-        verify(mockRequest, mockResponse, mockUserPersistence);
+        boolean hasInternalServerError = false;
+        testModifyPassword(hasInternalServerError);
     }
 }
