@@ -70,6 +70,7 @@ package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.StringUtil;
 
 import org.junit.Test;
 
@@ -80,71 +81,17 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.security.PrivilegedExceptionAction;
+import java.util.Set;
 
 import static org.easymock.EasyMock.*;
 
 
 public class ModifyPasswordServletTest
 {
-    public void testUnauthorizedSubject(final Subject subject) throws Exception
-    {
-        @SuppressWarnings("serial")
-        final ModifyPasswordServlet testSubject = new ModifyPasswordServlet()
-        {
-            @Override
-            Subject getSubject(final HttpServletRequest request)
-            {
-                return subject;
-            }
-        };
-        
-        final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
-        final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
-        
-        expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
-        expect(mockRequest.getMethod()).andReturn("POST").once();
-        expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-
-        mockResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        expectLastCall().once();
-
-        replay(mockRequest, mockResponse);
-
-        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
-        {
-            @Override
-            public Void run() throws Exception
-            {
-                testSubject.doPost(mockRequest, mockResponse);
-                return null;
-            }
-        });
-
-        verify(mockRequest, mockResponse);
-    }
-        
-    @Test
-    public void testModifyPasswordWithNullSubject() throws Exception
-    {
-        final Subject subject = null;
-        testUnauthorizedSubject(subject);
-    }
-        
-    @Test
-    public void testModifyPasswordWithEmptySubject() throws Exception
-    {
-        final Subject subject = new Subject();;
-        testUnauthorizedSubject(subject);
-    }
     
-    public void testModifyPasswordWithMissingPassword(final String oldPassword, 
+    public void testSubjectAndPasswords(final Subject subject, final String oldPassword, 
             final String newPassword, int responseStatus) throws Exception
     {
-        final Subject subject = new Subject();
-        subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
-    
         @SuppressWarnings("serial")
         final ModifyPasswordServlet testSubject = new ModifyPasswordServlet()
         {
@@ -163,9 +110,13 @@ public class ModifyPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameter("old_password")).andReturn(oldPassword).once();
-        expect(mockRequest.getParameter("new_password")).andReturn(newPassword).once();
-    
+        
+        if (!StringUtil.hasText(oldPassword) || !StringUtil.hasText(newPassword))
+        {
+            expect(mockRequest.getParameter("old_password")).andReturn(oldPassword).once();
+            expect(mockRequest.getParameter("new_password")).andReturn(newPassword).once();
+        }
+        
         mockResponse.setStatus(responseStatus);
         expectLastCall().once();
     
@@ -183,17 +134,35 @@ public class ModifyPasswordServletTest
     
         verify(mockRequest, mockResponse);
     }
+        
+    @Test
+    public void testModifyPasswordWithNullSubject() throws Exception
+    {
+        final Subject subject = null;
+        testSubjectAndPasswords(subject, "oldPass", "newPass", HttpServletResponse.SC_UNAUTHORIZED);
+    }
+        
+    @Test
+    public void testModifyPasswordWithEmptySubject() throws Exception
+    {
+        final Subject subject = new Subject();;
+        testSubjectAndPasswords(subject, "oldPass", "newPass", HttpServletResponse.SC_UNAUTHORIZED);
+    }
        
     @Test
     public void testModifyPasswordWithMissingOldPassword() throws Exception
     {
-        testModifyPasswordWithMissingPassword("", "newPass", HttpServletResponse.SC_BAD_REQUEST);
+        final Subject subject = new Subject();;
+        subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+        testSubjectAndPasswords(subject, "", "newPass", HttpServletResponse.SC_BAD_REQUEST);
     }
     
     @Test
     public void testModifyPasswordWithMissingNewPassword() throws Exception
     {
-        testModifyPasswordWithMissingPassword("oldPass", "", HttpServletResponse.SC_BAD_REQUEST);
+        final Subject subject = new Subject();;
+        subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+        testSubjectAndPasswords(subject, "oldPass", "", HttpServletResponse.SC_BAD_REQUEST);
     }
     
     public void testModifyPassword(final boolean hasInternalServerError) throws Exception
