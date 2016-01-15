@@ -95,9 +95,9 @@ import java.util.Set;
  * This servlet handles POST only.  It relies on the Subject being set higher
  * up by the AccessControlFilter as configured in the web descriptor.
  */
-public class PasswordServlet extends HttpServlet
+public class ModifyPasswordServlet extends HttpServlet
 {
-    private static final Logger log = Logger.getLogger(PasswordServlet.class);
+    private static final Logger log = Logger.getLogger(ModifyPasswordServlet.class);
 
     UserPersistence userPersistence;
 
@@ -126,7 +126,7 @@ public class PasswordServlet extends HttpServlet
         log.info(logInfo.start());
         try
         {
-            final Subject subject = AuthenticationUtil.getSubject(request);
+            final Subject subject = getSubject(request);
             logInfo.setSubject(subject);
             if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
@@ -192,5 +192,16 @@ public class PasswordServlet extends HttpServlet
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
+    }
+
+    /**
+     * Get and augment the Subject. Tests can override this method.
+     *
+     * @param request Servlet request
+     * @return augmented Subject
+     */
+    Subject getSubject(final HttpServletRequest request)
+    {
+        return AuthenticationUtil.getSubject(request);
     }
 }
