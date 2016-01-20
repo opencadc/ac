@@ -129,6 +129,21 @@ public interface UserPersistence<T extends Principal>
         AccessControlException;
 
     /**
+     * Get the user specified by email address exists in the active users tree.
+     *
+     * @param emailAddress The user's email address.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User<Principal> getUserByEmailAddress(String emailAddress)
+            throws UserNotFoundException, TransientException,
+            AccessControlException;
+
+    /**
      * Get the user specified by userID whose account is pending approval.
      *
      * @param userID The userID.

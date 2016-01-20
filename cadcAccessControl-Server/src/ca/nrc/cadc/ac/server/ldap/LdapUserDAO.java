@@ -382,6 +382,24 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     }
 
     /**
+     * Get the user specified by the email address exists.
+     *
+     * @param emailAddress The user's email address.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException  when the user is not found in the main tree.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<Principal> getUserByEmailAddress(final String emailAddress)
+            throws UserNotFoundException, TransientException,
+            AccessControlException
+    {
+        return getUserByEmailAddress(emailAddress, config.getUsersDN(), true);
+    }
+
+    /**
      * Obtain a user who is awaiting approval.
      *
      * @param userID        The user ID of the pending user.
@@ -415,6 +433,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         return getUser(userID, usersDN, true);
     }
+    
     /**
      * Get the user specified by userID.
      *
@@ -486,6 +505,99 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
 
         User<T> user = new User<T>(userID);
+        String username = searchResult.getAttributeValue(userLdapAttrib.get(HttpPrincipal.class));
+        logger.debug("username: " + username);
+        user.getIdentities().add(new HttpPrincipal(username));
+
+        Integer numericID = searchResult.getAttributeValueAsInteger(userLdapAttrib.get(NumericPrincipal.class));
+        logger.debug("Numeric id: " + numericID);
+        if (numericID == null)
+        {
+            // If the numeric ID does not return it means the user
+            // does not have permission
+            throw new AccessControlException("Permission denied");
+        }
+        user.getIdentities().add(new NumericPrincipal(numericID));
+
+        String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
+        logger.debug("x500principal: " + x500str);
+
+        if (x500str != null)
+            user.getIdentities().add(new X500Principal(x500str));
+
+        String fname = searchResult.getAttributeValue(LDAP_FIRST_NAME);
+        String lname = searchResult.getAttributeValue(LDAP_LAST_NAME);
+        PersonalDetails personaDetails = new PersonalDetails(fname, lname);
+        personaDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
+        personaDetails.city = searchResult.getAttributeValue(LDAP_CITY);
+        personaDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
+        personaDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
+        personaDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
+        user.details.add(personaDetails);
+
+        return user;
+    }
+    
+    /**
+     * Get the user specified by the email address exists.
+     *
+     * @param emailAddress  The user's email address.
+     * @param usersDN The LDAP tree to search.
+     * @param proxy Whether to proxy the search as the calling Subject.
+     * @return User ID
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    private User<Principal> getUserByEmailAddress(final String emailAddress, 
+            final String usersDN, final boolean proxy)
+            throws UserNotFoundException, TransientException,
+            AccessControlException
+    {
+        SearchResultEntry searchResult = null;
+        Filter filter = null;
+        try
+        {
+            filter = Filter.createEqualityFilter("email", emailAddress);
+            logger.debug("search filter: " + filter);
+
+            SearchRequest searchRequest =
+                    new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
+
+            searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+        }
+        catch (LDAPException e)
+        {
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+
+        if (searchResult == null)
+        {
+            // determine if the user is not there of if the calling user
+            // doesn't have permission to see it
+            SearchRequest searchRequest =
+                    new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
+            try
+            {
+                searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            }
+            catch (LDAPException e)
+            {
+                LdapDAO.checkLdapResult(e.getResultCode());
+            }
+
+            if (searchResult == null)
+            {
+                String msg = "User with email address " + emailAddress + " not found";
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+            throw new AccessControlException("Permission denied");
+        }
+
+        String userIDString = searchResult.getAttributeValue(LDAP_UID);
+        HttpPrincipal userID = new HttpPrincipal(userIDString);
+        User<Principal> user = new User<Principal>(userID);
         String username = searchResult.getAttributeValue(userLdapAttrib.get(HttpPrincipal.class));
         logger.debug("username: " + username);
         user.getIdentities().add(new HttpPrincipal(username));

@@ -85,7 +85,6 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
-import com.unboundid.ldap.sdk.DN;
 import javax.security.auth.Subject;
 
 public class LdapUserPersistence<T extends Principal> extends LdapPersistence implements UserPersistence<T>
@@ -187,6 +186,32 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
             conns.releaseConnections();
         }
     }
+    
+    /**
+     * Get the user specified by email address exists in the active users tree.
+     *
+     * @param emailAddress The user's email address.
+     *
+     * @return User ID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User<Principal> getUserByEmailAddress(String emailAddress)
+            throws UserNotFoundException, TransientException, AccessControlException
+        {
+            LdapConnections conns = new LdapConnections(this);
+            try
+            {
+                LdapUserDAO<T> userDAO = new LdapUserDAO<T>(conns);
+                return userDAO.getUserByEmailAddress(emailAddress);
+            }
+            finally
+            {
+                conns.releaseConnections();
+            }
+        }
 
     /**
     * Get the user specified by userID whose account is pending approval.

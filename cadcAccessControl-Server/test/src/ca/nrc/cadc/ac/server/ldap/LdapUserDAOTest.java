@@ -74,6 +74,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
@@ -96,6 +97,7 @@ import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.DN;
@@ -104,6 +106,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
 
+    private static final String SERVOPS_PEM = System.getProperty("user.home") + "/.pub/proxy.pem";
     static final String testUserX509DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
     static final String testUser1EntryDN = "uid=cadcdaotest1,ou=users,ou=ds,dc=testcanfar";
     static final String testUser2EntryDN = "uid=cadcdaotest2,ou=users,ou=ds,dc=testcanfar";
@@ -313,6 +316,131 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
     }
 
+    private UserRequest<Principal> createUserRequest(final HttpPrincipal userID,
+            final String email)
+    {
+        final String username = userID.getName();
+        final String password = "123456";
+
+        X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
+        NumericPrincipal numericPrincipal = new NumericPrincipal(ran.nextInt(Integer.MAX_VALUE));
+
+        final User<Principal> expected = new User<Principal>(userID);
+        expected.getIdentities().add(userID);
+        expected.getIdentities().add(x500Principal);
+        expected.getIdentities().add(numericPrincipal);
+
+        PersonalDetails pd = new PersonalDetails("foo", "bar");
+        pd.email = email;
+        expected.details.add(pd);
+
+        final UserRequest<Principal> userRequest =
+            new UserRequest<Principal>(expected, password.toCharArray());
+        
+        return userRequest;
+    }
+    
+    private void addUser(final HttpPrincipal userID, 
+            final UserRequest<Principal> userRequest)
+            throws Exception
+    {
+        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + userID.getName() + "," + config.getUsersDN());
+        Subject subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
+        
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    userDAO.addUser(userRequest);
+                    
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+    
+    private void deleteUser(final HttpPrincipal userID)
+            throws Exception
+    {
+        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + userID.getName() + "," + config.getUsersDN());
+        Subject subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
+        
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO<Principal> userDAO = getUserDAO();
+                    userDAO.deleteUser(userID);
+                    
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Test of getUserByEmailAddress method, of class LdapUserDAO.
+     */
+    @Test
+    public void testGetUserByEmailAddress() throws Exception
+    {
+        // create a user with the email attribute
+        final String username = createUsername();
+        final String emailAddress = username +"@canada.ca";
+        final HttpPrincipal userID = new HttpPrincipal(username);
+        final UserRequest<Principal> userRequest = createUserRequest(userID, emailAddress);
+        addUser(userID, userRequest);
+        
+        try
+        {
+            // do as servops
+            Subject servops = SSLUtil.createSubject(new File(SERVOPS_PEM));      
+            Subject.doAs(servops, new PrivilegedExceptionAction<Object>()
+            {
+                public Object run() throws Exception
+                {
+                    try
+                    {
+                        final LdapUserDAO<X500Principal> userDAO = getUserDAO();
+                        final User<Principal> user =
+                            userDAO.getUserByEmailAddress(emailAddress);
+                        PersonalDetails pd = (PersonalDetails) user.getUserDetail(PersonalDetails.class);
+                        assertEquals(emailAddress, pd.email);
+                        String actualName = user.getUserID().getName();
+                        assertEquals(username, actualName);
+    
+                        return null;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception("Problems", e);
+                    }
+                }
+            });
+        }
+        finally
+        {
+            deleteUser(userID);
+        }
+        
+    }
     @Test
     public void testGetPendingUser() throws Exception
     {
@@ -461,7 +589,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         // add a DN
         testUser2.getIdentities().add(new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca"));
 
-        // update the user
+        // update the userexpected
         subject.getPrincipals().add(testUser2.getUserID());
         subject.getPrincipals().add(testUser2DNPrincipal);
         User<? extends Principal> updatedUser =

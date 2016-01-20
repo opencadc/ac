@@ -81,7 +81,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.security.PrivilegedExceptionAction;
-import java.util.Set;
 
 import static org.easymock.EasyMock.*;
 
