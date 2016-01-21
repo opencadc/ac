@@ -168,43 +168,6 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         testSubjectAndEmailAddress(subject, "", HttpServletResponse.SC_BAD_REQUEST);
     }
-
-    /**
-     * Return the complete name of the directory where key files are to be 
-     * created so that the RsaSignature classes can find it.
-     * @return
-     */
-    private String getCompleteKeysDirectoryName() throws Exception
-    {
-        URL classLocation = 
-                RsaSignatureGenerator.class.getResource(
-                        RsaSignatureGenerator.class.getSimpleName() + ".class");
-        if (!"file".equalsIgnoreCase(classLocation.getProtocol()))
-        {
-            throw new 
-            IllegalStateException("SignatureUtil class is not stored in a file.");
-        }
-
-        File classPath = new File(URLDecoder.decode(classLocation.getPath(),
-                                                    "UTF-8")).getParentFile();
-        String packageName = RsaSignatureGenerator.class.getPackage().getName();
-        String packageRelPath = packageName.replace('.', File.separatorChar);
-
-        String dir = classPath.getAbsolutePath().
-                substring(0, classPath.getAbsolutePath().indexOf(packageRelPath));
-        
-        if (dir == null)
-        {
-            throw new RuntimeException("Cannot find the class directory");
-        }
-        return dir;
-    }
-    
-    private void generateKeys() throws Exception
-    {
-        String directory = getCompleteKeysDirectoryName();
-        RsaSignatureGenerator.genKeyPair(directory);
-    }
     
     @Test
     public void testResetPasswordWithInternalServerError() throws Exception
