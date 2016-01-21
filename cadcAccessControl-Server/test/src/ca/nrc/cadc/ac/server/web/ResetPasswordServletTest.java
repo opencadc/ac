@@ -73,6 +73,7 @@ import ca.nrc.cadc.ac.server.ACScopeValidator;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.StringUtil;
 
 import org.junit.Test;
@@ -83,7 +84,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -162,8 +168,46 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         testSubjectAndEmailAddress(subject, "", HttpServletResponse.SC_BAD_REQUEST);
     }
+
+    /**
+     * Return the complete name of the directory where key files are to be 
+     * created so that the RsaSignature classes can find it.
+     * @return
+     */
+    private String getCompleteKeysDirectoryName() throws Exception
+    {
+        URL classLocation = 
+                RsaSignatureGenerator.class.getResource(
+                        RsaSignatureGenerator.class.getSimpleName() + ".class");
+        if (!"file".equalsIgnoreCase(classLocation.getProtocol()))
+        {
+            throw new 
+            IllegalStateException("SignatureUtil class is not stored in a file.");
+        }
+
+        File classPath = new File(URLDecoder.decode(classLocation.getPath(),
+                                                    "UTF-8")).getParentFile();
+        String packageName = RsaSignatureGenerator.class.getPackage().getName();
+        String packageRelPath = packageName.replace('.', File.separatorChar);
+
+        String dir = classPath.getAbsolutePath().
+                substring(0, classPath.getAbsolutePath().indexOf(packageRelPath));
+        
+        if (dir == null)
+        {
+            throw new RuntimeException("Cannot find the class directory");
+        }
+        return dir;
+    }
     
-    public void testGetDelegationToken(final boolean hasInternalServerError) throws Exception
+    private void generateKeys() throws Exception
+    {
+        String directory = getCompleteKeysDirectoryName();
+        RsaSignatureGenerator.genKeyPair(directory);
+    }
+    
+    @Test
+    public void testResetPasswordWithInternalServerError() throws Exception
     {
         DelegationToken dt = null;
         
@@ -173,18 +217,7 @@ public class ResetPasswordServletTest
         final UserPersistence<Principal> mockUserPersistence =
                 createMock(UserPersistence.class);
         mockUserPersistence.getUserByEmailAddress(emailAddress);
-        if (hasInternalServerError)
-        {
-            expectLastCall().andThrow(new RuntimeException());
-        }
-        else
-        {
-            URI scopeURI = new URI(ACScopeValidator.SCOPE);
-            int duration = 2; // hours
-            Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-            expiry.add(Calendar.HOUR, duration);
-            dt = new DelegationToken(userID, scopeURI, expiry.getTime());
-        }
+        expectLastCall().andThrow(new RuntimeException());
 
         final Subject subject = new Subject();
         subject.getPrincipals().add(userID);
@@ -217,19 +250,8 @@ public class ResetPasswordServletTest
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
         expect(mockRequest.getParameter("emailAddress")).andReturn(emailAddress).once();
     
-        if (hasInternalServerError)
-        {
-            mockResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            expectLastCall().once();
-        }
-        else
-        {
-            String token = DelegationToken.format(dt);
-            mockResponse.setContentType("text/plain");
-            mockResponse.setContentLength(token.length());
-            mockResponse.getWriter().write(token);
-            expectLastCall().once();
-        }
+        mockResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        expectLastCall().once();
     
         replay(mockRequest, mockResponse, mockUserPersistence);
     
@@ -245,18 +267,4 @@ public class ResetPasswordServletTest
 
         verify(mockRequest, mockResponse);
     }
-    
-    @Test
-    public void testResetPasswordWithInternalServerError() throws Exception
-    {
-        boolean hasInternalServerError = true;
-        testGetDelegationToken(hasInternalServerError);
-    }
-    
-    @Test
-    public void testResetPasswordHappyPath() throws Exception
-    {
-        boolean hasInternalServerError = false;
-        testGetDelegationToken(hasInternalServerError);
-    }        
 }
