@@ -120,6 +120,7 @@ public class ResetPasswordServlet extends HttpServlet
         PluginFactory pluginFactory = new PluginFactory();
         userPersistence = pluginFactory.createUserPersistence();
     }
+    
     /**
      * Handle a /ac GET operation. The subject provided is expected to be servops.
      *
@@ -139,11 +140,10 @@ public class ResetPasswordServlet extends HttpServlet
         try
         {
             final Subject subject = getSubject(request);
-            final Set<HttpPrincipal> currentWebPrincipals =
-                    subject.getPrincipals(HttpPrincipal.class);
-
-            if (currentWebPrincipals.isEmpty())
+            logInfo.setSubject(subject);
+            if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
+                logInfo.setMessage("Unauthorized subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             else
@@ -152,10 +152,10 @@ public class ResetPasswordServlet extends HttpServlet
                 {
                     public Object run() throws Exception
                     {
-                        String email = request.getParameter("emailAddress");
-                        if (StringUtil.hasText(email))
+                        String emailAddress = request.getParameter("emailAddress");
+                        if (StringUtil.hasText(emailAddress))
                         {
-                            User<Principal> user = userPersistence.getUserByEmailAddress(email);
+                            User<Principal> user = userPersistence.getUserByEmailAddress(emailAddress);
                             HttpPrincipal userID = (HttpPrincipal) user.getUserID();
                             URI scopeURI = new URI(ACScopeValidator.SCOPE);
                             int duration = 2; // hours
@@ -222,7 +222,7 @@ public class ResetPasswordServlet extends HttpServlet
      * @param request  The HTTP Request.
      * @param response The HTTP Response.
      * @throws IOException Any errors that are not expected.
-     *
+     */
     public void doPost(final HttpServletRequest request,
                        final HttpServletResponse response)
             throws IOException
@@ -248,26 +248,22 @@ public class ResetPasswordServlet extends HttpServlet
                         
                         Set<HttpPrincipal> pset = subject.getPrincipals(HttpPrincipal.class);
                         if (pset.isEmpty())
+                        {
                             throw new IllegalStateException("no HttpPrincipal in subject");
+                        }
+                        
                         HttpPrincipal userID = pset.iterator().next();
 
-                        String oldPassword = request.getParameter("old_password");
-                        String newPassword = request.getParameter("new_password");
-                        if (StringUtil.hasText(oldPassword))
+                        String newPassword = request.getParameter("password");
+                        if (StringUtil.hasText(newPassword))
                         {
-                            if (StringUtil.hasText(newPassword))
-                            {
-                                userPersistence.setPassword(userID, oldPassword, newPassword);
-                            }
-                            else
-                            {
-                                throw new IllegalArgumentException("Missing new password");
-                            }
+                            userPersistence.resetPassword(userID, newPassword);
                         }
                         else
                         {
-                            throw new IllegalArgumentException("Missing old password");
+                            throw new IllegalArgumentException("Missing password");
                         }
+                        
                         return null;
                     }
                 });
@@ -299,7 +295,6 @@ public class ResetPasswordServlet extends HttpServlet
             log.info(logInfo.end());
         }
     }
-    */
 
     /**
      * Get and augment the Subject. Tests can override this method.

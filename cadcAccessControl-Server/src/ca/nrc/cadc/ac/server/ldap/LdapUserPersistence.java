@@ -505,6 +505,42 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         }
     }
 
+    /**
+     * Reset a user's password. The given user and authenticating user must match.
+     *
+     * @param user
+     * @param oldPassword   current password.
+     * @param newPassword   new password.
+     * @throws UserNotFoundException If the given user does not exist.
+     * @throws TransientException   If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void resetPassword(HttpPrincipal userID, String newPassword)
+            throws UserNotFoundException, TransientException, AccessControlException
+    {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if ( !isMatch(caller, userID) )
+            throw new AccessControlException("permission denied: target user does not match current user");
+        
+        LdapUserDAO<T> userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO<T>(conns);
+            User<T> user = getUser((T) userID);
+            
+            if (user != null)
+            {
+                // oldPassword is correct
+                userDAO.resetPassword(userID, newPassword);
+            }
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
     private boolean isMatch(Subject caller, User<T> user)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))

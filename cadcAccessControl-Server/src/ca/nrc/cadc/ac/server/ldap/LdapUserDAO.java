@@ -918,6 +918,46 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
     }
 
+    protected void updatePassword(HttpPrincipal userID, String oldPassword, String newPassword)
+            throws UserNotFoundException, TransientException, AccessControlException
+    {
+        try
+        {
+            User user = new User(userID);
+            DN userDN = getUserDN(user);
+
+            //BindRequest bindRequest = new SimpleBindRequest(
+            //        getUserDN(username, config.getUsersDN()), oldPassword);
+            //LDAPConnection conn = this.getUnboundReadConnection();
+            //conn.bind(bindRequest);
+
+            LDAPConnection conn = this.getReadWriteConnection();
+            PasswordModifyExtendedRequest passwordModifyRequest;
+            if (StringUtil.hasText(oldPassword))
+            {
+                passwordModifyRequest =
+                    new PasswordModifyExtendedRequest(
+                        userDN.toNormalizedString(), new String(oldPassword), new String(newPassword));
+            }
+            else
+            {
+                passwordModifyRequest =
+                    new PasswordModifyExtendedRequest(
+                        userDN.toNormalizedString(), new String(newPassword));
+            }                
+
+            PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
+                    conn.processExtendedOperation(passwordModifyRequest);
+
+            LdapDAO.checkLdapResult(passwordModifyResult.getResultCode());
+        }
+        catch (LDAPException e)
+        {
+            logger.debug("setPassword Exception: " + e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+    }
+    
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
@@ -931,32 +971,22 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public void setPassword(HttpPrincipal userID, String oldPassword, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        try
-        {
-            User user = new User(userID);
-            DN userDN = getUserDN(user);
+        updatePassword(userID, oldPassword, newPassword);
+    }
 
-            //BindRequest bindRequest = new SimpleBindRequest(
-            //        getUserDN(username, config.getUsersDN()), oldPassword);
-            //LDAPConnection conn = this.getUnboundReadConnection();
-            //conn.bind(bindRequest);
-
-            LDAPConnection conn = this.getReadWriteConnection();
-
-            PasswordModifyExtendedRequest passwordModifyRequest =
-                new PasswordModifyExtendedRequest(
-                    userDN.toNormalizedString(), new String(oldPassword), new String(newPassword));
-
-            PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
-                    conn.processExtendedOperation(passwordModifyRequest);
-
-            LdapDAO.checkLdapResult(passwordModifyResult.getResultCode());
-        }
-        catch (LDAPException e)
-        {
-            logger.debug("setPassword Exception: " + e);
-            LdapDAO.checkLdapResult(e.getResultCode());
-        }
+    /**
+     * Reset a user's password. The given user and authenticating user must match.
+     *
+     * @param userID
+     * @param newPassword   new password.
+     * @throws UserNotFoundException If the given user does not exist.
+     * @throws TransientException   If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void resetPassword(HttpPrincipal userID, String newPassword)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        updatePassword(userID, "", newPassword);
     }
 
     /**

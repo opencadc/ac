@@ -279,4 +279,16 @@ public interface UserPersistence<T extends Principal>
     void setPassword(HttpPrincipal userID, String oldPassword, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException;
 
+    /**
+     * Reset a user's password. The given user and authenticating user must match.
+     *
+     * @param userID
+     * @param newPassword   new password.
+     * @throws UserNotFoundException If the given user does not exist.
+     * @throws TransientException   If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void resetPassword(HttpPrincipal userID, String newPassword)
+        throws UserNotFoundException, TransientException, AccessControlException;
+
 }
