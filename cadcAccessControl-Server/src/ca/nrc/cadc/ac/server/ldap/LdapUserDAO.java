@@ -933,18 +933,18 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             LDAPConnection conn = this.getReadWriteConnection();
             PasswordModifyExtendedRequest passwordModifyRequest;
-            if (StringUtil.hasText(oldPassword))
+            if (oldPassword == null)
             {
                 passwordModifyRequest =
-                    new PasswordModifyExtendedRequest(
-                        userDN.toNormalizedString(), new String(oldPassword), new String(newPassword));
+                        new PasswordModifyExtendedRequest(userDN.toNormalizedString(), 
+                                null, new String(newPassword));              
             }
             else
             {
                 passwordModifyRequest =
-                    new PasswordModifyExtendedRequest(
-                        userDN.toNormalizedString(), new String(newPassword));
-            }                
+                        new PasswordModifyExtendedRequest(userDN.toNormalizedString(), 
+                                new String(oldPassword), new String(newPassword));                
+            }
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
                     conn.processExtendedOperation(passwordModifyRequest);
@@ -986,7 +986,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public void resetPassword(HttpPrincipal userID, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        updatePassword(userID, "", newPassword);
+        updatePassword(userID, null, newPassword);
     }
 
     /**
