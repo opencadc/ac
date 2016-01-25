@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.ACScopeValidator;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
@@ -185,7 +186,7 @@ public class ResetPasswordServlet extends HttpServlet
                 String msg = e.getMessage();
                 log.debug(msg, e);
                 logInfo.setMessage(msg);
-                if (msg.contains("User not found "))
+                if (e instanceof UserNotFoundException)
                 {            
                     response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 }
