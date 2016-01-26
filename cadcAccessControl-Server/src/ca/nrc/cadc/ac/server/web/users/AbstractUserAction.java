@@ -77,7 +77,6 @@ import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.json.JsonUserReader;
 import ca.nrc.cadc.ac.json.JsonUserRequestReader;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
-import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserListWriter;
@@ -89,7 +88,6 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import org.apache.log4j.Logger;
 
-import com.unboundid.ldap.sdk.LDAPException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -183,7 +181,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
         catch (UserAlreadyExistsException e)
         {
             log.debug(e.getMessage(), e);
-            String message = "User not found: " + e.getMessage();
+            String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
         }

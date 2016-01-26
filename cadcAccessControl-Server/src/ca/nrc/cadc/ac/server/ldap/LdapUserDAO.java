@@ -271,6 +271,50 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         addUser(userRequest, config.getUsersDN());
     }
 
+    private String getEmailAddress(final UserRequest<T> userRequest)
+    {
+        Set<PersonalDetails> personalDetails = userRequest.getUser().getDetails(PersonalDetails.class);
+        if (personalDetails.isEmpty())
+        {
+            String error = userRequest.getUser().getUserID().getName() + " missing required PersonalDetails";
+            throw new IllegalArgumentException(error);
+        }
+        
+        PersonalDetails pd = personalDetails.iterator().next();
+        if (!StringUtil.hasText(pd.email))
+        {
+            String error = userRequest.getUser().getUserID().getName() + " missing required email address";
+            throw new IllegalArgumentException(error);
+        }
+        
+        return pd.email;
+    }
+    
+    private void checkUsers(final UserRequest<T> userRequest, 
+            final String usersDN)
+            throws TransientException, UserAlreadyExistsException
+    {
+        // check current users
+        try
+        {
+            getUser(userRequest.getUser().getUserID(), usersDN);
+            final String error = "user " + userRequest.getUser().getUserID().getName() +
+                                 " found in " + usersDN;
+            throw new UserAlreadyExistsException(error);
+        }
+        catch (UserNotFoundException ok) { }
+
+        try
+        {
+            String emailAddress = getEmailAddress(userRequest);            
+            getUserByEmailAddress(emailAddress, usersDN);
+            final String error = "email address " + emailAddress +
+                                 " found in " + usersDN;
+            throw new UserAlreadyExistsException(error);
+        }
+        catch (UserNotFoundException ok) { }
+    }
+    
     /**
      *Add the specified user to the pending user tree.
      *
@@ -282,24 +326,10 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throws TransientException, UserAlreadyExistsException
     {
         // check current users
-        try
-        {
-            getUser(userRequest.getUser().getUserID(), config.getUsersDN(), false);
-            final String error = userRequest.getUser().getUserID().getName() +
-                                 " found in " + config.getUsersDN();
-            throw new UserAlreadyExistsException(error);
-        }
-        catch (UserNotFoundException ok) { }
-
+        checkUsers(userRequest, config.getUsersDN());
+        
         // check pending users
-        try
-        {
-            getUser(userRequest.getUser().getUserID(), config.getUserRequestsDN(), false);
-            final String error = userRequest.getUser().getUserID().getName() +
-                " found in " + config.getUserRequestsDN();
-            throw new UserAlreadyExistsException(error);
-        }
-        catch (UserNotFoundException ok) { }
+        checkUsers(userRequest, config.getUserRequestsDN());
 
         addUser(userRequest, config.getUserRequestsDN());
     }
@@ -396,7 +426,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throws UserNotFoundException, TransientException,
             AccessControlException
     {
-        return getUserByEmailAddress(emailAddress, config.getUsersDN(), true);
+        return getUserByEmailAddress(emailAddress, config.getUsersDN());
     }
 
     /**
@@ -427,25 +457,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      */
     private User<T> getUser(final T userID, final String usersDN)
-        throws UserNotFoundException, TransientException,
-        AccessControlException
-    {
-
-        return getUser(userID, usersDN, true);
-    }
-    
-    /**
-     * Get the user specified by userID.
-     *
-     * @param userID  The userID.
-     * @param usersDN The LDAP tree to search.
-     * @param proxy Whether to proxy the search as the calling Subject.
-     * @return User instance.
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException     If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     */
-    private User<T> getUser(final T userID, final String usersDN, final boolean proxy)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -543,14 +554,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      *
      * @param emailAddress  The user's email address.
      * @param usersDN The LDAP tree to search.
-     * @param proxy Whether to proxy the search as the calling Subject.
      * @return User ID
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     private User<Principal> getUserByEmailAddress(final String emailAddress, 
-            final String usersDN, final boolean proxy)
+            final String usersDN)
             throws UserNotFoundException, TransientException,
             AccessControlException
     {

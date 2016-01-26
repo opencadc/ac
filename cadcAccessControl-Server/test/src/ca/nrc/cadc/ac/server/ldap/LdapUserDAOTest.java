@@ -247,7 +247,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         expected.getIdentities().add(x500Principal);
         expected.getIdentities().add(numericPrincipal);
 
-        expected.details.add(new PersonalDetails("foo", "bar"));
+        PersonalDetails pd = new PersonalDetails("foo", "bar");
+        pd.email = username + "@canada.ca";
+        expected.details.add(pd);
 
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());
@@ -486,7 +488,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         expected.getIdentities().add(x500Principal);
         expected.getIdentities().add(numericPrincipal);
 
-        expected.details.add(new PersonalDetails("foo", "bar"));
+        PersonalDetails pd = new PersonalDetails("foo", "bar");
+        pd.email = username + "@canada.ca";
+        expected.details.add(pd);
 
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());
@@ -677,7 +681,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final User<HttpPrincipal> expected = new User<HttpPrincipal>(httpPrincipal);
         expected.getIdentities().add(httpPrincipal);
         expected.getIdentities().add(x500Principal);
-        expected.details.add(new PersonalDetails("foo", "bar"));
+        PersonalDetails pd = new PersonalDetails("foo", "bar");
+        pd.email = userID + "@canada.ca";
+        expected.details.add(pd);
 
         final UserRequest<HttpPrincipal> userRequest =
             new UserRequest<HttpPrincipal>(expected, "123456".toCharArray());
