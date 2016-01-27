@@ -580,7 +580,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
             {
-                String msg = "More than one User with email address " + emailAddress + " found";
+                String msg = "More than one user with email address " + emailAddress + " found";
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
             }
@@ -608,7 +608,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                 if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
                 {
-                    String msg = "More than one User with email address " + emailAddress + " found";
+                    String msg = "More than one user with email address " + emailAddress + " found";
                     logger.debug(msg);
                     throw new UserNotFoundException(msg);
                 }

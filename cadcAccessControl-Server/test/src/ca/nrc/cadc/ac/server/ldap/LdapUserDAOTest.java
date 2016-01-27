@@ -77,6 +77,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.Random;
@@ -397,6 +398,36 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
     }
 
+    protected void testGetOneUserByEmailAddress(final String emailAddress,
+            final String username) 
+            throws PrivilegedActionException
+    {
+        // do as servops
+        Subject servops = SSLUtil.createSubject(new File(SERVOPS_PEM));      
+        Subject.doAs(servops, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO<X500Principal> userDAO = getUserDAO();
+                    final User<Principal> user =
+                        userDAO.getUserByEmailAddress(emailAddress);
+                    PersonalDetails pd = (PersonalDetails) user.getUserDetail(PersonalDetails.class);
+                    assertEquals(emailAddress, pd.email);
+                    String actualName = user.getUserID().getName();
+                    assertEquals(username, actualName);
+
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+    
     /**
      * Test of getUserByEmailAddress method, of class LdapUserDAO.
      */
@@ -412,30 +443,31 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         
         try
         {
-            // do as servops
-            Subject servops = SSLUtil.createSubject(new File(SERVOPS_PEM));      
-            Subject.doAs(servops, new PrivilegedExceptionAction<Object>()
+            // case 1: only one user matches the email address
+            testGetOneUserByEmailAddress(emailAddress, username);
+            
+            // create another user with the same email attribute
+            final String username1 = createUsername();
+            final HttpPrincipal userID1 = new HttpPrincipal(username1);
+            final UserRequest<Principal> userRequest1 = createUserRequest(userID1, emailAddress);
+            addUser(userID1, userRequest1);
+            
+            try
             {
-                public Object run() throws Exception
-                {
-                    try
-                    {
-                        final LdapUserDAO<X500Principal> userDAO = getUserDAO();
-                        final User<Principal> user =
-                            userDAO.getUserByEmailAddress(emailAddress);
-                        PersonalDetails pd = (PersonalDetails) user.getUserDetail(PersonalDetails.class);
-                        assertEquals(emailAddress, pd.email);
-                        String actualName = user.getUserID().getName();
-                        assertEquals(username, actualName);
-    
-                        return null;
-                    }
-                    catch (Exception e)
-                    {
-                        throw new Exception("Problems", e);
-                    }
-                }
-            });
+                // case 2: two users match the email address
+                testGetOneUserByEmailAddress(emailAddress, username);
+            }
+            catch (PrivilegedActionException pae)
+            {
+                Exception e = pae.getException();
+                Throwable t = e.getCause();
+                assertTrue(e.getCause() instanceof UserNotFoundException);
+                assertTrue(e.getCause().getMessage().contains("More than one user"));
+            }
+            finally
+            {
+                deleteUser(userID1);
+            }
         }
         finally
         {
