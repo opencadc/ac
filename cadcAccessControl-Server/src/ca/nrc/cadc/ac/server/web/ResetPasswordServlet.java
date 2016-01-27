@@ -188,7 +188,14 @@ public class ResetPasswordServlet extends HttpServlet
                 logInfo.setMessage(msg);
                 if (e instanceof UserNotFoundException)
                 {            
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    if (e.getMessage().contains("More than one user"))
+                    {
+                        response.setStatus(HttpServletResponse.SC_CONFLICT);
+                    }
+                    else
+                    {
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    }
                 }
                 else
                 {

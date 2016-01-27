@@ -576,6 +576,19 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
         }
+        catch (LDAPSearchException e)
+        {
+            if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
+            {
+                String msg = "More than one User with email address " + emailAddress + " found";
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+            else
+            {
+                LdapDAO.checkLdapResult(e.getResultCode());
+            }
+        }
         catch (LDAPException e)
         {
             LdapDAO.checkLdapResult(e.getResultCode());
@@ -590,6 +603,19 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             try
             {
                 searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            }
+            catch (LDAPSearchException e)
+            {
+                if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
+                {
+                    String msg = "More than one User with email address " + emailAddress + " found";
+                    logger.debug(msg);
+                    throw new UserNotFoundException(msg);
+                }
+                else
+                {
+                    LdapDAO.checkLdapResult(e.getResultCode());
+                }
             }
             catch (LDAPException e)
             {
