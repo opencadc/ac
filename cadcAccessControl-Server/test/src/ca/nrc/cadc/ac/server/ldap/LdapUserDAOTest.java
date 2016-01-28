@@ -462,7 +462,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 Exception e = pae.getException();
                 Throwable t = e.getCause();
                 assertTrue(e.getCause() instanceof UserNotFoundException);
-                assertTrue(e.getCause().getMessage().contains("More than one user"));
+                assertTrue(e.getCause().getMessage().contains(LdapUserDAO.EMAIL_ADDRESS_CONFLICT_MESSAGE));
             }
             finally
             {

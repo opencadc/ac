@@ -133,6 +133,9 @@ import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
  */
 public class LdapUserDAO<T extends Principal> extends LdapDAO
 {
+    public static final String EMAIL_ADDRESS_CONFLICT_MESSAGE = 
+            "More than one user with email address ";
+    
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
     private final Profiler profiler = new Profiler(LdapUserDAO.class);
@@ -312,7 +315,17 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
                                  " found in " + usersDN;
             throw new UserAlreadyExistsException(error);
         }
-        catch (UserNotFoundException ok) { }
+        catch (UserNotFoundException unfe) 
+        { 
+            if (unfe.getMessage().contains(EMAIL_ADDRESS_CONFLICT_MESSAGE))
+            {
+                throw new UserAlreadyExistsException(unfe.getMessage());
+            }
+            else
+            {
+                // ok, user not found
+            }
+        }
     }
     
     /**
@@ -580,7 +593,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
             {
-                String msg = "More than one user with email address " + emailAddress + " found";
+                String msg = EMAIL_ADDRESS_CONFLICT_MESSAGE + emailAddress + " found";
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
             }
@@ -608,7 +621,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                 if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
                 {
-                    String msg = "More than one user with email address " + emailAddress + " found";
+                    String msg = EMAIL_ADDRESS_CONFLICT_MESSAGE + emailAddress + " found";
                     logger.debug(msg);
                     throw new UserNotFoundException(msg);
                 }
