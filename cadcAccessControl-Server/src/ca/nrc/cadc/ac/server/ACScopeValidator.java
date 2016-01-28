@@ -74,12 +74,15 @@ import ca.nrc.cadc.auth.InvalidDelegationTokenException;
 import java.net.URI;
 
 /**
- *
- * @author pdowler
+ * A class to validate the scope of a delegation token for access control.
+ * The scope of a delegation token is composed of the service endpoint
+ * and the action allowed with the service endpoint. Both the service endpoint 
+ * and the action are validated.
+ * @author yeunga
  */
 public class ACScopeValidator extends DelegationToken.ScopeValidator
 {
-    public static final String SCOPE = "ac.resetPassword";
+    public static final String RESET_PASSWORD_SCOPE = "/resetPassword";
     
     public ACScopeValidator() { }
 
@@ -89,9 +92,14 @@ public class ACScopeValidator extends DelegationToken.ScopeValidator
     {
         try
         {
-            if (scope.toASCIIString().equals(SCOPE))
+            // validate service endpoint
+            if (RESET_PASSWORD_SCOPE == requestURI)
             {
-                return; // OK
+                // validate allowed action for this service endpoint
+                if (scope.toASCIIString().equals(RESET_PASSWORD_SCOPE))
+                {
+                    return; // OK
+                }
             }
         }
         catch(Exception ignore) { }

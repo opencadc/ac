@@ -76,12 +76,14 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.util.StringUtil;
 
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -94,8 +96,11 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -111,6 +116,7 @@ public class ResetPasswordServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(ResetPasswordServlet.class);
 
+    List<Subject> privilegedSubjects;
     UserPersistence<Principal> userPersistence;
 
     @Override
@@ -118,12 +124,102 @@ public class ResetPasswordServlet extends HttpServlet
     {
         super.init(config);
 
-        PluginFactory pluginFactory = new PluginFactory();
-        userPersistence = pluginFactory.createUserPersistence();
+        try
+        {
+            String x500Users = config.getInitParameter(ResetPasswordServlet.class.getName() + ".PrivilegedX500Principals");
+            log.debug("privilegedX500Users: " + x500Users);
+
+            String httpUsers = config.getInitParameter(ResetPasswordServlet.class.getName() + ".PrivilegedHttpPrincipals");
+            log.debug("privilegedHttpUsers: " + httpUsers);
+
+            String[] x500List = new String[0];
+            String[] httpList = new String[0];
+            if (x500Users != null && httpUsers != null)
+            {
+                x500List = x500Users.split(" ");
+                httpList = httpUsers.split(" ");
+            }
+
+            if (x500List.length != httpList.length)
+            {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+            }
+
+            privilegedSubjects = new ArrayList<Subject>(x500Users.length());
+            for (int i=0; i<x500List.length; i++)
+            {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500List[i]));
+                s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                privilegedSubjects.add(s);
+            }
+
+            PluginFactory pluginFactory = new PluginFactory();
+            userPersistence = pluginFactory.createUserPersistence();
+        }
+        catch (Throwable t)
+        {
+            log.fatal("Error initializing group persistence", t);
+            throw new ExceptionInInitializerError(t);
+        }
+    }
+    
+    protected boolean isPrivilegedSubject(final HttpServletRequest request)
+    {        
+        if (privilegedSubjects == null || privilegedSubjects.isEmpty())
+        {
+            return false;
+        }
+        
+        log.debug("alinga-- invoking ServletPrincipalExtractor");
+        ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
+        log.debug("alinga-- done invoking ServletPrincipalExtractor");
+        Set<Principal> principals = extractor.getPrincipals();
+        log.debug("alinga-- principals size = " + principals.size());
+
+        for (Principal principal : principals)
+        {
+            if (principal instanceof X500Principal)
+            {
+                for (Subject s : privilegedSubjects)
+                {
+                    Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
+                    for (X500Principal p2 : x500Principals)
+                    {
+                        log.debug("alinga-- p2 x500 name = " + p2.getName());
+                        log.debug("alinga-- principal x500 name = " + principal.getName());
+
+                        if (p2.getName().equalsIgnoreCase(principal.getName()))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            if (principal instanceof HttpPrincipal)
+            {
+                for (Subject s : privilegedSubjects)
+                {
+                    Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
+                    for (HttpPrincipal p2 : httpPrincipals)
+                    {
+                        log.debug("alinga-- p2 http name = " + p2.getName());
+                        log.debug("alinga-- principal http name = " + principal.getName());
+                        if (p2.getName().equalsIgnoreCase(principal.getName()))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
     
     /**
-     * Handle a /ac GET operation. The subject provided is expected to be servops.
+     * Handle a /ac GET operation. The subject provided is expected to be a privileged user.
      *
      * @param request  The HTTP Request.
      * @param response The HTTP Response.
@@ -149,73 +245,91 @@ public class ResetPasswordServlet extends HttpServlet
             }
             else
             {
-                String token = (String) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+                if (isPrivilegedSubject(request))
                 {
-                    public Object run() throws Exception
+                    String token = (String) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
                     {
-                        String emailAddress = request.getParameter("emailAddress");
-                        if (StringUtil.hasText(emailAddress))
+                        public Object run() throws Exception
                         {
-                            User<Principal> user = userPersistence.getUserByEmailAddress(emailAddress);
-                            HttpPrincipal userID = (HttpPrincipal) user.getUserID();
-                            URI scopeURI = new URI(ACScopeValidator.SCOPE);
-                            int duration = 2; // hours
-                            Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-                            expiry.add(Calendar.HOUR, duration);
-                            DelegationToken dt = new DelegationToken(userID, scopeURI, expiry.getTime());
-
-                            return DelegationToken.format(dt);
+                            String emailAddress = request.getParameter("emailAddress");
+                            if (StringUtil.hasText(emailAddress))
+                            {
+                                User<Principal> user = userPersistence.getUserByEmailAddress(emailAddress);
+                                HttpPrincipal userID = (HttpPrincipal) user.getUserID();
+                                URI scopeURI = new URI(ACScopeValidator.RESET_PASSWORD_SCOPE);
+                                int duration = 24; // hours
+                                Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+                                expiry.add(Calendar.HOUR, duration);
+                                DelegationToken dt = new DelegationToken(userID, scopeURI, expiry.getTime());
+    
+                                return DelegationToken.format(dt);
+                            }
+                            else
+                            {
+                                throw new IllegalArgumentException("Missing email address");
+                            }
                         }
-                        else
-                        {
-                            throw new IllegalArgumentException("Missing email address");
-                        }
-                    }
-                });
-                
-                response.setContentType("text/plain");
-                response.setContentLength(token.length());
-                response.getWriter().write(token);
-            }
-        }
-        catch (PrivilegedActionException pae)
-        {
-            Exception e = pae.getException();
-            if (e != null)
-            {
-                String msg = e.getMessage();
-                log.debug(msg, e);
-                logInfo.setMessage(msg);
-                if (e instanceof UserNotFoundException)
-                {            
-                    if (e.getMessage().contains("More than one user"))
-                    {
-                        response.setStatus(HttpServletResponse.SC_CONFLICT);
-                    }
-                    else
-                    {
-                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    }
+                    });
+                    
+                    response.setContentType("text/plain");
+                    response.setContentLength(token.length());
+                    response.getWriter().write(token);
                 }
                 else
                 {
-                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    logInfo.setMessage("Permission denied subject");
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 }
             }
         }
-        catch (IllegalArgumentException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        }
         catch (Throwable t)
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            try
+            {
+                if (t instanceof PrivilegedActionException)
+                {
+                    Exception e = ((PrivilegedActionException) t).getException();
+                    if (e != null)
+                    {
+                        throw e;
+                    }
+                }
+                
+                throw t;
+            }
+            catch (UserNotFoundException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                if (e.getMessage().contains("More than one user"))
+                {
+                    response.setStatus(HttpServletResponse.SC_CONFLICT);
+                }
+                else
+                {
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                }
+            }
+            catch (IllegalArgumentException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+            catch (AccessControlException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+            catch (Throwable t1)
+            {
+                String message = "Internal Server Error: " + t.getMessage();
+                log.error(message, t);
+                logInfo.setSuccess(false);
+                logInfo.setMessage(message);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
         }
         finally
         {
@@ -277,32 +391,54 @@ public class ResetPasswordServlet extends HttpServlet
                 });
             }
         }
-        catch (IllegalArgumentException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        }
-        catch (AccessControlException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        }
         catch (Throwable t)
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            try
+            {
+                if (t instanceof PrivilegedActionException)
+                {
+                    Exception e = ((PrivilegedActionException) t).getException();
+                    if (e != null)
+                    {
+                        throw e;
+                    }
+                }
+                
+                throw t;
+            }
+            catch (UserNotFoundException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            }
+            catch (IllegalArgumentException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+            catch (AccessControlException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+            catch (Throwable t1)
+            {
+                String message = "Internal Server Error: " + t.getMessage();
+                log.error(message, t);
+                logInfo.setSuccess(false);
+                logInfo.setMessage(message);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
         }
         finally
         {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
-    }
+     }
 
     /**
      * Get and augment the Subject. Tests can override this method.
