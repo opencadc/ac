@@ -68,6 +68,7 @@
 
 package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserDAO;
@@ -153,7 +154,7 @@ public class ResetPasswordServletTest
     }
     
     public void testPrivilegedSubjectAndEmailAddress(final List<Subject> privSubjects,
-            final Subject subject, int responseStatus, 
+            final Subject subject, int responseStatus, final String emailAddress,
             final UserPersistence<Principal> mockUserPersistence) throws Exception
     {
         @SuppressWarnings("serial")
@@ -199,18 +200,18 @@ public class ResetPasswordServletTest
         {
             if (mockUserPersistence == null)
             {
-                expect(mockRequest.getParameter("emailAddress")).andReturn("").once();
+                expect(mockRequest.getParameter("emailAddress")).andReturn(emailAddress).once();
             }
             else
             {
-                expect(mockRequest.getParameter("emailAddress")).andReturn(EMAIL_ADDRESS).once();
+                expect(mockRequest.getParameter("emailAddress")).andReturn(emailAddress).once();
             }
         }
         
         mockResponse.setStatus(responseStatus);
         expectLastCall().once();
     
-        replay(mockRequest, mockResponse);
+        replay(mockRequest, mockResponse, mockUserPersistence);
     
         Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
         {
@@ -231,8 +232,10 @@ public class ResetPasswordServletTest
     {
         final Subject subject = new Subject();;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+        UserPersistence<Principal> mockUserPersistence = 
+                (UserPersistence<Principal>) createMock(UserPersistence.class);
         testPrivilegedSubjectAndEmailAddress(null, subject, 
-                HttpServletResponse.SC_FORBIDDEN, null);
+                HttpServletResponse.SC_FORBIDDEN, "", mockUserPersistence);
     }
      
     @Test
@@ -240,8 +243,10 @@ public class ResetPasswordServletTest
     {
         final Subject subject = new Subject();;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+        UserPersistence<Principal> mockUserPersistence = 
+                (UserPersistence<Principal>) createMock(UserPersistence.class);
         testPrivilegedSubjectAndEmailAddress(new ArrayList<Subject>(), subject, 
-                HttpServletResponse.SC_FORBIDDEN, null);
+                HttpServletResponse.SC_FORBIDDEN, "", mockUserPersistence);
     }
       
     @Test
@@ -251,8 +256,10 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
+        UserPersistence<Principal> mockUserPersistence = 
+                (UserPersistence<Principal>) createMock(UserPersistence.class);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
-                HttpServletResponse.SC_BAD_REQUEST, null);
+                HttpServletResponse.SC_BAD_REQUEST, "", mockUserPersistence);
     }
     
     @SuppressWarnings("unchecked")
@@ -263,12 +270,13 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
-        UserNotFoundException unfe = new UserNotFoundException(LdapUserDAO.EMAIL_ADDRESS_CONFLICT_MESSAGE);
+        UserAlreadyExistsException uaee = 
+                new UserAlreadyExistsException(LdapUserDAO.EMAIL_ADDRESS_CONFLICT_MESSAGE);
         UserPersistence<Principal> mockUserPersistence = 
                 (UserPersistence<Principal>) createMock(UserPersistence.class);
-        expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(unfe);
+        expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(uaee);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
-                HttpServletResponse.SC_CONFLICT, mockUserPersistence);
+                HttpServletResponse.SC_CONFLICT, EMAIL_ADDRESS, mockUserPersistence);
     }
     
     @SuppressWarnings("unchecked")
@@ -284,7 +292,7 @@ public class ResetPasswordServletTest
                 (UserPersistence<Principal>) createMock(UserPersistence.class);
         expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(unfe);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
-                HttpServletResponse.SC_NOT_FOUND, mockUserPersistence);
+                HttpServletResponse.SC_NOT_FOUND, EMAIL_ADDRESS, mockUserPersistence);
     }
     
     @SuppressWarnings("unchecked")
@@ -300,6 +308,6 @@ public class ResetPasswordServletTest
                 (UserPersistence<Principal>) createMock(UserPersistence.class);
         expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(rte);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
-                HttpServletResponse.SC_INTERNAL_SERVER_ERROR, mockUserPersistence);
+                HttpServletResponse.SC_INTERNAL_SERVER_ERROR, EMAIL_ADDRESS, mockUserPersistence);
     }
 }
