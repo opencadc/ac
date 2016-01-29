@@ -171,11 +171,8 @@ public class ResetPasswordServlet extends HttpServlet
             return false;
         }
         
-        log.debug("alinga-- invoking ServletPrincipalExtractor");
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
-        log.debug("alinga-- done invoking ServletPrincipalExtractor");
         Set<Principal> principals = extractor.getPrincipals();
-        log.debug("alinga-- principals size = " + principals.size());
 
         for (Principal principal : principals)
         {
@@ -186,9 +183,6 @@ public class ResetPasswordServlet extends HttpServlet
                     Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
                     for (X500Principal p2 : x500Principals)
                     {
-                        log.debug("alinga-- p2 x500 name = " + p2.getName());
-                        log.debug("alinga-- principal x500 name = " + principal.getName());
-
                         if (p2.getName().equalsIgnoreCase(principal.getName()))
                         {
                             return true;
@@ -204,8 +198,6 @@ public class ResetPasswordServlet extends HttpServlet
                     Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
                     for (HttpPrincipal p2 : httpPrincipals)
                     {
-                        log.debug("alinga-- p2 http name = " + p2.getName());
-                        log.debug("alinga-- principal http name = " + principal.getName());
                         if (p2.getName().equalsIgnoreCase(principal.getName()))
                         {
                             return true;
