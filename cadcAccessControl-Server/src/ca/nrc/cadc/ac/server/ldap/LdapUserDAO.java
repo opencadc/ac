@@ -134,7 +134,7 @@ import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
 public class LdapUserDAO<T extends Principal> extends LdapDAO
 {
     public static final String EMAIL_ADDRESS_CONFLICT_MESSAGE = 
-            "More than one user with email address ";
+            "email address ";
     
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
@@ -307,25 +307,13 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         }
         catch (UserNotFoundException ok) { }
 
+        // check if email address is already in use
         try
         {
-            String emailAddress = getEmailAddress(userRequest);            
+            String emailAddress = getEmailAddress(userRequest); 
             getUserByEmailAddress(emailAddress, usersDN);
-            final String error = "email address " + emailAddress +
-                                 " found in " + usersDN;
-            throw new UserAlreadyExistsException(error);
         }
-        catch (UserNotFoundException unfe) 
-        { 
-            if (unfe.getMessage().contains(EMAIL_ADDRESS_CONFLICT_MESSAGE))
-            {
-                throw new UserAlreadyExistsException(unfe.getMessage());
-            }
-            else
-            {
-                // ok, user not found
-            }
-        }
+        catch (UserNotFoundException ok) { }
     }
     
     /**
@@ -434,10 +422,11 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
     public User<Principal> getUserByEmailAddress(final String emailAddress)
             throws UserNotFoundException, TransientException,
-            AccessControlException
+            AccessControlException, UserAlreadyExistsException
     {
         return getUserByEmailAddress(emailAddress, config.getUsersDN());
     }
@@ -571,11 +560,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
     private User<Principal> getUserByEmailAddress(final String emailAddress, 
             final String usersDN)
             throws UserNotFoundException, TransientException,
-            AccessControlException
+            AccessControlException, UserAlreadyExistsException
     {
         SearchResultEntry searchResult = null;
         Filter filter = null;
@@ -593,9 +583,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         {
             if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
             {
-                String msg = EMAIL_ADDRESS_CONFLICT_MESSAGE + emailAddress + " found";
+                String msg = EMAIL_ADDRESS_CONFLICT_MESSAGE + emailAddress + " already in use";
                 logger.debug(msg);
-                throw new UserNotFoundException(msg);
+                throw new UserAlreadyExistsException(msg);
             }
             else
             {
@@ -621,9 +611,9 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             {
                 if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED)
                 {
-                    String msg = EMAIL_ADDRESS_CONFLICT_MESSAGE + emailAddress + " found";
+                    String msg = EMAIL_ADDRESS_CONFLICT_MESSAGE + emailAddress + " already in use";
                     logger.debug(msg);
-                    throw new UserNotFoundException(msg);
+                    throw new UserAlreadyExistsException(msg);
                 }
                 else
                 {

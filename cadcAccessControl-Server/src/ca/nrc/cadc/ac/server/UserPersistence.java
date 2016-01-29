@@ -136,12 +136,13 @@ public interface UserPersistence<T extends Principal>
      * @return User instance.
      *
      * @throws UserNotFoundException when the user is not found.
+     * @throws UserAlreadyExistsException A user with the email address already exists
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     User<Principal> getUserByEmailAddress(String emailAddress)
-            throws UserNotFoundException, TransientException,
-            AccessControlException;
+            throws UserNotFoundException, UserAlreadyExistsException, 
+            TransientException, AccessControlException;
 
     /**
      * Get the user specified by userID whose account is pending approval.

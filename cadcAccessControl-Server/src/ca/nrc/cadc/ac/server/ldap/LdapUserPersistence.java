@@ -197,9 +197,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
+     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
     public User<Principal> getUserByEmailAddress(String emailAddress)
-            throws UserNotFoundException, TransientException, AccessControlException
+            throws UserNotFoundException, TransientException, 
+            AccessControlException, UserAlreadyExistsException
         {
             LdapConnections conns = new LdapConnections(this);
             try

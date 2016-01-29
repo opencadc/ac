@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.ACScopeValidator;
 import ca.nrc.cadc.ac.server.PluginFactory;
@@ -138,20 +139,20 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 x500List = x500Users.split(" ");
                 httpList = httpUsers.split(" ");
-            }
 
-            if (x500List.length != httpList.length)
-            {
-                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
-            }
-
-            privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-            for (int i=0; i<x500List.length; i++)
-            {
-                Subject s = new Subject();
-                s.getPrincipals().add(new X500Principal(x500List[i]));
-                s.getPrincipals().add(new HttpPrincipal(httpList[i]));
-                privilegedSubjects.add(s);
+                if (x500List.length != httpList.length)
+                {
+                    throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+                }
+    
+                privilegedSubjects = new ArrayList<Subject>(x500Users.length());
+                for (int i=0; i<x500List.length; i++)
+                {
+                    Subject s = new Subject();
+                    s.getPrincipals().add(new X500Principal(x500List[i]));
+                    s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                    privilegedSubjects.add(s);
+                }
             }
 
             PluginFactory pluginFactory = new PluginFactory();
@@ -289,18 +290,17 @@ public class ResetPasswordServlet extends HttpServlet
                 
                 throw t;
             }
+            catch (UserAlreadyExistsException e)
+            {
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_CONFLICT);
+            }
             catch (UserNotFoundException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                if (e.getMessage().contains("More than one user"))
-                {
-                    response.setStatus(HttpServletResponse.SC_CONFLICT);
-                }
-                else
-                {
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                }
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             }
             catch (IllegalArgumentException e)
             {

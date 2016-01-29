@@ -92,6 +92,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
@@ -461,7 +462,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 Exception e = pae.getException();
                 Throwable t = e.getCause();
-                assertTrue(e.getCause() instanceof UserNotFoundException);
+                assertTrue(e.getCause() instanceof UserAlreadyExistsException);
                 assertTrue(e.getCause().getMessage().contains(LdapUserDAO.EMAIL_ADDRESS_CONFLICT_MESSAGE));
             }
             finally
@@ -475,6 +476,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         }
         
     }
+    
     @Test
     public void testGetPendingUser() throws Exception
     {

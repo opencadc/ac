@@ -68,44 +68,31 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.ACScopeValidator;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserDAO;
-import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.StringUtil;
 
 import org.junit.Test;
 
 import javax.security.auth.Subject;
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import static org.easymock.EasyMock.*;
 
 
 public class ResetPasswordServletTest
 {   
+    private static final String EMAIL_ADDRESS = "email@canada.ca";
+    
     public void testSubjectAndEmailAddress(final Subject subject, final String emailAddress, 
             int responseStatus) throws Exception
     {
@@ -155,17 +142,17 @@ public class ResetPasswordServletTest
     public void testGetWithNullSubject() throws Exception
     {
         final Subject subject = null;
-        testSubjectAndEmailAddress(subject, "testEmail@canada.ca", HttpServletResponse.SC_UNAUTHORIZED);
+        testSubjectAndEmailAddress(subject, EMAIL_ADDRESS, HttpServletResponse.SC_UNAUTHORIZED);
     }
         
     @Test
     public void testGetWithEmptySubject() throws Exception
     {
         final Subject subject = new Subject();;
-        testSubjectAndEmailAddress(subject, "email@canada.ca", HttpServletResponse.SC_UNAUTHORIZED);
+        testSubjectAndEmailAddress(subject, EMAIL_ADDRESS, HttpServletResponse.SC_UNAUTHORIZED);
     }
     
-    public void testPrivilegedSubjectAndEmailAddress(final List<Subject> privlegedSubjects,
+    public void testPrivilegedSubjectAndEmailAddress(final List<Subject> privSubjects,
             final Subject subject, int responseStatus, 
             final UserPersistence<Principal> mockUserPersistence) throws Exception
     {
@@ -175,14 +162,14 @@ public class ResetPasswordServletTest
             @Override
             public void init() throws ServletException
             {
-                privilegedSubjects = privlegedSubjects;
+                privilegedSubjects = privSubjects;
                 userPersistence = mockUserPersistence;
             }
             
             @Override
             protected boolean isPrivilegedSubject(final HttpServletRequest request)
             {
-                if (privlegedSubjects == null || privlegedSubjects.isEmpty())
+                if (privSubjects == null || privSubjects.isEmpty())
                 {
                     return false;
                 }
@@ -208,7 +195,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
         
-        if (privlegedSubjects != null && !privlegedSubjects.isEmpty())
+        if (privSubjects != null && !privSubjects.isEmpty())
         {
             if (mockUserPersistence == null)
             {
@@ -216,7 +203,7 @@ public class ResetPasswordServletTest
             }
             else
             {
-                expect(mockRequest.getParameter("emailAddress")).andReturn("email@canada.ca").once();
+                expect(mockRequest.getParameter("emailAddress")).andReturn(EMAIL_ADDRESS).once();
             }
         }
         
@@ -276,10 +263,10 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
+        UserNotFoundException unfe = new UserNotFoundException(LdapUserDAO.EMAIL_ADDRESS_CONFLICT_MESSAGE);
         UserPersistence<Principal> mockUserPersistence = 
                 (UserPersistence<Principal>) createMock(UserPersistence.class);
-        UserNotFoundException unfe = new UserNotFoundException(LdapUserDAO.EMAIL_ADDRESS_CONFLICT_MESSAGE);
-        expect(mockUserPersistence.getUserByEmailAddress("email@canadata.ca")).andThrow(unfe);
+        expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(unfe);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
                 HttpServletResponse.SC_CONFLICT, mockUserPersistence);
     }
@@ -292,10 +279,10 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
+        UserNotFoundException unfe = new UserNotFoundException("User with email address ");
         UserPersistence<Principal> mockUserPersistence = 
                 (UserPersistence<Principal>) createMock(UserPersistence.class);
-        UserNotFoundException unfe = new UserNotFoundException("User with email address ");
-        expect(mockUserPersistence.getUserByEmailAddress("email@canadata.ca")).andThrow(unfe);
+        expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(unfe);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
                 HttpServletResponse.SC_NOT_FOUND, mockUserPersistence);
     }
@@ -308,10 +295,10 @@ public class ResetPasswordServletTest
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
+        RuntimeException rte = new RuntimeException();
         UserPersistence<Principal> mockUserPersistence = 
                 (UserPersistence<Principal>) createMock(UserPersistence.class);
-        RuntimeException rte = new RuntimeException();
-        expect(mockUserPersistence.getUserByEmailAddress("email@canadata.ca")).andThrow(rte);
+        expect(mockUserPersistence.getUserByEmailAddress(EMAIL_ADDRESS)).andThrow(rte);
         testPrivilegedSubjectAndEmailAddress(privilegedSubjects, subject, 
                 HttpServletResponse.SC_INTERNAL_SERVER_ERROR, mockUserPersistence);
     }
