@@ -87,22 +87,14 @@ public class ACScopeValidator extends DelegationToken.ScopeValidator
     public ACScopeValidator() { }
 
     @Override
-    public void verifyScope(URI scope, String  requestURI) 
+    public void verifyScope(URI scope, String requestURI)
         throws InvalidDelegationTokenException 
     {
-        try
+        if (!requestURI.endsWith(RESET_PASSWORD_SCOPE)
+            && !scope.toASCIIString().equals(RESET_PASSWORD_SCOPE))
         {
-            // validate service endpoint
-            if ((requestURI.endsWith(RESET_PASSWORD_SCOPE)) && 
-                    (scope.toASCIIString().equals(RESET_PASSWORD_SCOPE)))
-            {
-                return; // OK
-            }
+            throw new InvalidDelegationTokenException("invalid scope: "
+                                                      + scope);
         }
-        catch(Exception ignore) { }
-        
-        throw new InvalidDelegationTokenException("invalid scope: " + scope);
     }
-    
-    
 }
