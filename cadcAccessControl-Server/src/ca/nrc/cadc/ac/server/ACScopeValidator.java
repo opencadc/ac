@@ -93,13 +93,10 @@ public class ACScopeValidator extends DelegationToken.ScopeValidator
         try
         {
             // validate service endpoint
-            if (RESET_PASSWORD_SCOPE == requestURI)
+            if ((requestURI.endsWith(RESET_PASSWORD_SCOPE)) && 
+                    (scope.toASCIIString().equals(RESET_PASSWORD_SCOPE)))
             {
-                // validate allowed action for this service endpoint
-                if (scope.toASCIIString().equals(RESET_PASSWORD_SCOPE))
-                {
-                    return; // OK
-                }
+                return; // OK
             }
         }
         catch(Exception ignore) { }
