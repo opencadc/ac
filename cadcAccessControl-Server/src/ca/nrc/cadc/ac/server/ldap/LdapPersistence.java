@@ -115,7 +115,7 @@ public abstract class LdapPersistence
             ConnectionPools pools = lookupPools();
             if (pools == null || pools.isClosed())
                 throw new IllegalStateException("Pools are closed.");
-            poolCheck(pools);
+            pools = poolCheck(pools);
             return pools.getPools().get(poolName);
         }
         catch (NamingException e)
@@ -240,11 +240,11 @@ public abstract class LdapPersistence
     {
         Map<String,LdapConnectionPool> poolMap = new HashMap<String,LdapConnectionPool>(3);
         poolMap.put(POOL_READONLY, new LdapConnectionPool(
-            config, config.getReadOnlyPool(), POOL_READONLY, true));
+            config, config.getReadOnlyPool(), POOL_READONLY, true, true));
         poolMap.put(POOL_READWRITE, new LdapConnectionPool(
-            config, config.getReadWritePool(), POOL_READWRITE, true));
+            config, config.getReadWritePool(), POOL_READWRITE, true, false));
         poolMap.put(POOL_UNBOUNDREADONLY, new LdapConnectionPool(
-            config, config.getUnboundReadOnlyPool(), POOL_UNBOUNDREADONLY, false));
+            config, config.getUnboundReadOnlyPool(), POOL_UNBOUNDREADONLY, false, true));
         profiler.checkpoint("Created 3 LDAP connection pools");
         return new ConnectionPools(poolMap, config);
     }
@@ -262,7 +262,7 @@ public abstract class LdapPersistence
         }
     }
 
-    private void poolCheck(ConnectionPools pools) throws TransientException
+    private ConnectionPools poolCheck(ConnectionPools pools) throws TransientException
     {
         if (timeToCheckPools(pools))
         {
@@ -278,6 +278,7 @@ public abstract class LdapPersistence
                 logger.debug("Detected ldap configuration change, rebuilding pools");
                 boolean poolRecreated = false;
                 final ConnectionPools oldPools = pools;
+                ConnectionPools newPools = null;
 
                 synchronized (jndiMonitor)
                 {
@@ -287,7 +288,7 @@ public abstract class LdapPersistence
                     {
                         try
                         {
-                            ConnectionPools newPools = createPools(newConfig);
+                            newPools = createPools(newConfig);
                             newPools.setLastPoolCheck(System.currentTimeMillis());
                             InitialContext ic = new InitialContext();
                             try
@@ -326,9 +327,13 @@ public abstract class LdapPersistence
                     };
                     Thread closePoolsThread = new Thread(closeOldPools);
                     closePoolsThread.start();
+
+                    return newPools;
                 }
             }
         }
+        // just return the existing pools
+        return pools;
     }
 
     private boolean timeToCheckPools(ConnectionPools pools)

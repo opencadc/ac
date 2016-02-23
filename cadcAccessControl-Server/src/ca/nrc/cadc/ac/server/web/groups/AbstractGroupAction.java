@@ -68,27 +68,24 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.net.TransientException;
-import org.apache.log4j.Logger;
-
-import com.unboundid.ldap.sdk.LDAPException;
-
-import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.List;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
 {
@@ -187,9 +184,11 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         }
         catch (TransientException e)
         {
-            String message = "Internal Transient Error: " + e.getMessage();
+            String message = "Transient Error: " + e.getMessage();
             this.logInfo.setSuccess(false);
             this.logInfo.setMessage(message);
+            if (e.getRetryDelay() > 0)
+                syncOut.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             log.error(message, e);
             sendError(503, message);
         }

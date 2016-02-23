@@ -68,6 +68,16 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -85,17 +95,6 @@ import ca.nrc.cadc.ac.xml.UserRequestReader;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
-
-import org.apache.log4j.Logger;
-
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
 
 public abstract class AbstractUserAction<T extends Principal> implements PrivilegedExceptionAction<Object>
 {
@@ -193,9 +192,11 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
         }
         catch (TransientException e)
         {
-            String message = "Internal Transient Error: " + e.getMessage();
+            String message = "Transient Error: " + e.getMessage();
             this.logInfo.setSuccess(false);
             this.logInfo.setMessage(message);
+            if (e.getRetryDelay() > 0)
+                syncOut.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             log.error(message, e);
             sendError(503, message);
         }

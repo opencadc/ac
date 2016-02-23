@@ -147,7 +147,7 @@ class LdapConnections
         {
             if (readOnlyPool == null)
             {
-                readOnlyPool = new LdapConnectionPool(config, config.getReadOnlyPool(), LdapPersistence.POOL_READONLY, true);
+                readOnlyPool = new LdapConnectionPool(config, config.getReadOnlyPool(), LdapPersistence.POOL_READONLY, true, true);
             }
             if (manualConfigReadOnlyConn == null)
             {
@@ -186,7 +186,7 @@ class LdapConnections
         {
             if (readWritePool == null)
             {
-                readWritePool = new LdapConnectionPool(config, config.getReadWritePool(), LdapPersistence.POOL_READWRITE, true);
+                readWritePool = new LdapConnectionPool(config, config.getReadWritePool(), LdapPersistence.POOL_READWRITE, true, false);
             }
             if (manualConfigReadWriteConn == null)
             {
@@ -225,7 +225,7 @@ class LdapConnections
         {
             if (unboundReadOnlyPool == null)
             {
-                unboundReadOnlyPool = new LdapConnectionPool(config, config.getUnboundReadOnlyPool(), LdapPersistence.POOL_UNBOUNDREADONLY, false);
+                unboundReadOnlyPool = new LdapConnectionPool(config, config.getUnboundReadOnlyPool(), LdapPersistence.POOL_UNBOUNDREADONLY, false, true);
             }
             if (manualConfigUnboundReadOnlyConn == null)
             {
@@ -316,5 +316,6 @@ class LdapConnections
         else
             return config;
     }
+
 
 }

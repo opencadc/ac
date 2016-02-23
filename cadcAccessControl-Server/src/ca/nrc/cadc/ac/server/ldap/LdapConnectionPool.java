@@ -100,6 +100,13 @@ public class LdapConnectionPool
 {
     private static final Logger logger = Logger.getLogger(LdapConnectionPool.class);
 
+    private enum SystemState
+    {
+        ONLINE,
+        READONLY,
+        OFFLINE
+    };
+
     Profiler profiler = new Profiler(LdapConnectionPool.class);
 
     protected LdapConfig currentConfig;
@@ -107,8 +114,10 @@ public class LdapConnectionPool
     private LDAPConnectionPool pool;
     private Object poolMonitor = new Object();
     private LDAPConnectionOptions connectionOptions;
+    private boolean readOnly;
+    SystemState systemState = SystemState.ONLINE;
 
-    public LdapConnectionPool(LdapConfig config, LdapPool poolConfig, String poolName, boolean boundPool)
+    public LdapConnectionPool(LdapConfig config, LdapPool poolConfig, String poolName, boolean boundPool, boolean readOnly)
     {
         if (config == null)
             throw new IllegalArgumentException("config required");
@@ -122,19 +131,49 @@ public class LdapConnectionPool
         connectionOptions.setAutoReconnect(true);
         currentConfig = config;
         this.poolName = poolName;
-        synchronized (poolMonitor)
+        this.readOnly = readOnly;
+
+        systemState = getSystemState(config);
+        logger.debug("Construct pool: " + poolName + ". system state: " + systemState);
+        if (SystemState.ONLINE.equals(systemState) || (SystemState.READONLY.equals(systemState) && readOnly))
         {
-            if (!boundPool)
-                pool = createPool(config, poolConfig, poolName, null, null);
-            else
-                pool = createPool(config, poolConfig, poolName, config.getAdminUserDN(), config.getAdminPasswd());
-            logger.debug(poolName + " statistics after create:\n" + pool.getConnectionPoolStatistics());
-            profiler.checkpoint("Create read only pool.");
+            synchronized (poolMonitor)
+            {
+                if (!boundPool)
+                    pool = createPool(config, poolConfig, poolName, null, null);
+                else
+                    pool = createPool(config, poolConfig, poolName, config.getAdminUserDN(), config.getAdminPasswd());
+
+                if (pool != null)
+                {
+                    logger.debug(poolName + " statistics after create:\n" + pool.getConnectionPoolStatistics());
+                    profiler.checkpoint("Create read only pool.");
+                }
+            }
+        }
+        else
+        {
+            logger.debug("Not creating pool " + poolName + " because system state is " + systemState);
         }
     }
 
     public LDAPConnection getConnection() throws TransientException
     {
+
+        logger.debug("Get connection: " + poolName + ". system state: " + systemState);
+        if (SystemState.OFFLINE.equals(systemState))
+        {
+            throw new TransientException("The system is down for maintenance.", 600);
+        }
+
+        if (SystemState.READONLY.equals(systemState))
+        {
+            if (!readOnly)
+            {
+                throw new TransientException("The system is in read-only mode.", 600);
+            }
+        }
+
         try
         {
             LDAPConnection conn = null;
@@ -169,8 +208,11 @@ public class LdapConnectionPool
 
     public void releaseConnection(LDAPConnection conn)
     {
-        pool.releaseConnection(conn);
-        logger.debug(poolName + " pool statistics after release:\n" + pool.getConnectionPoolStatistics());
+        if (pool != null)
+        {
+            pool.releaseConnection(conn);
+            logger.debug(poolName + " pool statistics after release:\n" + pool.getConnectionPoolStatistics());
+        }
     }
 
     public LdapConfig getCurrentConfig()
@@ -180,9 +222,12 @@ public class LdapConnectionPool
 
     public void shutdown()
     {
-        logger.debug("Closing pool...");
-        pool.close();
-        profiler.checkpoint("Pool closed.");
+        if (pool != null)
+        {
+            logger.debug("Closing pool...");
+            pool.close();
+            profiler.checkpoint("Pool closed.");
+        }
     }
 
     public String getName()
@@ -191,7 +236,6 @@ public class LdapConnectionPool
     }
 
     private LDAPConnectionPool createPool(LdapConfig config, LdapPool poolConfig, String poolName, String bindID, String bindPW)
-
     {
         try
         {
@@ -242,6 +286,34 @@ public class LdapConnectionPool
             logger.error("Failed to create connection pool", e);
             throw new IllegalStateException(e);
         }
+    }
+
+
+    /**
+     * Check if in read-only or offline mode.
+     *
+     * A read max connection size of zero implies offline mode.
+     * A read-wrtie max connection size of zero implies read-only mode.
+     */
+    private SystemState getSystemState(LdapConfig config)
+    {
+
+        if (config.getReadOnlyPool().getMaxSize() == 0)
+        {
+            return SystemState.OFFLINE;
+        }
+
+        if (config.getUnboundReadOnlyPool().getMaxSize() == 0)
+        {
+            return SystemState.OFFLINE;
+        }
+
+        if (config.getReadWritePool().getMaxSize() == 0)
+        {
+            return SystemState.READONLY;
+        }
+
+        return SystemState.ONLINE;
     }
 
 

@@ -72,6 +72,8 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
 
+import javax.security.auth.Subject;
+
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;
@@ -84,8 +86,6 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
-
-import javax.security.auth.Subject;
 
 public class LdapUserPersistence<T extends Principal> extends LdapPersistence implements UserPersistence<T>
 {
@@ -173,7 +173,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -186,7 +186,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
             conns.releaseConnections();
         }
     }
-    
+
     /**
      * Get the user specified by email address exists in the active users tree.
      *
@@ -200,7 +200,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws UserAlreadyExistsException A user with the same email address already exists
      */
     public User<Principal> getUserByEmailAddress(String emailAddress)
-            throws UserNotFoundException, TransientException, 
+            throws UserNotFoundException, TransientException,
             AccessControlException, UserAlreadyExistsException
         {
             LdapConnections conns = new LdapConnections(this);
@@ -230,7 +230,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -289,7 +289,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -375,7 +375,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, user) )
             throw new AccessControlException("permission denied: target user does not match current user");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -405,7 +405,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -489,7 +489,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -523,14 +523,14 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
-        
+
         LdapUserDAO<T> userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
             userDAO = new LdapUserDAO<T>(conns);
             User<T> user = getUser((T) userID);
-            
+
             if (user != null)
             {
                 // oldPassword is correct
@@ -547,7 +547,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
-        
+
         for (Principal pc : caller.getPrincipals())
         {
             for (Principal pu : user.getIdentities())
@@ -558,12 +558,12 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         }
         return false;
     }
-    
+
     private boolean isMatch(Subject caller, Principal userID)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
-        
+
         for (Principal pc : caller.getPrincipals())
         {
             if (AuthenticationUtil.equals(pc, userID))

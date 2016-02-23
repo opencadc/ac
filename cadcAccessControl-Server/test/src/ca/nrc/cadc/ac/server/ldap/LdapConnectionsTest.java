@@ -108,7 +108,7 @@ public class LdapConnectionsTest
             EasyMock.expect(persistence.getPool(LdapPersistence.POOL_READONLY)).andReturn(readPool).once();
             EasyMock.expect(persistence.getPool(LdapPersistence.POOL_READWRITE)).andReturn(writePool).once();
             EasyMock.expect(persistence.getPool(LdapPersistence.POOL_UNBOUNDREADONLY)).andReturn(unReadPool).once();
-            EasyMock.expect(persistence.getCurrentConfig()).andReturn(null).once();
+            EasyMock.expect(persistence.getCurrentConfig()).andReturn(null).anyTimes();
 
             EasyMock.expect(readPool.getConnection()).andReturn(readConn).once();
             EasyMock.expect(writePool.getConnection()).andReturn(writeConn).once();

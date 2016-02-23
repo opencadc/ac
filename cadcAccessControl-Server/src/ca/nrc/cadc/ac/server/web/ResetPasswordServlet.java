@@ -68,6 +68,29 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
+import java.io.IOException;
+import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Set;
+import java.util.TimeZone;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -79,31 +102,8 @@ import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
-
-import org.apache.log4j.Logger;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import java.io.IOException;
-import java.net.URI;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Enumeration;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Set;
-import java.util.TimeZone;
 
 /**
  * Servlet to handle password resets.  Passwords are an integral part of the
@@ -144,7 +144,7 @@ public class ResetPasswordServlet extends HttpServlet
                 {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
-    
+
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
                 for (int i=0; i<x500List.length; i++)
                 {
@@ -164,14 +164,14 @@ public class ResetPasswordServlet extends HttpServlet
             throw new ExceptionInInitializerError(t);
         }
     }
-    
+
     protected boolean isPrivilegedSubject(final HttpServletRequest request)
-    {        
+    {
         if (privilegedSubjects == null || privilegedSubjects.isEmpty())
         {
             return false;
         }
-        
+
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
 
@@ -210,7 +210,7 @@ public class ResetPasswordServlet extends HttpServlet
 
         return false;
     }
-    
+
     /**
      * Handle a /ac GET operation. The subject provided is expected to be a privileged user.
      *
@@ -254,7 +254,7 @@ public class ResetPasswordServlet extends HttpServlet
                                 Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                                 expiry.add(Calendar.HOUR, duration);
                                 DelegationToken dt = new DelegationToken(userID, scopeURI, expiry.getTime());
-    
+
                                 return DelegationToken.format(dt);
                             }
                             else
@@ -263,7 +263,7 @@ public class ResetPasswordServlet extends HttpServlet
                             }
                         }
                     });
-                    
+
                     response.setContentType("text/plain");
                     response.setContentLength(token.length());
                     response.getWriter().write(token);
@@ -287,7 +287,7 @@ public class ResetPasswordServlet extends HttpServlet
                         throw e;
                     }
                 }
-                
+
                 throw t;
             }
             catch (UserAlreadyExistsException e)
@@ -307,6 +307,18 @@ public class ResetPasswordServlet extends HttpServlet
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+            catch (TransientException e)
+            {
+                log.debug(e.getMessage(), e);
+                String message = e.getMessage();
+                logInfo.setMessage(message);
+                logInfo.setSuccess(false);
+                response.setContentType("text/plain");
+                if (e.getRetryDelay() > 0)
+                    response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
+                response.getWriter().write("Transient Error: " + message);
+                response.setStatus(503);
             }
             catch (AccessControlException e)
             {
@@ -359,13 +371,13 @@ public class ResetPasswordServlet extends HttpServlet
                 {
                     public Object run() throws Exception
                     {
-                        
+
                         Set<HttpPrincipal> pset = subject.getPrincipals(HttpPrincipal.class);
                         if (pset.isEmpty())
                         {
                             throw new IllegalStateException("no HttpPrincipal in subject");
                         }
-                        
+
                         HttpPrincipal userID = pset.iterator().next();
 
                         String newPassword = request.getParameter("password");
@@ -377,7 +389,7 @@ public class ResetPasswordServlet extends HttpServlet
                         {
                             throw new IllegalArgumentException("Missing password");
                         }
-                        
+
                         return null;
                     }
                 });
@@ -395,7 +407,7 @@ public class ResetPasswordServlet extends HttpServlet
                         throw e;
                     }
                 }
-                
+
                 throw t;
             }
             catch (UserNotFoundException e)

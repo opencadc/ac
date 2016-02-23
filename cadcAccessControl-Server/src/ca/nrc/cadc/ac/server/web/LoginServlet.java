@@ -208,6 +208,18 @@ public class LoginServlet<T extends Principal> extends HttpServlet
             response.getWriter().write(message);
             response.setStatus(401);
         }
+        catch (TransientException e)
+        {
+            log.debug(e.getMessage(), e);
+            String message = e.getMessage();
+            logInfo.setMessage(message);
+            logInfo.setSuccess(false);
+            response.setContentType("CONTENT_TYPE");
+            if (e.getRetryDelay() > 0)
+                response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
+            response.getWriter().write("Transient Error: " + message);
+            response.setStatus(503);
+        }
         catch (Throwable t)
         {
             String message = "Internal Server Error: " + t.getMessage();

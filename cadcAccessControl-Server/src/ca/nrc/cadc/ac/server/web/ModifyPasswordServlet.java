@@ -68,13 +68,11 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.log.ServletLogInfo;
-import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
@@ -82,10 +80,16 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.security.AccessControlException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Set;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.StringUtil;
 
 /**
  * Servlet to handle password changes.  Passwords are an integral part of the
@@ -130,8 +134,7 @@ public class ModifyPasswordServlet extends HttpServlet
             logInfo.setSubject(subject);
             if ((subject == null) || (subject.getPrincipals().isEmpty()))
             {
-                logInfo.setMessage("Unauthorized subject");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                throw new AccessControlException("Unauthorized");
             }
             else
             {
@@ -139,7 +142,7 @@ public class ModifyPasswordServlet extends HttpServlet
                 {
                     public Object run() throws Exception
                     {
-                        
+
                         Set<HttpPrincipal> pset = subject.getPrincipals(HttpPrincipal.class);
                         if (pset.isEmpty())
                             throw new IllegalStateException("no HttpPrincipal in subject");
@@ -167,30 +170,61 @@ public class ModifyPasswordServlet extends HttpServlet
                 });
             }
         }
-        catch (IllegalArgumentException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        }
-        catch (AccessControlException e)
-        {
-            log.debug(e.getMessage(), e);
-            logInfo.setMessage(e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        }
         catch (Throwable t)
         {
-            String message = "Internal Server Error: " + t.getMessage();
-            log.error(message, t);
-            logInfo.setSuccess(false);
-            logInfo.setMessage(message);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-        finally
-        {
-            logInfo.setElapsedTime(System.currentTimeMillis() - start);
-            log.info(logInfo.end());
+            try
+            {
+                if (t instanceof PrivilegedActionException)
+                {
+                    Exception e = ((PrivilegedActionException) t).getException();
+                    if (e != null)
+                    {
+                        throw e;
+                    }
+                }
+
+                throw t;
+            }
+            catch (IllegalArgumentException e)
+            {
+                log.debug(e.getMessage(), e);
+                response.setContentType("text/plain");
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+            catch (AccessControlException e)
+            {
+                log.debug(e.getMessage(), e);
+                response.setContentType("text/plain");
+                logInfo.setMessage(e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+            catch (TransientException e)
+            {
+                log.debug(e.getMessage(), e);
+                String message = e.getMessage();
+                logInfo.setMessage(message);
+                logInfo.setSuccess(false);
+                response.setContentType("text/plain");
+                if (e.getRetryDelay() > 0)
+                    response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
+                response.getWriter().write("Transient Error: " + message);
+                response.setStatus(503);
+            }
+            catch (Throwable e)
+            {
+                String message = "Internal Server Error: " + e.getMessage();
+                log.error(message, e);
+                response.setContentType("text/plain");
+                logInfo.setSuccess(false);
+                logInfo.setMessage(message);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
+            finally
+            {
+                logInfo.setElapsedTime(System.currentTimeMillis() - start);
+                log.info(logInfo.end());
+            }
         }
     }
 
