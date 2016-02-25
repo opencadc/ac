@@ -69,13 +69,11 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
+import ca.nrc.cadc.ac.server.ldap.LdapConfig.SystemState;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
-
 import com.unboundid.ldap.sdk.FewestConnectionsServerSet;
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPConnection;
@@ -87,6 +85,7 @@ import com.unboundid.ldap.sdk.SearchRequest;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.ServerSet;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
+import org.apache.log4j.Logger;
 
 /**
  * This object is designed to be shared between the DAO classes
@@ -100,13 +99,6 @@ public class LdapConnectionPool
 {
     private static final Logger logger = Logger.getLogger(LdapConnectionPool.class);
 
-    private enum SystemState
-    {
-        ONLINE,
-        READONLY,
-        OFFLINE
-    };
-
     Profiler profiler = new Profiler(LdapConnectionPool.class);
 
     protected LdapConfig currentConfig;
@@ -115,7 +107,7 @@ public class LdapConnectionPool
     private Object poolMonitor = new Object();
     private LDAPConnectionOptions connectionOptions;
     private boolean readOnly;
-    SystemState systemState = SystemState.ONLINE;
+    private SystemState systemState;
 
     public LdapConnectionPool(LdapConfig config, LdapPool poolConfig, String poolName, boolean boundPool, boolean readOnly)
     {
@@ -133,7 +125,7 @@ public class LdapConnectionPool
         this.poolName = poolName;
         this.readOnly = readOnly;
 
-        systemState = getSystemState(config);
+        systemState = config.getSystemState();
         logger.debug("Construct pool: " + poolName + ". system state: " + systemState);
         if (SystemState.ONLINE.equals(systemState) || (SystemState.READONLY.equals(systemState) && readOnly))
         {
@@ -287,34 +279,5 @@ public class LdapConnectionPool
             throw new IllegalStateException(e);
         }
     }
-
-
-    /**
-     * Check if in read-only or offline mode.
-     *
-     * A read max connection size of zero implies offline mode.
-     * A read-wrtie max connection size of zero implies read-only mode.
-     */
-    private SystemState getSystemState(LdapConfig config)
-    {
-
-        if (config.getReadOnlyPool().getMaxSize() == 0)
-        {
-            return SystemState.OFFLINE;
-        }
-
-        if (config.getUnboundReadOnlyPool().getMaxSize() == 0)
-        {
-            return SystemState.OFFLINE;
-        }
-
-        if (config.getReadWritePool().getMaxSize() == 0)
-        {
-            return SystemState.READONLY;
-        }
-
-        return SystemState.ONLINE;
-    }
-
 
 }

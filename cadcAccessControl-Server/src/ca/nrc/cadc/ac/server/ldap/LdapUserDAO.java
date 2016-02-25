@@ -209,7 +209,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @param password password to verify.
      * @return Boolean
      * @throws TransientException
-     * @throws UserNotFoundExceptionjoellama
+     * @throws UserNotFoundException
      */
     public Boolean doLogin(final String username, final String password)
         throws TransientException, UserNotFoundException
@@ -478,13 +478,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
-
-            //if (proxy)
-            //{
-            //    String proxyDN = "dn:" + getSubjectDN().toNormalizedString();
-            //    logger.debug("Proxying auth as: " + proxyDN);
-            //    searchRequest.addControl(new ProxiedAuthorizationV2RequestControl(proxyDN));
-            //}
 
             searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
         }

@@ -115,8 +115,15 @@ public class LdapConfig
     public enum PoolPolicy
     {
         roundRobin,
-        fewestConnections;
-    };
+        fewestConnections
+    }
+
+    public enum SystemState
+    {
+        ONLINE,
+        READONLY,
+        OFFLINE
+    }
 
     public class LdapPool
     {
@@ -210,6 +217,7 @@ public class LdapConfig
     private String proxyUserDN;
     private String proxyPasswd;
     private String dbrcHost;
+    private SystemState systemState;
 
     public String getProxyUserDN()
     {
@@ -250,6 +258,8 @@ public class LdapConfig
         ldapConfig.userRequestsDN = getProperty(pr, LDAP_USER_REQUESTS_DN);
         ldapConfig.groupsDN = getProperty(pr, LDAP_GROUPS_DN);
         ldapConfig.adminGroupsDN = getProperty(pr, LDAP_ADMIN_GROUPS_DN);
+
+        ldapConfig.systemState = getSystemState(ldapConfig);
 
         try
         {
@@ -303,6 +313,27 @@ public class LdapConfig
         String[] props = prop.split(" ");
         return Arrays.asList(props);
     }
+
+    private static SystemState getSystemState(LdapConfig ldapConfig)
+    {
+        if (ldapConfig.getReadOnlyPool().getMaxSize() == 0)
+        {
+            return SystemState.OFFLINE;
+        }
+
+        if (ldapConfig.getUnboundReadOnlyPool().getMaxSize() == 0)
+        {
+            return SystemState.OFFLINE;
+        }
+
+        if (ldapConfig.getReadWritePool().getMaxSize() == 0)
+        {
+            return SystemState.READONLY;
+        }
+
+        return SystemState.ONLINE;
+    }
+
 
     @Override
     public boolean equals(Object other)
@@ -409,6 +440,17 @@ public class LdapConfig
         return this.proxyPasswd;
     }
 
+    /**
+     * Check if in read-only or offline mode.
+     *
+     * A read max connection size of zero implies offline mode.
+     * A read-wrtie max connection size of zero implies read-only mode.
+     */
+    public SystemState getSystemState()
+    {
+        return systemState;
+    }
+
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
@@ -421,4 +463,5 @@ public class LdapConfig
 
         return sb.toString();
     }
+
 }
