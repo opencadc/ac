@@ -117,9 +117,8 @@ public class UserAdminIntTest
         testCert = System.getProperty("user.dir")
                    + "/build/test/class/cadcauthtest1.pem";
 
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "./test/");
         config = LdapConfig.getLdapConfig();
-
-        System.setProperty(PropertiesReader.class.getName() + ".dir", "test");
     }
 
     @Test
@@ -202,7 +201,8 @@ public class UserAdminIntTest
         boolean isPending = true;
         addUser(userID, isPending);
 
-        String[] args = new String[] { "--approve=" + userID };
+        String[] args = new String[] { "--approve=" + userID,
+                "--dn=UID=" + userID + ",OU=Users,OU=ds,DC=testcanfar"};
 
         doTest(args);
         log.debug("output: " + output);
@@ -211,8 +211,10 @@ public class UserAdminIntTest
         assertTrue("User not approved.",
                    output.toString().contains("was approved"));
 
-        User<Principal> deletedUser = getUser(userID, true, false);
-        User<Principal> approvedUser = getUser(userID, false, true);
+        // get deleted user
+        getUser(userID, true, false);
+        // get approved user
+        getUser(userID, false, true);
     }
 
     @Test
@@ -220,7 +222,8 @@ public class UserAdminIntTest
     {
         String userID = "foo_" + System.currentTimeMillis();
 
-        String[] args = new String[] { "--approve=" + userID };
+        String[] args = new String[] { "--approve=" + userID, 
+            "--dn=UID=" + userID + ",OU=Users,OU=ds,DC=testcanfar"};
 
         doTest(args);
 
@@ -228,7 +231,7 @@ public class UserAdminIntTest
         final String errorMessage = error.toString();
         log.debug("output: " + outputMessage);
 
-        assertTrue(outputMessage.contains("not found"));
+        assertTrue(outputMessage.contains("not find pending user"));
         assertFalse("Should not have error (" + errorMessage + ")",
                     StringUtil.hasLength(errorMessage));
     }
@@ -303,7 +306,9 @@ public class UserAdminIntTest
         expected.getIdentities().add(userID);
         expected.getIdentities().add(x500Principal);
 
-        expected.details.add(new PersonalDetails("foo", "bar"));
+        PersonalDetails pd = new PersonalDetails("foo", "bar");
+        pd.email = username + "@canada.ca";                                      
+        expected.details.add(pd);
 
         final UserRequest<Principal> userRequest =
             new UserRequest<Principal>(expected, "123456".toCharArray());

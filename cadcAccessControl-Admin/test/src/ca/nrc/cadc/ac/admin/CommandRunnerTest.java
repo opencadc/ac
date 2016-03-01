@@ -83,6 +83,7 @@ import org.junit.Test;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 @SuppressWarnings("unchecked")
@@ -96,6 +97,7 @@ public class CommandRunnerTest
     {
         // Set the necessary JNDI system property for lookups.
         System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "./test/");
     }
 
 
