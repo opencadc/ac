@@ -66,7 +66,7 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.admin.integration;
+package ca.nrc.cadc.ac.admin;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
@@ -98,9 +98,9 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 
-public class UserAdminIntTest
+public class UserAdminTest
 {
-    private static final Logger log = Logger.getLogger(UserAdminIntTest.class);
+    private static final Logger log = Logger.getLogger(UserAdminTest.class);
 
     private final OutputStream output = new ByteArrayOutputStream();
     private final OutputStream error = new ByteArrayOutputStream();
