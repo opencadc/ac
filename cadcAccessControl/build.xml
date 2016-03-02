@@ -123,7 +123,31 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />
+            <test name="ca.nrc.cadc.ac.client.GMSClientTest" />
+            <!--<test name="ca.nrc.cadc.ac.client.JsonUserListInputStreamWrapperTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.client.UserClientTest" />-->
+
+            <!--<test name="ca.nrc.cadc.ac.GroupPropertyTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.GroupTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.PersonalDetailsTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.PosixDetailsTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.RoleTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.UserRequestTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.UserTest" />-->
+
+            <!--<test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.json.JsonUserReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.json.JsonUserListReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.json.JsonUserRequestReaderWriterTest" />-->
+
+            <!--<test name="ca.nrc.cadc.ac.xml.GroupListReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.GroupPropertyReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.GroupReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.IdentityReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.UserDetailsReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.UserListReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.UserReaderWriterTest" />-->
+            <!--<test name="ca.nrc.cadc.ac.xml.UserRequestReaderWriterTest" />-->
             <formatter type="plain" usefile="false" />
         </junit>
     </target>

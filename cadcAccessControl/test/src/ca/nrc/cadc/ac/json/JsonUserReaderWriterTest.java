@@ -68,11 +68,12 @@
  */
 package ca.nrc.cadc.ac.json;
 
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -80,7 +81,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.security.Principal;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -103,7 +104,7 @@ public class JsonUserReaderWriterTest
         {
             String s = null;
             JsonUserReader reader = new JsonUserReader();
-            User<Principal> u = reader.read(s);
+            User u = reader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -112,7 +113,7 @@ public class JsonUserReaderWriterTest
         {
             InputStream in = null;
             JsonUserReader reader = new JsonUserReader();
-            User<Principal> u = reader.read(in);
+            User u = reader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -121,7 +122,7 @@ public class JsonUserReaderWriterTest
         {
             Reader r = null;
             JsonUserReader reader = new JsonUserReader();
-            User<Principal> u = reader.read(r);
+            User u = reader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -144,10 +145,13 @@ public class JsonUserReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<? extends Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
-        expected.getIdentities().add(new NumericPrincipal(123));
-        expected.details.add(new PersonalDetails("firstname", "lastname"));
-        expected.details.add(new PosixDetails(123l, 456l, "foo"));
+        User expected = new User();
+        UUID uuid = UUID.randomUUID();
+        TestUtil.setInternalID(expected, new InternalID(uuid, "foo"));
+
+        expected.getIdentities().add(new NumericPrincipal(uuid));
+        expected.personalDetails = new PersonalDetails("firstname", "lastname");
+        expected.posixDetails = new PosixDetails("foo", 123l, 456l, "/dev/null");
 
         StringBuilder json = new StringBuilder();
         JsonUserWriter writer = new JsonUserWriter();
@@ -155,7 +159,7 @@ public class JsonUserReaderWriterTest
         assertFalse(json.toString().isEmpty());
 
         JsonUserReader reader = new JsonUserReader();
-        User<Principal> actual = reader.read(json.toString());
+        User actual = reader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

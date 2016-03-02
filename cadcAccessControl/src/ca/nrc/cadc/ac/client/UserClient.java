@@ -208,7 +208,7 @@ public class UserClient
 	        String userXML = new String(out.toByteArray(), "UTF-8");
 	        log.debug("userXML Input to getPrincipals(): " + userXML);
 
-	        User<Principal> user = new UserReader().read(userXML);
+	        User user = new UserReader().read(userXML);
 	        return user.getIdentities();
     	}
     	catch (Exception e)

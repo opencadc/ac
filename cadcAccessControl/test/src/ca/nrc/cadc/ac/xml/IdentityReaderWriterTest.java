@@ -80,6 +80,7 @@ import org.junit.Test;
 import javax.management.remote.JMXPrincipal;
 import javax.security.auth.x500.X500Principal;
 import java.security.Principal;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -166,7 +167,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
         assertEquals(expected, actual);
 
         // CADC
-        expected = new NumericPrincipal(123);
+        expected = new NumericPrincipal(UUID.randomUUID());
         element = getElement(expected);
         assertNotNull(element);
          

@@ -68,7 +68,9 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -82,6 +84,8 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -102,22 +106,22 @@ public class JsonUserListInputStreamWrapperTest
     @Test
     public void readInputStream() throws Exception
     {
-        final List<User<? extends Principal>> output =
-                new ArrayList<User<? extends Principal>>();
+        final List<User> output = new ArrayList<User>();
         final JsonUserListInputStreamWrapper testSubject =
                 new JsonUserListInputStreamWrapper(output);
         final JsonUserListWriter userListWriter = new JsonUserListWriter();
         final Writer writer = new StringWriter();
-        final Collection<User<HttpPrincipal>> users =
-                new ArrayList<User<HttpPrincipal>>();
+        final Collection<User> users = new ArrayList<User>();
 
-        users.add(new User<HttpPrincipal>(new HttpPrincipal("CADCTest")));
+        final User user1 = new User();
+        InternalID id1 = new InternalID(UUID.randomUUID(), "foo");
+        TestUtil.setInternalID(user1, id1);
+        users.add(user1);
 
-        final User<HttpPrincipal> user2 =
-                new User<HttpPrincipal>(new HttpPrincipal("User_2"));
-
-        user2.details.add(new PersonalDetails("User", "Two"));
-
+        final User user2 = new User();
+        InternalID id2 = new InternalID(UUID.randomUUID(), "bar");
+        TestUtil.setInternalID(user2, id2);
+        user2.personalDetails = new PersonalDetails("firstname", "lastname");
         users.add(user2);
 
         userListWriter.write(users, writer);
@@ -128,9 +132,7 @@ public class JsonUserListInputStreamWrapperTest
 
         testSubject.read(inputStream);
 
-        assertEquals("First item is wrong.", "CADCTest",
-                     output.get(0).getUserID().getName());
-        assertEquals("Second item is wrong.", "User_2",
-                     output.get(1).getUserID().getName());
+        assertEquals("First item is wrong.", id1, output.get(0).getID());
+        assertEquals("Second item is wrong.", id2, output.get(1).getID());
     }
 }

@@ -75,7 +75,6 @@ import ca.nrc.cadc.util.StringBuilderWriter;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.security.Principal;
 
 /**
  * Class to write a XML representation of a UserRequest object.
@@ -90,7 +89,7 @@ public class UserRequestWriter extends AbstractReaderWriter
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(UserRequest<T> userRequest, StringBuilder builder)
+    public void write(UserRequest userRequest, StringBuilder builder)
         throws IOException, WriterException
     {
         write(userRequest, new StringBuilderWriter(builder));
@@ -104,7 +103,7 @@ public class UserRequestWriter extends AbstractReaderWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(UserRequest<T> userRequest, Writer writer)
+    public void write(UserRequest userRequest, Writer writer)
         throws IOException, WriterException
     {
         if (userRequest == null)

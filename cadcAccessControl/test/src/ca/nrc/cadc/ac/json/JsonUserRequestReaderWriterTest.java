@@ -67,7 +67,9 @@
  */
 package ca.nrc.cadc.ac.json;
 
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
@@ -78,6 +80,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.security.Principal;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -136,12 +139,13 @@ public class JsonUserRequestReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<Principal> expectedUser =
-            new User<Principal>(new HttpPrincipal("CADCtest"));
-        expectedUser.details.add(new PersonalDetails("CADCtest", "User"));
+        User expectedUser = new User();
+        UUID uuid = UUID.randomUUID();
+        TestUtil.setInternalID(expectedUser, new InternalID(uuid, "foo"));
 
-        UserRequest<Principal> expected =
-            new UserRequest<Principal>(expectedUser, "MYPASSWORD".toCharArray());
+        expectedUser.personalDetails = new PersonalDetails("CADCtest", "User");
+
+        UserRequest expected = new UserRequest(expectedUser, "MYPASSWORD".toCharArray());
 
         StringBuilder json = new StringBuilder();
         JsonUserRequestWriter writer = new JsonUserRequestWriter();
@@ -149,7 +153,7 @@ public class JsonUserRequestReaderWriterTest
         assertFalse(json.toString().isEmpty());
 
         JsonUserRequestReader reader = new JsonUserRequestReader();
-        UserRequest<Principal> actual = reader.read(json.toString());
+        UserRequest actual = reader.read(json.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

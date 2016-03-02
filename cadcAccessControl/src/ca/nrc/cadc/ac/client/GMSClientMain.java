@@ -249,10 +249,8 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 
                 Group cur = client.getGroup(group);
                 boolean update = true;
-                Iterator<User<? extends Principal>> iter = cur.getUserAdmins().iterator();
-                while (iter.hasNext())
+                for (User admin : cur.getUserAdmins())
                 {
-                    User<? extends Principal> admin = iter.next();
                     for (Principal p : admin.getIdentities())
                     {
                         if (p instanceof HttpPrincipal)
@@ -266,9 +264,12 @@ public class GMSClientMain implements PrivilegedAction<Object>
                         }
                     }
                 }
+
                 if (update)
-                {   
-                    cur.getUserAdmins().add(new User(hp));
+                {
+                    User adminUser = new User();
+                    adminUser.getIdentities().add(hp);
+                    cur.getUserAdmins().add(adminUser);
                     client.updateGroup(cur);
                     log.info("admin added: " + userID);
                 }
@@ -288,10 +289,10 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 
                 Group cur = client.getGroup(group);
                 boolean update = false;
-                Iterator<User<? extends Principal>> iter = cur.getUserAdmins().iterator();
+                Iterator<User> iter = cur.getUserAdmins().iterator();
                 while (iter.hasNext())
                 {
-                    User<? extends Principal> admin = iter.next();
+                    User admin = iter.next();
                     for (Principal p : admin.getIdentities())
                     {
                         if (p instanceof HttpPrincipal)
@@ -325,8 +326,11 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 Set<X500Principal> principals = subject.getPrincipals(X500Principal.class);
                 X500Principal p = principals.iterator().next();
 
-                Group g = new Group(group, new User<X500Principal>(p));
-                g.getUserMembers().add(g.getOwner());
+                Group g = new Group(group);
+
+                User member = new User();
+                member.getIdentities().add(p);
+                g.getUserMembers().add(member);
                 client.createGroup(g);
             }
             else if (command.equals(ARG_GET_GROUP))

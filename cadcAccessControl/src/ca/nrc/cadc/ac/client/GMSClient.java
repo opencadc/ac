@@ -68,38 +68,13 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.security.AccessControlContext;
-import java.security.AccessControlException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupListReader;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
@@ -115,6 +90,28 @@ import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import org.apache.log4j.Logger;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import javax.security.auth.Subject;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.security.AccessControlContext;
+import java.security.AccessControlException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -129,7 +126,7 @@ public class GMSClient implements TransferListener
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
 
-    // client needs to know which servcie it is bound to and lookup
+    // client needs to know which service it is bound to and lookup
     // endpoints using RegistryClient
     private URI serviceURI;
     
@@ -228,10 +225,9 @@ public class GMSClient implements TransferListener
      * @return List of HTTP Principal users.
      * @throws IOException Any errors in reading.
      */
-    public List<User<? extends Principal>> getDisplayUsers() throws IOException
+    public List<User> getDisplayUsers() throws IOException
     {
-        final List<User<? extends Principal>> webUsers =
-                new ArrayList<User<? extends Principal>>();
+        final List<User> webUsers = new ArrayList<User>();
         final HttpDownload httpDownload =
                     createDisplayUsersHTTPDownload(webUsers);
 
@@ -277,7 +273,7 @@ public class GMSClient implements TransferListener
      * @throws IOException      Any writing/reading errors.
      */
     HttpDownload createDisplayUsersHTTPDownload(
-            final List<User<? extends Principal>> webUsers) throws IOException
+            final List<User> webUsers) throws IOException
     {
         final URL usersListURL = new URL(this.baseURL + "/users");
         return new HttpDownload(usersListURL,
@@ -297,7 +293,7 @@ public class GMSClient implements TransferListener
      */
     public Group createGroup(Group group)
         throws GroupAlreadyExistsException, AccessControlException,
-               UserNotFoundException, IOException
+               UserNotFoundException, WriterException, IOException
     {
         URL createGroupURL = new URL(this.baseURL + "/groups");
         log.debug("createGroupURL request to " + createGroupURL.toString());
@@ -498,7 +494,7 @@ public class GMSClient implements TransferListener
      */
     public Group updateGroup(Group group)
         throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
-               AccessControlException, IOException
+               AccessControlException, WriterException, IOException
     {
         URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
         log.debug("updateGroup request to " + updateGroupURL.toString());
@@ -994,7 +990,6 @@ public class GMSClient implements TransferListener
      * identified by userID, is a member (of type role) of that group.
      * Return null otherwise.
      *
-     * @param userID Identifies the user.
      * @param groupName Identifies the group.
      * @param role The membership role to search.
      * @return The group or null of the user is not a member.
@@ -1189,7 +1184,7 @@ public class GMSClient implements TransferListener
             Set<GroupMemberships> gset = subject.getPrivateCredentials(GroupMemberships.class);
             if (gset == null || gset.isEmpty())
             {
-                GroupMemberships mems = new GroupMemberships(new User(userID));
+                GroupMemberships mems = new GroupMemberships(userID);
                 subject.getPrivateCredentials().add(mems);
                 return mems;
             }

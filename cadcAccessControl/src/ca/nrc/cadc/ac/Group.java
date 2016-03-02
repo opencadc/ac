@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -77,19 +76,19 @@ public class Group
 {
     private String groupID;
     
-    private User<? extends Principal> owner;
+    private User owner;
     
     // group's properties
     protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
 
     // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
+    private Set<User> userMembers = new HashSet<User>();
 
     // group's group members
     private Set<Group> groupMembers = new HashSet<Group>();
     
     // group's user admins
-    private Set<User<? extends Principal>> userAdmins = new HashSet<User<? extends Principal>>();
+    private Set<User> userAdmins = new HashSet<User>();
     
     // group's group admins
     private Set<Group> groupAdmins = new HashSet<Group>();
@@ -119,7 +118,7 @@ public class Group
      *                  and "-", ".","_","~" characters.
      * @param owner     Owner/Creator of the group.
      */
-    public Group(String groupID, User<? extends Principal> owner)
+    public Group(String groupID, User owner)
     {
         if (groupID == null)
         {
@@ -150,12 +149,12 @@ public class Group
      * Obtain this group's owner
      * @return owner of the group
      */
-    public User<? extends Principal> getOwner()
+    public User getOwner()
     {
         return owner;
     }
 
-    public void setOwner(User<? extends Principal> owner)
+    public void setOwner(User owner)
     {
         this.owner = owner;
     }
@@ -173,7 +172,7 @@ public class Group
      * 
      * @return individual user members of this group
      */
-    public Set<User<? extends Principal>> getUserMembers()
+    public Set<User> getUserMembers()
     {
         return userMembers;
     }
@@ -191,7 +190,7 @@ public class Group
      * 
      * @return individual user admins of this group
      */
-    public Set<User<? extends Principal>> getUserAdmins()
+    public Set<User> getUserAdmins()
     {
         return userAdmins;
     }

@@ -69,42 +69,36 @@
 package ca.nrc.cadc.ac;
 
 import java.security.Principal;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import javax.security.auth.x500.X500Principal;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 
-public class User<T extends Principal>
+public class User
 {
-    private T userID;
+    private InternalID id;
     
     private Set<Principal> identities = new HashSet<Principal>();
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
+    public PersonalDetails personalDetails;
+    public PosixDetails posixDetails;
+
+    public Date lastModified;
     
     /**
      * Applications can stash some extra stuff here.
      */
     public Object appData;
     
-    public User(final T userID)
+    public User() {}
+
+    public InternalID getID()
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-        identities.add(userID);
+        return id;
     }
 
     public Set<Principal> getIdentities()
     {
         return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
     }
 
     /* (non-Javadoc)
@@ -115,7 +109,10 @@ public class User<T extends Principal>
     {
         int prime = 31;
         int result = 1;
-        result = prime * result + userID.hashCode();
+        if (id != null)
+        {
+            result = prime * result + id.hashCode();
+        }
         return result;
     }
 
@@ -133,83 +130,22 @@ public class User<T extends Principal>
         {
             return false;
         }
-        if (getClass() != obj.getClass())
+        if (!(obj instanceof User))
         {
             return false;
         }
-
-        final User other = (User) obj;
-        if (userID instanceof X500Principal)
+        User other = (User) obj;
+        if (id.equals(other.id))
         {
-            return AuthenticationUtil.equals(userID, other.userID);
+            return true;
         }
-        else
-        {
-            return userID.equals(other.userID);
-        }
+        return false;
     }
 
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
+        return getClass().getSimpleName() + "[" + id + "]";
     }
 
-    public <S extends UserDetails>S getUserDetail(final Class<S> userDetailsClass)
-    {
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                return (S) ud;
-            }
-        }
-        return null;
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
-    }
-
-    /**
-     * Obtain a set of identities whose type match the given one.
-     *
-     * @param identityClass     The class to search on.
-     * @param <S>               The Principal type.
-     * @return                  Set of matched identities, or empty Set.
-     *                          Never null.
-     */
-    public <S extends Principal> Set<S> getIdentities(
-            final Class<S> identityClass)
-    {
-        final Set<S> matchedIdentities = new HashSet<S>();
-
-        for (final Principal p : identities)
-        {
-            if (p.getClass() == identityClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedIdentities.add((S) p);
-            }
-        }
-
-        return matchedIdentities;
-    }
 }

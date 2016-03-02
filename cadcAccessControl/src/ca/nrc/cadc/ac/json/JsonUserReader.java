@@ -77,7 +77,6 @@ import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.security.Principal;
 import java.util.Scanner;
 
 /**
@@ -94,8 +93,8 @@ public class JsonUserReader extends UserReader
      * @throws IOException
      */
     @Override
-    public User<Principal> read(Reader reader)
-        throws IOException
+    public User read(Reader reader)
+        throws ReaderException, IOException
     {
         if (reader == null)
         {
@@ -108,8 +107,7 @@ public class JsonUserReader extends UserReader
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
-            jsonInputter.getListElementMap().put("identities", "identity");
-            jsonInputter.getListElementMap().put("details", "userDetails");
+            jsonInputter.getListElementMap().put(IDENTITIES, IDENTITY);
 
             Document document = jsonInputter.input(json);
             return getUser(document.getRootElement());

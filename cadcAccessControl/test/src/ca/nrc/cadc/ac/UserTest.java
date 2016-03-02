@@ -69,16 +69,13 @@
 
 package ca.nrc.cadc.ac;
 
-import static org.junit.Assert.*;
-
-import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
+import java.lang.reflect.Field;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
 
 public class UserTest
 {
@@ -88,131 +85,24 @@ public class UserTest
     public void simpleEqualityTests() throws Exception
     {
 
-        User<HttpPrincipal> user1 = new User<HttpPrincipal>(
-                new HttpPrincipal("user1"));
-        User<HttpPrincipal> user2 = user1;
+        User user1 = new User();
+
+        // set InternalID
+        InternalID internalID = new InternalID(UUID.randomUUID(), "foo");
+        TestUtil.setInternalID(user1, internalID);
+        assertEquals(user1.getID(), internalID);
+
+        User user2 = user1;
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
-        user2 = new User<HttpPrincipal>(new HttpPrincipal("user1"));
+        user1.personalDetails = new PersonalDetails("Joe", "Raymond");
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
-        user1.details.add(new PersonalDetails("Joe", "Raymond"));
+        user1.posixDetails = new PosixDetails("jray", 12, 23, "/home/jray");
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
-
-
-        User<X500Principal> user3 = new User<X500Principal>(
-                new X500Principal("cn=aaa,ou=ca"));
-        User<HttpPrincipal> user4 = new User<HttpPrincipal>(
-                new HttpPrincipal("cn=aaa,ou=ca"));
-        assertFalse(user3.equals(user4));
-        assertFalse(user3.hashCode() == user4.hashCode());
-
-        user1.getIdentities().add(new X500Principal("cn=aaa,ou=ca"));
-        assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        user1.details.add(new PosixDetails(12, 23,
-                "/home/myhome"));
-        assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        User<NumericPrincipal> user5 = new User<NumericPrincipal>(
-                new NumericPrincipal(32));
-        assertFalse(user1.equals(user5));
-        
-        // visual test of toString
-        System.out.println(user1);
-        System.out.println(new PersonalDetails("Joe", "Raymond"));
-        System.out.println(new PosixDetails(12, 23,"/home/myhome"));
-        
-    }
-    
-    @Test
-    public void exceptionTests()
-    {
-        boolean thrown = false;
-        try
-        {
-            new User<NumericPrincipal>(null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails(null, "Raymond");
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        
-        thrown = false;
-        try
-        {
-            new PosixDetails(11, 22, null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new HttpPrincipal(null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new OpenIdPrincipal(null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
     }
 
-    @Test
-    public void getDetails() throws Exception
-    {
-        final User<HttpPrincipal> testSubject =
-                new User<HttpPrincipal>(new HttpPrincipal("test"));
-
-        testSubject.details.add(new PersonalDetails("First", "Last"));
-
-        assertTrue("Should be empty.",
-                   testSubject.getDetails(PosixDetails.class).isEmpty());
-
-        assertEquals("Should be 1.", 1,
-                     testSubject.getDetails(PersonalDetails.class).size());
-    }
 }

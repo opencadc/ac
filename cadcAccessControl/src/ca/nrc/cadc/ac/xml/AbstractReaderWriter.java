@@ -72,21 +72,19 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.date.DateUtil;
-
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -94,20 +92,61 @@ import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
 import javax.security.auth.x500.X500Principal;
-
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * AbstractReaderWriter TODO describe class
  */
 public abstract class AbstractReaderWriter
 {
+    public static final String ADDRESS = "address";
+    public static final String AUTHORITY = "authority";
+    public static final String CITY = "city";
+    public static final String COUNTRY = "country";
+    public static final String EMAIL = "email";
+    public static final String DESCRIPTION = "description";
+    public static final String FIRST_NAME = "firstName";
+    public static final String GID = "gid";
+    public static final String GROUP = "group";
+    public static final String GROUPS = "groups";
+    public static final String GROUP_ADMINS = "groupAdmins";
+    public static final String GROUP_MEMBERS = "groupMembers";
+    public static final String HOME_DIRECTORY = "homeDirectory";
+    public static final String ID = "id";
+    public static final String IDENTITY = "identity";
+    public static final String IDENTITIES = "identities";
+    public static final String INSTITUTE = "institute";
+    public static final String INTEGER = "Integer";
+    public static final String INTERNAL_ID = "internalID";
+    public static final String KEY = "key";
+    public static final String LAST_MODIFIED = "lastModified";
+    public static final String LAST_NAME = "lastName";
+    public static final String OWNER = "owner";
+    public static final String PASSWORD = "password";
+    public static final String PERSONAL_DETAILS = "personalDetails";
+    public static final String POSIX_DETAILS = "posixDetails";
+    public static final String PROPERTIES = "properties";
+    public static final String PROPERTY = "property";
+    public static final String READ_ONLY = "readOnly";
+    public static final String STRING = "String";
+    public static final String TYPE = "type";
+    public static final String UID = "uid";
+    public static final String URI = "uri";
+    public static final String USER = "user";
+    public static final String USERNAME = "username";
+    public static final String USERS = "users";
+    public static final String USER_ADMINS = "userAdmins";
+    public static final String USER_MEMBERS = "userMembers";
+    public static final String USER_REQUEST = "userRequest";
+
     /**
      * Write to root Element to a writer.
      *
@@ -130,49 +169,41 @@ public abstract class AbstractReaderWriter
      * @return A User object.
      * @throws ReaderException
      */
-    protected final User<Principal> getUser(Element element)
+    protected final User getUser(Element element)
         throws ReaderException
     {
-        // userID element of the User element
-        Element userIDElement = element.getChild("userID");
-        if (userIDElement == null)
-        {
-            String error = "userID element not found in user element";
-            throw new ReaderException(error);
-        }
+        User user = new User();
 
-        // identity element of the userID element
-        Element userIDIdentityElement = userIDElement.getChild("identity");
-        if (userIDIdentityElement == null)
+        // id
+        Element internalIDElement = element.getChild(INTERNAL_ID);
+        if (internalIDElement != null)
         {
-            String error = "identity element not found in userID element";
-            throw new ReaderException(error);
+            setInternalID(user, internalIDElement);
         }
-
-        Principal userID = getPrincipal(userIDIdentityElement);
-        User<Principal> user = new User<Principal>(userID);
 
         // identities
-        Element identitiesElement = element.getChild("identities");
+        Element identitiesElement = element.getChild(IDENTITIES);
         if (identitiesElement != null)
         {
-            List<Element> identityElements = identitiesElement.getChildren("identity");
+            List<Element> identityElements = identitiesElement.getChildren(IDENTITY);
             for (Element identityElement : identityElements)
             {
                 user.getIdentities().add(getPrincipal(identityElement));
             }
-
         }
 
-        // details
-        Element detailsElement = element.getChild("details");
-        if (detailsElement != null)
+        // personalDetails
+        Element personalDetailsElement = element.getChild(PERSONAL_DETAILS);
+        if (personalDetailsElement != null)
         {
-            List<Element> userDetailsElements = detailsElement.getChildren("userDetails");
-            for (Element userDetailsElement : userDetailsElements)
-            {
-                user.details.add(getUserDetails(userDetailsElement));
-            }
+            user.personalDetails = getPersonalDetails(personalDetailsElement);
+        }
+
+        // posixDetails
+        Element posixDetailsElement = element.getChild(POSIX_DETAILS);
+        if (posixDetailsElement != null)
+        {
+            user.posixDetails = getPosixDetails(posixDetailsElement);
         }
 
         return user;
@@ -185,20 +216,20 @@ public abstract class AbstractReaderWriter
      * @return A UserRequest object.
      * @throws ReaderException
      */
-    protected final UserRequest<Principal> getUserRequest(Element element)
+    protected final UserRequest getUserRequest(Element element)
         throws ReaderException
     {
         // user element of the UserRequest element
-        Element userElement = element.getChild("user");
+        Element userElement = element.getChild(USER);
         if (userElement == null)
         {
             String error = "user element not found in userRequest element";
             throw new ReaderException(error);
         }
-        User<Principal> user = getUser(userElement);
+        User user = getUser(userElement);
 
         // password element of the userRequest element
-        Element passwordElement = element.getChild("password");
+        Element passwordElement = element.getChild(PASSWORD);
         if (passwordElement == null)
         {
             String error = "password element not found in userRequest element";
@@ -206,7 +237,7 @@ public abstract class AbstractReaderWriter
         }
         String password = passwordElement.getText();
 
-        return new UserRequest<Principal>(user, password.toCharArray());
+        return new UserRequest(user, password.toCharArray());
     }
 
     /**
@@ -225,14 +256,14 @@ public abstract class AbstractReaderWriter
             throw new ReaderException(error);
         }
 
-        if (!element.getName().equals("identity"))
+        if (!element.getName().equals(IDENTITY))
         {
             String error = "expected identity element name, found " +
                 element.getName();
             throw new ReaderException(error);
         }
 
-        String type = element.getAttributeValue("type");
+        String type = element.getAttributeValue(TYPE);
         if (type == null)
         {
             String error = "type attribute not found in identity element" +
@@ -248,17 +279,7 @@ public abstract class AbstractReaderWriter
         }
         else if (type.equals(IdentityType.CADC.getValue()))
         {
-            Integer cadcID;
-            try
-            {
-                cadcID = Integer.valueOf(identity);
-            }
-            catch (NumberFormatException e)
-            {
-                String error = "Non-integer cadcID: " + identity;
-                throw new ReaderException(error);
-            }
-            principal = new NumericPrincipal(cadcID);
+            principal = new NumericPrincipal(UUID.fromString(identity));
         }
         else if (type.equals(IdentityType.USERNAME.getValue()))
         {
@@ -282,48 +303,6 @@ public abstract class AbstractReaderWriter
     }
 
     /**
-     * Get a UserDetails object from a JDOM element.
-     *
-     * @param element The UserDetails JDOM element.
-     * @return A UserDetails object.
-     * @throws ReaderException
-     */
-    protected final UserDetails getUserDetails(Element element)
-        throws ReaderException
-    {
-        if (element == null)
-        {
-            throw new ReaderException("null UserDetails");
-        }
-
-        if (!element.getName().equals(UserDetails.NAME))
-        {
-            String error = "expected element name userDetails, found " +
-                element.getName();
-            throw new ReaderException(error);
-        }
-
-        String type = element.getAttributeValue(UserDetails.TYPE_ATTRIBUTE);
-        if (type == null)
-        {
-            String error = "userDetails missing required attribute type";
-            throw new ReaderException(error);
-        }
-
-        if (type.equals(PosixDetails.NAME))
-        {
-            return getPosixDetails(element);
-        }
-        if (type.equals(PersonalDetails.NAME))
-        {
-            return getPersonalDetails(element);
-        }
-
-        String error = "Unknown UserDetails attribute type " + type;
-        throw new ReaderException(error);
-    }
-
-    /**
      * Get a PosixDetails object from a JDOM element.
      *
      * @param element The PosixDetails JDOM element.
@@ -333,8 +312,23 @@ public abstract class AbstractReaderWriter
     protected final PosixDetails getPosixDetails(Element element)
         throws ReaderException
     {
+        if (element == null)
+        {
+            String error = "null posixDetails element";
+            throw new ReaderException(error);
+        }
+
+        // userName
+        Element userNameElement = element.getChild(USERNAME);
+        if (userNameElement == null)
+        {
+            String error = "posixDetails missing required element username";
+            throw new ReaderException(error);
+        }
+        String username = userNameElement.getText();
+
         // uid
-        Element uidElement = element.getChild(PosixDetails.UID);
+        Element uidElement = element.getChild(UID);
         if (uidElement == null)
         {
             String error = "posixDetails missing required element uid";
@@ -352,7 +346,7 @@ public abstract class AbstractReaderWriter
         }
 
         // gid
-        Element gidElement = element.getChild(PosixDetails.GID);
+        Element gidElement = element.getChild(GID);
         if (gidElement == null)
         {
             String error = "posixDetails missing required element gid";
@@ -370,7 +364,7 @@ public abstract class AbstractReaderWriter
         }
 
         // homeDirectory
-        Element homeDirElement = element.getChild(PosixDetails.HOME_DIRECTORY);
+        Element homeDirElement = element.getChild(HOME_DIRECTORY);
         if (homeDirElement == null)
         {
             String error = "posixDetails missing required element homeDirectory";
@@ -378,7 +372,7 @@ public abstract class AbstractReaderWriter
         }
         String homeDirectory = homeDirElement.getText();
 
-        return new PosixDetails(uid, gid, homeDirectory);
+        return new PosixDetails(username, uid, gid, homeDirectory);
     }
 
     /**
@@ -391,8 +385,14 @@ public abstract class AbstractReaderWriter
     protected final PersonalDetails getPersonalDetails(Element element)
         throws ReaderException
     {
+        if (element == null)
+        {
+            String error = "null personalDetails element";
+            throw new ReaderException(error);
+        }
+
         // firstName
-        Element firstNameElement = element.getChild(PersonalDetails.FIRSTNAME);
+        Element firstNameElement = element.getChild(FIRST_NAME);
         if (firstNameElement == null)
         {
             String error = "personalDetails missing required element firstName";
@@ -401,7 +401,7 @@ public abstract class AbstractReaderWriter
         String firstName = firstNameElement.getText();
 
         // lastName
-        Element lastNameElement = element.getChild(PersonalDetails.LASTNAME);
+        Element lastNameElement = element.getChild(LAST_NAME);
         if (lastNameElement == null)
         {
             String error = "personalDetails missing required element lastName";
@@ -412,35 +412,35 @@ public abstract class AbstractReaderWriter
         PersonalDetails details = new PersonalDetails(firstName, lastName);
 
         // email
-        Element emailElement = element.getChild(PersonalDetails.EMAIL);
+        Element emailElement = element.getChild(EMAIL);
         if (emailElement != null)
         {
             details.email = emailElement.getText();
         }
 
         // address
-        Element addressElement = element.getChild(PersonalDetails.ADDRESS);
+        Element addressElement = element.getChild(ADDRESS);
         if (addressElement != null)
         {
             details.address = addressElement.getText();
         }
 
         // institute
-        Element instituteElement = element.getChild(PersonalDetails.INSTITUTE);
+        Element instituteElement = element.getChild(INSTITUTE);
         if (instituteElement != null)
         {
             details.institute = instituteElement.getText();
         }
 
         // city
-        Element cityElement = element.getChild(PersonalDetails.CITY);
+        Element cityElement = element.getChild(CITY);
         if (cityElement != null)
         {
             details.city = cityElement.getText();
         }
 
         // country
-        Element countryElement = element.getChild(PersonalDetails.COUNTRY);
+        Element countryElement = element.getChild(COUNTRY);
         if (countryElement != null)
         {
             details.country = countryElement.getText();
@@ -459,7 +459,7 @@ public abstract class AbstractReaderWriter
     protected final Group getGroup(Element element)
         throws ReaderException
     {
-        String uri = element.getAttributeValue("uri");
+        String uri = element.getAttributeValue(URI);
         if (uri == null)
         {
             String error = "group missing required uri attribute";
@@ -476,12 +476,12 @@ public abstract class AbstractReaderWriter
         String groupID = uri.substring(AC.GROUP_URI.length());
 
         // Group owner
-        User<? extends Principal> user = null;
-        Element ownerElement = element.getChild("owner");
+        User user = null;
+        Element ownerElement = element.getChild(OWNER);
         if (ownerElement != null)
         {
             // Owner user
-            Element userElement = ownerElement.getChild("user");
+            Element userElement = ownerElement.getChild(USER);
             if (userElement == null)
             {
                 String error = "owner missing required user element";
@@ -493,14 +493,14 @@ public abstract class AbstractReaderWriter
         Group group = new Group(groupID, user);
 
         // description
-        Element descriptionElement = element.getChild("description");
+        Element descriptionElement = element.getChild(DESCRIPTION);
         if (descriptionElement != null)
         {
             group.description = descriptionElement.getText();
         }
 
         // lastModified
-        Element lastModifiedElement = element.getChild("lastModified");
+        Element lastModifiedElement = element.getChild(LAST_MODIFIED);
         if (lastModifiedElement != null)
         {
             try
@@ -517,10 +517,10 @@ public abstract class AbstractReaderWriter
         }
 
         // properties
-        Element propertiesElement = element.getChild("properties");
+        Element propertiesElement = element.getChild(PROPERTIES);
         if (propertiesElement != null)
         {
-            List<Element> propertyElements = propertiesElement.getChildren("property");
+            List<Element> propertyElements = propertiesElement.getChildren(PROPERTY);
             for (Element propertyElement : propertyElements)
             {
                 group.getProperties().add(getGroupProperty(propertyElement));
@@ -528,10 +528,10 @@ public abstract class AbstractReaderWriter
         }
 
         // groupMembers
-        Element groupMembersElement = element.getChild("groupMembers");
+        Element groupMembersElement = element.getChild(GROUP_MEMBERS);
         if (groupMembersElement != null)
         {
-            List<Element> groupElements = groupMembersElement.getChildren("group");
+            List<Element> groupElements = groupMembersElement.getChildren(GROUP);
             for (Element groupMember : groupElements)
             {
                 group.getGroupMembers().add(getGroup(groupMember));
@@ -539,10 +539,10 @@ public abstract class AbstractReaderWriter
         }
 
         // userMembers
-        Element userMembersElement = element.getChild("userMembers");
+        Element userMembersElement = element.getChild(USER_MEMBERS);
         if (userMembersElement != null)
         {
-            List<Element> userElements = userMembersElement.getChildren("user");
+            List<Element> userElements = userMembersElement.getChildren(USER);
             for (Element userMember : userElements)
             {
                 group.getUserMembers().add(getUser(userMember));
@@ -550,10 +550,10 @@ public abstract class AbstractReaderWriter
         }
 
         // groupAdmins
-        Element groupAdminsElement = element.getChild("groupAdmins");
+        Element groupAdminsElement = element.getChild(GROUP_ADMINS);
         if (groupAdminsElement != null)
         {
-            List<Element> groupElements = groupAdminsElement.getChildren("group");
+            List<Element> groupElements = groupAdminsElement.getChildren(GROUP);
             for (Element groupMember : groupElements)
             {
                 group.getGroupAdmins().add(getGroup(groupMember));
@@ -561,10 +561,10 @@ public abstract class AbstractReaderWriter
         }
 
         // userAdmins
-        Element userAdminsElement = element.getChild("userAdmins");
+        Element userAdminsElement = element.getChild(USER_ADMINS);
         if (userAdminsElement != null)
         {
-            List<Element> userElements = userAdminsElement.getChildren("user");
+            List<Element> userElements = userAdminsElement.getChildren(USER);
             for (Element userMember : userElements)
             {
                 group.getUserAdmins().add(getUser(userMember));
@@ -590,34 +590,34 @@ public abstract class AbstractReaderWriter
             throw new ReaderException(error);
         }
 
-        if (!element.getName().equals(GroupProperty.NAME))
+        if (!element.getName().equals(PROPERTY))
         {
             String error = "expected property element name, found " +
                 element.getName();
             throw new ReaderException(error);
         }
 
-        String key = element.getAttributeValue(GroupProperty.KEY_ATTRIBUTE);
+        String key = element.getAttributeValue(KEY);
         if (key == null)
         {
             String error = "required key attribute not found";
             throw new ReaderException(error);
         }
 
-        String type = element.getAttributeValue(GroupProperty.TYPE_ATTRIBUTE);
+        String type = element.getAttributeValue(TYPE);
         if (type == null)
         {
             String error = "required type attribute not found";
             throw new ReaderException(error);
         }
         Object value;
-        if (type.equals(GroupProperty.STRING_TYPE))
+        if (type.equals(STRING))
         {
             value = String.valueOf(element.getText());
         }
         else
         {
-            if (type.equals(GroupProperty.INTEGER_TYPE))
+            if (type.equals(INTEGER))
             {
                 value = Integer.valueOf(element.getText());
             }
@@ -627,7 +627,7 @@ public abstract class AbstractReaderWriter
                 throw new ReaderException(error);
             }
         }
-        Boolean readOnly = Boolean.valueOf(element.getAttributeValue(GroupProperty.READONLY_ATTRIBUTE));
+        Boolean readOnly = Boolean.valueOf(element.getAttributeValue(READ_ONLY));
 
         return new GroupProperty(key, value, readOnly);
     }
@@ -639,42 +639,45 @@ public abstract class AbstractReaderWriter
      * @return A JDOM User representation.
      * @throws WriterException
      */
-    protected final Element getElement(User<? extends Principal> user)
+    protected final Element getElement(User user)
         throws WriterException
     {
-        // Create the user Element.
-        Element userElement = new Element("user");
+        if (user == null)
+        {
+            throw new WriterException("null User");
+        }
 
-        // userID element
-        Element userIDElement = new Element("userID");
-        userIDElement.addContent(getElement(user.getUserID()));
-        userElement.addContent(userIDElement);
+        // Create the user Element.
+        Element userElement = new Element(USER);
+
+        // internalID element
+        if (user.getID() != null)
+        {
+            userElement.addContent(getElement(user.getID()));
+        }
 
         // identities
         Set<Principal> identities = user.getIdentities();
-        if (identities.size() > 1) // includes alternate identies
+        if (identities.size() > 1) // includes alternate identities
         {
-            Element identitiesElement = new Element("identities");
+            Element identitiesElement = new Element(IDENTITIES);
             for (Principal identity : identities)
             {
-                // userID is in this list, so only include alternate identities
-                // in the output
-                if (!AuthenticationUtil.equals(identity, user.getUserID()))
-                    identitiesElement.addContent(getElement(identity));
+                identitiesElement.addContent(getElement(identity));
             }
             userElement.addContent(identitiesElement);
         }
 
-        // details
-        if (!user.details.isEmpty())
+        // personalDetails
+        if (user.personalDetails != null)
         {
-            Element detailsElement = new Element("details");
-            Set<UserDetails> userDetails = user.details;
-            for (UserDetails userDetail : userDetails)
-            {
-                detailsElement.addContent(getElement(userDetail));
-            }
-            userElement.addContent(detailsElement);
+            userElement.addContent(getElement(user.personalDetails));
+        }
+
+        // posixDetails
+        if (user.posixDetails != null)
+        {
+            userElement.addContent(getElement(user.posixDetails));
         }
 
         return userElement;
@@ -687,22 +690,58 @@ public abstract class AbstractReaderWriter
      * @return A JDOM UserRequest representation.
      * @throws WriterException
      */
-    protected final Element getElement(UserRequest<? extends Principal> userRequest)
+    protected final Element getElement(UserRequest userRequest)
         throws WriterException
     {
+        if (userRequest == null)
+        {
+            throw new WriterException("null UserRequest");
+        }
+
         // Create the userRequest Element.
-        Element userRequestElement = new Element("userRequest");
+        Element userRequestElement = new Element(USER_REQUEST);
 
         // user element
         Element userElement = getElement(userRequest.getUser());
         userRequestElement.addContent(userElement);
 
         // password element
-        Element passwordElement = new Element("password");
+        Element passwordElement = new Element(PASSWORD);
         passwordElement.setText(String.valueOf(userRequest.getPassword()));
         userRequestElement.addContent(passwordElement);
 
         return userRequestElement;
+    }
+
+    /**
+     * Get a JDOM element from a InternalID object.
+     *
+     * @param internalID The InternalID.
+     * @return A JDOM InternalID representation.
+     * @throws WriterException
+     */
+    protected final Element getElement(InternalID internalID)
+        throws WriterException
+    {
+        if (internalID == null)
+        {
+            throw new WriterException("null InternalID");
+        }
+
+        // Create the internalID Element.
+        Element internalIDElement = new Element(INTERNAL_ID);
+
+        // id element
+        Element idElement = new Element(ID);
+        idElement.addContent(internalID.getId().toString());
+        internalIDElement.addContent(idElement);
+
+        // authority element
+        Element authorityElement = new Element(AUTHORITY);
+        authorityElement.setText(internalID.getAuthority());
+        internalIDElement.addContent(authorityElement);
+
+        return internalIDElement;
     }
 
     /**
@@ -717,30 +756,30 @@ public abstract class AbstractReaderWriter
     {
         if (identity == null)
         {
-            String error = "null identity";
+            String error = "null Principal";
             throw new WriterException(error);
         }
 
-        Element identityElement = new Element("identity");
+        Element identityElement = new Element(IDENTITY);
         if ((identity instanceof HttpPrincipal))
         {
-            identityElement.setAttribute("type", IdentityType.USERNAME.getValue());
+            identityElement.setAttribute(TYPE, IdentityType.USERNAME.getValue());
         }
         else if ((identity instanceof NumericPrincipal))
         {
-            identityElement.setAttribute("type", IdentityType.CADC.getValue());
+            identityElement.setAttribute(TYPE, IdentityType.CADC.getValue());
         }
         else if ((identity instanceof OpenIdPrincipal))
         {
-            identityElement.setAttribute("type", IdentityType.OPENID.getValue());
+            identityElement.setAttribute(TYPE, IdentityType.OPENID.getValue());
         }
         else if ((identity instanceof X500Principal))
         {
-            identityElement.setAttribute("type", IdentityType.X500.getValue());
+            identityElement.setAttribute(TYPE, IdentityType.X500.getValue());
         }
         else if ((identity instanceof DNPrincipal))
         {
-            identityElement.setAttribute("type", IdentityType.ENTRY_DN.getValue());
+            identityElement.setAttribute(TYPE, IdentityType.ENTRY_DN.getValue());
         }
         else
         {
@@ -754,55 +793,35 @@ public abstract class AbstractReaderWriter
     }
 
     /**
-     * Get a JDOM element from a UserDetails object.
-     *
-     * @param details The UserDetails.
-     * @return A JDOM UserDetails representation.
-     * @throws WriterException
-     */
-    protected final Element getElement(UserDetails details)
-        throws WriterException
-    {
-        if (details == null)
-        {
-            throw new WriterException("null UserDetails");
-        }
-
-        if ((details instanceof PosixDetails))
-        {
-            return getElement((PosixDetails) details);
-        }
-        if ((details instanceof PersonalDetails))
-        {
-            return getElement((PersonalDetails) details);
-        }
-
-        String error = "Unknown UserDetails implementation: " +
-            details.getClass().getName();
-        throw new WriterException(error);
-    }
-
-    /**
      * Get a JDOM element from a PosixDetails object.
      *
      * @param details The PosixDetails.
      * @return A JDOM PosixDetails representation.
      */
     protected final Element getElement(PosixDetails details)
+        throws WriterException
     {
-        Element detailsElement = new Element(UserDetails.NAME);
-        detailsElement.setAttribute(UserDetails.TYPE_ATTRIBUTE,
-            PosixDetails.NAME);
+        if (details == null)
+        {
+            String error = "null PosixDetails";
+            throw new WriterException(error);
+        }
 
-        Element uidElement = new Element(PosixDetails.UID);
+        Element detailsElement = new Element(POSIX_DETAILS);
+
+        Element usernameElement = new Element(USERNAME);
+        usernameElement.setText(details.getUsername());
+        detailsElement.addContent(usernameElement);
+
+        Element uidElement = new Element(UID);
         uidElement.setText(String.valueOf(details.getUid()));
         detailsElement.addContent(uidElement);
 
-        Element gidElement = new Element(PosixDetails.GID);
+        Element gidElement = new Element(GID);
         gidElement.setText(String.valueOf(details.getGid()));
         detailsElement.addContent(gidElement);
 
-        Element homeDirElement = new Element(PosixDetails.HOME_DIRECTORY);
+        Element homeDirElement = new Element(HOME_DIRECTORY);
         homeDirElement.setText(details.getHomeDirectory());
         detailsElement.addContent(homeDirElement);
 
@@ -816,50 +835,55 @@ public abstract class AbstractReaderWriter
      * @return JDOM PersonalDetails representation.
      */
     protected final Element getElement(PersonalDetails details)
+        throws WriterException
     {
-        Element detailsElement = new Element(UserDetails.NAME);
-        detailsElement.setAttribute(UserDetails.TYPE_ATTRIBUTE,
-            PersonalDetails.NAME);
+        if (details == null)
+        {
+            String error = "null PersonalDetails";
+            throw new WriterException(error);
+        }
 
-        Element firstNameElement = new Element(PersonalDetails.FIRSTNAME);
+        Element detailsElement = new Element(PERSONAL_DETAILS);
+
+        Element firstNameElement = new Element(FIRST_NAME);
         firstNameElement.setText(details.getFirstName());
         detailsElement.addContent(firstNameElement);
 
-        Element lastNameElement = new Element(PersonalDetails.LASTNAME);
+        Element lastNameElement = new Element(LAST_NAME);
         lastNameElement.setText(details.getLastName());
         detailsElement.addContent(lastNameElement);
 
         if (details.email != null)
         {
-            Element emailElement = new Element(PersonalDetails.EMAIL);
+            Element emailElement = new Element(EMAIL);
             emailElement.setText(details.email);
             detailsElement.addContent(emailElement);
         }
 
         if (details.address != null)
         {
-            Element addressElement = new Element(PersonalDetails.ADDRESS);
+            Element addressElement = new Element(ADDRESS);
             addressElement.setText(details.address);
             detailsElement.addContent(addressElement);
         }
 
         if (details.institute != null)
         {
-            Element instituteElement = new Element(PersonalDetails.INSTITUTE);
+            Element instituteElement = new Element(INSTITUTE);
             instituteElement.setText(details.institute);
             detailsElement.addContent(instituteElement);
         }
 
         if (details.city != null)
         {
-            Element cityElement = new Element(PersonalDetails.CITY);
+            Element cityElement = new Element(CITY);
             cityElement.setText(details.city);
             detailsElement.addContent(cityElement);
         }
 
         if (details.country != null)
         {
-            Element countryElement = new Element(PersonalDetails.COUNTRY);
+            Element countryElement = new Element(COUNTRY);
             countryElement.setText(details.country);
             detailsElement.addContent(countryElement);
         }
@@ -891,15 +915,20 @@ public abstract class AbstractReaderWriter
     protected final Element getElement(Group group, boolean deepCopy)
         throws WriterException
     {
+        if (group == null)
+        {
+            throw new WriterException("null Group");
+        }
+
         // Create the root group element.
-        Element groupElement = new Element("group");
+        Element groupElement = new Element(GROUP);
         String groupURI = AC.GROUP_URI + group.getID();
-        groupElement.setAttribute(new Attribute("uri", groupURI));
+        groupElement.setAttribute(new Attribute(URI, groupURI));
 
         // Group owner
         if (group.getOwner() != null)
         {
-            Element ownerElement = new Element("owner");
+            Element ownerElement = new Element(OWNER);
             Element userElement = getElement(group.getOwner());
             ownerElement.addContent(userElement);
             groupElement.addContent(ownerElement);
@@ -910,7 +939,7 @@ public abstract class AbstractReaderWriter
             // Group description
             if (group.description != null)
             {
-                Element descriptionElement = new Element("description");
+                Element descriptionElement = new Element(DESCRIPTION);
                 descriptionElement.setText(group.description);
                 groupElement.addContent(descriptionElement);
             }
@@ -918,7 +947,7 @@ public abstract class AbstractReaderWriter
             // lastModified
             if (group.lastModified != null)
             {
-                Element lastModifiedElement = new Element("lastModified");
+                Element lastModifiedElement = new Element(LAST_MODIFIED);
                 DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
                 lastModifiedElement.setText(df.format(group.lastModified));
                 groupElement.addContent(lastModifiedElement);
@@ -927,7 +956,7 @@ public abstract class AbstractReaderWriter
             // Group properties
             if (!group.getProperties().isEmpty())
             {
-                Element propertiesElement = new Element("properties");
+                Element propertiesElement = new Element(PROPERTIES);
                 for (GroupProperty property : group.getProperties())
                 {
                     propertiesElement.addContent(getElement(property));
@@ -938,7 +967,7 @@ public abstract class AbstractReaderWriter
             // Group groupMembers.
             if ((group.getGroupMembers() != null) && (!group.getGroupMembers().isEmpty()))
             {
-                Element groupMembersElement = new Element("groupMembers");
+                Element groupMembersElement = new Element(GROUP_MEMBERS);
                 for (Group groupMember : group.getGroupMembers())
                 {
                     groupMembersElement.addContent(getElement(groupMember, false));
@@ -949,8 +978,8 @@ public abstract class AbstractReaderWriter
             // Group userMembers
             if ((group.getUserMembers() != null) && (!group.getUserMembers().isEmpty()))
             {
-                Element userMembersElement = new Element("userMembers");
-                for (User<? extends Principal> userMember : group.getUserMembers())
+                Element userMembersElement = new Element(USER_MEMBERS);
+                for (User userMember : group.getUserMembers())
                 {
                     userMembersElement.addContent(getElement(userMember));
                 }
@@ -960,7 +989,7 @@ public abstract class AbstractReaderWriter
             // Group groupAdmins.
             if ((group.getGroupAdmins() != null) && (!group.getGroupAdmins().isEmpty()))
             {
-                Element groupAdminsElement = new Element("groupAdmins");
+                Element groupAdminsElement = new Element(GROUP_ADMINS);
                 for (Group groupMember : group.getGroupAdmins())
                 {
                     groupAdminsElement.addContent(getElement(groupMember, false));
@@ -971,8 +1000,8 @@ public abstract class AbstractReaderWriter
             // Group userAdmins
             if ((group.getUserAdmins() != null) && (!group.getUserAdmins().isEmpty()))
             {
-                Element userAdminsElement = new Element("userAdmins");
-                for (User<? extends Principal> userMember : group.getUserAdmins())
+                Element userAdminsElement = new Element(USER_ADMINS);
+                for (User userMember : group.getUserAdmins())
                 {
                     userAdminsElement.addContent(getElement(userMember));
                 }
@@ -998,25 +1027,21 @@ public abstract class AbstractReaderWriter
             throw new WriterException("null GroupProperty");
         }
 
-        Element propertyElement = new Element(GroupProperty.NAME);
-        propertyElement.setAttribute(GroupProperty.KEY_ATTRIBUTE,
-            property.getKey());
+        Element propertyElement = new Element(PROPERTY);
+        propertyElement.setAttribute(KEY, property.getKey());
         if (property.isReadOnly())
         {
-            propertyElement.setAttribute(GroupProperty.READONLY_ATTRIBUTE,
-                "true");
+            propertyElement.setAttribute(READ_ONLY, Boolean.TRUE.toString());
         }
 
         Object value = property.getValue();
         if ((value instanceof String))
         {
-            propertyElement.setAttribute(GroupProperty.TYPE_ATTRIBUTE,
-                GroupProperty.STRING_TYPE);
+            propertyElement.setAttribute(TYPE, STRING);
         }
         else if ((value instanceof Integer))
         {
-            propertyElement.setAttribute(GroupProperty.TYPE_ATTRIBUTE,
-                GroupProperty.INTEGER_TYPE);
+            propertyElement.setAttribute(TYPE, INTEGER);
         }
         else
         {
@@ -1029,4 +1054,42 @@ public abstract class AbstractReaderWriter
         return propertyElement;
     }
 
+    private void setInternalID(User user, Element element)
+        throws ReaderException
+    {
+        Element idElement = element.getChild(ID);
+        if (idElement == null)
+        {
+            String error = "expected id element not found in internalID element";
+            throw new ReaderException(error);
+        }
+        String id = idElement.getText();
+        UUID uuid = UUID.fromString(id);
+
+        Element authorityElement = element.getChild(AUTHORITY);
+        if (authorityElement == null)
+        {
+            String error = "expected authority element not found in internalID element";
+            throw new ReaderException(error);
+        }
+        String authority = authorityElement.getText();
+
+        InternalID internalID = new InternalID(uuid, authority);
+
+        // set private id field using reflection
+        try
+        {
+            Field field = user.getClass().getDeclaredField(ID);
+            field.setAccessible(true);
+            field.set(user, internalID);
+        }
+        catch (NoSuchFieldException e)
+        {
+            throw new RuntimeException("User id field not found", e);
+        }
+        catch (IllegalAccessException e)
+        {
+            throw new RuntimeException("unable to update User id field", e);
+        }
+    }
 }

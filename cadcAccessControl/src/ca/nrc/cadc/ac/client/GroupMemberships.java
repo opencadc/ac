@@ -69,15 +69,15 @@
 
 package ca.nrc.cadc.ac.client;
 
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
+import org.apache.log4j.Logger;
+
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
 
 /**
  * Class used to hold list of groups in which a user is known to be a member.
@@ -88,15 +88,15 @@ public class GroupMemberships implements Comparable
 {
     private static final Logger log = Logger.getLogger(GroupMemberships.class);
 
-    private User user;
+    private Principal userID;
     private Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
     private Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
 
     public GroupMemberships() { init(); }
     
-    public GroupMemberships(User user) 
+    public GroupMemberships(Principal userID)
     {
-        this.user = user;
+        this.userID = userID;
         init();
     }
     
@@ -119,9 +119,9 @@ public class GroupMemberships implements Comparable
         }
     }
 
-    public User getUser()
+    public Principal getUserID()
     {
-        return user;
+        return userID;
     }
     
     public void add(Group group, Role role)

@@ -78,7 +78,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.security.Principal;
 
 /**
  * Class to write a XML representation of a User object.
@@ -93,7 +92,7 @@ public class UserWriter extends AbstractReaderWriter
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(User<T> user, StringBuilder builder)
+    public void write(User user, StringBuilder builder)
         throws IOException, WriterException
     {
         write(user, new StringBuilderWriter(builder));
@@ -107,7 +106,7 @@ public class UserWriter extends AbstractReaderWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(User<T> user, OutputStream out)
+    public void write(User user, OutputStream out)
         throws IOException, WriterException
     {                
         OutputStreamWriter outWriter;
@@ -130,7 +129,7 @@ public class UserWriter extends AbstractReaderWriter
      * @throws IOException if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(User<T> user, Writer writer)
+    public void write(User user, Writer writer)
         throws IOException, WriterException
     {
         if (user == null)

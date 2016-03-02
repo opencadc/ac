@@ -130,7 +130,7 @@ public class GMSClientTest
                 {
                     @Override
                     HttpDownload createDisplayUsersHTTPDownload(
-                            List<User<? extends Principal>> webUsers) throws IOException
+                            List<User> webUsers) throws IOException
                     {
                         return mockHTTPDownload;
                     }

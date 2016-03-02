@@ -70,12 +70,12 @@ package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -83,8 +83,8 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.security.Principal;
 import java.util.Date;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -165,18 +165,16 @@ public class GroupReaderWriterTest
     public void testMaximalReadWrite()
         throws Exception
     {
-        User<Principal> owner = new User<Principal>(new HttpPrincipal("foo"));
+        User owner = new User();
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
         owner.getIdentities().add(x500Principal);
-        PersonalDetails personalDetails = new PersonalDetails("foo", "bar");
-        personalDetails.address = "address";
-        personalDetails.email = "email";
-        personalDetails.institute = "institute";
-        personalDetails.city = "city";
-        personalDetails.country = "country";
-        owner.details.add(personalDetails);
-        PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
-        owner.details.add(posixDetails);
+        owner.personalDetails = new PersonalDetails("foo", "bar");
+        owner.personalDetails.address = "address";
+        owner.personalDetails.email = "email";
+        owner.personalDetails.institute = "institute";
+        owner.personalDetails.city = "city";
+        owner.personalDetails.country = "country";
+        owner.posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
 
         Group expected = new Group("groupID", owner);
         expected.description = "description";
@@ -184,10 +182,13 @@ public class GroupReaderWriterTest
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
         expected.getProperties().add(new GroupProperty("key2", "value2", false));
         
-        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
-        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
-        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
-        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
+        Group groupMember = new Group("member", new User());
+        User userMember = new User();
+        TestUtil.setInternalID(userMember, new InternalID(UUID.randomUUID(), "userMember"));
+
+        Group groupAdmin = new Group("admin", new User());
+        User userAdmin = new User();
+        TestUtil.setInternalID(userAdmin, new InternalID(UUID.randomUUID(), "userAdmin"));
         
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);

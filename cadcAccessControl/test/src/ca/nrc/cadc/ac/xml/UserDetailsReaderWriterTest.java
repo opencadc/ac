@@ -71,7 +71,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.WriterException;
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
@@ -96,7 +95,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         Element element = null;
         try
         {
-            UserDetails ud = getUserDetails(element);
+            PersonalDetails pd = getPersonalDetails(element);
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
@@ -104,24 +103,24 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         element = new Element("foo");
         try
         {
-            UserDetails ud = getUserDetails(element);
-            fail("element not named 'userDetails' should throw ReaderException");
+            PersonalDetails pd = getPersonalDetails(element);
+            fail("element not named 'personalDetails' should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
-        element = new Element(UserDetails.NAME);
+
+        element = null;
         try
         {
-            UserDetails ud = getUserDetails(element);
-            fail("element without 'type' attribute should throw ReaderException");
+            PosixDetails pd = getPosixDetails(element);
+            fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
-        element.setAttribute("type", "foo");
+
+        element = new Element("foo");
         try
         {
-            UserDetails ud = getUserDetails(element);
-            fail("element with unknown 'type' attribute should throw ReaderException");
+            PosixDetails pd = getPosixDetails(element);
+            fail("element not named 'posixDetails' should throw ReaderException");
         }
         catch (ReaderException e) {}
     }
@@ -132,9 +131,17 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
     {
         try
         {
-            UserDetails ud = null;
-            Element element = getElement(ud);
-            fail("null UserDetails should throw WriterException");
+            PersonalDetails pd = null;
+            Element element = getElement(pd);
+            fail("null PersonalDetails should throw WriterException");
+        }
+        catch (WriterException e) {}
+
+        try
+        {
+            PosixDetails pd = null;
+            Element element = getElement(pd);
+            fail("null PosixDetails should throw WriterException");
         }
         catch (WriterException e) {}
     }
@@ -152,7 +159,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         Element element = getElement(expected);
         assertNotNull(element);
         
-        PersonalDetails actual = (PersonalDetails) getUserDetails(element);
+        PersonalDetails actual = getPersonalDetails(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
         assertEquals(expected.address, actual.address);
@@ -166,11 +173,11 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
     public void testReadWritePosixDetails()
         throws Exception
     {
-        UserDetails expected = new PosixDetails(123l, 456, "/dev/null");
+        PosixDetails expected = new PosixDetails("username", 123l, 456, "/dev/null");
         Element element = getElement(expected);
         assertNotNull(element);
         
-        UserDetails actual = getUserDetails(element);
+        PosixDetails actual = getPosixDetails(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

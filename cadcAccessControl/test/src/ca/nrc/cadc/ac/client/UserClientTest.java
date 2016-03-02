@@ -74,6 +74,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
+import java.util.UUID;
 
 import javax.management.remote.JMXPrincipal;
 import javax.security.auth.Subject;
@@ -219,10 +220,11 @@ public class UserClientTest
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
-            s.getPrincipals().add(new NumericPrincipal(1));
+            UUID uuid = UUID.randomUUID();
+            s.getPrincipals().add(new NumericPrincipal(uuid));
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof NumericPrincipal);
-            Assert.assertEquals("1", p.getName());
+            Assert.assertEquals(uuid.toString(), p.getName());
         }
         catch (Throwable t)
         {
@@ -241,11 +243,12 @@ public class UserClientTest
             UserClient c = new UserClient(u.toString());
 
             Subject s = new Subject();
-            s.getPrincipals().add(new NumericPrincipal(1));
+            UUID uuid = UUID.randomUUID();
+            s.getPrincipals().add(new NumericPrincipal(uuid));
             s.getPrincipals().add(new HttpPrincipal("bob"));
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof NumericPrincipal);
-            Assert.assertEquals("1", p.getName());
+            Assert.assertEquals(uuid.toString(), p.getName());
         }
         catch (Throwable t)
         {
@@ -264,7 +267,8 @@ public class UserClientTest
             UserClient c = new UserClient(u.toString());
 
             Subject s = new Subject();
-            s.getPrincipals().add(new NumericPrincipal(1));
+            UUID uuid = UUID.randomUUID();
+            s.getPrincipals().add(new NumericPrincipal(uuid));
             s.getPrincipals().add(new X500Principal("CN=majorb"));
             s.getPrincipals().add(new HttpPrincipal("bob"));
             Principal p = c.getPrincipal(s);

@@ -69,14 +69,12 @@
 
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
-
-public class UserRequest<T extends Principal>
+public class UserRequest
 {
-    private User<T> user;
+    private User user;
     private char[] password;
 
-    public UserRequest(final User<T> user, final char[] password)
+    public UserRequest(final User user, final char[] password)
     {
         if (user == null)
         {
@@ -90,7 +88,7 @@ public class UserRequest<T extends Principal>
         this.password = password;
     }
 
-    public User<T> getUser()
+    public User getUser()
     {
         return this.user;
     }
@@ -109,20 +107,20 @@ public class UserRequest<T extends Principal>
     }
 
     @Override
-    public boolean equals(Object o)
+    public boolean equals(Object obj)
     {
-        if (this == o)
+        if (this == obj)
         {
             return true;
         }
-        if (o == null || getClass() != o.getClass())
+        if (obj == null || getClass() != obj.getClass())
         {
             return false;
         }
 
-        UserRequest<?> that = (UserRequest<?>) o;
+        UserRequest other = (UserRequest) obj;
 
-        return user.equals(that.user);
+        return user.equals(other.user);
     }
 
     @Override

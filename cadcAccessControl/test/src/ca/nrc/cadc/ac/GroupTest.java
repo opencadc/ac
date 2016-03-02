@@ -68,15 +68,13 @@
  */
 package ca.nrc.cadc.ac;
 
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class GroupTest
 {
@@ -89,11 +87,10 @@ public class GroupTest
         Group group2 = group1;
         assertEquals(group1.hashCode(), group2.hashCode());
         assertEquals(group1, group2);
-        assertTrue(group1 == group2);
         
-        User<HttpPrincipal> owner = new User<HttpPrincipal>(new HttpPrincipal("owner"));
+        User owner = new User();
         Group group3 = new Group("TestGroup", owner);
-        User<HttpPrincipal> user = new User<HttpPrincipal>(new HttpPrincipal("user"));
+        User user = new User();
         
         group3.getUserMembers().add(user);
         assertEquals(1, group3.getUserMembers().size());
@@ -101,7 +98,6 @@ public class GroupTest
         Group group4 = group3;
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3, group4);
-        assertTrue(group3 == group4);
         
         group4 = new Group("TestGroup", owner);
         assertEquals(group3.hashCode(), group4.hashCode());
@@ -141,7 +137,7 @@ public class GroupTest
         boolean thrown = false;
         try
         {
-            new Group(null, new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group(null, new User());
         }
         catch(IllegalArgumentException e)
         {
@@ -166,7 +162,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New/Test/Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group("New/Test/Group", new User());
         }
         catch(IllegalArgumentException e)
         {
@@ -177,7 +173,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New%Test%Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group("New%Test%Group", new User());
         }
         catch(IllegalArgumentException e)
         {
@@ -188,7 +184,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New\\Test\\Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group("New\\Test\\Group", new User());
         }
         catch(IllegalArgumentException e)
         {

@@ -170,7 +170,7 @@ public class GroupListReader extends AbstractReaderWriter
 
         String groupElemName = root.getName();
 
-        if (!groupElemName.equalsIgnoreCase("groups"))
+        if (!groupElemName.equalsIgnoreCase(GROUPS))
         {
             String error = "Expected groups element, found " + groupElemName;
             throw new ReaderException(error);
@@ -192,7 +192,7 @@ public class GroupListReader extends AbstractReaderWriter
     {;
         List<Group> groups = new ArrayList<Group>();
 
-        List<Element> groupElements = element.getChildren("group");
+        List<Element> groupElements = element.getChildren(GROUP);
         for (Element groupElement : groupElements)
         {
             groups.add(getGroup(groupElement));
