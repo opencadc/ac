@@ -68,6 +68,9 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import org.json.HTTP;
+
 import java.security.Principal;
 import java.util.Date;
 import java.util.HashSet;
@@ -100,6 +103,40 @@ public class User
     {
         return identities;
     }
+
+    public Principal getPrincipal(Class clazz)
+    {
+        for (Principal principal : getIdentities())
+        {
+            if (principal.getClass().equals(clazz))
+            {
+                return principal;
+            }
+        }
+        return null;
+    }
+
+    public HttpPrincipal getHttpPrincipal()
+    {
+        Principal principal = getPrincipal(HttpPrincipal.class);
+        if (principal != null)
+        {
+            return (HttpPrincipal) principal;
+        }
+        return null;
+    }
+
+//    public <S extends Principal> S getIdentity(Class<S> clazz)
+//    {
+//        for (Principal principal : getIdentities())
+//        {
+//            if (principal.getClass() == clazz)
+//            {
+//                return (S) principal;
+//            }
+//        }
+//        return null;
+//    }
 
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()

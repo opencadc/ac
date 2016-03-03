@@ -83,6 +83,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URI;
 import java.util.Date;
 import java.util.UUID;
 
@@ -184,11 +185,13 @@ public class GroupReaderWriterTest
         
         Group groupMember = new Group("member", new User());
         User userMember = new User();
-        TestUtil.setInternalID(userMember, new InternalID(UUID.randomUUID(), "userMember"));
+        URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setInternalID(userMember, new InternalID(memberUri));
 
         Group groupAdmin = new Group("admin", new User());
         User userAdmin = new User();
-        TestUtil.setInternalID(userAdmin, new InternalID(UUID.randomUUID(), "userAdmin"));
+        URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setInternalID(userAdmin, new InternalID(adminUri));
         
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);

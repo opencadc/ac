@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -75,11 +76,13 @@ public class UserListReaderWriterTest
         List<User> expected = new ArrayList<User>();
 
         User user1 = new User();
-        TestUtil.setInternalID(user1, new InternalID(UUID.randomUUID(), "foo"));
+        InternalID id1 = new InternalID(new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID()));
+        TestUtil.setInternalID(user1, id1);
         expected.add(user1);
 
         User user2 = new User();
-        TestUtil.setInternalID(user2, new InternalID(UUID.randomUUID(), "bar"));
+        InternalID id2 = new InternalID(new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID()));
+        TestUtil.setInternalID(user2, id2);
         expected.add(user2);
 
         StringBuilder xml = new StringBuilder();

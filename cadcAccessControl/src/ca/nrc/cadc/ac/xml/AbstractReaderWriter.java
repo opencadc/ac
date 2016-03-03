@@ -95,6 +95,8 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -658,7 +660,7 @@ public abstract class AbstractReaderWriter
 
         // identities
         Set<Principal> identities = user.getIdentities();
-        if (identities.size() > 1) // includes alternate identities
+        if (!identities.isEmpty()) // includes alternate identities
         {
             Element identitiesElement = new Element(IDENTITIES);
             for (Principal identity : identities)
@@ -731,15 +733,10 @@ public abstract class AbstractReaderWriter
         // Create the internalID Element.
         Element internalIDElement = new Element(INTERNAL_ID);
 
-        // id element
-        Element idElement = new Element(ID);
-        idElement.addContent(internalID.getId().toString());
-        internalIDElement.addContent(idElement);
-
-        // authority element
-        Element authorityElement = new Element(AUTHORITY);
-        authorityElement.setText(internalID.getAuthority());
-        internalIDElement.addContent(authorityElement);
+        // uri element
+        Element uriElement = new Element(URI);
+        uriElement.addContent(internalID.getURI().toString());
+        internalIDElement.addContent(uriElement);
 
         return internalIDElement;
     }
@@ -1057,31 +1054,33 @@ public abstract class AbstractReaderWriter
     private void setInternalID(User user, Element element)
         throws ReaderException
     {
-        Element idElement = element.getChild(ID);
-        if (idElement == null)
+        Element uriElement = element.getChild(URI);
+        if (uriElement == null)
         {
-            String error = "expected id element not found in internalID element";
+            String error = "expected uri element not found in internalID element";
             throw new ReaderException(error);
         }
-        String id = idElement.getText();
-        UUID uuid = UUID.fromString(id);
-
-        Element authorityElement = element.getChild(AUTHORITY);
-        if (authorityElement == null)
+        String text = uriElement.getText();
+        URI uri;
+        try
         {
-            String error = "expected authority element not found in internalID element";
-            throw new ReaderException(error);
+            uri = new URI(text);
         }
-        String authority = authorityElement.getText();
+        catch (URISyntaxException e)
+        {
+            throw new ReaderException("Invalid InternalID URI " + text, e);
+        }
 
-        InternalID internalID = new InternalID(uuid, authority);
+        InternalID internalID = new InternalID(uri);
 
-        // set private id field using reflection
+        // set private uri field using reflection
         try
         {
             Field field = user.getClass().getDeclaredField(ID);
             field.setAccessible(true);
             field.set(user, internalID);
+
+
         }
         catch (NoSuchFieldException e)
         {

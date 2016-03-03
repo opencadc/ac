@@ -73,6 +73,7 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.net.URI;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -88,7 +89,8 @@ public class UserTest
         User user1 = new User();
 
         // set InternalID
-        InternalID internalID = new InternalID(UUID.randomUUID(), "foo");
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        InternalID internalID = new InternalID(uri);
         TestUtil.setInternalID(user1, internalID);
         assertEquals(user1.getID(), internalID);
 

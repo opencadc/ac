@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.*;
+import java.net.URI;
 import java.security.Principal;
 import java.util.*;
 import org.apache.log4j.Level;
@@ -150,7 +151,8 @@ public class JsonUserListReaderWriterTest
     {
         User expected = new User();
         UUID uuid = UUID.randomUUID();
-        TestUtil.setInternalID(expected, new InternalID(uuid, "foo"));
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setInternalID(expected, new InternalID(uri));
 
         expected.getIdentities().add(new NumericPrincipal(uuid));
         expected.personalDetails = new PersonalDetails("firstname", "lastname");

@@ -80,6 +80,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.net.URI;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -114,12 +115,14 @@ public class JsonUserListInputStreamWrapperTest
         final Collection<User> users = new ArrayList<User>();
 
         final User user1 = new User();
-        InternalID id1 = new InternalID(UUID.randomUUID(), "foo");
+        URI uri1 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        InternalID id1 = new InternalID(uri1);
         TestUtil.setInternalID(user1, id1);
         users.add(user1);
 
         final User user2 = new User();
-        InternalID id2 = new InternalID(UUID.randomUUID(), "bar");
+        URI uri2 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        InternalID id2 = new InternalID(uri2);
         TestUtil.setInternalID(user2, id2);
         user2.personalDetails = new PersonalDetails("firstname", "lastname");
         users.add(user2);

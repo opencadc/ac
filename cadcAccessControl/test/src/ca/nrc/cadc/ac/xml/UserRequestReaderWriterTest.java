@@ -81,6 +81,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URI;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -147,7 +148,8 @@ public class UserRequestReaderWriterTest
     {
         User expectedUser = new User();
         UUID uuid = UUID.randomUUID();
-        TestUtil.setInternalID(expectedUser, new InternalID(uuid, "foo"));
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
+        TestUtil.setInternalID(expectedUser, new InternalID(uri));
 
         expectedUser.getIdentities().add(new NumericPrincipal(uuid));
         expectedUser.personalDetails = new PersonalDetails("firstname", "lastname");

@@ -86,6 +86,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -186,7 +187,8 @@ public class JsonGroupReaderWriterTest
     {
         User owner = new User();
         UUID uuid = UUID.randomUUID();
-        TestUtil.setInternalID(owner, new InternalID(uuid, "foo"));
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" +uuid);
+        TestUtil.setInternalID(owner, new InternalID(uri));
 
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
         owner.getIdentities().add(x500Principal);
@@ -209,10 +211,12 @@ public class JsonGroupReaderWriterTest
 
         Group groupMember = new Group("member", new User());
         User userMember = new User();
-        TestUtil.setInternalID(userMember, new InternalID(UUID.randomUUID(), "baz"));
+        URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setInternalID(userMember, new InternalID(memberUri));
         Group groupAdmin = new Group("admin", new User());
         User userAdmin = new User();
-        TestUtil.setInternalID(userAdmin, new InternalID(UUID.randomUUID(), "admin"));
+        URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setInternalID(userAdmin, new InternalID(adminUri));
 
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);

@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -82,7 +83,9 @@ public class UserRequestTest
     @Test
     public void simpleEqualityTests() throws Exception
     {
-        UserRequest ur1 = new UserRequest(new User(), "password".toCharArray());
+        User user = new User();
+        user.getIdentities().add(new HttpPrincipal("foo"));
+        UserRequest ur1 = new UserRequest(user, "password".toCharArray());
         UserRequest ur2 = ur1;
         assertEquals(ur1, ur2);
         assertEquals(ur1.getUser(), ur2.getUser());

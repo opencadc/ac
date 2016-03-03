@@ -84,6 +84,10 @@ public class UserRequest
         {
             throw new IllegalArgumentException("null or empty password");
         }
+        if (user.getIdentities().isEmpty())
+        {
+            throw new IllegalArgumentException("user has no identities");
+        }
         this.user = user;
         this.password = password;
     }
