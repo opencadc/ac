@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import org.json.HTTP;
 
 import java.security.Principal;
@@ -106,21 +107,40 @@ public class User
         return identities;
     }
 
-    public <S extends Principal> S getPrincipal(Class<S> clazz)
+    /**
+     * Obtain a set of identities whose type match the given one.
+     *
+     * @param identityClass     The class to search on.
+     * @param <S>               The Principal type.
+     * @return                  Set of matched identities, or empty Set.
+     *                          Never null.
+     */
+    public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass)
     {
-        for (Principal principal : getIdentities())
+        final Set<S> matchedIdentities = new HashSet<S>();
+
+        for (final Principal p : identities)
         {
-            if (principal.getClass() == clazz)
+            if (p.getClass() == identityClass)
             {
-                return (S) principal;
+                // This casting shouldn't happen, but it's the only way to
+                // do this without a lot of work.
+                // jenkinsd 2014.09.26
+                matchedIdentities.add((S) p);
             }
         }
-        return null;
+
+        return matchedIdentities;
     }
 
     public HttpPrincipal getHttpPrincipal()
     {
-        return getPrincipal(HttpPrincipal.class);
+        Set<HttpPrincipal> identities = getIdentities(HttpPrincipal.class);
+        if (!identities.isEmpty())
+        {
+            return identities.iterator().next();
+        }
+        return null;
     }
 
     /* (non-Javadoc)
