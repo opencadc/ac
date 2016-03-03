@@ -69,14 +69,19 @@
 
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
+import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class UserTest
 {
@@ -105,6 +110,67 @@ public class UserTest
         user1.posixDetails = new PosixDetails("jray", 12, 23, "/home/jray");
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
+    }
+
+    @Test
+    public void comparatorTest() throws Exception
+    {
+        User user = new User();
+        boolean result = false;
+
+        // HttpPrincipal
+        HttpPrincipal httpPrincipal1 = new HttpPrincipal("foo");
+        HttpPrincipal httpPrincipal2 = new HttpPrincipal("bar");
+
+        result = user.getIdentities().add(httpPrincipal1);
+        assertTrue(result);
+        result = user.getIdentities().add(httpPrincipal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(httpPrincipal2);
+        assertFalse(result);
+
+        // X500Principal
+        X500Principal x500Principal1 = new X500Principal("cn=foo,c=bar");
+        X500Principal x500Principal2 = new X500Principal("cn=bar,c=foo");
+
+        result = user.getIdentities().add(x500Principal1);
+        assertTrue(result);
+        result = user.getIdentities().add(x500Principal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(x500Principal2);
+        assertTrue(result);
+        result = user.getIdentities().add(x500Principal2);
+        assertFalse(result);
+
+        // NumericPrincipal
+        NumericPrincipal numericPrincipal1 = new NumericPrincipal(UUID.randomUUID());
+        NumericPrincipal numericPrincipal2 = new NumericPrincipal(UUID.randomUUID());
+
+        result = user.getIdentities().add(numericPrincipal1);
+        assertTrue(result);
+        result = user.getIdentities().add(numericPrincipal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(numericPrincipal2);
+        assertTrue(result);
+        result = user.getIdentities().add(numericPrincipal2);
+        assertFalse(result);
+
+        // DNPrincipal
+        DNPrincipal dnPrincipal1 = new DNPrincipal("cn=foo,dc=bar");
+        DNPrincipal dnPrincipal2 = new DNPrincipal("cn=bar,dc=foo");
+
+        result = user.getIdentities().add(dnPrincipal1);
+        assertTrue(result);
+        result = user.getIdentities().add(dnPrincipal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(dnPrincipal2);
+        assertTrue(result);
+        result = user.getIdentities().add(dnPrincipal2);
+        assertFalse(result);
     }
 
 }

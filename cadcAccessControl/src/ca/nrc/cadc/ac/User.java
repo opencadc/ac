@@ -72,15 +72,17 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import org.json.HTTP;
 
 import java.security.Principal;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class User
 {
     private InternalID id;
     
-    private Set<Principal> identities = new HashSet<Principal>();
+    private Set<Principal> identities = new TreeSet<Principal>(new PrincipalComparator());
 
     public PersonalDetails personalDetails;
     public PosixDetails posixDetails;
@@ -104,13 +106,13 @@ public class User
         return identities;
     }
 
-    public Principal getPrincipal(Class clazz)
+    public <S extends Principal> S getPrincipal(Class<S> clazz)
     {
         for (Principal principal : getIdentities())
         {
-            if (principal.getClass().equals(clazz))
+            if (principal.getClass() == clazz)
             {
-                return principal;
+                return (S) principal;
             }
         }
         return null;
@@ -118,25 +120,8 @@ public class User
 
     public HttpPrincipal getHttpPrincipal()
     {
-        Principal principal = getPrincipal(HttpPrincipal.class);
-        if (principal != null)
-        {
-            return (HttpPrincipal) principal;
-        }
-        return null;
+        return getPrincipal(HttpPrincipal.class);
     }
-
-//    public <S extends Principal> S getIdentity(Class<S> clazz)
-//    {
-//        for (Principal principal : getIdentities())
-//        {
-//            if (principal.getClass() == clazz)
-//            {
-//                return (S) principal;
-//            }
-//        }
-//        return null;
-//    }
 
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
@@ -183,6 +168,26 @@ public class User
     public String toString()
     {
         return getClass().getSimpleName() + "[" + id + "]";
+    }
+
+    private class PrincipalComparator implements Comparator<Principal>
+    {
+        @Override
+        public int compare(Principal o1, Principal o2)
+        {
+            if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
+            {
+                return 0;
+            }
+            else if (o1.getClass() == o2.getClass())
+            {
+                if (o1.getName().equals(o2.getName()))
+                {
+                    return 0;
+                }
+            }
+            return -1;
+        }
     }
 
 }
