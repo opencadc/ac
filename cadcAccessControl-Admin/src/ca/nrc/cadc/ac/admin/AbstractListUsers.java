@@ -70,14 +70,15 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.util.Collection;
 import java.util.Set;
 
+import javax.security.auth.x500.X500Principal;
+
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 /**
@@ -89,14 +90,14 @@ public abstract class AbstractListUsers extends AbstractCommand
 {
     private static final Logger log = Logger.getLogger(AbstractListUsers.class);
 
-    protected abstract Collection<User<Principal>> getUsers()
+    protected abstract Collection<User> getUsers()
     		throws AccessControlException, TransientException;
 
     protected void doRun() throws AccessControlException, TransientException
     {
-        Collection<User<Principal>> users = this.getUsers();
+        Collection<User> users = this.getUsers();
 
-        for (User<Principal> user : users)
+        for (User user : users)
         {
             this.systemOut.println(getUserString(user));
         }
@@ -106,21 +107,36 @@ public abstract class AbstractListUsers extends AbstractCommand
 
     private String getUserString(User user)
     {
-        StringBuilder sb = new StringBuilder(user.getUserID().getName());
+        StringBuilder sb = new StringBuilder();
+        HttpPrincipal username = user.getHttpPrincipal();
+        if (username != null)
+        {
+            sb.append(username.getName());
+        }
+        else
+        {
+            Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+            if (!x500Principals.isEmpty())
+            {
+                sb.append(x500Principals.iterator().next().getName());
+            }
+            else
+            {
+                sb.append("Internal ID: " + user.getID().getURI());
+            }
+        }
 
-        Set<PersonalDetails> detailSet = user.getDetails(PersonalDetails.class);
-        if (detailSet.size() > 0)
+        if (user.personalDetails != null)
         {
             sb.append(" [");
-            PersonalDetails details = detailSet.iterator().next();
-            sb.append(details.getFirstName());
+            sb.append(user.personalDetails.getFirstName());
             sb.append(" ");
-            sb.append(details.getLastName());
+            sb.append(user.personalDetails.getLastName());
             sb.append("]");
-            if (details.institute != null)
+            if (user.personalDetails.institute != null)
             {
                 sb.append(" [");
-                sb.append(details.institute);
+                sb.append(user.personalDetails.institute);
                 sb.append("]");
             }
         }

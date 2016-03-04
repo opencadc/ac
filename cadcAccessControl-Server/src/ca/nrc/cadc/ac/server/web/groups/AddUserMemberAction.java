@@ -68,14 +68,14 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.MemberAlreadyExistsException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 
 public class AddUserMemberAction extends AbstractGroupAction
 {
@@ -97,7 +97,8 @@ public class AddUserMemberAction extends AbstractGroupAction
     {
         Group group = groupPersistence.getGroup(this.groupName);
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User<Principal> toAdd = new User(userPrincipal);
+        User toAdd = new User();
+        toAdd.getIdentities().add(userPrincipal);
         if (!group.getUserMembers().add(toAdd))
         {
             throw new MemberAlreadyExistsException();
@@ -106,7 +107,7 @@ public class AddUserMemberAction extends AbstractGroupAction
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getUserID().getName());
+        addedMembers.add(toAdd.getHttpPrincipal().getName());
         logGroupInfo(group.getID(), null, addedMembers);
     }
 

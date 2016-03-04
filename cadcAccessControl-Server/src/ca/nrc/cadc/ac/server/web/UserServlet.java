@@ -108,7 +108,7 @@ public class UserServlet<T extends Principal> extends HttpServlet
 
     private List<Subject> notAugmentedSubjects;
 
-    private UserPersistence<T> userPersistence;
+    private UserPersistence userPersistence;
 
     @Override
     public void init(ServletConfig config) throws ServletException

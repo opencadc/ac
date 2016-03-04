@@ -68,6 +68,10 @@
  */
 package ca.nrc.cadc.ac.server;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collection;
+
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -75,11 +79,7 @@ import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
-
-public interface UserPersistence<T extends Principal>
+public interface UserPersistence
 {
 
     /**
@@ -96,7 +96,7 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addUser(UserRequest<T> user)
+    void addUser(UserRequest user)
         throws TransientException, AccessControlException,
         UserAlreadyExistsException;
 
@@ -109,7 +109,7 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addPendingUser(UserRequest<T> user)
+    void addPendingUser(UserRequest user)
         throws TransientException, AccessControlException,
         UserAlreadyExistsException;
 
@@ -124,7 +124,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> getUser(T userID)
+    User getUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -140,8 +140,8 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<Principal> getUserByEmailAddress(String emailAddress)
-            throws UserNotFoundException, UserAlreadyExistsException, 
+    User getUserByEmailAddress(String emailAddress)
+            throws UserNotFoundException, UserAlreadyExistsException,
             TransientException, AccessControlException;
 
     /**
@@ -155,7 +155,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> getPendingUser(T userID)
+    User getPendingUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -170,7 +170,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> getAugmentedUser(T userID)
+    User getAugmentedUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -181,7 +181,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<User<Principal>> getUsers()
+    Collection<User> getUsers()
             throws TransientException, AccessControlException;
 
     /**
@@ -191,7 +191,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<User<Principal>> getPendingUsers()
+    Collection<User> getPendingUsers()
         throws TransientException, AccessControlException;
 
     /**
@@ -206,7 +206,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> approvePendingUser(T userID)
+    User approvePendingUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -221,7 +221,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> modifyUser(User<T> user)
+    User modifyUser(User user)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 
@@ -234,7 +234,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    void deleteUser(T userID)
+    void deleteUser(Principal userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 
@@ -247,7 +247,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    void deletePendingUser(T userID)
+    void deletePendingUser(Principal userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 

@@ -70,12 +70,7 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.InputStream;
 
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.server.UserPersistence;
-
-import javax.servlet.http.HttpServletResponse;
-import java.security.Principal;
 
 
 public class CreateUserAction extends AbstractUserAction
@@ -91,11 +86,11 @@ public class CreateUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
+        final UserRequest userRequest = readUserRequest(this.inputStream);
         userPersistence.addPendingUser(userRequest);
 
         syncOut.setCode(201);
-        logUserInfo(userRequest.getUser().getUserID().getName());
+        logUserInfo(userRequest.getUser().getHttpPrincipal().getName());
     }
 
 }

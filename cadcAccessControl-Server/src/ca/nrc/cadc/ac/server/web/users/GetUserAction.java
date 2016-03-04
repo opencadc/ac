@@ -67,18 +67,17 @@
  ************************************************************************
  */package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.profiler.Profiler;
+import java.security.AccessController;
+import java.security.Principal;
+
+import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 
-import javax.security.auth.Subject;
-import java.security.AccessController;
-import java.security.Principal;
-import java.util.Set;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.profiler.Profiler;
 
 
 public class GetUserAction extends AbstractUserAction
@@ -99,15 +98,15 @@ public class GetUserAction extends AbstractUserAction
 
 	public void doAction() throws Exception
     {
-        User<Principal> user = getUser(this.userID);
+        User user = getUser(this.userID);
         profiler.checkpoint("getUser");
         writeUser(user);
         profiler.checkpoint("writeUser");
     }
 
-    protected User<Principal> getUser(Principal principal) throws Exception
+    protected User getUser(Principal principal) throws Exception
     {
-        User<Principal> user;
+        User user;
 
         /**
          * Special case 1
@@ -133,7 +132,7 @@ public class GetUserAction extends AbstractUserAction
         {
             log.debug("augmenting " + principal.getName() + " from subject");
             Subject subject = Subject.getSubject(AccessController.getContext());
-            user = new User<Principal>(principal);
+            user = new User();
             user.getIdentities().addAll(subject.getPrincipals());
             profiler.checkpoint("added identities");
         }
@@ -155,15 +154,12 @@ public class GetUserAction extends AbstractUserAction
             if (detail != null && detail.equalsIgnoreCase("display"))
             {
                 user.getIdentities().clear();
-                Set<PersonalDetails> details = user.getDetails(PersonalDetails.class);
-                if (details.isEmpty())
+                if (user.personalDetails == null)
                 {
                     String error = principal.getName() + " missing required PersonalDetails";
                     throw new IllegalStateException(error);
                 }
-                PersonalDetails pd = details.iterator().next();
-                user.details.clear();
-                user.details.add(new PersonalDetails(pd.getFirstName(), pd.getLastName()));
+                user.personalDetails = new PersonalDetails(user.personalDetails.getFirstName(), user.personalDetails.getLastName());
                 profiler.checkpoint("addUserDetails");
             }
         }

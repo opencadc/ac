@@ -106,7 +106,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     protected boolean isAugmentUser;
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
-    protected UserPersistence<T> userPersistence;
+    protected UserPersistence userPersistence;
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
@@ -137,7 +137,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
         this.syncOut = syncOut;
     }
 
-    public void setUserPersistence(UserPersistence<T> userPersistence)
+    public void setUserPersistence(UserPersistence userPersistence)
     {
         this.userPersistence = userPersistence;
     }
@@ -253,10 +253,10 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @return                      User Request instance.
      * @throws IOException          Any reading errors.
      */
-    protected final UserRequest<Principal> readUserRequest(
+    protected UserRequest readUserRequest(
             final InputStream inputStream) throws IOException
     {
-        final UserRequest<Principal> userRequest;
+        final UserRequest userRequest;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
@@ -286,11 +286,11 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      *
      * @throws IOException      Any errors in reading the stream.
      */
-    protected final User<Principal> readUser(final InputStream inputStream)
+    protected User readUser(final InputStream inputStream)
             throws IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);
-        final User<Principal> user;
+        final User user;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
@@ -318,7 +318,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @param user              The user object to marshall and write out.
      * @throws IOException      Any writing errors.
      */
-    protected final <T extends Principal> void writeUser(final User<T> user)
+    protected void writeUser(final User user)
             throws IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);
@@ -342,7 +342,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      *
      * @param users         The Map of user IDs to names.
      */
-    protected final <T extends Principal> void writeUsers(final Collection<User<T>> users)
+    protected void writeUsers(final Collection<User> users)
             throws IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);

@@ -79,14 +79,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.groups.AbstractGroupAction;
 import ca.nrc.cadc.ac.server.web.groups.GroupLogInfo;
 import ca.nrc.cadc.ac.server.web.groups.GroupsActionFactory;
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.auth.AuthenticationUtil;
 
 /**
@@ -101,7 +100,7 @@ public class GroupServlet<T extends Principal> extends HttpServlet
 
     public static final String GROUP_PERSISTENCE_REF = "groupPersistence";
 
-    private GroupPersistence<T> groupPersistence;
+    private GroupPersistence groupPersistence;
 
     @Override
     public void init(ServletConfig config) throws ServletException

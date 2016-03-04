@@ -68,6 +68,13 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import java.io.IOException;
+
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
@@ -76,13 +83,6 @@ import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.net.NetUtil;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.net.URL;
-import java.security.Principal;
 
 
 public abstract class UserActionFactory
@@ -229,38 +229,40 @@ public abstract class UserActionFactory
         };
     }
 
-    private static User<? extends Principal> getUser(final String userName,
-                                                     final String idType)
+    private static User getUser(String userName, String idType)
     {
+        User user = new User();
         if (idType == null || idType.isEmpty())
         {
             throw new IllegalArgumentException("User endpoint missing idType parameter");
         }
         else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue()))
         {
-            return new User<HttpPrincipal>(new HttpPrincipal(userName));
+            user.getIdentities().add(new HttpPrincipal(userName));
         }
         else if (idType.equalsIgnoreCase(IdentityType.X500.getValue()))
         {
-            return new User<X500Principal>(new X500Principal(userName));
+            user.getIdentities().add(new X500Principal(userName));
         }
         else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
         {
-            return new User<NumericPrincipal>(new NumericPrincipal(
-                    Integer.parseInt(userName)));
+            // TODO: userName will now be a UUID, so no Integer.parseInt
+            // leaving this broken on purpose...
+            user.getIdentities().add(new NumericPrincipal(Integer.parseInt(userName)));
         }
         else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue()))
         {
-            return new User<OpenIdPrincipal>(new OpenIdPrincipal(userName));
+            user.getIdentities().add(new OpenIdPrincipal(userName));
         }
         else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue()))
         {
-            return new User<CookiePrincipal>(new CookiePrincipal(userName));
+            user.getIdentities().add(new CookiePrincipal(userName));
         }
         else
         {
             throw new IllegalArgumentException("Unregonized userid");
         }
+        return user;
     }
 
 }

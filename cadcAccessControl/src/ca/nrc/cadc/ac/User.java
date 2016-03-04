@@ -68,10 +68,6 @@
  */
 package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import org.json.HTTP;
-
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.Date;
@@ -79,22 +75,24 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+
 public class User
 {
     private InternalID id;
-    
+
     private Set<Principal> identities = new TreeSet<Principal>(new PrincipalComparator());
 
     public PersonalDetails personalDetails;
     public PosixDetails posixDetails;
 
     public Date lastModified;
-    
+
     /**
      * Applications can stash some extra stuff here.
      */
     public Object appData;
-    
+
     public User() {}
 
     public InternalID getID()

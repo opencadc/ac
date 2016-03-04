@@ -89,7 +89,6 @@ import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserDetails;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
@@ -129,13 +128,12 @@ import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
 /**
  *
  * @author pdowler
- * @param <T>
  */
-public class LdapUserDAO<T extends Principal> extends LdapDAO
+public class LdapUserDAO extends LdapDAO
 {
-    public static final String EMAIL_ADDRESS_CONFLICT_MESSAGE = 
+    public static final String EMAIL_ADDRESS_CONFLICT_MESSAGE =
             "email address ";
-    
+
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
     private final Profiler profiler = new Profiler(LdapUserDAO.class);
@@ -259,7 +257,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException         If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException If the user already exists.
      */
-    public void addUser(final UserRequest<T> userRequest)
+    public void addUser(final UserRequest userRequest)
             throws TransientException, UserAlreadyExistsException
     {
         try
@@ -274,26 +272,24 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         addUser(userRequest, config.getUsersDN());
     }
 
-    private String getEmailAddress(final UserRequest<T> userRequest)
+    private String getEmailAddress(final UserRequest userRequest)
     {
-        Set<PersonalDetails> personalDetails = userRequest.getUser().getDetails(PersonalDetails.class);
-        if (personalDetails.isEmpty())
+        if (userRequest.getUser().personalDetails == null)
         {
-            String error = userRequest.getUser().getUserID().getName() + " missing required PersonalDetails";
+            String error = userRequest.getUser().getHttpPrincipal().getName() + " missing required PersonalDetails";
             throw new IllegalArgumentException(error);
         }
-        
-        PersonalDetails pd = personalDetails.iterator().next();
-        if (!StringUtil.hasText(pd.email))
+
+        if (!StringUtil.hasText(userRequest.getUser().personalDetails.email))
         {
-            String error = userRequest.getUser().getUserID().getName() + " missing required email address";
+            String error = userRequest.getUser().getHttpPrincipal().getName() + " missing required email address";
             throw new IllegalArgumentException(error);
         }
-        
-        return pd.email;
+
+        return userRequest.getUser().personalDetails.email;
     }
-    
-    private void checkUsers(final UserRequest<T> userRequest, 
+
+    private void checkUsers(final UserRequest userRequest,
             final String usersDN)
             throws TransientException, UserAlreadyExistsException
     {
@@ -310,12 +306,12 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
         // check if email address is already in use
         try
         {
-            String emailAddress = getEmailAddress(userRequest); 
+            String emailAddress = getEmailAddress(userRequest);
             getUserByEmailAddress(emailAddress, usersDN);
         }
         catch (UserNotFoundException ok) { }
     }
-    
+
     /**
      *Add the specified user to the pending user tree.
      *
@@ -328,7 +324,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     {
         // check current users
         checkUsers(userRequest, config.getUsersDN());
-        
+
         // check pending users
         checkUsers(userRequest, config.getUserRequestsDN());
 
@@ -458,7 +454,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    private User<T> getUser(final T userID, final String usersDN)
+    private User getUser(Principal userID, final String usersDN)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -510,7 +506,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             throw new AccessControlException("Permission denied");
         }
 
-        User<T> user = new User<T>(userID);
+        User user = new User(userID);
         String username = searchResult.getAttributeValue(userLdapAttrib.get(HttpPrincipal.class));
         logger.debug("username: " + username);
         user.getIdentities().add(new HttpPrincipal(username));
@@ -543,7 +539,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
 
         return user;
     }
-    
+
     /**
      * Get the user specified by the email address exists.
      *
@@ -555,7 +551,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    private User<Principal> getUserByEmailAddress(final String emailAddress, 
+    private User<Principal> getUserByEmailAddress(final String emailAddress,
             final String usersDN)
             throws UserNotFoundException, TransientException,
             AccessControlException, UserAlreadyExistsException
@@ -968,14 +964,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             if (oldPassword == null)
             {
                 passwordModifyRequest =
-                        new PasswordModifyExtendedRequest(userDN.toNormalizedString(), 
-                                null, new String(newPassword));              
+                        new PasswordModifyExtendedRequest(userDN.toNormalizedString(),
+                                null, new String(newPassword));
             }
             else
             {
                 passwordModifyRequest =
-                        new PasswordModifyExtendedRequest(userDN.toNormalizedString(), 
-                                new String(oldPassword), new String(newPassword));                
+                        new PasswordModifyExtendedRequest(userDN.toNormalizedString(),
+                                new String(oldPassword), new String(newPassword));
             }
 
             PasswordModifyExtendedResult passwordModifyResult = (PasswordModifyExtendedResult)
@@ -989,7 +985,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             LdapDAO.checkLdapResult(e.getResultCode());
         }
     }
-    
+
     /**
      * Update a user's password. The given user and authenticating user must match.
      *

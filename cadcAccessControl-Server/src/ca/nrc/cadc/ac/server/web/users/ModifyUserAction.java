@@ -68,24 +68,20 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import java.io.InputStream;
+import java.net.URL;
+import java.security.Principal;
+
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
 
 
 public class ModifyUserAction extends AbstractUserAction
@@ -107,9 +103,9 @@ public class ModifyUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        final User<Principal> user = readUser(this.inputStream);
-        final User<Principal> modifiedUser = userPersistence.modifyUser(user);
-        logUserInfo(modifiedUser.getUserID().getName());
+        final User user = readUser(this.inputStream);
+        final User modifiedUser = userPersistence.modifyUser(user);
+        logUserInfo(modifiedUser.getHttpPrincipal().getName());
 
         final URL requestURL = new URL(request.getRequestURL().toString());
         final StringBuilder sb = new StringBuilder();
@@ -130,7 +126,7 @@ public class ModifyUserAction extends AbstractUserAction
         String idType = null;
         for (Principal principal : user.getIdentities())
         {
-            if (principal.getName().equals(modifiedUser.getUserID().getName()))
+            if (principal.getName().equals(modifiedUser.getHttpPrincipal().getName()))
             {
                 if (principal instanceof HttpPrincipal)
                 {

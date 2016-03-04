@@ -118,7 +118,7 @@ public class ResetPasswordServlet extends HttpServlet
     private static final Logger log = Logger.getLogger(ResetPasswordServlet.class);
 
     List<Subject> privilegedSubjects;
-    UserPersistence<Principal> userPersistence;
+    UserPersistence userPersistence;
 
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -247,8 +247,8 @@ public class ResetPasswordServlet extends HttpServlet
                             String emailAddress = request.getParameter("emailAddress");
                             if (StringUtil.hasText(emailAddress))
                             {
-                                User<Principal> user = userPersistence.getUserByEmailAddress(emailAddress);
-                                HttpPrincipal userID = (HttpPrincipal) user.getUserID();
+                                User user = userPersistence.getUserByEmailAddress(emailAddress);
+                                HttpPrincipal userID = (HttpPrincipal) user.getHttpPrincipal();
                                 URI scopeURI = new URI(ACScopeValidator.RESET_PASSWORD_SCOPE);
                                 int duration = 24; // hours
                                 Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));

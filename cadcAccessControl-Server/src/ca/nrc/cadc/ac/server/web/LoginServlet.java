@@ -112,8 +112,8 @@ public class LoginServlet<T extends Principal> extends HttpServlet
 
     private static final String PROXY_ACCESS = "Proxy user access: ";
 
-    UserPersistence<T> userPersistence;
-    GroupPersistence<HttpPrincipal> groupPersistence;
+    UserPersistence userPersistence;
+    GroupPersistence groupPersistence;
 
 
     @Override
@@ -309,9 +309,9 @@ public class LoginServlet<T extends Principal> extends HttpServlet
         }
     }
 
-    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence() throws AccessControlException, LDAPException
+    protected LdapGroupPersistence getLdapGroupPersistence() throws AccessControlException, LDAPException
     {
-        LdapGroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
+        LdapGroupPersistence gp = new LdapGroupPersistence();
         gp.setDetailSelector(new GroupDetailSelector()
         {
             @Override

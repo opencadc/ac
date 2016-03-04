@@ -87,7 +87,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
-public class LdapUserPersistence<T extends Principal> extends LdapPersistence implements UserPersistence<T>
+public class LdapUserPersistence extends LdapPersistence implements UserPersistence
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
     private Profiler profiler = new Profiler(LdapUserPersistence.class);
@@ -115,14 +115,14 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    public void addUser(UserRequest<T> user)
+    public void addUser(UserRequest user)
         throws TransientException, AccessControlException, UserAlreadyExistsException
     {
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             userDAO.addUser(user);
         }
         finally
@@ -140,14 +140,14 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    public void addPendingUser(UserRequest<T> user)
+    public void addPendingUser(UserRequest user)
         throws TransientException, AccessControlException, UserAlreadyExistsException
     {
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             userDAO.addPendingUser(user);
         }
         finally
@@ -167,18 +167,18 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> getUser(T userID)
+    public User getUser(Principal userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.getUser(userID);
         }
         finally
@@ -199,14 +199,14 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    public User<Principal> getUserByEmailAddress(String emailAddress)
+    public User getUserByEmailAddress(String emailAddress)
             throws UserNotFoundException, TransientException,
             AccessControlException, UserAlreadyExistsException
         {
             LdapConnections conns = new LdapConnections(this);
             try
             {
-                LdapUserDAO<T> userDAO = new LdapUserDAO<T>(conns);
+                LdapUserDAO userDAO = new LdapUserDAO(conns);
                 return userDAO.getUserByEmailAddress(emailAddress);
             }
             finally
@@ -224,18 +224,18 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
     * @throws TransientException     If an temporary, unexpected problem occurred.
     * @throws AccessControlException If the operation is not permitted.
     */
-    public User<T> getPendingUser(final T userID)
+    public User getPendingUser(Principal userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.getPendingUser(userID);
         }
         finally
@@ -255,17 +255,17 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> getAugmentedUser(T userID)
+    public User getAugmentedUser(Principal userID)
         throws UserNotFoundException, TransientException
     {
         // internal call to return user identities: no permission check
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             profiler.checkpoint("Create LdapUserDAO");
-            User<T> user = userDAO.getAugmentedUser(userID);
+            User user = userDAO.getAugmentedUser(userID);
             profiler.checkpoint("getAugmentedUser");
             return user;
         }
@@ -282,7 +282,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<User<Principal>> getUsers()
+    public Collection<User> getUsers()
         throws TransientException, AccessControlException
     {
         // current policy: usernames visible to all authenticated users
@@ -290,11 +290,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.getUsers();
         }
         finally
@@ -310,15 +310,15 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<User<Principal>> getPendingUsers()
+    public Collection<User> getPendingUsers()
         throws TransientException, AccessControlException
     {
         // admin API: no permission check
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.getPendingUsers();
         }
         finally
@@ -339,16 +339,16 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> approvePendingUser(T userID)
+    public User approvePendingUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
         // admin API: no permission check
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.approvePendingUser(userID);
         }
         finally
@@ -368,7 +368,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User<T> modifyUser(User<T> user)
+    public User modifyUser(User user)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -376,11 +376,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         if ( !isMatch(caller, user) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.modifyUser(user);
         }
         finally
@@ -398,7 +398,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void deleteUser(T userID)
+    public void deleteUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -406,11 +406,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             userDAO.deleteUser(userID);
         }
         finally
@@ -428,16 +428,16 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void deletePendingUser(T userID)
+    public void deletePendingUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
         // admin API: no permission check
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             userDAO.deletePendingUser(userID);
         }
         finally
@@ -460,11 +460,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
     public Boolean doLogin(String userID, String password)
             throws UserNotFoundException, TransientException, AccessControlException
     {
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             return userDAO.doLogin(userID, password);
         }
         finally
@@ -490,11 +490,11 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
+            userDAO = new LdapUserDAO(conns);
             if (userDAO.doLogin(userID.getName(), oldPassword))
             {
                 // oldPassword is correct
@@ -524,12 +524,12 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         if ( !isMatch(caller, userID) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO<T> userDAO = null;
+        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO<T>(conns);
-            User<T> user = getUser((T) userID);
+            userDAO = new LdapUserDAO(conns);
+            User user = getUser(userID);
 
             if (user != null)
             {
@@ -543,7 +543,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         }
     }
 
-    private boolean isMatch(Subject caller, User<T> user)
+    private boolean isMatch(Subject caller, User user)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
