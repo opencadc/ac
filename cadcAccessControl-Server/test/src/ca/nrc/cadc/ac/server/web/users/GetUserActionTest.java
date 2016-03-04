@@ -79,6 +79,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.security.PrivilegedExceptionAction;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -147,7 +148,7 @@ public class GetUserActionTest
     public void writeUserWithDetailIdentity() throws Exception
     {
         final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
-        final NumericPrincipal numericPrincipal = new NumericPrincipal(789);
+        final NumericPrincipal numericPrincipal = new NumericPrincipal(UUID.randomUUID());
         final X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
 
         Subject testUser = new Subject();
@@ -168,7 +169,7 @@ public class GetUserActionTest
                 final GetUserAction testSubject = new GetUserAction(httpPrincipal, "identity");
                 testSubject.userPersistence = mockUserPersistence;
 
-                final User<HttpPrincipal> expected = new User<HttpPrincipal>(httpPrincipal);
+                final User expected = new User();
                 expected.getIdentities().add(httpPrincipal);
                 expected.getIdentities().add(numericPrincipal);
                 expected.getIdentities().add(x500Principal);
@@ -178,12 +179,10 @@ public class GetUserActionTest
                 userWriter.write(expected, sb);
                 String expectedUser = sb.toString();
 
-                final PersonalDetails personalDetails = new PersonalDetails("cadc", "test");
-                personalDetails.city = "city";
-                expected.details.add(personalDetails);
+                expected.personalDetails = new PersonalDetails("cadc", "test");
+                expected.personalDetails.city = "city";
 
-                final PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
-                expected.details.add(posixDetails);
+                expected.posixDetails= new PosixDetails("username", 123L, 456L, "/dev/null");
 
                 final Writer writer = new StringWriter();
                 final PrintWriter printWriter = new PrintWriter(writer);
@@ -223,23 +222,19 @@ public class GetUserActionTest
         final User expected = new User();
         expected.getIdentities().add(userID);
 
-        final PersonalDetails personalDetails = new PersonalDetails("cadc", "test");
-        expected.details.add(personalDetails);
+        expected.personalDetails = new PersonalDetails("cadc", "test");
 
         StringBuilder sb = new StringBuilder();
         UserWriter userWriter = new UserWriter();
         userWriter.write(expected, sb);
         String expectedUser = sb.toString();
 
-        Set<PersonalDetails> details = expected.getDetails(PersonalDetails.class);
-        PersonalDetails pd = details.iterator().next();
-        pd.city = "city";
+        expected.personalDetails.city = "city";
 
-        expected.getIdentities().add(new NumericPrincipal(789));
+        expected.getIdentities().add(new NumericPrincipal(UUID.randomUUID()));
         expected.getIdentities().add(new X500Principal("cn=foo,o=bar"));
 
-        final PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
-        expected.details.add(posixDetails);
+        expected.posixDetails = new PosixDetails("username", 123L, 456L, "/dev/null");
 
         final Writer writer = new StringWriter();
         final PrintWriter printWriter = new PrintWriter(writer);
@@ -277,7 +272,7 @@ public class GetUserActionTest
         testSubject.userPersistence = mockUserPersistence;
         testSubject.setAugmentUser(true);
 
-        final NumericPrincipal numericPrincipal = new NumericPrincipal(789);
+        final NumericPrincipal numericPrincipal = new NumericPrincipal(UUID.randomUUID());
         final X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
 
         final User expected = new User();
