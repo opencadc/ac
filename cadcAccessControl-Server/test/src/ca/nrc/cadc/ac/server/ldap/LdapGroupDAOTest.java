@@ -72,7 +72,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
@@ -81,18 +80,17 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-import org.junit.Assert;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {
@@ -120,10 +118,10 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     static X500Principal daoTestPrincipal3;
     static X500Principal unknownPrincipal;
 
-    static User<X500Principal> daoTestUser1;
-    static User<X500Principal> daoTestUser2;
-    static User<X500Principal> daoTestUser3;
-    static User<X500Principal> unknownUser;
+    static User daoTestUser1;
+    static User daoTestUser2;
+    static User daoTestUser3;
+    static User unknownUser;
 
     static Subject daoTestUser1Subject;
     static Subject daoTestUser2Subject;
@@ -148,31 +146,35 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         daoDNPrincipal1 = new DNPrincipal(daoTestEntryDN1);
         daoDNPrincipal2 = new DNPrincipal(daoTestEntryDN2);
 
-        daoTestUser1 = new User<X500Principal>(daoTestPrincipal1);
+        daoTestUser1 = new User();
+        daoTestUser1.getIdentities().add(daoTestPrincipal1);
         daoTestUser1.getIdentities().add(daoDNPrincipal1);
-        daoTestUser2 = new User<X500Principal>(daoTestPrincipal2);
+        daoTestUser2 = new User();
+        daoTestUser2.getIdentities().add(daoTestPrincipal2);
         daoTestUser2.getIdentities().add(daoDNPrincipal2);
-        daoTestUser3 = new User<X500Principal>(daoTestPrincipal3);
+        daoTestUser3 = new User();
+        daoTestUser3.getIdentities().add(daoTestPrincipal3);
         daoTestUser3.getIdentities().add(daoDNPrincipal3);
-        unknownUser = new User<X500Principal>(unknownPrincipal);
+        unknownUser = new User();
+        unknownUser.getIdentities().add(unknownPrincipal);
 
         daoTestUser1Subject = new Subject();
-        daoTestUser1Subject.getPrincipals().add(daoTestUser1.getUserID());
+        daoTestUser1Subject.getPrincipals().add(daoTestPrincipal1);
         daoTestUser1Subject.getPrincipals().add(daoDNPrincipal1);
 
         daoTestUser2Subject = new Subject();
-        daoTestUser2Subject.getPrincipals().add(daoTestUser2.getUserID());
+        daoTestUser2Subject.getPrincipals().add(daoTestPrincipal2);
         daoTestUser2Subject.getPrincipals().add(daoDNPrincipal2);
 
         anonSubject = new Subject();
-        anonSubject.getPrincipals().add(unknownUser.getUserID());
+        anonSubject.getPrincipals().add(unknownPrincipal);
     }
 
-    LdapGroupDAO<X500Principal> getGroupDAO() throws Exception
+    LdapGroupDAO getGroupDAO() throws Exception
     {
         LdapConnections connections = new LdapConnections(config);
-        return new LdapGroupDAO<X500Principal>(connections,
-                new LdapUserDAO<X500Principal>(connections));
+        return new LdapGroupDAO(connections,
+                new LdapUserDAO(connections));
     }
 
     String getGroupID()
@@ -220,8 +222,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     // Principals. The duplicate should be ignored
                     // the the returned result should contain only
                     // one entry (the dn one)
-                    User<HttpPrincipal> duplicateIdentity =
-                            new User<HttpPrincipal>(new HttpPrincipal(daoTestUid2));
+                    User duplicateIdentity = new User();
+                    duplicateIdentity.getIdentities().add(new HttpPrincipal(daoTestUid2));
                     expectGroup.getUserMembers().add(daoTestUser2);
                     expectGroup.getUserMembers().add(duplicateIdentity);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
@@ -309,7 +311,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
                     // delete the group
                     getGroupDAO().deleteGroup(actualGroup.getID());
-                    
+
                     // should not be member of admin of expectGroup2
                     expectGroup2.getGroupAdmins().remove(actualGroup);
                     expectGroup2.getGroupMembers().remove(actualGroup);
@@ -437,7 +439,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                          "GroupNotFoundException");
                 }
                 catch (GroupNotFoundException ignore) {}
-                
+
                 try
                 {
                     getGroupDAO().getGroup(groupID, true);
@@ -512,7 +514,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         assertEquals(gr1.getUserMembers(), gr2.getUserMembers());
         assertEquals(gr1.getUserMembers().size(), gr2.getUserMembers()
                 .size());
-        for (User<?> user : gr1.getUserMembers())
+        for (User user : gr1.getUserMembers())
         {
             assertTrue(gr2.getUserMembers().contains(user));
         }
@@ -527,7 +529,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         assertEquals(gr1.getUserAdmins(), gr2.getUserAdmins());
         assertEquals(gr1.getUserAdmins().size(), gr2.getUserAdmins()
                 .size());
-        for (User<?> user : gr1.getUserAdmins())
+        for (User user : gr1.getUserAdmins())
         {
             assertTrue(gr2.getUserAdmins().contains(user));
         }

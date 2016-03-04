@@ -110,7 +110,8 @@ public class AddUserMemberActionTest
             String userID = "foo";
             String userIDType = IdentityType.USERNAME.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
-            User<Principal> user = new User<Principal>(userPrincipal);
+            User user = new User();
+            user.getIdentities().add(userPrincipal);
 
             Group group = new Group("group", null);
             group.getUserMembers().add(user);
@@ -145,7 +146,8 @@ public class AddUserMemberActionTest
             String userID = "foo";
             String userIDType = IdentityType.USERNAME.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
-            User<Principal> user = new User<Principal>(userPrincipal);
+            User user = new User();
+            user.getIdentities().add(userPrincipal);
 
             Group group = new Group("group", null);
             Group modified = new Group("group", null);

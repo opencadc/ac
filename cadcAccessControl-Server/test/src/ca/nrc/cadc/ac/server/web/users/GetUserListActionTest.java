@@ -69,6 +69,24 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Level;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
@@ -76,28 +94,7 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import org.apache.log4j.Level;
-
-import org.json.JSONArray;
-
 import ca.nrc.cadc.util.Log4jInit;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.easymock.EasyMock.*;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import org.skyscreamer.jsonassert.JSONAssert;
 
 /**
  *
@@ -117,15 +114,16 @@ public class GetUserListActionTest
     {
         final SyncOutput mockSyncOut =
                 createMock(SyncOutput.class);
-        final UserPersistence<HttpPrincipal> mockUserPersistence =
+        final UserPersistence mockUserPersistence =
                 createMock(UserPersistence.class);
-        List<User<Principal>> expectedUsers = new ArrayList<User<Principal>>();
+        List<User> expectedUsers = new ArrayList<User>();
 
         for (int i = 1; i <= 5; i++)
         {
-            User<Principal> user = new User<Principal>(new HttpPrincipal("USER_" + i));
+            User user = new User();
+            user.getIdentities().add(new HttpPrincipal("USER_" + i));
             PersonalDetails pd = new PersonalDetails("USER", Integer.toString(i));
-            user.details.add(pd);
+            user.personalDetails = pd;
             expectedUsers.add(user);
         }
 
@@ -163,15 +161,16 @@ public class GetUserListActionTest
     {
         final SyncOutput mockSyncOut =
                 createMock(SyncOutput.class);
-        final UserPersistence<HttpPrincipal> mockUserPersistence =
+        final UserPersistence mockUserPersistence =
                 createMock(UserPersistence.class);
-        List<User<Principal>> expectedUsers = new ArrayList<User<Principal>>();
+        List<User> expectedUsers = new ArrayList<User>();
 
         for (int i = 1; i <= 5; i++)
         {
-            User<Principal> user = new User<Principal>(new HttpPrincipal("USER_" + i));
+            User user = new User();
+            user.getIdentities().add(new HttpPrincipal("USER_" + i));
             PersonalDetails pd = new PersonalDetails("USER", Integer.toString(i));
-            user.details.add(pd);
+            user.personalDetails = pd;
             expectedUsers.add(user);
         }
 

@@ -10,7 +10,8 @@ import java.security.AccessControlException;
 import java.util.Collection;
 import java.util.HashSet;
 
-import ca.nrc.cadc.auth.AuthenticatorImpl;
+import javax.security.auth.Subject;
+
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -18,9 +19,8 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
+import ca.nrc.cadc.auth.AuthenticatorImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
-
-import javax.security.auth.Subject;
 
 public class UserLoginServletTest
 {
@@ -75,7 +75,7 @@ public class UserLoginServletTest
 //            }
 
             @Override
-            protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence()
+            protected LdapGroupPersistence getLdapGroupPersistence()
             {
                 proxyGroup = "proxyGroup";
                 nonImpersonGroup = "niGroup";
@@ -85,8 +85,8 @@ public class UserLoginServletTest
                 niGroups.add(new Group(nonImpersonGroup));
                 // mock returns a shell instance
                 @SuppressWarnings("unchecked")
-                LdapGroupPersistence<HttpPrincipal> mockGp =
-                    (LdapGroupPersistence<HttpPrincipal>)EasyMock
+                LdapGroupPersistence mockGp =
+                    (LdapGroupPersistence)EasyMock
                         .createMock(LdapGroupPersistence.class);
                 mockGp.setDetailSelector(new GroupDetailSelector()
                 {
