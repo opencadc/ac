@@ -70,7 +70,6 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.io.PrintStream;
-import java.security.Principal;
 import java.security.cert.CertificateException;
 
 import org.apache.log4j.Logger;
@@ -151,7 +150,7 @@ public class Main
                 // Set the necessary JNDI system property for lookups.
                 System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
 
-                UserPersistence<Principal> userPersistence = new PluginFactory().createUserPersistence();
+                UserPersistence userPersistence = new PluginFactory().createUserPersistence();
                 final CommandRunner runner =  new CommandRunner(parser, userPersistence);
 
                 runner.run();

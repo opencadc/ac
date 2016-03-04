@@ -106,10 +106,12 @@ public class CommandRunnerTest
     {
         final CommandRunner testSubject =
                 new CommandRunner(mockParser, mockUserPersistence);
-        final List<User<Principal>> userData = new ArrayList<>();
+        final List<User> userData = new ArrayList<>();
         final Principal p = new HttpPrincipal("TEST USER");
 
-        userData.add(new User<>(p));
+        User u = new User();
+        u.getIdentities().add(p);
+        userData.add(u);
 
         expect(mockParser.getCommand()).andReturn(new ListActiveUsers());
 
@@ -126,9 +128,11 @@ public class CommandRunnerTest
     {
         final CommandRunner testSubject =
                 new CommandRunner(mockParser, mockUserPersistence);
-        final List<User<HttpPrincipal>> userData = new ArrayList<>();
+        final List<User> userData = new ArrayList<>();
 
-        userData.add(new User<>(new HttpPrincipal("PENDING USER")));
+        User u = new User();
+        u.getIdentities().add(new HttpPrincipal("PENDING USER"));
+        userData.add(u);
 
         expect(mockParser.getCommand()).andReturn(new ListPendingUsers());
 
@@ -146,7 +150,8 @@ public class CommandRunnerTest
         final CommandRunner testSubject =
                 new CommandRunner(mockParser, mockUserPersistence);
         final HttpPrincipal principalData = new HttpPrincipal("TESTUSER");
-        final User<HttpPrincipal> userData = new User<>(principalData);
+        final User userData = new User();
+        userData.getIdentities().add(principalData);
 
         expect(mockParser.getCommand()).andReturn(new ViewUser("TESTUSER"));
 
@@ -165,7 +170,8 @@ public class CommandRunnerTest
         final CommandRunner testSubject =
                 new CommandRunner(mockParser, mockUserPersistence);
         final HttpPrincipal principalData = new HttpPrincipal("PENDINGUSER");
-        final User<HttpPrincipal> userData = new User<>(principalData);
+        final User userData = new User();
+        userData.getIdentities().add(principalData);
 
         expect(mockParser.getCommand()).andReturn(new ApproveUser("PENDINGUSER", "CN=DN"));
 

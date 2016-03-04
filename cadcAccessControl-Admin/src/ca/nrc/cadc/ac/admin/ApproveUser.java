@@ -70,11 +70,9 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.util.Date;
 import java.util.IllegalFormatException;
 import java.util.Properties;
-import java.util.Set;
 
 import javax.mail.Address;
 import javax.mail.Message;
@@ -86,7 +84,6 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -151,7 +148,7 @@ public class ApproveUser extends AbstractUserCommand
             return;
         }
 
-        User<Principal> user = null;
+        User user = null;
         try
         {
             user = this.getUserPersistence().getUser(this.getPrincipal());
@@ -176,7 +173,7 @@ public class ApproveUser extends AbstractUserCommand
 
     }
 
-    private void emailUser(User<Principal>  user)
+    private void emailUser(User  user)
     {
         try
         {
@@ -202,12 +199,10 @@ public class ApproveUser extends AbstractUserCommand
                 return;
             }
 
-            Set<PersonalDetails> pds = user.getDetails(PersonalDetails.class);
             String recipient = null;
-            if (pds != null && !pds.isEmpty())
+            if (user.personalDetails != null)
             {
-                PersonalDetails pd = pds.iterator().next();
-                recipient = pd.email;
+                recipient = user.personalDetails.email;
             }
             if (recipient == null)
             {
