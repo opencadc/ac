@@ -185,7 +185,15 @@ public class User
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[" + id + "]";
+        StringBuilder sb = new StringBuilder();
+        sb.append(getClass().getSimpleName());
+        sb.append("[");
+        if (id != null)
+        {
+            sb.append(id);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private class PrincipalComparator implements Comparator<Principal>

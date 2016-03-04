@@ -263,11 +263,16 @@ public class LdapUserDAO extends LdapDAO
      * @throws UserAlreadyExistsException If the user already exists.
      */
     public void addUser(final UserRequest userRequest)
-            throws TransientException, UserAlreadyExistsException
+        throws TransientException, UserAlreadyExistsException
     {
+        Principal userID = getSupportedPrincipal(userRequest.getUser().getIdentities());
+        if (userID == null)
+        {
+            throw new IllegalArgumentException("UserRequest missing supported Principal type");
+        }
+
         try
         {
-            Principal userID = userRequest.getUser().getIdentities().iterator().next();
             getUser(userID, config.getUsersDN());
             final String error = userID.getName() + " found in " + config.getUsersDN();
             throw new UserAlreadyExistsException(error);
@@ -294,14 +299,18 @@ public class LdapUserDAO extends LdapDAO
         return userRequest.getUser().personalDetails.email;
     }
 
-    private void checkUsers(final UserRequest userRequest,
-            final String usersDN)
-            throws TransientException, UserAlreadyExistsException
+    private void checkUsers(final UserRequest userRequest, final String usersDN)
+        throws TransientException, UserAlreadyExistsException
     {
         // check current users
         try
         {
-            Principal userID = userRequest.getUser().getIdentities().iterator().next();
+            Principal userID = getSupportedPrincipal(userRequest.getUser().getIdentities());
+            if (userID == null)
+            {
+                throw new IllegalArgumentException("UserRequest missing supported Principal type");
+            }
+
             getUser(userID, usersDN);
             final String error = "user " + userID.getName() + " found in " + usersDN;
             throw new UserAlreadyExistsException(error);
@@ -340,10 +349,14 @@ public class LdapUserDAO extends LdapDAO
         throws TransientException, UserAlreadyExistsException
     {
         final User user = userRequest.getUser();
-        final Principal userID = user.getIdentities().iterator().next();
+        final Principal userID = getSupportedPrincipal(user.getIdentities());
+        if (userID == null)
+        {
+            throw new IllegalArgumentException("UserRequest missing supported Principal type");
+        }
+
         final Class userType = userID.getClass();
         final String searchField = userLdapAttrib.get(userType);
-
         if (searchField == null)
         {
             throw new IllegalArgumentException("Unsupported principal type " + userType);
@@ -564,10 +577,9 @@ public class LdapUserDAO extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    private User getUserByEmailAddress(final String emailAddress,
-            final String usersDN)
-            throws UserNotFoundException, TransientException,
-            AccessControlException, UserAlreadyExistsException
+    private User getUserByEmailAddress(final String emailAddress, final String usersDN)
+        throws UserNotFoundException, TransientException,
+               AccessControlException, UserAlreadyExistsException
     {
         SearchResultEntry searchResult = null;
         Filter filter = null;
@@ -682,8 +694,7 @@ public class LdapUserDAO extends LdapDAO
         profiler.checkpoint("getAugmentedUser.getSearchField");
         if (searchField == null)
         {
-            throw new IllegalArgumentException(
-                "Unsupported principal type " + userID.getClass());
+            throw new IllegalArgumentException("Unsupported principal type " + userID.getClass());
         }
 
         try
@@ -1301,6 +1312,25 @@ public class LdapUserDAO extends LdapDAO
     {
         Random rand = new Random();
         return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
+    }
+
+    /**
+     * Get the first supported Principal out of the list of the User's Principals, or
+     * null of if the User doesn't have a supported Principal.
+     *
+     * @param identities Set of User's Principals.
+     * @return a Principal.
+     */
+    protected Principal getSupportedPrincipal(final Set<Principal> identities)
+    {
+        for (Principal principal : identities)
+        {
+            if (userLdapAttrib.get(principal.getClass()) != null)
+            {
+                return principal;
+            }
+        }
+        return null;
     }
 
     protected InternalID getInternalID(String numericID)
