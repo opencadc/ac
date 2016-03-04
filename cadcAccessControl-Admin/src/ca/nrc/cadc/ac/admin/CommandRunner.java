@@ -92,11 +92,11 @@ public class CommandRunner
 {
     private final static Logger LOGGER = Logger.getLogger(CommandRunner.class);
     private final CmdLineParser commandLineParser;
-    private final UserPersistence<Principal> userPersistence;
+    private final UserPersistence userPersistence;
 
 
     public CommandRunner(final CmdLineParser commandLineParser,
-                         final UserPersistence<Principal> userPersistence)
+                         final UserPersistence userPersistence)
     {
         this.commandLineParser = commandLineParser;
         this.userPersistence = userPersistence;

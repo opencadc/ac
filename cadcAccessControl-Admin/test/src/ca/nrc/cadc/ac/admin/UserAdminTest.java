@@ -68,13 +68,29 @@
  */
 package ca.nrc.cadc.ac.admin;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.admin.ContextFactoryImpl;
-import ca.nrc.cadc.ac.admin.Main;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.DNPrincipal;
@@ -83,19 +99,6 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import java.io.*;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 
 public class UserAdminTest
@@ -222,7 +225,7 @@ public class UserAdminTest
     {
         String userID = "foo_" + System.currentTimeMillis();
 
-        String[] args = new String[] { "--approve=" + userID, 
+        String[] args = new String[] { "--approve=" + userID,
             "--dn=UID=" + userID + ",OU=Users,OU=ds,DC=testcanfar"};
 
         doTest(args);
@@ -302,16 +305,17 @@ public class UserAdminTest
         String dn = "uid=" + username + "," + config.getUsersDN();
         X500Principal x500Principal = new X500Principal(dn);
 
-        final User<Principal> expected = new User<Principal>(userID);
+        final User expected = new User();
+        expected.getIdentities().add(userID);
         expected.getIdentities().add(userID);
         expected.getIdentities().add(x500Principal);
 
         PersonalDetails pd = new PersonalDetails("foo", "bar");
-        pd.email = username + "@canada.ca";                                      
-        expected.details.add(pd);
+        pd.email = username + "@canada.ca";
+        expected.personalDetails = pd;
 
-        final UserRequest<Principal> userRequest =
-            new UserRequest<Principal>(expected, "123456".toCharArray());
+        final UserRequest userRequest =
+            new UserRequest(expected, "123456".toCharArray());
 
         Subject subject = new Subject();
         subject.getPrincipals().add(userID);
@@ -325,7 +329,7 @@ public class UserAdminTest
                 {
                     try
                     {
-                        final LdapUserPersistence<Principal> userDAO = getUserPersistence();
+                        final LdapUserPersistence userDAO = getUserPersistence();
                         if (isPending)
                         {
                             userDAO.addPendingUser(userRequest);
@@ -349,7 +353,7 @@ public class UserAdminTest
         Subject.doAs(subject, action);
     }
 
-    User<Principal> getUser(final String username, final boolean isPending,
+    User getUser(final String username, final boolean isPending,
                             final boolean expectedFound)
         throws PrivilegedActionException
     {
@@ -359,15 +363,15 @@ public class UserAdminTest
         subject.getPrincipals().add(userID);
         subject.getPrincipals().add(getDNPrincipal(username, isPending));
 
-        PrivilegedExceptionAction<User<Principal>> action =
-            new PrivilegedExceptionAction<User<Principal>>()
+        PrivilegedExceptionAction<User> action =
+            new PrivilegedExceptionAction<User>()
         {
-            public User<Principal> run()
+            public User run()
                 throws Exception
             {
                 try
                 {
-                    final LdapUserPersistence<Principal> userDAO = getUserPersistence();
+                    final LdapUserPersistence userDAO = getUserPersistence();
                     if (isPending)
                     {
                         return userDAO.getPendingUser(userID);
@@ -391,10 +395,10 @@ public class UserAdminTest
         return Subject.doAs(subject, action);
     }
 
-    <T extends Principal> LdapUserPersistence<T> getUserPersistence()
+    <T extends Principal> LdapUserPersistence getUserPersistence()
     {
         System.setProperty("java.naming.factory.initial", ContextFactoryImpl.class.getName());
-        return new LdapUserPersistence<T>();
+        return new LdapUserPersistence();
     }
 
     DNPrincipal getDNPrincipal(final String username, final boolean isPending)

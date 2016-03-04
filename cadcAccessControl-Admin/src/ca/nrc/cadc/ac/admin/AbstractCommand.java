@@ -71,7 +71,6 @@ package ca.nrc.cadc.ac.admin;
 
 import java.io.PrintStream;
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.security.PrivilegedAction;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
@@ -88,12 +87,12 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
     protected PrintStream systemOut = System.out;
     protected PrintStream systemErr = System.err;
 
-    private UserPersistence<Principal> userPersistence;
+    private UserPersistence userPersistence;
 
-	   
+
     protected abstract void doRun()
             throws AccessControlException, TransientException;
-    
+
     /**
      * Set the system out.
      * @param printStream       The stream to write System.out to .
@@ -102,7 +101,7 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
     {
         this.systemOut = printStream;
     }
-    
+
     /**
      * Set the system err.
      * @param printStream       The stream to write System.err to.
@@ -111,36 +110,36 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
     {
         this.systemErr = printStream;
     }
-    
+
     @Override
-    public Object run() 
+    public Object run()
     {
-        try 
+        try
         {
             this.doRun();
-        } 
-        catch (AccessControlException e) 
+        }
+        catch (AccessControlException e)
         {
             this.systemErr.println("ERROR: " + e.getMessage());
             e.printStackTrace(systemErr);
-        } 
-        catch (TransientException e) 
+        }
+        catch (TransientException e)
         {
             String message = "Internal Transient Error: " + e.getMessage();
             this.systemErr.println("ERROR: " + message);
             e.printStackTrace(systemErr);
         }
-		
+
         return null;
     }
 
     protected void setUserPersistence(
-            final UserPersistence<Principal> userPersistence)
+            final UserPersistence userPersistence)
     {
         this.userPersistence = userPersistence;
     }
 
-    public UserPersistence<Principal> getUserPersistence()
+    public UserPersistence getUserPersistence()
     {
         return userPersistence;
     }
