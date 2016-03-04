@@ -174,8 +174,8 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                GroupNotFoundException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
-        User owner = getUser(caller);
-        group.setOwner(owner);
+//        Principal owner = getUser(caller);
+//        group.setOwner(owner);
 
         LdapConnections conns = new LdapConnections(this);
         try
@@ -382,7 +382,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         return ds.iterator().next();
     }
 
-    private User getUser(Subject caller)
+    private Principal getUser(Subject caller)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
@@ -391,6 +391,6 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         if (gset == null || gset.isEmpty())
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
-        return gms.getUser();
+        return gms.getUserID();
     }
 }

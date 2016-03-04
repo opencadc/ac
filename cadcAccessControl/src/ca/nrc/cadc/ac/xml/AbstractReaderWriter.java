@@ -1079,8 +1079,6 @@ public abstract class AbstractReaderWriter
             Field field = user.getClass().getDeclaredField(ID);
             field.setAccessible(true);
             field.set(user, internalID);
-
-
         }
         catch (NoSuchFieldException e)
         {

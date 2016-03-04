@@ -476,7 +476,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
-     * @param user
+     * @param userID        the user.
      * @param oldPassword   current password.
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
@@ -510,8 +510,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     /**
      * Reset a user's password. The given user and authenticating user must match.
      *
-     * @param user
-     * @param oldPassword   current password.
+     * @param userID        The user.
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
      * @throws TransientException   If an temporary, unexpected problem occurred.
@@ -559,14 +558,14 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         return false;
     }
 
-    private boolean isMatch(Subject caller, Principal userID)
+    private boolean isMatch(Subject caller, Principal identity)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
         for (Principal pc : caller.getPrincipals())
         {
-            if (AuthenticationUtil.equals(pc, userID))
+            if (AuthenticationUtil.equals(pc, identity))
                 return true;
         }
         return false;

@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
@@ -113,7 +114,7 @@ public abstract class UserActionFactory
                 {
                     String userID = NetUtil.decode(segments[0]);
                     User user = getUser(userID, request.getParameter("idType"));
-                    action = new GetUserAction(user.getUserID(), request.getParameter("detail"));
+                    action = new GetUserAction(new NumericPrincipal(user.getID().getUUID()), request.getParameter("detail"));
                 }
 
                 if (action != null)
@@ -202,7 +203,7 @@ public abstract class UserActionFactory
                 {
                     String userID = NetUtil.decode(segments[0]);
                     User user = getUser(userID, request.getParameter("idType"));
-                    action = new DeleteUserAction(user.getUserID());
+                    action = new DeleteUserAction(new NumericPrincipal(user.getID().getUUID()));
                 }
 
                 if (action != null)
@@ -246,9 +247,7 @@ public abstract class UserActionFactory
         }
         else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
         {
-            // TODO: userName will now be a UUID, so no Integer.parseInt
-            // leaving this broken on purpose...
-            user.getIdentities().add(new NumericPrincipal(Integer.parseInt(userName)));
+            user.getIdentities().add(new NumericPrincipal(UUID.fromString(userName)));
         }
         else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue()))
         {

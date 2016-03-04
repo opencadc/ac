@@ -137,7 +137,7 @@ public class AuthenticatorImpl implements Authenticator
         {
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
-            User<Principal> user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next());
+            User user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next());
             if (user.getIdentities() != null)
             {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");

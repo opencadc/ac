@@ -500,7 +500,7 @@ public class LdapGroupDAO extends LdapDAO
                     DN memberDN = new DN(member);
                     if (memberDN.isDescendantOf(config.getUsersDN(), false))
                     {
-                        User<X500Principal> user;
+                        User user;
                         try
                         {
                             user = userDAO.getX500User(memberDN);

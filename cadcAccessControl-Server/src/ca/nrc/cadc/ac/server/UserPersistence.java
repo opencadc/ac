@@ -145,9 +145,9 @@ public interface UserPersistence
             TransientException, AccessControlException;
 
     /**
-     * Get the user specified by userID whose account is pending approval.
+     * Get the user with the specified Principal whose account is pending approval.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @return User instance.
      *
@@ -160,9 +160,9 @@ public interface UserPersistence
         AccessControlException;
 
     /**
-     * Get the user specified by userID with all of the users identities.
+     * Get the user with the specified Principal with all of the users identities.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @return User instance.
      *
@@ -195,10 +195,10 @@ public interface UserPersistence
         throws TransientException, AccessControlException;
 
     /**
-     * Move the pending user specified by userID from the
+     * Move the pending user with the specified Principal from the
      * pending users tree to the active users tree.
      *
-     * @param userID      The userID.
+     * @param userID A Principal of the User.
      *
      * @return User instance.
      *
@@ -211,7 +211,7 @@ public interface UserPersistence
         AccessControlException;
 
     /**
-     * Update the user specified by userID in the active users tree.
+     * Update the user with the specified Principal in the active users tree.
      *
      * @param user      The user instance to modify.
      *
@@ -226,9 +226,9 @@ public interface UserPersistence
                AccessControlException;
 
     /**
-     * Delete the user specified by userID from the active users tree.
+     * Delete the user with the specified Principal from the active users tree.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
@@ -239,9 +239,9 @@ public interface UserPersistence
                AccessControlException;
 
     /**
-     * Delete the user specified by userID from the pending users tree.
+     * Delete the user with the specified Principal from the pending users tree.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.

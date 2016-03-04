@@ -76,6 +76,7 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
+import ca.nrc.cadc.ac.WriterException;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -253,8 +254,8 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @return                      User Request instance.
      * @throws IOException          Any reading errors.
      */
-    protected UserRequest readUserRequest(
-            final InputStream inputStream) throws IOException
+    protected UserRequest readUserRequest(final InputStream inputStream)
+        throws ReaderException, IOException
     {
         final UserRequest userRequest;
 
@@ -287,7 +288,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @throws IOException      Any errors in reading the stream.
      */
     protected User readUser(final InputStream inputStream)
-            throws IOException
+        throws ReaderException, IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);
         final User user;
@@ -319,7 +320,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @throws IOException      Any writing errors.
      */
     protected void writeUser(final User user)
-            throws IOException
+        throws WriterException, IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
@@ -343,7 +344,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @param users         The Map of user IDs to names.
      */
     protected void writeUsers(final Collection<User> users)
-            throws IOException
+        throws WriterException, IOException
     {
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
