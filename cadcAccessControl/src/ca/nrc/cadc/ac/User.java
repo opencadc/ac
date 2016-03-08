@@ -68,14 +68,14 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class User
 {
@@ -141,6 +141,39 @@ public class User
         return null;
     }
 
+    /**
+     * A User is considered consistent if the User's set of identities are a superset
+     * of this Users set of identities.
+     *
+     * @param other
+     * @return
+     */
+    public boolean isConsistent(final User other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        for (Principal identity: getIdentities())
+        {
+            boolean found = false;
+            for (Principal op: other.getIdentities())
+            {
+                if (op == identity)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
@@ -152,6 +185,13 @@ public class User
         if (id != null)
         {
             result = prime * result + id.hashCode();
+        }
+        else
+        {
+            for (Principal principal : getIdentities())
+            {
+                result = prime * result + principal.hashCode();
+            }
         }
         return result;
     }
@@ -175,6 +215,15 @@ public class User
             return false;
         }
         User other = (User) obj;
+        if (this.id == null && other.id == null)
+        {
+            return isConsistent(other);
+        }
+        if ((this.id == null && other.id != null) ||
+            (this.id != null && other.id == null))
+        {
+            return false;
+        }
         if (id.equals(other.id))
         {
             return true;
@@ -201,18 +250,31 @@ public class User
         @Override
         public int compare(Principal o1, Principal o2)
         {
-            if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
+            int ret = -1;
+            if (o1 == null && o2 == null)
             {
-                return 0;
+                ret = 0;
+            }
+            else if (o1 == null && o2 != null)
+            {
+                ret = 1;
+            }
+            else if (o1 != null && o2 == null)
+            {
+                ret = -1;
+            }
+            else if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
+            {
+                ret = 0;
             }
             else if (o1.getClass() == o2.getClass())
             {
                 if (o1.getName().equals(o2.getName()))
                 {
-                    return 0;
+                    ret = 0;
                 }
             }
-            return -1;
+            return ret;
         }
     }
 

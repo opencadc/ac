@@ -88,18 +88,102 @@ public class UserTest
     private static Logger log = Logger.getLogger(UserTest.class);
 
     @Test
+    public void isConsistentTest() throws Exception
+    {
+        User user1 = new User();
+        User user2 = null;
+
+        assertFalse(user1.isConsistent(user2));
+
+        user2 = new User();
+        assertTrue(user1.isConsistent(user2));
+
+        HttpPrincipal httpPrincipal = new HttpPrincipal("foo");
+        user1.getIdentities().add(httpPrincipal);
+        assertFalse(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+
+        user2.getIdentities().add(httpPrincipal);
+        assertTrue(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+
+        X500Principal x500Principal1 = new X500Principal("cn=foo,c=bar");
+        X500Principal x500Principal2 = new X500Principal("cn=bar,c=foo");
+
+        user1.getIdentities().add(x500Principal1);
+        assertFalse(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+
+        user2.getIdentities().add(x500Principal2);
+        assertFalse(user1.isConsistent(user2));
+        assertFalse(user2.isConsistent(user1));
+
+        user2.getIdentities().add(x500Principal1);
+        assertTrue(user1.isConsistent(user2));
+        assertFalse(user2.isConsistent(user1));
+
+        user1.getIdentities().add(x500Principal2);
+        assertTrue(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+    }
+
+    @Test
     public void simpleEqualityTests() throws Exception
     {
-
         User user1 = new User();
+        User user2 = new User();
+
+        assertEquals(user1, user2);
+        assertEquals(user1.hashCode(), user2.hashCode());
 
         // set InternalID
-        URI uri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
-        InternalID internalID = new InternalID(uri);
-        TestUtil.setInternalID(user1, internalID);
-        assertEquals(user1.getID(), internalID);
+        URI uri1 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        InternalID internalID1 = new InternalID(uri1);
+        TestUtil.setInternalID(user1, internalID1);
+        assertFalse(user1.equals(user2));
 
-        User user2 = user1;
+        URI uri2 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        InternalID internalID2 = new InternalID(uri2);
+        TestUtil.setInternalID(user2, internalID2);
+        assertFalse(user1.equals(user2));
+        assertFalse(user1.hashCode() == user2.hashCode());
+
+        user1 = new User();
+        user2 = new User();
+
+        HttpPrincipal httpPrincipal1 = new HttpPrincipal("foo");
+        user1.getIdentities().add(httpPrincipal1);
+        assertFalse(user1.equals(user2));
+        assertFalse(user1.hashCode() == user2.hashCode());
+
+        user2.getIdentities().add(httpPrincipal1);
+        assertTrue(user1.equals(user2));
+        assertEquals(user1.hashCode(), user2.hashCode());
+
+        HttpPrincipal httpPrincipal2 = new HttpPrincipal("bar");
+        user1.getIdentities().add(httpPrincipal2);
+        assertTrue(user1.equals(user2));
+        assertEquals(user1.hashCode(), user2.hashCode());
+
+        X500Principal x500Principal1 = new X500Principal("cn=foo,c=bar");
+        X500Principal x500Principal2 = new X500Principal("cn=bart,c=foo");
+
+        user1.getIdentities().add(x500Principal1);
+        assertFalse(user1.equals(user2));
+        assertFalse(user1.hashCode() == user2.hashCode());
+
+        user2.getIdentities().add(x500Principal1);
+        assertTrue(user1.equals(user2));
+        assertEquals(user1.hashCode(), user2.hashCode());
+
+        user1.getIdentities().add(x500Principal2);
+        assertFalse(user1.equals(user2));
+        assertFalse(user1.hashCode() == user2.hashCode());
+
+        user2.getIdentities().add(x500Principal2);
+        assertTrue(user1.equals(user2));
+        assertEquals(user1.hashCode(), user2.hashCode());
+
         assertEquals(user1, user2);
         assertEquals(user1.hashCode(), user2.hashCode());
 
