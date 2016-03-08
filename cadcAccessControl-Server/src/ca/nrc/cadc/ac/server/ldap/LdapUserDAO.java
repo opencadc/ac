@@ -68,43 +68,22 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.security.auth.x500.X500Principal;
-
-import ca.nrc.cadc.ac.InternalID;
-import org.apache.log4j.Logger;
-
+import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
-
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -128,6 +107,23 @@ import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
+import org.apache.log4j.Logger;
+
+import javax.security.auth.x500.X500Principal;
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 
 /**
@@ -398,7 +394,9 @@ public class LdapUserDAO extends LdapDAO
 
             DN userDN = getUserDN(userID.getName(), usersDN);
             AddRequest addRequest = new AddRequest(userDN, attributes);
-            LDAPResult result = getReadWriteConnection().add(addRequest);
+            LDAPConnection foo = getReadWriteConnection();
+            logger.debug("RW connection: " + foo.getConnectionPoolName());
+            LDAPResult result = foo.add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
         }
         catch (LDAPException e)
@@ -723,6 +721,7 @@ public class LdapUserDAO extends LdapDAO
 
             String numericID = searchResult.getAttributeValue(LDAP_NUMERICID);
             logger.debug("numericID is " + numericID);
+
             InternalID internalID = getInternalID(numericID);
             setInternalID(user, internalID);
             user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
@@ -1335,14 +1334,17 @@ public class LdapUserDAO extends LdapDAO
 
     protected InternalID getInternalID(String numericID)
     {
+        UUID uuid = new UUID(0L, Long.parseLong(numericID));
+
+        final String uriString = AC.USER_URI + uuid.toString();
         URI uri;
         try
         {
-            uri = new URI(numericID);
+            uri = new URI(uriString);
         }
         catch (URISyntaxException e)
         {
-            throw new RuntimeException("Invalid InternalID URI " + numericID);
+            throw new RuntimeException("Invalid InternalID URI " + uriString);
         }
         return new InternalID(uri);
     }

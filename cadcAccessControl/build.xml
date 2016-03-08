@@ -123,7 +123,7 @@
                 <pathelement path="${build}/test/class"/>
                 <pathelement path="${testingJars}"/>
             </classpath>
-            <test name="ca.nrc.cadc.ac.client.GMSClientTest" />
+            <!--<test name="ca.nrc.cadc.ac.client.GMSClientTest" />-->
             <!--<test name="ca.nrc.cadc.ac.client.JsonUserListInputStreamWrapperTest" />-->
             <!--<test name="ca.nrc.cadc.ac.client.UserClientTest" />-->
 
@@ -133,7 +133,7 @@
             <!--<test name="ca.nrc.cadc.ac.PosixDetailsTest" />-->
             <!--<test name="ca.nrc.cadc.ac.RoleTest" />-->
             <!--<test name="ca.nrc.cadc.ac.UserRequestTest" />-->
-            <!--<test name="ca.nrc.cadc.ac.UserTest" />-->
+            <test name="ca.nrc.cadc.ac.UserTest" />
 
             <!--<test name="ca.nrc.cadc.ac.json.JsonGroupReaderWriterTest" />-->
             <!--<test name="ca.nrc.cadc.ac.json.JsonUserReaderWriterTest" />-->
