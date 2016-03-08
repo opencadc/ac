@@ -78,6 +78,7 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -394,10 +395,9 @@ public class LdapUserDAO extends LdapDAO
 
             DN userDN = getUserDN(userID.getName(), usersDN);
             AddRequest addRequest = new AddRequest(userDN, attributes);
-            LDAPConnection foo = getReadWriteConnection();
-            logger.debug("RW connection: " + foo.getConnectionPoolName());
-            LDAPResult result = foo.add(addRequest);
+            LDAPResult result = getReadWriteConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
+            logger.info("added " + userID.getName() + " to " + usersDN);
         }
         catch (LDAPException e)
         {
@@ -561,6 +561,7 @@ public class LdapUserDAO extends LdapDAO
             user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
         }
 
+        logger.info("got " + userID.getName() + " from " + usersDN);
         return user;
     }
     
@@ -968,7 +969,9 @@ public class LdapUserDAO extends LdapDAO
         }
         try
         {
-            return getUser(user.getHttpPrincipal());
+            User ret = getUser(user.getHttpPrincipal());
+            logger.info("updated " + user.getHttpPrincipal().getName());
+            return ret;
         }
         catch (UserNotFoundException e)
         {
@@ -1180,25 +1183,25 @@ public class LdapUserDAO extends LdapDAO
     DN getUserDN(User user)
         throws UserNotFoundException, TransientException
     {
-        NumericPrincipal numericPrincipal = new NumericPrincipal(user.getID().getUUID());
-        String searchField = userLdapAttrib.get(numericPrincipal);
+        Principal userID = user.getHttpPrincipal();
+        String searchField = userLdapAttrib.get(userID.getClass());
         if (searchField == null)
         {
             throw new IllegalArgumentException(
-                    "Unsupported principal type " + numericPrincipal.getClass());
+                    "Unsupported principal type " + userID.getClass());
         }
 
         // change the DN to be in the 'java' format
         Filter filter;
-//        if (user.getUserID() instanceof X500Principal)
+//        if (userID instanceof X500Principal)
 //        {
 //            X500Principal orderedPrincipal = AuthenticationUtil.getOrderedForm(
-//                (X500Principal) user.getUserID());
+//                (X500Principal) userID);
 //            filter = Filter.createEqualityFilter(searchField, orderedPrincipal.toString());
 //        }
 //        else
 //        {
-            filter = Filter.createEqualityFilter(searchField, numericPrincipal.getName());
+            filter = Filter.createEqualityFilter(searchField, userID.getName());
 //        }
         logger.debug("search filter: " + filter);
 
@@ -1208,6 +1211,7 @@ public class LdapUserDAO extends LdapDAO
             SearchRequest searchRequest = new SearchRequest(
                 config.getUsersDN(), SearchScope.ONE, filter, LDAP_ENTRYDN);
             searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            logger.info("getUserDN: got " + userID.getName() + " from " + config.getUsersDN());
         }
         catch (LDAPException e)
         {
@@ -1216,7 +1220,7 @@ public class LdapUserDAO extends LdapDAO
 
         if (searchResult == null)
         {
-            String msg = "User not found " + user.getID().getURI();
+            String msg = "User not found " + userID.getName() + " in " + config.getUsersDN();
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
