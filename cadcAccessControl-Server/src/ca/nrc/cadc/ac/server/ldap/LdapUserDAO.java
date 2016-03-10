@@ -264,7 +264,7 @@ public class LdapUserDAO extends LdapDAO
     public void addUser(final UserRequest userRequest)
         throws TransientException, UserAlreadyExistsException
     {
-        Principal userID = getSupportedPrincipal(userRequest.getUser().getIdentities());
+        Principal userID = getSupportedPrincipal(userRequest.getUser());
         if (userID == null)
         {
             throw new IllegalArgumentException("UserRequest missing supported Principal type");
@@ -304,7 +304,7 @@ public class LdapUserDAO extends LdapDAO
         // check current users
         try
         {
-            Principal userID = getSupportedPrincipal(userRequest.getUser().getIdentities());
+            Principal userID = getSupportedPrincipal(userRequest.getUser());
             if (userID == null)
             {
                 throw new IllegalArgumentException("UserRequest missing supported Principal type");
@@ -348,7 +348,7 @@ public class LdapUserDAO extends LdapDAO
         throws TransientException, UserAlreadyExistsException
     {
         final User user = userRequest.getUser();
-        final Principal userID = getSupportedPrincipal(user.getIdentities());
+        final Principal userID = getSupportedPrincipal(user);
         if (userID == null)
         {
             throw new IllegalArgumentException("UserRequest missing supported Principal type");
@@ -367,9 +367,12 @@ public class LdapUserDAO extends LdapDAO
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
-            addAttribute(attributes, LDAP_COMMON_NAME, userID.getName());
+            if (user.getHttpPrincipal() != null)
+            {
+                addAttribute(attributes, LDAP_COMMON_NAME, userID.getName());
+            }
             addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
-            addAttribute(attributes, LDAP_NUMERICID, String.valueOf(genNextNumericId()));
+            addAttribute(attributes, LDAP_UID, String.valueOf(genNextNumericId()));
 
             for (Principal princ : user.getIdentities())
             {
@@ -531,16 +534,16 @@ public class LdapUserDAO extends LdapDAO
             user.getIdentities().add(new HttpPrincipal(username));
         }
 
-        String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
-        logger.debug("Numeric id: " + numericID);
-        if (numericID == null)
+        String uid = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
+        logger.debug("uid: " + uid);
+        if (uid == null)
         {
             // If the numeric ID does not return it means the user
             // does not have permission
             throw new AccessControlException("Permission denied");
         }
 
-        InternalID internalID = getInternalID(numericID);
+        InternalID internalID = getInternalID(uid);
         setField(user, internalID, USER_ID);
         user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
@@ -1323,12 +1326,26 @@ public class LdapUserDAO extends LdapDAO
      * Get the first supported Principal out of the list of the User's Principals, or
      * null of if the User doesn't have a supported Principal.
      *
-     * @param identities Set of User's Principals.
+     * @param user  the User.
      * @return a Principal.
      */
-    protected Principal getSupportedPrincipal(final Set<Principal> identities)
+    protected Principal getSupportedPrincipal(final User user)
     {
-        for (Principal principal : identities)
+        // Look for a HttpPrincipal first.
+        if (user.getHttpPrincipal() != null)
+        {
+            return user.getHttpPrincipal();
+        }
+
+        // X500Principal next
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+        if (!x500Principals.isEmpty())
+        {
+            return x500Principals.iterator().next();
+        }
+
+        // Another supported Principal
+        for (Principal principal : user.getIdentities())
         {
             if (userLdapAttrib.get(principal.getClass()) != null)
             {
