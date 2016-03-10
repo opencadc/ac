@@ -148,7 +148,7 @@ public class UserReaderWriterTest
         User expected = new User();
         UUID uuid = UUID.randomUUID();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
-        TestUtil.setInternalID(expected, new InternalID(uri));
+        TestUtil.setField(expected, new InternalID(uri), AbstractReaderWriter.ID);
         expected.getIdentities().add(new NumericPrincipal(uuid));
         expected.personalDetails = new PersonalDetails("firstname", "lastname");
         

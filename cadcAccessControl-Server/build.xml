@@ -141,9 +141,9 @@
       <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapConfigTest" />-->
       <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapConnectionsTest" />-->
       <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTest" />-->
-      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />-->
+      <test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />
       <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapPersistenceTest" />-->
-      <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />-->
 
       <!--<test name="ca.nrc.cadc.ac.server.web.groups.AddGroupMemberActionTest" />-->
       <!--<test name="ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest" />-->

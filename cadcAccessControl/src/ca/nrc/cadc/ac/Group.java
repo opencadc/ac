@@ -97,7 +97,7 @@ public class Group
     public Date lastModified;
 
     public Group() {}
-    
+
     /**
      * Ctor.
      * 
@@ -107,24 +107,10 @@ public class Group
      */
     public Group(String groupID)
     {
-        this(groupID, null);
-    }
-
-    /**
-     * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
-     *                  and "-", ".","_","~" characters.
-     * @param owner     Owner/Creator of the group.
-     */
-    public Group(String groupID, User owner)
-    {
         if (groupID == null)
         {
-            throw new IllegalArgumentException("Null groupID");
+            throw new IllegalArgumentException("null groupID");
         }
-
         if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
         {
             throw new IllegalArgumentException("Invalid group ID " + groupID +
@@ -132,7 +118,6 @@ public class Group
         }
 
         this.groupID = groupID;
-        this.owner = owner;
     }
 
     /**
@@ -152,11 +137,6 @@ public class Group
     public User getOwner()
     {
         return owner;
-    }
-
-    public void setOwner(User owner)
-    {
-        this.owner = owner;
     }
 
     /**

@@ -76,6 +76,7 @@ import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -188,7 +189,7 @@ public class JsonGroupReaderWriterTest
         User owner = new User();
         UUID uuid = UUID.randomUUID();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" +uuid);
-        TestUtil.setInternalID(owner, new InternalID(uri));
+        TestUtil.setField(owner, new InternalID(uri), AbstractReaderWriter.ID);
 
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
         owner.getIdentities().add(x500Principal);
@@ -202,21 +203,23 @@ public class JsonGroupReaderWriterTest
         PosixDetails posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
         owner.posixDetails = posixDetails;
 
-        Group expected = new Group("groupID", owner);
+        Group expected = new Group("groupID");
+
+
         expected.description = "description";
         expected.lastModified = new Date();
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
         expected.getProperties().add(new GroupProperty("key2", "value2", true));
         expected.getProperties().add(new GroupProperty("key3", "value3", true));
 
-        Group groupMember = new Group("member", new User());
+        Group groupMember = new Group("member");
         User userMember = new User();
         URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
-        TestUtil.setInternalID(userMember, new InternalID(memberUri));
-        Group groupAdmin = new Group("admin", new User());
+        TestUtil.setField(userMember, new InternalID(memberUri), AbstractReaderWriter.ID);
+        Group groupAdmin = new Group("admin");
         User userAdmin = new User();
         URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
-        TestUtil.setInternalID(userAdmin, new InternalID(adminUri));
+        TestUtil.setField(userAdmin, new InternalID(adminUri), AbstractReaderWriter.ID);
 
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);

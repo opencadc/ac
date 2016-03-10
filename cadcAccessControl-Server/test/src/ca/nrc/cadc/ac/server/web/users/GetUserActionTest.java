@@ -212,16 +212,13 @@ public class GetUserActionTest
     public void writeUserWithDetailDisplay() throws Exception
     {
         final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
-        final UserPersistence mockUserPersistence =
-            createMock(UserPersistence.class);
+        final UserPersistence mockUserPersistence = createMock(UserPersistence.class);
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
         final GetUserAction testSubject = new GetUserAction(userID, "display");
         testSubject.userPersistence = mockUserPersistence;
 
         final User expected = new User();
-        expected.getIdentities().add(userID);
-
         expected.personalDetails = new PersonalDetails("cadc", "test");
 
         StringBuilder sb = new StringBuilder();
@@ -230,10 +227,9 @@ public class GetUserActionTest
         String expectedUser = sb.toString();
 
         expected.personalDetails.city = "city";
-
+        expected.getIdentities().add(userID);
         expected.getIdentities().add(new NumericPrincipal(UUID.randomUUID()));
         expected.getIdentities().add(new X500Principal("cn=foo,o=bar"));
-
         expected.posixDetails = new PosixDetails("username", 123L, 456L, "/dev/null");
 
         final Writer writer = new StringWriter();

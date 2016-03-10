@@ -93,14 +93,13 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 public class ModifyUserActionTest
 {
     @Test
-    public void run() throws Exception
+    public void testModifyUser() throws Exception
     {
         final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
         User expected = new User();
         expected.getIdentities().add(httpPrincipal);
-        final PersonalDetails pd = new PersonalDetails("CADC", "Test");
-        pd.email = "CADC.Test@nrc-cnrc.gc.ca";
-        expected.personalDetails = pd;
+        expected.personalDetails = new PersonalDetails("CADC", "Test");
+        expected.personalDetails.email = "CADC.Test@nrc-cnrc.gc.ca";
 
         final StringBuilder sb = new StringBuilder();
         final JsonUserWriter userWriter = new JsonUserWriter();
@@ -110,13 +109,11 @@ public class ModifyUserActionTest
         final InputStream inputStream = new ByteArrayInputStream(input);
 
         // Should match the JSON above, without the e-mail modification.
+        final User testUser = new User();
         Principal principal = new HttpPrincipal("CADCtest");
-        final User userObject = new User();
-        userObject.getIdentities().add(principal);
-        final PersonalDetails personalDetail =
-                new PersonalDetails("CADC", "Test");
-        personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
-        userObject.personalDetails = personalDetail;
+        testUser.getIdentities().add(principal);
+        testUser.personalDetails = new PersonalDetails("CADC", "Test");
+        testUser.personalDetails.email = "CADC.Test@nrc-cnrc.gc.ca";
 
         StringBuffer requestUrl = new StringBuffer();
         requestUrl.append("http://host/ac/users/CADCtest?idType=HTTP");
@@ -127,15 +124,11 @@ public class ModifyUserActionTest
         EasyMock.expect(mockRequest.getContextPath()).andReturn("/ac").once();
         EasyMock.expect(mockRequest.getServletPath()).andReturn("/users").once();
 
-        final SyncOutput mockSyncOut =
-                createMock(SyncOutput.class);
-
         @SuppressWarnings("unchecked")
         final UserPersistence mockUserPersistence = createMock(UserPersistence.class);
+        expect(mockUserPersistence.modifyUser(testUser)).andReturn(testUser).once();
 
-        expect(mockUserPersistence.modifyUser(userObject)).andReturn(
-            userObject).once();
-
+        final SyncOutput mockSyncOut = createMock(SyncOutput.class);
         mockSyncOut.setHeader("Location", requestUrl.toString());
         expectLastCall().once();
 

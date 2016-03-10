@@ -142,8 +142,8 @@ public class GroupListReaderWriterTest
         throws Exception
     {        
         List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1", null));
-        expected.add(new Group("group2", null));
+        expected.add(new Group("group1"));
+        expected.add(new Group("group2"));
         
         StringBuilder xml = new StringBuilder();
         GroupListWriter groupListWriter = new GroupListWriter();

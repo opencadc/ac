@@ -492,7 +492,10 @@ public abstract class AbstractReaderWriter
             user = getUser(userElement);
         }
 
-        Group group = new Group(groupID, user);
+        Group group = new Group(groupID);
+
+        // set owner field
+        setField(group, user, OWNER);
 
         // description
         Element descriptionElement = element.getChild(DESCRIPTION);
@@ -1072,21 +1075,30 @@ public abstract class AbstractReaderWriter
         }
 
         InternalID internalID = new InternalID(uri);
+        setField(user, internalID, ID);
+    }
 
-        // set private uri field using reflection
+    // set private field using reflection
+    private void setField(Object object, Object value, String name)
+    {
         try
         {
-            Field field = user.getClass().getDeclaredField(ID);
+            Field field = object.getClass().getDeclaredField(name);
             field.setAccessible(true);
-            field.set(user, internalID);
+            field.set(object, value);
         }
         catch (NoSuchFieldException e)
         {
-            throw new RuntimeException("User id field not found", e);
+            final String error = object.getClass().getSimpleName() +
+                                 " field " + name + "not found";
+            throw new RuntimeException(error, e);
         }
         catch (IllegalAccessException e)
         {
-            throw new RuntimeException("unable to update User id field", e);
+            final String error = "unable to update " + name + " in " +
+                                 object.getClass().getSimpleName();
+            throw new RuntimeException(error, e);
         }
     }
+
 }

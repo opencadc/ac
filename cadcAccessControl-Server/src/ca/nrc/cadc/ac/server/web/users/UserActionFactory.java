@@ -114,7 +114,7 @@ public abstract class UserActionFactory
                 {
                     String userID = NetUtil.decode(segments[0]);
                     User user = getUser(userID, request.getParameter("idType"));
-                    action = new GetUserAction(new NumericPrincipal(user.getID().getUUID()), request.getParameter("detail"));
+                    action = new GetUserAction(user.getHttpPrincipal(), request.getParameter("detail"));
                 }
 
                 if (action != null)
@@ -203,7 +203,7 @@ public abstract class UserActionFactory
                 {
                     String userID = NetUtil.decode(segments[0]);
                     User user = getUser(userID, request.getParameter("idType"));
-                    action = new DeleteUserAction(new NumericPrincipal(user.getID().getUUID()));
+                    action = new DeleteUserAction(user.getHttpPrincipal());
                 }
 
                 if (action != null)

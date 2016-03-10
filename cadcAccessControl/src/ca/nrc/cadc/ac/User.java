@@ -160,7 +160,7 @@ public class User
             boolean found = false;
             for (Principal op: other.getIdentities())
             {
-                if (op == identity)
+                if (op.equals(identity))
                 {
                     found = true;
                     break;

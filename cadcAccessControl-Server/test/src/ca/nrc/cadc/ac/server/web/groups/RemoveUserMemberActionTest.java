@@ -75,6 +75,7 @@ import java.security.Principal;
 
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -116,7 +117,7 @@ public class RemoveUserMemberActionTest
             User user = new User();
             user.getIdentities().add(userPrincipal);
 
-            Group group = new Group("group", null);
+            Group group = new Group("group");
             User member = new User();
             member.getIdentities().add(new X500Principal("cn=bar,c=ca"));
             group.getUserMembers().add(member);
@@ -164,8 +165,9 @@ public class RemoveUserMemberActionTest
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
             User user = new User();
             user.getIdentities().add(new X500Principal(userID));
+            user.getIdentities().add(new HttpPrincipal("foo"));
 
-            Group group = new Group("group", null);
+            Group group = new Group("group");
             group.getUserMembers().add(user);
 
             final GroupPersistence mockGroupPersistence = EasyMock.createMock(GroupPersistence.class);

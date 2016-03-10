@@ -87,9 +87,8 @@ public class GroupTest
         Group group2 = group1;
         assertEquals(group1.hashCode(), group2.hashCode());
         assertEquals(group1, group2);
-        
-        User owner = new User();
-        Group group3 = new Group("TestGroup", owner);
+
+        Group group3 = new Group("TestGroup");
         User user = new User();
         
         group3.getUserMembers().add(user);
@@ -99,7 +98,7 @@ public class GroupTest
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3, group4);
         
-        group4 = new Group("TestGroup", owner);
+        group4 = new Group("TestGroup");
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
         
@@ -123,7 +122,7 @@ public class GroupTest
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
         
-        group4 = new Group("NewTestGroup-._~.", owner);
+        group4 = new Group("NewTestGroup-._~.");
         assertFalse(group3.hashCode() == group4.hashCode());
         assertFalse(group3.equals(group4));
         
@@ -137,24 +136,11 @@ public class GroupTest
         boolean thrown = false;
         try
         {
-            new Group(null, new User());
+            new Group(null);
         }
         catch(IllegalArgumentException e)
         {
             thrown = true;
-        }
-        assertTrue(thrown);
-        
-        
-        thrown = false;
-        try
-        {
-            new Group("NewTestGroup", null);
-            thrown = true;
-        }
-        catch(IllegalArgumentException e)
-        {
-            fail("Owner can be null");
         }
         assertTrue(thrown);
         
@@ -162,7 +148,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New/Test/Group", new User());
+            new Group("New/Test/Group");
         }
         catch(IllegalArgumentException e)
         {
@@ -173,7 +159,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New%Test%Group", new User());
+            new Group("New%Test%Group");
         }
         catch(IllegalArgumentException e)
         {
@@ -184,7 +170,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New\\Test\\Group", new User());
+            new Group("New\\Test\\Group");
         }
         catch(IllegalArgumentException e)
         {

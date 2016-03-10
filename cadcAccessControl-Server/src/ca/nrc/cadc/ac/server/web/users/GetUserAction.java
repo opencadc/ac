@@ -154,6 +154,7 @@ public class GetUserAction extends AbstractUserAction
             if (detail != null && detail.equalsIgnoreCase("display"))
             {
                 user.getIdentities().clear();
+                user.posixDetails = null;
                 if (user.personalDetails == null)
                 {
                     String error = principal.getName() + " missing required PersonalDetails";

@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.lang.reflect.Field;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -174,8 +175,8 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                GroupNotFoundException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
-//        Principal owner = getUser(caller);
-//        group.setOwner(owner);
+        Principal owner = getUser(caller);
+        setField(group, owner, "owner");
 
         LdapConnections conns = new LdapConnections(this);
         try
@@ -392,5 +393,28 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
         return gms.getUserID();
+    }
+
+    // set private field using reflection
+    private void setField(Object object, Object value, String name)
+    {
+        try
+        {
+            Field field = object.getClass().getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(object, value);
+        }
+        catch (NoSuchFieldException e)
+        {
+            final String error = object.getClass().getSimpleName() +
+                " field " + name + "not found";
+            throw new RuntimeException(error, e);
+        }
+        catch (IllegalAccessException e)
+        {
+            final String error = "unable to update " + name + " in " +
+                object.getClass().getSimpleName();
+            throw new RuntimeException(error, e);
+        }
     }
 }

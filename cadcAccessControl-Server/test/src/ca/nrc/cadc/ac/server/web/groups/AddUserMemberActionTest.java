@@ -113,7 +113,7 @@ public class AddUserMemberActionTest
             User user = new User();
             user.getIdentities().add(userPrincipal);
 
-            Group group = new Group("group", null);
+            Group group = new Group("group");
             group.getUserMembers().add(user);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
@@ -149,8 +149,8 @@ public class AddUserMemberActionTest
             User user = new User();
             user.getIdentities().add(userPrincipal);
 
-            Group group = new Group("group", null);
-            Group modified = new Group("group", null);
+            Group group = new Group("group");
+            Group modified = new Group("group");
             modified.getUserMembers().add(user);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);

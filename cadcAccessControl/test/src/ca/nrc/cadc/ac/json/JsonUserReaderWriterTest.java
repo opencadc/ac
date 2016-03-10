@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -149,7 +150,7 @@ public class JsonUserReaderWriterTest
         User expected = new User();
         UUID uuid = UUID.randomUUID();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
-        TestUtil.setInternalID(expected, new InternalID(uri));
+        TestUtil.setField(expected, new InternalID(uri), AbstractReaderWriter.ID);
 
         expected.getIdentities().add(new NumericPrincipal(uuid));
         expected.personalDetails = new PersonalDetails("firstname", "lastname");

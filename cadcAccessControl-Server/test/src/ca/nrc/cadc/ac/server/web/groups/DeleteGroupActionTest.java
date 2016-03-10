@@ -100,7 +100,7 @@ public class DeleteGroupActionTest
     {
         try
         {
-            Group group = new Group("group", null);
+            Group group = new Group("group");
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);

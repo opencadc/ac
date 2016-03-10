@@ -143,7 +143,7 @@ public class LdapUserDAO extends LdapDAO
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
 
-    // Returned User attributes
+    // LDAP User attributes
     protected static final String LDAP_OBJECT_CLASS = "objectClass";
     protected static final String LDAP_INET_USER = "inetuser";
     protected static final String LDAP_INET_ORG_PERSON = "inetOrgPerson";
@@ -163,6 +163,7 @@ public class LdapUserDAO extends LdapDAO
     protected static final String LDAP_EMAIL = "email";
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
+    protected static final String USER_ID = "id";
 
     private String[] userAttribs = new String[]
     {
@@ -539,7 +540,7 @@ public class LdapUserDAO extends LdapDAO
         }
 
         InternalID internalID = getInternalID(numericID);
-        setInternalID(user, internalID);
+        setField(user, internalID, USER_ID);
         user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
         String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
@@ -662,7 +663,7 @@ public class LdapUserDAO extends LdapDAO
 
         // Set the User's private InternalID field
         InternalID internalID = getInternalID(numericID);
-        setInternalID(user, internalID);
+        setField(user, internalID, USER_ID);
         user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
         String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
@@ -724,7 +725,7 @@ public class LdapUserDAO extends LdapDAO
             logger.debug("numericID is " + numericID);
 
             InternalID internalID = getInternalID(numericID);
-            setInternalID(user, internalID);
+            setField(user, internalID, USER_ID);
             user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
             String dn = searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME);
@@ -1353,22 +1354,27 @@ public class LdapUserDAO extends LdapDAO
         return new InternalID(uri);
     }
 
-    private void setInternalID(User user, InternalID internalID)
+    // set private field using reflection
+    private void setField(Object object, Object value, String name)
     {
-        // set private uri field using reflection
         try
         {
-            Field field = user.getClass().getDeclaredField("id");
+            Field field = object.getClass().getDeclaredField(name);
             field.setAccessible(true);
-            field.set(user, internalID);
+            field.set(object, value);
         }
         catch (NoSuchFieldException e)
         {
-            throw new RuntimeException("User id field not found", e);
+            final String error = object.getClass().getSimpleName() +
+                " field " + name + "not found";
+            throw new RuntimeException(error, e);
         }
         catch (IllegalAccessException e)
         {
-            throw new RuntimeException("unable to update User id field", e);
+            final String error = "unable to update " + name + " in " +
+                object.getClass().getSimpleName();
+            throw new RuntimeException(error, e);
         }
     }
+
 }

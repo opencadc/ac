@@ -75,6 +75,7 @@ import java.security.Principal;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 
+import ca.nrc.cadc.ac.json.JsonUserWriter;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;

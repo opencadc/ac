@@ -73,6 +73,7 @@ import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 
@@ -117,13 +118,13 @@ public class JsonUserListInputStreamWrapperTest
         final User user1 = new User();
         URI uri1 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         InternalID id1 = new InternalID(uri1);
-        TestUtil.setInternalID(user1, id1);
+        TestUtil.setField(user1, id1, AbstractReaderWriter.ID);
         users.add(user1);
 
         final User user2 = new User();
         URI uri2 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         InternalID id2 = new InternalID(uri2);
-        TestUtil.setInternalID(user2, id2);
+        TestUtil.setField(user2, id2, AbstractReaderWriter.ID);
         user2.personalDetails = new PersonalDetails("firstname", "lastname");
         users.add(user2);
 

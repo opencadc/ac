@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.server;
 
 import java.lang.reflect.Field;
 

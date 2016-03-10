@@ -83,6 +83,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Date;
 import java.util.UUID;
@@ -149,7 +150,7 @@ public class GroupReaderWriterTest
     public void testMinimalReadWrite()
         throws Exception
     {
-        Group expected = new Group("groupID", null);
+        Group expected = new Group("groupID");
                 
         StringBuilder xml = new StringBuilder();
         GroupWriter groupWriter = new GroupWriter();
@@ -177,21 +178,22 @@ public class GroupReaderWriterTest
         owner.personalDetails.country = "country";
         owner.posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
 
-        Group expected = new Group("groupID", owner);
+        Group expected = new Group("groupID");
+        setGroupOwner(expected, owner);
         expected.description = "description";
         expected.lastModified = new Date();
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
         expected.getProperties().add(new GroupProperty("key2", "value2", false));
         
-        Group groupMember = new Group("member", new User());
+        Group groupMember = new Group("member");
         User userMember = new User();
         URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
-        TestUtil.setInternalID(userMember, new InternalID(memberUri));
+        TestUtil.setField(userMember, new InternalID(memberUri), AbstractReaderWriter.ID);
 
-        Group groupAdmin = new Group("admin", new User());
+        Group groupAdmin = new Group("admin");
         User userAdmin = new User();
         URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
-        TestUtil.setInternalID(userAdmin, new InternalID(adminUri));
+        TestUtil.setField(userAdmin, new InternalID(adminUri), AbstractReaderWriter.ID);
         
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);
@@ -212,6 +214,25 @@ public class GroupReaderWriterTest
         assertEquals(expected.getProperties(), actual.getProperties());
         assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
         assertEquals(expected.getUserMembers(), actual.getUserMembers());
+    }
+
+    private void setGroupOwner(Group group, User owner)
+    {
+        // set private uri field using reflection
+        try
+        {
+            Field field = group.getClass().getDeclaredField("owner");
+            field.setAccessible(true);
+            field.set(group, owner);
+        }
+        catch (NoSuchFieldException e)
+        {
+            throw new RuntimeException("Group owner field not found", e);
+        }
+        catch (IllegalAccessException e)
+        {
+            throw new RuntimeException("unable to update Group owner field", e);
+        }
     }
     
 }

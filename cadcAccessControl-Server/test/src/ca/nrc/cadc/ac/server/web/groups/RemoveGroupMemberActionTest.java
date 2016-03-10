@@ -101,8 +101,8 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
+            Group group = new Group("group");
+            Group member = new Group("member");
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
@@ -131,11 +131,11 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            Group member = new Group("member", null);
-            Group group = new Group("group", null);
+            Group member = new Group("member");
+            Group group = new Group("group");
             group.getGroupMembers().add(member);
 
-            Group modified = new Group("group", null);
+            Group modified = new Group("group");
             modified.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);

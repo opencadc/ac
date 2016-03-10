@@ -77,12 +77,12 @@ public class UserListReaderWriterTest
 
         User user1 = new User();
         InternalID id1 = new InternalID(new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID()));
-        TestUtil.setInternalID(user1, id1);
+        TestUtil.setField(user1, id1, AbstractReaderWriter.ID);
         expected.add(user1);
 
         User user2 = new User();
         InternalID id2 = new InternalID(new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID()));
-        TestUtil.setInternalID(user2, id2);
+        TestUtil.setField(user2, id2, AbstractReaderWriter.ID);
         expected.add(user2);
 
         StringBuilder xml = new StringBuilder();

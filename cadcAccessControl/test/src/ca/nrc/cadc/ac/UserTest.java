@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -139,12 +140,12 @@ public class UserTest
         // set InternalID
         URI uri1 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         InternalID internalID1 = new InternalID(uri1);
-        TestUtil.setInternalID(user1, internalID1);
+        TestUtil.setField(user1, internalID1, AbstractReaderWriter.ID);
         assertFalse(user1.equals(user2));
 
         URI uri2 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         InternalID internalID2 = new InternalID(uri2);
-        TestUtil.setInternalID(user2, internalID2);
+        TestUtil.setField(user2, internalID2, AbstractReaderWriter.ID);
         assertFalse(user1.equals(user2));
         assertFalse(user1.hashCode() == user2.hashCode());
 
