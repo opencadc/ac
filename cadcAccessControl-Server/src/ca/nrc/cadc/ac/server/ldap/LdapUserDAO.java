@@ -186,6 +186,7 @@ public class LdapUserDAO extends LdapDAO
         this.userLdapAttrib.put(HttpPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(X500Principal.class, LDAP_DISTINGUISHED_NAME);
         this.userLdapAttrib.put(NumericPrincipal.class, LDAP_NUMERICID);
+        this.userLdapAttrib.put(DNPrincipal.class, LDAP_ENTRYDN);
 
         // add the id attributes to user and member attributes
         String[] princs = userLdapAttrib.values()

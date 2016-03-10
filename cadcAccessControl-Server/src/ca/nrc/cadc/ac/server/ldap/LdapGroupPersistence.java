@@ -175,13 +175,14 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                GroupNotFoundException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
-        Principal owner = getUser(caller);
-        setField(group, owner, "owner");
+        Principal userID = getUser(caller);
 
         LdapConnections conns = new LdapConnections(this);
         try
         {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
+            User owner = userDAO.getAugmentedUser(userID);
+            setField(group, owner, "owner");
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             groupDAO.addGroup(group);
         }
