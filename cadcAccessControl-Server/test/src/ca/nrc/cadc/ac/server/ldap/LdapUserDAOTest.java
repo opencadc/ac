@@ -80,15 +80,12 @@ import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
-import java.util.Random;
-import java.util.UUID;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
-import org.apache.log4j.Level;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -99,7 +96,6 @@ import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.util.Log4jInit;
 
 import com.unboundid.ldap.sdk.DN;
 
@@ -107,68 +103,34 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
 
-    private static final String SERVOPS_PEM = System.getProperty("user.home") + "/.pub/proxy.pem";
-    static final String testUserX500DN = "cn=cadcdaotest1,ou=cadc,o=hia,c=ca";
-    static final String cadcdaotest1DN = "uid=cadcdaotest1,ou=users,ou=ds,dc=testcanfar";
-    static final String cadcdaotest2DN = "uid=cadcdaotest2,ou=users,ou=ds,dc=testcanfar";
-    static int nextUserNumericID = 666;
-
-    static String testUserDN;
-    static User testX500User;
-    static User testMember;
-    static X500Principal testUserX500Principal;
-    static DNPrincipal cadcdaotest1Principal;
-    static DNPrincipal cadcdaotest2Principal;
-    static LdapConfig config;
-    static Random ran = new Random(); // source of randomness for numeric ids
-
-
-    @BeforeClass
-    public static void setUpBeforeClass()
-            throws Exception
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-
-        // get the configuration of the development server from and config files...
-        config = getLdapConfig();
-
-        testUserX500Principal = new X500Principal(testUserX500DN);
-        testX500User = new User();
-        testX500User.getIdentities().add(testUserX500Principal);
-
-        testX500User.personalDetails = new PersonalDetails("CADC", "DAOTest1");
-        testX500User.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
-        testX500User.getIdentities().add(testUserX500Principal);
-        testX500User.getIdentities().add(new NumericPrincipal(UUID.randomUUID()));
-
-        testUserDN = "uid=cadcdaotest1," + config.getUsersDN();
-
-
-        // member returned by getMember contains only the fields required by
-        // the GMS
-        testMember = new User();
-        testMember.personalDetails = new PersonalDetails("CADC", "DAOTest1");
-        testMember.getIdentities().add(testUserX500Principal);
-        testMember.getIdentities().add(new HttpPrincipal("CadcDaoTest1"));
-
-        cadcdaotest1Principal = new DNPrincipal(cadcdaotest1DN);
-        cadcdaotest2Principal = new DNPrincipal(cadcdaotest2DN);
-    }
-
-    LdapUserDAO getUserDAO() throws Exception
-    {
-        LdapConnections connections = new LdapConnections(config);
-        return new LdapUserDAO(connections){
-            protected int genNextNumericId()
-            {
-                return nextUserNumericID;
-            }
-        };
-    }
-
     String createUsername()
     {
         return "CadcDaoTestUser-" + System.currentTimeMillis();
+    }
+
+    @Test
+    public void testAddIllegalUsername() throws Exception
+    {
+        // add user using HttpPrincipal
+        final String username = "$" + createUsername();
+        final HttpPrincipal userID = new HttpPrincipal(username);
+
+        final User httpExpected = new User();
+        httpExpected.getIdentities().add(userID);
+
+        PersonalDetails pd = new PersonalDetails("foo", "bar");
+        pd.email = username + "@canada.ca";
+        httpExpected.personalDetails = pd;
+
+        UserRequest userRequest = new UserRequest(httpExpected, "123456".toCharArray());
+
+        try
+        {
+            final LdapUserDAO httpUserDAO = getUserDAO();
+            httpUserDAO.addPendingUser(userRequest);
+            fail("Illegal username " + username + " should've thrown IllegalArgumentException");
+        }
+        catch (IllegalArgumentException expected) {}
     }
 
     /**
@@ -178,7 +140,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     public void testAddUser() throws Exception
     {
         // add user using HttpPrincipal
-        final String username = createUsername();
+        String username = createUsername();
         final HttpPrincipal userID = new HttpPrincipal(username);
 
         final User httpExpected = new User();
@@ -215,36 +177,39 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
 
         // add user using X500Principal
-//        X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
-//
-//        final User x500Expected = new User();
-//        x500Expected.getIdentities().add(x500Principal);
-//
-//        x500Expected.personalDetails = new PersonalDetails("foo", "bar");
-//
-//        final UserRequest x500UserRequest = new UserRequest(x500Expected, "123456".toCharArray());
-//
-//        // do everything as owner
-//        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-//        {
-//            public Object run() throws Exception
-//            {
-//                try
-//                {
-//                    final LdapUserDAO userDAO = getUserDAO();
-//                    userDAO.addUser(x500UserRequest);
-//
-//                    final User actual = userDAO.getUser(x500UserRequest.getUser().getHttpPrincipal());
-//                    check(x500Expected, actual);
-//
-//                    return null;
-//                }
-//                catch (Exception e)
-//                {
-//                    throw new Exception("Problems", e);
-//                }
-//            }
-//        });
+        username = createUsername();
+        final X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
+
+        final User x500Expected = new User();
+        x500Expected.getIdentities().add(x500Principal);
+
+        final UserRequest x500UserRequest = new UserRequest(x500Expected, "123456".toCharArray());
+
+        dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
+        subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO userDAO = getUserDAO();
+                    userDAO.addUser(x500UserRequest);
+
+                    final User actual = userDAO.getUser(x500Principal);
+                    check(x500Expected, actual);
+
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
 
         // TODO should test passing in both Http and X500 Principals
     }
@@ -294,38 +259,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-
-        // add user using X500Principal
-//        final X500Principal x500Principal = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
-//
-//        final User x500Expected = new User();
-//        x500Expected.getIdentities().add(x500Principal);
-//        x500Expected.personalDetails = pd;
-//
-//        userRequest = new UserRequest(x500Expected, "123456".toCharArray());
-//
-//        final LdapUserDAO x500UserDAO = getUserDAO();
-//        x500UserDAO.addPendingUser(userRequest);
-//
-//        // do everything as owner
-//        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-//        {
-//            public Object run()
-//                throws Exception
-//            {
-//                try
-//                {
-//                    final User actual = x500UserDAO.getPendingUser(userID);
-//                    check(x500Expected, actual);
-//
-//                    return null;
-//                }
-//                catch (Exception e)
-//                {
-//                    throw new Exception("Problems", e);
-//                }
-//            }
-//        });
     }
 
     // TODO testAddUser for an existing user
@@ -334,11 +267,11 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
      * Test of getUser method, of class LdapUserDAO.
      */
     @Test
-    public void testGetUser() throws Exception
+    public void testGetUserWithHttpPrincipal() throws Exception
     {
         Subject subject = new Subject();
-        subject.getPrincipals().add(testUserX500Principal);
-        subject.getPrincipals().add(cadcdaotest1Principal);
+        subject.getPrincipals().add(cadcDaoTest1_HttpPrincipal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -349,8 +282,37 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    final User actual = userDAO.getUser(testUserX500Principal);
-                    check(testX500User, actual);
+                    final User actual = userDAO.getUser(cadcDaoTest1_HttpPrincipal);
+                    assertEquals(cadcDaoTest1_User.getHttpPrincipal(), actual.getHttpPrincipal());
+
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+
+    @Test
+    public void testGetUserWithX500Principal() throws Exception
+    {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(cadcDaoTest1_X500Principal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run()
+                throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO userDAO = getUserDAO();
+                    final User actual = userDAO.getUser(cadcDaoTest1_X500Principal);
+                    assertEquals(cadcDaoTest1_User.getHttpPrincipal(), actual.getHttpPrincipal());
 
                     return null;
                 }
@@ -489,20 +451,29 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testGetPendingUser() throws Exception
     {
-        final String userRequestDN = "uid=CADCtestRequest,ou=userrequests,ou=ds,dc=testcanfar";
-
-        final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtestRequest");
-        final X500Principal x500Principal = new X500Principal(userRequestDN);
-        final DNPrincipal dnPrincipal = new DNPrincipal(userRequestDN);
+        final String username = "CADCtestRequest";
+        final String x500DN = "cn=" + username + ",ou=cadc,o=hia,c=ca";
+        final HttpPrincipal httpPrincipal = new HttpPrincipal(username);
+        final X500Principal x500Principal = new X500Principal(x500DN);
 
         final User pendingUser = new User();
         pendingUser.personalDetails = new PersonalDetails("CADCtest", "Request");
         pendingUser.getIdentities().add(httpPrincipal);
         pendingUser.getIdentities().add(x500Principal);
 
+        UserRequest userRequest = new UserRequest(pendingUser, "123456".toCharArray());
+
+        try
+        {
+            final LdapUserDAO httpUserDAO = getUserDAO();
+            httpUserDAO.addPendingUser(userRequest);
+        }
+        catch (UserAlreadyExistsException expected) {}
+
         final Subject subject = new Subject();
         subject.getPrincipals().add(httpPrincipal);
-        subject.getPrincipals().add(dnPrincipal);
+        subject.getPrincipals().add(x500Principal);
+        subject.getPrincipals().add(new DNPrincipal(username + "," + config.getUsersDN()));
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -600,7 +571,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         // add the user
         Subject subject = new Subject();
         subject.getPrincipals().add(httpPrincipal);
-        subject.getPrincipals().add(cadcdaotest2Principal);
+        subject.getPrincipals().add(cadcDaoTest2_DNPrincipal);
         final User newUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
             public User run()
@@ -628,11 +599,11 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         newUser.personalDetails.country = "country2";
 
         // add a DN
-//        newUser.getIdentities().add(new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca"));
+        newUser.getIdentities().add(new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca"));
 
         // update the userexpected
         subject.getPrincipals().add(httpPrincipal);
-        subject.getPrincipals().add(cadcdaotest2Principal);
+        subject.getPrincipals().add(cadcDaoTest2_DNPrincipal);
         User updatedUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
             {
                 public Object run()
@@ -755,8 +726,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     public void testGetX500User() throws Exception
     {
         Subject subject = new Subject();
-        subject.getPrincipals().add(testUserX500Principal);
-        subject.getPrincipals().add(cadcdaotest1Principal);
+        subject.getPrincipals().add(cadcDaoTest1_X500Principal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
 
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
@@ -765,7 +736,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User actual = getUserDAO().getX500User(new DN(testUserDN));
+                    User actual = getUserDAO().getX500User(new DN(cadcDaoTest1_DN));
                     check(testMember, actual);
                     return null;
                 }
@@ -788,7 +759,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    User actual = getUserDAO().getX500User(new DN(testUserDN));
+                    User actual = getUserDAO().getX500User(new DN(cadcDaoTest1_DN));
                     check(testMember, actual);
                     return null;
                 }
@@ -805,8 +776,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     {
         // authenticated access
         Subject subject = new Subject();
-        subject.getPrincipals().add(testUserX500Principal);
-        subject.getPrincipals().add(cadcdaotest1Principal);
+        subject.getPrincipals().add(cadcDaoTest1_X500Principal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -834,8 +805,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     {
         // authenticated access
         Subject subject = new Subject();
-        subject.getPrincipals().add(testUserX500Principal);
-        subject.getPrincipals().add(cadcdaotest1Principal);
+        subject.getPrincipals().add(cadcDaoTest1_X500Principal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -1078,7 +1049,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             assertEquals(expected, actual);
         }
 
-
         for (Principal p : expected.getIdentities())
         {
             log.debug("expected P: " + p.getName());
@@ -1089,7 +1059,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         }
         expected.isConsistent(actual);
 
-        assertEquals(expected.personalDetails, actual.personalDetails);
         for( Principal princ1 : expected.getIdentities())
         {
             boolean found = false;
@@ -1107,11 +1076,13 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
             assertTrue(princ1.getName(), found);
         }
+
+        assertEquals(expected.personalDetails, actual.personalDetails);
         PersonalDetails pd1 = expected.personalDetails;
         PersonalDetails pd2 = actual.personalDetails;
         assertEquals(pd1, pd2);
 
-        if (pd1 == null && pd2 == null)
+        if (pd1 != null && pd2 != null)
         {
             assertEquals(pd1.getFirstName(), pd2.getFirstName());
             assertEquals(pd1.getLastName(), pd2.getLastName());

@@ -67,131 +67,27 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.User;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+
+import javax.security.auth.Subject;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.server.TestUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
-
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
-
-    static User daoTestUser1;
-    static User daoTestUser2;
-    static User daoTestUser3;
-    static User unknownUser;
-
-    static User augmentedDaoTestUser1;
-    static User augmentedDaoTestUser2;
-
-    static Subject daoTestUser1Subject;
-    static Subject daoTestUser2Subject;
-    static Subject anonSubject;
-
-    static LdapConfig config;
-
-    @BeforeClass
-    public static void setUpBeforeClass()
-        throws Exception
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-
-        // get the configuration of the development server from and config files...
-        config = getLdapConfig();
-
-        HttpPrincipal httpPrincipal1 = new HttpPrincipal("CadcDaoTest1");
-        HttpPrincipal httpPrincipal2 = new HttpPrincipal("CadcDaoTest2");
-        HttpPrincipal httpPrincipal3 = new HttpPrincipal("CadcDaoTest3");
-
-        try
-        {
-            daoTestUser1 = getUserDAO().getUser(httpPrincipal1);
-        }
-        catch (UserNotFoundException e)
-        {
-            User user = new User();
-            user.getIdentities().add(httpPrincipal1);
-            PersonalDetails pd = new PersonalDetails("CadcDaoTest1", "CadcDaoTest1");
-            user.personalDetails = pd;
-            UserRequest request = new UserRequest(user, "password".toCharArray());
-            getUserDAO().addUser(request);
-            daoTestUser1 = getUserDAO().getUser(httpPrincipal1);
-        }
-
-        try
-        {
-            daoTestUser2 = getUserDAO().getUser(httpPrincipal2);
-        }
-        catch (UserNotFoundException e)
-        {
-            User user = new User();
-            user.getIdentities().add(httpPrincipal2);
-            PersonalDetails pd = new PersonalDetails("CadcDaoTest2", "CadcDaoTest2");
-            user.personalDetails = pd;
-            UserRequest request = new UserRequest(user, "password".toCharArray());
-            getUserDAO().addUser(request);
-            daoTestUser1 = getUserDAO().getUser(httpPrincipal2);
-        }
-
-        try
-        {
-            daoTestUser3 = getUserDAO().getUser(httpPrincipal3);
-        }
-        catch (UserNotFoundException e)
-        {
-            User user = new User();
-            user.getIdentities().add(httpPrincipal3);
-            PersonalDetails pd = new PersonalDetails("CadcDaoTest3", "CadcDaoTest3");
-            user.personalDetails = pd;
-            UserRequest request = new UserRequest(user, "password".toCharArray());
-            getUserDAO().addUser(request);
-            daoTestUser1 = getUserDAO().getUser(httpPrincipal3);
-        }
-
-        augmentedDaoTestUser1 = getUserDAO().getAugmentedUser(httpPrincipal1);
-        daoTestUser1Subject = new Subject();
-        daoTestUser1Subject.getPrincipals().addAll(augmentedDaoTestUser1.getIdentities());
-
-        augmentedDaoTestUser2 = getUserDAO().getAugmentedUser(httpPrincipal2);
-        daoTestUser2Subject = new Subject();
-        daoTestUser2Subject.getPrincipals().addAll(augmentedDaoTestUser2.getIdentities());
-
-        HttpPrincipal unknownPrincipal = new HttpPrincipal("foo");
-        unknownUser = new User();
-        unknownUser.getIdentities().add(unknownPrincipal);
-
-        anonSubject = new Subject();
-        anonSubject.getPrincipals().add(unknownPrincipal);
-    }
-
-    static LdapUserDAO getUserDAO() throws Exception
-    {
-        LdapConnections connections = new LdapConnections(config);
-        return new LdapUserDAO(connections);
-    }
 
     LdapGroupDAO getGroupDAO() throws Exception
     {
@@ -209,14 +105,14 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     public void testOneGroup() throws Exception
     {
         // do everything as owner
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
                 try
                 {
                     Group expectGroup = new Group(getGroupID());
-                    TestUtil.setField(expectGroup, augmentedDaoTestUser1, "owner");
+                    setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(expectGroup);
                     Group actualGroup = getGroupDAO().getGroup(expectGroup.getID(), true);
                     log.info("addGroup: " + expectGroup.getID());
@@ -231,7 +127,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     Group otherGroup = new Group(getGroupID());
-                    TestUtil.setField(otherGroup, augmentedDaoTestUser1, "owner");
+                    setField(otherGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(otherGroup);
                     otherGroup = getGroupDAO().getGroup(otherGroup.getID(), true);
                     log.info("addGroup: " + otherGroup.getID());
@@ -247,7 +143,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     // userMembers
-                    expectGroup.getUserMembers().add(daoTestUser2);
+                    expectGroup.getUserMembers().add(cadcDaoTest2_User);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
@@ -256,14 +152,14 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     // the the returned result should contain only
                     // one entry (the dn one)
                     User duplicateIdentity = new User();
-                    duplicateIdentity.getIdentities().add(daoTestUser2.getHttpPrincipal());
-                    expectGroup.getUserMembers().add(daoTestUser2);
+                    duplicateIdentity.getIdentities().add(cadcDaoTest2_User.getHttpPrincipal());
+                    expectGroup.getUserMembers().add(cadcDaoTest2_User);
                     expectGroup.getUserMembers().add(duplicateIdentity);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     expectGroup.getUserMembers().remove(duplicateIdentity);
                     assertGroupsEqual(expectGroup, actualGroup);
 
-                    expectGroup.getUserMembers().remove(daoTestUser2);
+                    expectGroup.getUserMembers().remove(cadcDaoTest2_User);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
@@ -277,21 +173,21 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     expectGroup.description = "Happy testing";
-                    expectGroup.getUserMembers().add(daoTestUser2);
+                    expectGroup.getUserMembers().add(cadcDaoTest2_User);
                     expectGroup.getGroupMembers().add(otherGroup);
 
                     // userAdmins
-                    expectGroup.getUserAdmins().add(daoTestUser3);
+                    expectGroup.getUserAdmins().add(cadcDaoTest3_User);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
-                    expectGroup.getUserAdmins().remove(daoTestUser3);
+                    expectGroup.getUserAdmins().remove(cadcDaoTest3_User);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     // groupAdmins
                     Group adminGroup = new Group(getGroupID());
-                    TestUtil.setField(adminGroup, augmentedDaoTestUser1, "owner");
+                    setField(adminGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(adminGroup);
                     adminGroup = getGroupDAO().getGroup(adminGroup.getID(), true);
                     expectGroup.getGroupAdmins().add(adminGroup);
@@ -306,7 +202,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     // Principals. The duplicate should be ignored
                     // the the returned result should contain only
                     // one entry (the dn one)
-                    expectGroup.getUserAdmins().add(daoTestUser2);
+                    expectGroup.getUserAdmins().add(cadcDaoTest2_User);
                     expectGroup.getUserAdmins().add(duplicateIdentity);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
                     expectGroup.getUserAdmins().remove(duplicateIdentity);
@@ -324,7 +220,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
                     // reactivate the group
                     Group reactGroup = new Group(expectGroup.getID());
-                    TestUtil.setField(reactGroup, augmentedDaoTestUser1, "owner");
+                    setField(reactGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(reactGroup);
                     log.info("create (reactivate) group: " + expectGroup.getID());
                     actualGroup = getGroupDAO().getGroup(expectGroup.getID(), true);
@@ -337,7 +233,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     // create another group and make expected group
                     // member of that group. Delete expected group after
                     Group expectGroup2 = new Group(getGroupID());
-                    TestUtil.setField(expectGroup2, augmentedDaoTestUser1, "owner");
+                    setField(expectGroup2, cadcDaoTest1_AugmentedUser, "owner");
                     expectGroup2.getGroupAdmins().add(actualGroup);
                     expectGroup2.getGroupMembers().add(actualGroup);
                     getGroupDAO().addGroup(expectGroup2);
@@ -373,7 +269,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         final String testGroup1ID = groupID + ".1";
         final String testGroup2ID = groupID + ".2";
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -398,7 +294,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             }
         });
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -441,7 +337,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             }
         });
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -464,7 +360,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     {
         final String groupID = getGroupID();
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
@@ -495,11 +391,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     {
         final String groupID = getGroupID();
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {
-                //getGroupDAO().addGroup(new Group(groupID, daoTestUser1));
+                //getGroupDAO().addGroup(new Group(groupID, cadcDaoTest1_User));
                 try
                 {
                     getGroupDAO().modifyGroup(new Group("fooBOGUSASFgomsi"));
@@ -518,7 +414,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     {
         final String groupID = getGroupID();
 
-        Subject.doAs(daoTestUser1Subject, new PrivilegedExceptionAction<Object>()
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
             {

@@ -96,15 +96,6 @@ import static org.junit.Assert.assertTrue;
 
 public class LdapDAOTest extends AbstractLdapDAOTest
 {
-    static LdapConfig config;
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        // get the configuration of the development server from and config files...
-        config = getLdapConfig();
-    }
     @Test
     public void testLdapBindConnection() throws Exception
     {
