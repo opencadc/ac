@@ -77,10 +77,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.ac.server.TestUtil;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -90,8 +87,11 @@ import org.junit.Test;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.server.TestUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 
@@ -126,9 +126,50 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         HttpPrincipal httpPrincipal2 = new HttpPrincipal("CadcDaoTest2");
         HttpPrincipal httpPrincipal3 = new HttpPrincipal("CadcDaoTest3");
 
-        daoTestUser1 = getUserDAO().getUser(httpPrincipal1);
-        daoTestUser2 = getUserDAO().getUser(httpPrincipal2);
-        daoTestUser3 = getUserDAO().getUser(httpPrincipal3);
+        try
+        {
+            daoTestUser1 = getUserDAO().getUser(httpPrincipal1);
+        }
+        catch (UserNotFoundException e)
+        {
+            User user = new User();
+            user.getIdentities().add(httpPrincipal1);
+            PersonalDetails pd = new PersonalDetails("CadcDaoTest1", "CadcDaoTest1");
+            user.personalDetails = pd;
+            UserRequest request = new UserRequest(user, "password".toCharArray());
+            getUserDAO().addUser(request);
+            daoTestUser1 = getUserDAO().getUser(httpPrincipal1);
+        }
+
+        try
+        {
+            daoTestUser2 = getUserDAO().getUser(httpPrincipal2);
+        }
+        catch (UserNotFoundException e)
+        {
+            User user = new User();
+            user.getIdentities().add(httpPrincipal2);
+            PersonalDetails pd = new PersonalDetails("CadcDaoTest2", "CadcDaoTest2");
+            user.personalDetails = pd;
+            UserRequest request = new UserRequest(user, "password".toCharArray());
+            getUserDAO().addUser(request);
+            daoTestUser1 = getUserDAO().getUser(httpPrincipal2);
+        }
+
+        try
+        {
+            daoTestUser3 = getUserDAO().getUser(httpPrincipal3);
+        }
+        catch (UserNotFoundException e)
+        {
+            User user = new User();
+            user.getIdentities().add(httpPrincipal3);
+            PersonalDetails pd = new PersonalDetails("CadcDaoTest3", "CadcDaoTest3");
+            user.personalDetails = pd;
+            UserRequest request = new UserRequest(user, "password".toCharArray());
+            getUserDAO().addUser(request);
+            daoTestUser1 = getUserDAO().getUser(httpPrincipal3);
+        }
 
         augmentedDaoTestUser1 = getUserDAO().getAugmentedUser(httpPrincipal1);
         daoTestUser1Subject = new Subject();

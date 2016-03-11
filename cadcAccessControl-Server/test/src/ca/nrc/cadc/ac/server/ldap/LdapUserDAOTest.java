@@ -68,24 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.auth.DNPrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import com.unboundid.ldap.sdk.DN;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -95,11 +83,25 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.util.Log4jInit;
+
+import com.unboundid.ldap.sdk.DN;
 
 public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
@@ -372,17 +374,17 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         expected.personalDetails.email = email;
 
         final UserRequest userRequest = new UserRequest(expected, password.toCharArray());
-        
+
         return userRequest;
     }
-    
+
     private void addUser(final HttpPrincipal userID, final UserRequest userRequest)
         throws Exception
     {
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + userID.getName() + "," + config.getUsersDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
-        
+
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -392,7 +394,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 {
                     final LdapUserDAO userDAO = getUserDAO();
                     userDAO.addUser(userRequest);
-                    
+
                     return null;
                 }
                 catch (Exception e)
@@ -402,14 +404,14 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
-    
+
     private void deleteUser(final HttpPrincipal userID)
         throws Exception
     {
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + userID.getName() + "," + config.getUsersDN());
         Subject subject = new Subject();
         subject.getPrincipals().add(dnPrincipal);
-        
+
         // do everything as owner
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -419,7 +421,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 {
                     final LdapUserDAO userDAO = getUserDAO();
                     userDAO.deleteUser(userID);
-                    
+
                     return null;
                 }
                 catch (Exception e)
@@ -434,7 +436,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         throws PrivilegedActionException
     {
         // do as servops
-        Subject servops = SSLUtil.createSubject(new File(SERVOPS_PEM));      
+        Subject servops = SSLUtil.createSubject(new File(SERVOPS_PEM));
         Subject.doAs(servops, new PrivilegedExceptionAction<Object>()
         {
             public Object run() throws Exception
@@ -458,7 +460,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
-    
+
     /**
      * Test of getUserByEmailAddress method, of class LdapUserDAO.
      */
@@ -471,7 +473,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         final HttpPrincipal userID = new HttpPrincipal(username);
         final UserRequest userRequest = createUserRequest(userID, emailAddress);
         addUser(userID, userRequest);
-        
+
         try
         {
             // case 1: only one user matches the email address
@@ -481,9 +483,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         {
             deleteUser(userID);
         }
-        
+
     }
-    
+
     @Test
     public void testGetPendingUser() throws Exception
     {

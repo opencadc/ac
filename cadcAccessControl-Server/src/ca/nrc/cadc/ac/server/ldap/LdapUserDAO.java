@@ -68,6 +68,25 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.InternalID;
@@ -78,13 +97,13 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
+
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -108,23 +127,6 @@ import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.x500.X500Principal;
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 
 
 /**
@@ -153,7 +155,6 @@ public class LdapUserDAO extends LdapDAO
     protected static final String LDAP_ENTRYDN = "entrydn";
     protected static final String LDAP_COMMON_NAME = "cn";
     protected static final String LDAP_DISTINGUISHED_NAME = "distinguishedName";
-    protected static final String LDAP_NUMERICID = "numericid";
     protected static final String LADP_USER_PASSWORD = "userPassword";
     protected static final String LDAP_FIRST_NAME = "givenName";
     protected static final String LDAP_LAST_NAME = "sn";
@@ -176,16 +177,16 @@ public class LdapUserDAO extends LdapDAO
     };
     private String[] identityAttribs = new String[]
     {
-        LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_NUMERICID, LDAP_ENTRYDN,
+        LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_ENTRYDN,
         LDAP_MEMBEROF // for group cache
     };
 
     public LdapUserDAO(LdapConnections connections)
     {
         super(connections);
-        this.userLdapAttrib.put(HttpPrincipal.class, LDAP_UID);
+        this.userLdapAttrib.put(HttpPrincipal.class, LDAP_COMMON_NAME);
         this.userLdapAttrib.put(X500Principal.class, LDAP_DISTINGUISHED_NAME);
-        this.userLdapAttrib.put(NumericPrincipal.class, LDAP_NUMERICID);
+        this.userLdapAttrib.put(NumericPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(DNPrincipal.class, LDAP_ENTRYDN);
 
         // add the id attributes to user and member attributes
@@ -361,6 +362,8 @@ public class LdapUserDAO extends LdapDAO
             throw new IllegalArgumentException("Unsupported principal type " + userType);
         }
 
+        String numericID = String.valueOf(genNextNumericId());
+
         try
         {
             List<Attribute> attributes = new ArrayList<Attribute>();
@@ -372,7 +375,7 @@ public class LdapUserDAO extends LdapDAO
                 addAttribute(attributes, LDAP_COMMON_NAME, userID.getName());
             }
             addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
-            addAttribute(attributes, LDAP_UID, String.valueOf(genNextNumericId()));
+            addAttribute(attributes, LDAP_UID, numericID);
 
             for (Principal princ : user.getIdentities())
             {
@@ -398,7 +401,7 @@ public class LdapUserDAO extends LdapDAO
                 throw new UnsupportedOperationException("Support for users PosixDetails not available");
             }
 
-            DN userDN = getUserDN(userID.getName(), usersDN);
+            DN userDN = getUserDN(numericID, usersDN);
             AddRequest addRequest = new AddRequest(userDN, attributes);
             LDAPResult result = getReadWriteConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
@@ -569,7 +572,7 @@ public class LdapUserDAO extends LdapDAO
         logger.info("got " + userID.getName() + " from " + usersDN);
         return user;
     }
-    
+
     /**
      * Get the user specified by the email address exists.
      *
@@ -652,7 +655,7 @@ public class LdapUserDAO extends LdapDAO
             throw new AccessControlException("Permission denied");
         }
 
-        String userIDString = searchResult.getAttributeValue(LDAP_UID);
+        String userIDString = searchResult.getAttributeValue(LDAP_COMMON_NAME);
         HttpPrincipal userID = new HttpPrincipal(userIDString);
         User user = new User();
         user.getIdentities().add(userID);
@@ -725,7 +728,7 @@ public class LdapUserDAO extends LdapDAO
             user.getIdentities().add(new HttpPrincipal(
                 searchResult.getAttributeValue(LDAP_UID)));
 
-            String numericID = searchResult.getAttributeValue(LDAP_NUMERICID);
+            String numericID = searchResult.getAttributeValue(LDAP_UID);
             logger.debug("numericID is " + numericID);
 
             InternalID internalID = getInternalID(numericID);
@@ -1025,7 +1028,7 @@ public class LdapUserDAO extends LdapDAO
             LdapDAO.checkLdapResult(e.getResultCode());
         }
     }
-    
+
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
