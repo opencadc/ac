@@ -66,57 +66,16 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+package ca.nrc.cadc.ac.server.web.users;
 
-import javax.security.auth.x500.X500Principal;
+import org.junit.Test;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.MemberNotFoundException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-
-public class RemoveUserMemberAction extends AbstractGroupAction
+public class CreateUserActionTest
 {
-    private final String groupName;
-    private final String userID;
-    private final String userIDType;
-
-    RemoveUserMemberAction(String groupName, String userID, String userIDType)
+    @Test
+    public void testCreateUser() throws Exception
     {
-        super();
-        this.groupName = groupName;
-        this.userID = userID;
-        this.userIDType = userIDType;
-    }
 
-    @SuppressWarnings("unchecked")
-    public void doAction() throws Exception
-    {
-        Group group = groupPersistence.getGroup(this.groupName);
-
-        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User toRemove = getUserPersistence().getUser(userPrincipal);
-        if (!group.getUserMembers().remove(toRemove))
-        {
-            throw new MemberNotFoundException();
-        }
-        groupPersistence.modifyGroup(group);
-
-        List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getHttpPrincipal().getName());
-        logGroupInfo(group.getID(), deletedMembers, null);
-    }
-
-    protected UserPersistence getUserPersistence()
-    {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.createUserPersistence();
     }
 }

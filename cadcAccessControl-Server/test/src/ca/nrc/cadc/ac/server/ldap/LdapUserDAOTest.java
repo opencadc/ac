@@ -458,6 +458,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
         final User pendingUser = new User();
         pendingUser.personalDetails = new PersonalDetails("CADCtest", "Request");
+        pendingUser.personalDetails.email = username + "@canada.ca";
         pendingUser.getIdentities().add(httpPrincipal);
         pendingUser.getIdentities().add(x500Principal);
 
@@ -566,12 +567,13 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         testUser.getIdentities().add(httpPrincipal);
 
         testUser.personalDetails = new PersonalDetails("firstName", "lastName");
+        testUser.personalDetails.email = username + "@canada.ca";
         final UserRequest userRequest = new UserRequest(testUser, password);
 
         // add the user
         Subject subject = new Subject();
         subject.getPrincipals().add(httpPrincipal);
-        subject.getPrincipals().add(cadcDaoTest2_DNPrincipal);
+//        subject.getPrincipals().add(cadcDaoTest2_DNPrincipal);
         final User newUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
             public User run()
@@ -592,7 +594,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
 
         // update the user
-        newUser.personalDetails.email = "email2";
         newUser.personalDetails.address = "address2";
         newUser.personalDetails.institute = "institute2";
         newUser.personalDetails.city = "city2";
@@ -603,7 +604,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
         // update the userexpected
         subject.getPrincipals().add(httpPrincipal);
-        subject.getPrincipals().add(cadcDaoTest2_DNPrincipal);
+//        subject.getPrincipals().add(cadcDaoTest2_DNPrincipal);
         User updatedUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
             {
                 public Object run()
@@ -623,7 +624,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 }
             });
         assertNotNull(updatedUser);
-        check(testUser, updatedUser);
+        check(newUser, updatedUser);
     }
 
     // TODO testUpdateUser for a user that doesn't exist
@@ -637,11 +638,11 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         String userID = createUsername();
 
         HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
-//        X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
+        X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
 
         final User expected = new User();
         expected.getIdentities().add(httpPrincipal);
-//        expected.getIdentities().add(x500Principal);
+        expected.getIdentities().add(x500Principal);
         expected.personalDetails = new PersonalDetails("foo", "bar");
 
         final UserRequest userRequest = new UserRequest(expected, "123456".toCharArray());
@@ -682,11 +683,11 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         String userID = createUsername();
 
         HttpPrincipal httpPrincipal = new HttpPrincipal(userID);
-//        X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
+        X500Principal x500Principal = new X500Principal("cn=" + userID + ",ou=cadc,o=hia,c=ca");
 
         final User expected = new User();
         expected.getIdentities().add(httpPrincipal);
-//        expected.getIdentities().add(x500Principal);
+        expected.getIdentities().add(x500Principal);
         expected.personalDetails = new PersonalDetails("foo", "bar");
         expected.personalDetails.email = userID + "@canada.ca";
 
@@ -723,53 +724,53 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
      * Test of getMember.
      */
 //    @Test
-    public void testGetX500User() throws Exception
-    {
-        Subject subject = new Subject();
-        subject.getPrincipals().add(cadcDaoTest1_X500Principal);
-        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
-
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
-                    User actual = getUserDAO().getX500User(new DN(cadcDaoTest1_DN));
-                    check(testMember, actual);
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
-
-        // should also work as a different user
-        subject = new Subject();
-        subject.getPrincipals().add(new HttpPrincipal("CadcDaoTest2"));
-
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run()
-                throws Exception
-            {
-                try
-                {
-                    User actual = getUserDAO().getX500User(new DN(cadcDaoTest1_DN));
-                    check(testMember, actual);
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
-    }
+//    public void testGetX500User() throws Exception
+//    {
+//        Subject subject = new Subject();
+//        subject.getPrincipals().add(cadcDaoTest1_X500Principal);
+//        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
+//
+//        // do everything as owner
+//        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+//        {
+//            public Object run() throws Exception
+//            {
+//                try
+//                {
+//                    User actual = getUserDAO().getX500User(new DN(cadcDaoTest1_DN));
+//                    check(testMember, actual);
+//                    return null;
+//                }
+//                catch (Exception e)
+//                {
+//                    throw new Exception("Problems", e);
+//                }
+//            }
+//        });
+//
+//        // should also work as a different user
+//        subject = new Subject();
+//        subject.getPrincipals().add(new HttpPrincipal("CadcDaoTest2"));
+//
+//        // do everything as owner
+//        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+//        {
+//            public Object run()
+//                throws Exception
+//            {
+//                try
+//                {
+//                    User actual = getUserDAO().getX500User(new DN(cadcDaoTest1_DN));
+//                    check(testMember, actual);
+//                    return null;
+//                }
+//                catch (Exception e)
+//                {
+//                    throw new Exception("Problems", e);
+//                }
+//            }
+//        });
+//    }
 
     @Test
     public void testGetUsers() throws Exception

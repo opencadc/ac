@@ -126,7 +126,7 @@ public class RemoveUserMemberActionTest
             EasyMock.expect(mockGroupPersistence.getGroup("group")).andReturn(group);
 
             final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(mockUserPersistence.getAugmentedUser(userPrincipal)).andReturn(user);
+            EasyMock.expect(mockUserPersistence.getUser(userPrincipal)).andReturn(user);
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 
@@ -176,7 +176,7 @@ public class RemoveUserMemberActionTest
             EasyMock.expectLastCall();
 
             final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(mockUserPersistence.getAugmentedUser(userPrincipal)).andReturn(user);
+            EasyMock.expect(mockUserPersistence.getUser(userPrincipal)).andReturn(user);
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 
@@ -193,6 +193,8 @@ public class RemoveUserMemberActionTest
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);
             action.doAction();
+
+            EasyMock.verify(mockGroupPersistence, mockUserPersistence);
         }
         catch (Throwable t)
         {
