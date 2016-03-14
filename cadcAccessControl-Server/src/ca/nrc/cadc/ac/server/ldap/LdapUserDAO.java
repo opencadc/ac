@@ -145,6 +145,10 @@ public class LdapUserDAO extends LdapDAO
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
 
+    // User cn and sn values for users without a HttpPrincipal
+    protected static final String EXTERNAL_USER_CN = "$EXTERNAL-CN";
+    protected static final String EXTERNAL_USER_SN = "$EXTERNAL-SN";
+
     // LDAP User attributes
     protected static final String LDAP_OBJECT_CLASS = "objectClass";
     protected static final String LDAP_INET_USER = "inetuser";
@@ -219,8 +223,11 @@ public class LdapUserDAO extends LdapDAO
     {
         try
         {
+            HttpPrincipal httpPrincipal = new HttpPrincipal(username);
+            User user = getUser(httpPrincipal);
+            long id = user.getID().getUUID().getLeastSignificantBits();
             BindRequest bindRequest = new SimpleBindRequest(
-                getUserDN(username, config.getUsersDN()), new String(password));
+                getUserDN(String.valueOf(id), config.getUsersDN()), new String(password));
 
             LDAPConnection conn = this.getUnboundReadConnection();
             BindResult bindResult = conn.bind(bindRequest);
@@ -233,6 +240,10 @@ public class LdapUserDAO extends LdapDAO
             {
                 throw new AccessControlException("Invalid username or password");
             }
+        }
+        catch (UserNotFoundException e)
+        {
+            throw new AccessControlException("Invalid username");
         }
         catch (LDAPException e)
         {
@@ -321,7 +332,11 @@ public class LdapUserDAO extends LdapDAO
         try
         {
             String emailAddress = getEmailAddress(userRequest);
-            getUserByEmailAddress(emailAddress, usersDN);
+            Principal userID = getSupportedPrincipal(userRequest.getUser());
+            if (userID instanceof HttpPrincipal)
+            {
+                getUserByEmailAddress(emailAddress, usersDN);
+            }
         }
         catch (UserNotFoundException ok) { }
     }
@@ -370,23 +385,29 @@ public class LdapUserDAO extends LdapDAO
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
-            if (user.getHttpPrincipal() != null)
-            {
-                addAttribute(attributes, LDAP_COMMON_NAME, userID.getName());
-            }
-            addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
             addAttribute(attributes, LDAP_UID, numericID);
+            addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
 
-            for (Principal princ : user.getIdentities())
+            if (user.getHttpPrincipal() == null)
             {
-                if (princ instanceof X500Principal)
-                {
-                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME, princ.getName());
-                }
+                addAttribute(attributes, LDAP_COMMON_NAME, EXTERNAL_USER_CN);
+                addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
             }
-
-            if (user.personalDetails != null)
+            else
             {
+                if (user.personalDetails == null)
+                {
+                    final String error = "User " + user.getHttpPrincipal().getName() +
+                        " missing required PersonalDetails";
+                    throw new IllegalArgumentException(error);
+                }
+                 if (userID.getName().startsWith("$"))
+                 {
+                     final String error = "Username " + user.getHttpPrincipal().getName() +
+                         " cannot start with a $";
+                     throw new IllegalArgumentException(error);
+                 }
+                addAttribute(attributes, LDAP_COMMON_NAME, userID.getName());
                 addAttribute(attributes, LDAP_FIRST_NAME, user.personalDetails.getFirstName());
                 addAttribute(attributes, LDAP_LAST_NAME, user.personalDetails.getLastName());
                 addAttribute(attributes, LDAP_ADDRESS, user.personalDetails.address);
@@ -396,6 +417,14 @@ public class LdapUserDAO extends LdapDAO
                 addAttribute(attributes, LDAP_INSTITUTE, user.personalDetails.institute);
             }
 
+            for (Principal princ : user.getIdentities())
+            {
+                if (princ instanceof X500Principal)
+                {
+                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME, princ.getName());
+                }
+            }
+
             if (user.posixDetails != null)
             {
                 throw new UnsupportedOperationException("Support for users PosixDetails not available");
@@ -403,9 +432,9 @@ public class LdapUserDAO extends LdapDAO
 
             DN userDN = getUserDN(numericID, usersDN);
             AddRequest addRequest = new AddRequest(userDN, attributes);
+            logger.info("adding " + userID.getName() + " to " + usersDN);
             LDAPResult result = getReadWriteConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
-            logger.info("added " + userID.getName() + " to " + usersDN);
         }
         catch (LDAPException e)
         {
@@ -493,7 +522,7 @@ public class LdapUserDAO extends LdapDAO
         try
         {
             filter = Filter.createEqualityFilter(searchField, userID.getName());
-            logger.debug("search filter: " + filter);
+            logger.debug("getUser search filter: " + filter);
 
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -837,10 +866,10 @@ public class LdapUserDAO extends LdapDAO
             for (SearchResultEntry next : searchResult.getSearchEntries())
             {
                 final String firstName =
-                    next.getAttributeValue(LDAP_FIRST_NAME).trim();
+                    next.getAttributeValue(LDAP_FIRST_NAME);
                 final String lastName =
                     next.getAttributeValue(LDAP_LAST_NAME).trim();
-                final String uid = next.getAttributeValue(LDAP_UID).trim();
+                final String uid = next.getAttributeValue(LDAP_UID);
 
                 User user = new User();
                 user.getIdentities().add(new HttpPrincipal(uid));
@@ -849,7 +878,7 @@ public class LdapUserDAO extends LdapDAO
                 if (StringUtil.hasLength(firstName) &&
                     StringUtil.hasLength(lastName))
                 {
-                    user.personalDetails = new PersonalDetails(firstName, lastName);
+                    user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
                 }
 
                 users.add(user);
@@ -882,14 +911,11 @@ public class LdapUserDAO extends LdapDAO
         throws UserNotFoundException, TransientException, AccessControlException
     {
         User pendingUser = getPendingUser(userID);
-
-        Set<HttpPrincipal> httpPrincipals = pendingUser.getIdentities(HttpPrincipal.class);
-        if (httpPrincipals.isEmpty())
+        if (pendingUser.getHttpPrincipal() == null)
         {
             throw new RuntimeException("BUG: missing HttpPrincipal for " + userID.getName());
         }
-        HttpPrincipal httpPrincipal = httpPrincipals.iterator().next();
-        String uid = "uid=" + httpPrincipal.getName();
+        String uid = "uid=" + pendingUser.getID().getUUID().getLeastSignificantBits();
         String dn = uid + "," + config.getUserRequestsDN();
 
         try
@@ -1093,10 +1119,11 @@ public class LdapUserDAO extends LdapDAO
     private void deleteUser(final Principal userID, final String usersDN, boolean markDelete)
         throws UserNotFoundException, AccessControlException, TransientException
     {
-        getUser(userID, usersDN);
+        User user2Delete = getUser(userID, usersDN);
         try
         {
-            DN userDN = getUserDN(userID.getName(), usersDN);
+            long id = user2Delete.getID().getUUID().getLeastSignificantBits();
+            DN userDN = getUserDN(String.valueOf(id), usersDN);
             if (markDelete)
             {
                 List<Modification> modifs = new ArrayList<Modification>();
@@ -1113,11 +1140,9 @@ public class LdapUserDAO extends LdapDAO
             else // real delete
             {
                 DeleteRequest delRequest = new DeleteRequest(userDN);
-                //delRequest.addControl(
-                //    new ProxiedAuthorizationV2RequestControl(
-                //        "dn:" + getSubjectDN().toNormalizedString()));
 
                 LDAPResult result = getReadWriteConnection().delete(delRequest);
+                logger.info("delete result:" + delRequest);
                 LdapDAO.checkLdapResult(result.getResultCode());
             }
         }
@@ -1348,13 +1373,13 @@ public class LdapUserDAO extends LdapDAO
         }
 
         // Another supported Principal
-        for (Principal principal : user.getIdentities())
-        {
-            if (userLdapAttrib.get(principal.getClass()) != null)
-            {
-                return principal;
-            }
-        }
+//        for (Principal principal : user.getIdentities())
+//        {
+//            if (userLdapAttrib.get(principal.getClass()) != null)
+//            {
+//                return principal;
+//            }
+//        }
         return null;
     }
 

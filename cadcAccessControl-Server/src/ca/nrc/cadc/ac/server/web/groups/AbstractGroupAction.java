@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.security.AccessControlException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -230,6 +231,29 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         this.logInfo.groupID = groupID;
         this.logInfo.addedMembers = addedMembers;
         this.logInfo.deletedMembers = deletedMembers;
+    }
+
+    // set private field using reflection
+    protected void setField(Object object, Object value, String name)
+    {
+        try
+        {
+            Field field = object.getClass().getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(object, value);
+        }
+        catch (NoSuchFieldException e)
+        {
+            final String error = object.getClass().getSimpleName() +
+                " field " + name + "not found";
+            throw new RuntimeException(error, e);
+        }
+        catch (IllegalAccessException e)
+        {
+            final String error = "unable to update " + name + " in " +
+                object.getClass().getSimpleName();
+            throw new RuntimeException(error, e);
+        }
     }
 
 }

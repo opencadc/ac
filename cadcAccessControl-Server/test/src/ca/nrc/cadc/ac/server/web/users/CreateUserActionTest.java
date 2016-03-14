@@ -67,18 +67,15 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server;
+package ca.nrc.cadc.ac.server.web.users;
 
-import java.lang.reflect.Field;
+import org.junit.Test;
 
-public class TestUtil
+public class CreateUserActionTest
 {
-    public static void setField(Object object, Object value, String name)
-        throws Exception
+    @Test
+    public void testCreateUser() throws Exception
     {
-        Field field = object.getClass().getDeclaredField(name);
-        field.setAccessible(true);
-        field.set(object, value);
-    }
 
+    }
 }
