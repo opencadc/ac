@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.AccessControlException;
@@ -102,6 +101,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.StringUtil;
 
 import com.unboundid.ldap.sdk.AddRequest;
@@ -576,7 +576,7 @@ public class LdapUserDAO extends LdapDAO
         }
 
         InternalID internalID = getInternalID(uid);
-        setField(user, internalID, USER_ID);
+        ObjectUtil.setField(user, internalID, USER_ID);
         user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
         String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
@@ -699,7 +699,7 @@ public class LdapUserDAO extends LdapDAO
 
         // Set the User's private InternalID field
         InternalID internalID = getInternalID(numericID);
-        setField(user, internalID, USER_ID);
+        ObjectUtil.setField(user, internalID, USER_ID);
         user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
         String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
@@ -761,7 +761,7 @@ public class LdapUserDAO extends LdapDAO
             logger.debug("numericID is " + numericID);
 
             InternalID internalID = getInternalID(numericID);
-            setField(user, internalID, USER_ID);
+            ObjectUtil.setField(user, internalID, USER_ID);
             user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
             String dn = searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME);
@@ -1398,29 +1398,6 @@ public class LdapUserDAO extends LdapDAO
             throw new RuntimeException("Invalid InternalID URI " + uriString);
         }
         return new InternalID(uri);
-    }
-
-    // set private field using reflection
-    private void setField(Object object, Object value, String name)
-    {
-        try
-        {
-            Field field = object.getClass().getDeclaredField(name);
-            field.setAccessible(true);
-            field.set(object, value);
-        }
-        catch (NoSuchFieldException e)
-        {
-            final String error = object.getClass().getSimpleName() +
-                " field " + name + "not found";
-            throw new RuntimeException(error, e);
-        }
-        catch (IllegalAccessException e)
-        {
-            final String error = "unable to update " + name + " in " +
-                object.getClass().getSimpleName();
-            throw new RuntimeException(error, e);
-        }
     }
 
 }
