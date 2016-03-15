@@ -157,7 +157,7 @@ public class LdapUserDAO extends LdapDAO
     protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
     protected static final String LDAP_MEMBEROF = "memberOf";
     protected static final String LDAP_ENTRYDN = "entrydn";
-    protected static final String LDAP_COMMON_NAME = "cn";
+    protected static final String LDAP_USER_NAME = "cn";
     protected static final String LDAP_DISTINGUISHED_NAME = "distinguishedName";
     protected static final String LADP_USER_PASSWORD = "userPassword";
     protected static final String LDAP_FIRST_NAME = "givenName";
@@ -188,7 +188,7 @@ public class LdapUserDAO extends LdapDAO
     public LdapUserDAO(LdapConnections connections)
     {
         super(connections);
-        this.userLdapAttrib.put(HttpPrincipal.class, LDAP_COMMON_NAME);
+        this.userLdapAttrib.put(HttpPrincipal.class, LDAP_USER_NAME);
         this.userLdapAttrib.put(X500Principal.class, LDAP_DISTINGUISHED_NAME);
         this.userLdapAttrib.put(NumericPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(DNPrincipal.class, LDAP_ENTRYDN);
@@ -269,59 +269,79 @@ public class LdapUserDAO extends LdapDAO
     /**
      * Add the specified user to the active user tree.
      *
-     * @param userRequest                 The user to add.
+     * @param user                 The user to add.
      * @throws TransientException         If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException If the user already exists.
      */
-    public void addUser(final UserRequest userRequest)
+    public void addUser(final User user)
         throws TransientException, UserAlreadyExistsException
     {
-        Principal userID = getSupportedPrincipal(userRequest.getUser());
-        if (userID == null)
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+        if (x500Principals.isEmpty())
         {
-            throw new IllegalArgumentException("UserRequest missing supported Principal type");
+            throw new IllegalArgumentException("User missing required X500Principal");
         }
+        Principal userID = x500Principals.iterator().next();
+
+        if (user.posixDetails != null)
+        {
+            throw new UnsupportedOperationException("Support for users PosixDetails not available");
+        }
+
+        // check current users
+        checkUsers(userID, null, config.getUsersDN());
 
         try
         {
-            getUser(userID, config.getUsersDN());
-            final String error = userID.getName() + " found in " + config.getUsersDN();
-            throw new UserAlreadyExistsException(error);
-        }
-        catch (UserNotFoundException e1) {}
+            String numericID = String.valueOf(genNextNumericId());
+            String password = UUID.randomUUID().toString();
 
-        addUser(userRequest, config.getUsersDN());
+            List<Attribute> attributes = new ArrayList<Attribute>();
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
+            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
+            addAttribute(attributes, LDAP_UID, numericID);
+            addAttribute(attributes, LDAP_USER_NAME,  EXTERNAL_USER_CN);
+            addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
+            addAttribute(attributes, LADP_USER_PASSWORD, password);
+            addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userID.getName());
+
+            DN userDN = getUserDN(numericID, config.getUsersDN());
+            AddRequest addRequest = new AddRequest(userDN, attributes);
+            logger.info("adding " + userID.getName() + " to " + config.getUsersDN());
+            LDAPResult result = getReadWriteConnection().add(addRequest);
+            LdapDAO.checkLdapResult(result.getResultCode());
+        }
+        catch (LDAPException e)
+        {
+            logger.error("addUserRequest Exception: " + e, e);
+            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            throw new RuntimeException("Unexpected LDAP exception", e);
+        }
     }
 
-    private String getEmailAddress(final UserRequest userRequest)
+    private String getEmailAddress(final User user)
     {
-        if (userRequest.getUser().personalDetails == null)
+        if (user.personalDetails == null)
         {
-            String error = userRequest.getUser().getHttpPrincipal().getName() + " missing required PersonalDetails";
+            String error = user.getHttpPrincipal().getName() + " missing required PersonalDetails";
             throw new IllegalArgumentException(error);
         }
 
-        if (!StringUtil.hasText(userRequest.getUser().personalDetails.email))
+        if (!StringUtil.hasText(user.personalDetails.email))
         {
-            String error = userRequest.getUser().getHttpPrincipal().getName() + " missing required email address";
+            String error = user.getHttpPrincipal().getName() + " missing required email address";
             throw new IllegalArgumentException(error);
         }
-
-        return userRequest.getUser().personalDetails.email;
+        return user.personalDetails.email;
     }
 
-    private void checkUsers(final UserRequest userRequest, final String usersDN)
+    private void checkUsers(final Principal userID, final String email, final String usersDN)
         throws TransientException, UserAlreadyExistsException
     {
         // check current users
         try
         {
-            Principal userID = getSupportedPrincipal(userRequest.getUser());
-            if (userID == null)
-            {
-                throw new IllegalArgumentException("UserRequest missing supported Principal type");
-            }
-
             getUser(userID, usersDN);
             final String error = "user " + userID.getName() + " found in " + usersDN;
             throw new UserAlreadyExistsException(error);
@@ -329,16 +349,17 @@ public class LdapUserDAO extends LdapDAO
         catch (UserNotFoundException ok) { }
 
         // check if email address is already in use
-        try
+        if (email != null)
         {
-            String emailAddress = getEmailAddress(userRequest);
-            Principal userID = getSupportedPrincipal(userRequest.getUser());
-            if (userID instanceof HttpPrincipal)
+            try
             {
-                getUserByEmailAddress(emailAddress, usersDN);
+                if (userID instanceof HttpPrincipal)
+                {
+                    getUserByEmailAddress(email, usersDN);
+                }
             }
+            catch (UserNotFoundException ok) { }
         }
-        catch (UserNotFoundException ok) { }
     }
 
     /**
@@ -348,74 +369,55 @@ public class LdapUserDAO extends LdapDAO
      * @throws TransientException           If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException   If the user already exists.
      */
-    public void addPendingUser(final UserRequest userRequest)
+    public void addUserRequest(final UserRequest userRequest)
             throws TransientException, UserAlreadyExistsException
     {
-        // check current users
-        checkUsers(userRequest, config.getUsersDN());
-
-        // check pending users
-        checkUsers(userRequest, config.getUserRequestsDN());
-
-        addUser(userRequest, config.getUserRequestsDN());
-    }
-
-    private void addUser(final UserRequest userRequest, final String usersDN)
-        throws TransientException, UserAlreadyExistsException
-    {
         final User user = userRequest.getUser();
-        final Principal userID = getSupportedPrincipal(user);
+        final HttpPrincipal userID = user.getHttpPrincipal();
         if (userID == null)
         {
-            throw new IllegalArgumentException("UserRequest missing supported Principal type");
+            throw new IllegalArgumentException("User missing required HttpPrincipal type");
         }
 
-        final Class userType = userID.getClass();
-        final String searchField = userLdapAttrib.get(userType);
-        if (searchField == null)
+        if (userID.getName().startsWith("$"))
         {
-            throw new IllegalArgumentException("Unsupported principal type " + userType);
+            final String error = "Username " + user.getHttpPrincipal().getName() +
+                " cannot start with a $";
+            throw new IllegalArgumentException(error);
         }
 
-        String numericID = String.valueOf(genNextNumericId());
+        if (user.posixDetails != null)
+        {
+            throw new UnsupportedOperationException("Support for users PosixDetails not available");
+        }
+
+        // email is required
+        String email = getEmailAddress(user);
+
+        // check current users
+        checkUsers(userID, email, config.getUsersDN());
+
+        // check user requests
+        checkUsers(userID, email, config.getUserRequestsDN());
 
         try
         {
+            String numericID = String.valueOf(genNextNumericId());
+
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
             addAttribute(attributes, LDAP_UID, numericID);
+            addAttribute(attributes, LDAP_USER_NAME,  userID.getName());
+            addAttribute(attributes, LDAP_LAST_NAME, user.personalDetails.getLastName());
             addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
-
-            if (user.getHttpPrincipal() == null)
-            {
-                addAttribute(attributes, LDAP_COMMON_NAME, EXTERNAL_USER_CN);
-                addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
-            }
-            else
-            {
-                if (user.personalDetails == null)
-                {
-                    final String error = "User " + user.getHttpPrincipal().getName() +
-                        " missing required PersonalDetails";
-                    throw new IllegalArgumentException(error);
-                }
-                 if (userID.getName().startsWith("$"))
-                 {
-                     final String error = "Username " + user.getHttpPrincipal().getName() +
-                         " cannot start with a $";
-                     throw new IllegalArgumentException(error);
-                 }
-                addAttribute(attributes, LDAP_COMMON_NAME, userID.getName());
-                addAttribute(attributes, LDAP_FIRST_NAME, user.personalDetails.getFirstName());
-                addAttribute(attributes, LDAP_LAST_NAME, user.personalDetails.getLastName());
-                addAttribute(attributes, LDAP_ADDRESS, user.personalDetails.address);
-                addAttribute(attributes, LDAP_CITY, user.personalDetails.city);
-                addAttribute(attributes, LDAP_COUNTRY, user.personalDetails.country);
-                addAttribute(attributes, LDAP_EMAIL, user.personalDetails.email);
-                addAttribute(attributes, LDAP_INSTITUTE, user.personalDetails.institute);
-            }
+            addAttribute(attributes, LDAP_FIRST_NAME, user.personalDetails.getFirstName());
+            addAttribute(attributes, LDAP_ADDRESS, user.personalDetails.address);
+            addAttribute(attributes, LDAP_CITY, user.personalDetails.city);
+            addAttribute(attributes, LDAP_COUNTRY, user.personalDetails.country);
+            addAttribute(attributes, LDAP_EMAIL, email);
+            addAttribute(attributes, LDAP_INSTITUTE, user.personalDetails.institute);
 
             for (Principal princ : user.getIdentities())
             {
@@ -425,20 +427,15 @@ public class LdapUserDAO extends LdapDAO
                 }
             }
 
-            if (user.posixDetails != null)
-            {
-                throw new UnsupportedOperationException("Support for users PosixDetails not available");
-            }
-
-            DN userDN = getUserDN(numericID, usersDN);
+            DN userDN = getUserDN(numericID, config.getUserRequestsDN());
             AddRequest addRequest = new AddRequest(userDN, attributes);
-            logger.info("adding " + userID.getName() + " to " + usersDN);
+            logger.info("adding " + userID.getName() + " to " + config.getUserRequestsDN());
             LDAPResult result = getReadWriteConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
         }
         catch (LDAPException e)
         {
-            logger.error("addUser Exception: " + e, e);
+            logger.error("addUserRequest Exception: " + e, e);
             LdapUserDAO.checkUserLDAPResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
@@ -454,29 +451,10 @@ public class LdapUserDAO extends LdapDAO
      * @throws AccessControlException If the operation is not permitted.
      */
     public User getUser(final Principal userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException
+        throws UserNotFoundException, TransientException,
+               AccessControlException
     {
         return getUser(userID, config.getUsersDN());
-    }
-
-    /**
-     * Get the user specified by the email address exists.
-     *
-     * @param emailAddress The user's email address.
-     *
-     * @return User instance.
-     *
-     * @throws UserNotFoundException  when the user is not found in the main tree.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     * @throws UserAlreadyExistsException A user with the same email address already exists
-     */
-    public User getUserByEmailAddress(final String emailAddress)
-            throws UserNotFoundException, TransientException,
-            AccessControlException, UserAlreadyExistsException
-    {
-        return getUserByEmailAddress(emailAddress, config.getUsersDN());
     }
 
     /**
@@ -489,9 +467,9 @@ public class LdapUserDAO extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User getPendingUser(final Principal userID)
-            throws UserNotFoundException, TransientException,
-                   AccessControlException
+    public User getUserRequest(final Principal userID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException
     {
         return getUser(userID, config.getUserRequestsDN());
     }
@@ -508,7 +486,7 @@ public class LdapUserDAO extends LdapDAO
      */
     private User getUser(final Principal userID, final String usersDN)
         throws UserNotFoundException, TransientException,
-        AccessControlException
+               AccessControlException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
         if (searchField == null)
@@ -605,6 +583,25 @@ public class LdapUserDAO extends LdapDAO
     /**
      * Get the user specified by the email address exists.
      *
+     * @param emailAddress The user's email address.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException  when the user is not found in the main tree.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     * @throws UserAlreadyExistsException A user with the same email address already exists
+     */
+    public User getUserByEmailAddress(final String emailAddress)
+        throws UserNotFoundException, TransientException,
+               AccessControlException, UserAlreadyExistsException
+    {
+        return getUserByEmailAddress(emailAddress, config.getUsersDN());
+    }
+
+    /**
+     * Get the user specified by the email address exists.
+     *
      * @param emailAddress  The user's email address.
      * @param usersDN The LDAP tree to search.
      * @return User ID
@@ -684,7 +681,7 @@ public class LdapUserDAO extends LdapDAO
             throw new AccessControlException("Permission denied");
         }
 
-        String userIDString = searchResult.getAttributeValue(LDAP_COMMON_NAME);
+        String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
         HttpPrincipal userID = new HttpPrincipal(userIDString);
         User user = new User();
         user.getIdentities().add(userID);
@@ -838,7 +835,7 @@ public class LdapUserDAO extends LdapDAO
      * @return A Collection of User's.
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Collection<User> getPendingUsers()
+    public Collection<User> getUserRequests()
         throws AccessControlException, TransientException
     {
         return getUsers(config.getUserRequestsDN());
@@ -907,10 +904,10 @@ public class LdapUserDAO extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User approvePendingUser(final Principal userID)
+    public User approveUserRequest(final Principal userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        User pendingUser = getPendingUser(userID);
+        User pendingUser = getUserRequest(userID);
         if (pendingUser.getHttpPrincipal() == null)
         {
             throw new RuntimeException("BUG: missing HttpPrincipal for " + userID.getName());
@@ -1109,7 +1106,7 @@ public class LdapUserDAO extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void deletePendingUser(final Principal userID)
+    public void deleteUserRequest(final Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -1275,26 +1272,6 @@ public class LdapUserDAO extends LdapDAO
         throw new IllegalArgumentException(userID + " not a valid user ID");
     }
 
-//    protected Principal getUserIDPrincipal(Principal userID)
-//    {
-//        if (userID instanceof HttpPrincipal)
-//        {
-//            return new HttpPrincipal(userID.getName());
-//        }
-//        else if (userID instanceof X500Principal)
-//        {
-//            return new X500Principal(userID.getName());
-//        }
-//        else if (userID instanceof NumericPrincipal)
-//        {
-//            return new NumericPrincipal(UUID.fromString(userID.getName()));
-//        }
-//        else
-//        {
-//            throw new IllegalArgumentException("Unsupported principal type " + userID.getClass());
-//        }
-//    }
-
     private void addAttribute(List<Attribute> attributes, final String name, final String value)
     {
         if (value != null && !value.isEmpty())
@@ -1350,38 +1327,38 @@ public class LdapUserDAO extends LdapDAO
         return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
     }
 
-    /**
-     * Get the first supported Principal out of the list of the User's Principals, or
-     * null of if the User doesn't have a supported Principal.
-     *
-     * @param user  the User.
-     * @return a Principal.
-     */
-    protected Principal getSupportedPrincipal(final User user)
-    {
-        // Look for a HttpPrincipal first.
-        if (user.getHttpPrincipal() != null)
-        {
-            return user.getHttpPrincipal();
-        }
-
-        // X500Principal next
-        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-        if (!x500Principals.isEmpty())
-        {
-            return x500Principals.iterator().next();
-        }
-
-        // Another supported Principal
-//        for (Principal principal : user.getIdentities())
+//    /**
+//     * Get the first supported Principal out of the list of the User's Principals, or
+//     * null of if the User doesn't have a supported Principal.
+//     *
+//     * @param user  the User.
+//     * @return a Principal.
+//     */
+//    protected Principal getSupportedPrincipal(final User user)
+//    {
+//        // Look for a HttpPrincipal first.
+//        if (user.getHttpPrincipal() != null)
 //        {
-//            if (userLdapAttrib.get(principal.getClass()) != null)
-//            {
-//                return principal;
-//            }
+//            return user.getHttpPrincipal();
 //        }
-        return null;
-    }
+//
+//        // X500Principal next
+//        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+//        if (!x500Principals.isEmpty())
+//        {
+//            return x500Principals.iterator().next();
+//        }
+//
+//        // Another supported Principal
+////        for (Principal principal : user.getIdentities())
+////        {
+////            if (userLdapAttrib.get(principal.getClass()) != null)
+////            {
+////                return principal;
+////            }
+////        }
+//        return null;
+//    }
 
     protected InternalID getInternalID(String numericID)
     {

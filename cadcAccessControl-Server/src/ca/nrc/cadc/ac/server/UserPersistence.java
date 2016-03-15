@@ -88,15 +88,15 @@ public interface UserPersistence
     void destroy();
 
     /**
-     * Add the user to the active users tree.
+     * Add the user to the users tree.
      *
-     * @param user      The user request to put into the active users tree.
+     * @param user      The user request to put into the users tree.
      *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addUser(UserRequest user)
+    void addUser(User user)
         throws TransientException, AccessControlException,
         UserAlreadyExistsException;
 
@@ -109,7 +109,7 @@ public interface UserPersistence
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addPendingUser(UserRequest user)
+    void addUserRequest(UserRequest user)
         throws TransientException, AccessControlException,
         UserAlreadyExistsException;
 
@@ -155,7 +155,7 @@ public interface UserPersistence
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User getPendingUser(Principal userID)
+    User getUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -191,7 +191,7 @@ public interface UserPersistence
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<User> getPendingUsers()
+    Collection<User> getUserRequests()
         throws TransientException, AccessControlException;
 
     /**
@@ -206,7 +206,7 @@ public interface UserPersistence
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User approvePendingUser(Principal userID)
+    User approveUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -247,7 +247,7 @@ public interface UserPersistence
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    void deletePendingUser(Principal userID)
+    void deleteUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 

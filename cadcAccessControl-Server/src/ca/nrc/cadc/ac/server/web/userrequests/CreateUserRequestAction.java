@@ -66,17 +66,18 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web.userrequests;
 
-import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
 
 import java.io.InputStream;
 
-public class CreateUserAction extends AbstractUserAction
+
+public class CreateUserRequestAction extends AbstractUserRequestAction
 {
     private final InputStream inputStream;
 
-    CreateUserAction(final InputStream inputStream)
+    CreateUserRequestAction(final InputStream inputStream)
     {
         super();
         this.inputStream = inputStream;
@@ -85,11 +86,11 @@ public class CreateUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        final User user = readUser(this.inputStream);
-        userPersistence.addUser(user);
+        final UserRequest userRequest = readUserRequest(this.inputStream);
+        userPersistence.addUserRequest(userRequest);
 
         syncOut.setCode(201);
-        logUserInfo(user.getHttpPrincipal().getName());
+        logUserInfo(userRequest.getUser().getHttpPrincipal().getName());
     }
 
 }

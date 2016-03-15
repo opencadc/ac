@@ -66,7 +66,28 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
+package ca.nrc.cadc.ac.server.web.userrequests;
+
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.json.JsonUserReader;
+import ca.nrc.cadc.ac.json.JsonUserRequestReader;
+import ca.nrc.cadc.ac.json.JsonUserWriter;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
+import ca.nrc.cadc.ac.xml.UserListWriter;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -76,33 +97,12 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.json.JsonUserListWriter;
-import ca.nrc.cadc.ac.json.JsonUserReader;
-import ca.nrc.cadc.ac.json.JsonUserRequestReader;
-import ca.nrc.cadc.ac.json.JsonUserWriter;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.ac.xml.UserListWriter;
-import ca.nrc.cadc.ac.xml.UserReader;
-import ca.nrc.cadc.ac.xml.UserRequestReader;
-import ca.nrc.cadc.ac.xml.UserWriter;
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.profiler.Profiler;
-
-public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
+public abstract class AbstractUserRequestAction implements PrivilegedExceptionAction<Object>
 {
-    private static final Logger log = Logger.getLogger(AbstractUserAction.class);
+    private static final Logger log = Logger.getLogger(AbstractUserRequestAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
     public static final String JSON_CONTENT_TYPE = "application/json";
-    private Profiler profiler = new Profiler(AbstractUserAction.class);
+    private Profiler profiler = new Profiler(AbstractUserRequestAction.class);
 
     protected boolean isAugmentUser;
     protected UserLogInfo logInfo;
@@ -111,7 +111,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
-    AbstractUserAction()
+    AbstractUserRequestAction()
     {
         this.isAugmentUser = false;
     }
@@ -247,28 +247,27 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     }
 
     /**
-     * Read the user from the given stream of marshalled data.
+     * Read a user request (User pending approval) from the HTTP Request's
+     * stream.
      *
-     * @param inputStream       The stream to read in.
-     * @return                  User instance, never null.
-     *
-     * @throws IOException      Any errors in reading the stream.
+     * @param inputStream           The Input Stream to read from.
+     * @return                      User Request instance.
+     * @throws IOException          Any reading errors.
      */
-    protected User readUser(final InputStream inputStream)
+    protected UserRequest readUserRequest(final InputStream inputStream)
         throws ReaderException, IOException
     {
-        syncOut.setHeader("Content-Type", acceptedContentType);
-        final User user;
+        final UserRequest userRequest;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
-            UserReader userReader = new UserReader();
-            user = userReader.read(inputStream);
+            UserRequestReader requestReader = new UserRequestReader();
+            userRequest = requestReader.read(inputStream);
         }
         else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
         {
-            JsonUserReader userReader = new JsonUserReader();
-            user = userReader.read(inputStream);
+            JsonUserRequestReader requestReader = new JsonUserRequestReader();
+            userRequest = requestReader.read(inputStream);
         }
         else
         {
@@ -276,57 +275,8 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
             throw new IOException("Unknown content being asked for: "
                                   + acceptedContentType);
         }
-        profiler.checkpoint("readUser");
-        return user;
-    }
-
-    /**
-     * Write a user to the response's writer.
-     *
-     * @param user              The user object to marshall and write out.
-     * @throws IOException      Any writing errors.
-     */
-    protected void writeUser(final User user)
-        throws WriterException, IOException
-    {
-        syncOut.setHeader("Content-Type", acceptedContentType);
-        final Writer writer = syncOut.getWriter();
-
-        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
-        {
-            UserWriter userWriter = new UserWriter();
-            userWriter.write(user, writer);
-        }
-        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
-        {
-            JsonUserWriter userWriter = new JsonUserWriter();
-            userWriter.write(user, writer);
-        }
-        profiler.checkpoint("writeUser");
-    }
-
-    /**
-     * Write out a Map of users as this Action's specified content type.
-     *
-     * @param users         The Map of user IDs to names.
-     */
-    protected void writeUsers(final Collection<User> users)
-        throws WriterException, IOException
-    {
-        syncOut.setHeader("Content-Type", acceptedContentType);
-        final Writer writer = syncOut.getWriter();
-
-        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
-        {
-            UserListWriter userListWriter = new UserListWriter();
-            userListWriter.write(users, writer);
-        }
-        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
-        {
-            JsonUserListWriter userListWriter = new JsonUserListWriter();
-            userListWriter.write(users, writer);
-        }
-        profiler.checkpoint("writeUsers");
+        profiler.checkpoint("readUserRequest");
+        return userRequest;
     }
 
 }

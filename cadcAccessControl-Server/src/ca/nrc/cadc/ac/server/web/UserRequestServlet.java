@@ -68,26 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.ac.server.web.userrequests.AbstractUserRequestAction;
+import ca.nrc.cadc.ac.server.web.userrequests.CreateUserRequestAction;
+import ca.nrc.cadc.ac.server.web.userrequests.UserRequestActionFactory;
 import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
 import ca.nrc.cadc.ac.server.web.users.GetUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
@@ -97,11 +83,28 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
+import org.apache.log4j.Logger;
 
-public class UserServlet extends HttpServlet
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+public class UserRequestServlet extends HttpServlet
 {
+
     private static final long serialVersionUID = 5289130885807305288L;
-    private static final Logger log = Logger.getLogger(UserServlet.class);
+    private static final Logger log = Logger.getLogger(UserRequestServlet.class);
 
     private List<Subject> privilegedSubjects;
 
@@ -114,10 +117,10 @@ public class UserServlet extends HttpServlet
 
         try
         {
-            String x500Users = config.getInitParameter(UserServlet.class.getName() + ".PrivilegedX500Principals");
+            String x500Users = config.getInitParameter(UserRequestServlet.class.getName() + ".PrivilegedX500Principals");
             log.debug("PrivilegedX500Users: " + x500Users);
 
-            String httpUsers = config.getInitParameter(UserServlet.class.getName() + ".PrivilegedHttpPrincipals");
+            String httpUsers = config.getInitParameter(UserRequestServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("PrivilegedHttpUsers: " + httpUsers);
 
             String[] x500List = new String[0];
@@ -161,26 +164,26 @@ public class UserServlet extends HttpServlet
     /**
      * Create a UserAction and run the action safely.
      */
-    private void doAction(UserActionFactory factory, HttpServletRequest request, HttpServletResponse response)
+    private void doAction(UserRequestActionFactory factory, HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        Profiler profiler = new Profiler(UserServlet.class);
+        Profiler profiler = new Profiler(UserRequestServlet.class);
         long start = System.currentTimeMillis();
         UserLogInfo logInfo = new UserLogInfo(request);
 
         try
         {
             log.info(logInfo.start());
-            AbstractUserAction action = factory.createAction(request);
+            AbstractUserRequestAction action = factory.createAction(request);
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
             profiler.checkpoint("created action");
 
             // Special case: if the calling subject has a privileged X500Principal,
-            // AND it is a GET request, do not augment the subject.
+            // AND it is a PUT request, do not augment the subject.
             Subject subject;
             Subject privilegedSubject = getPrivilegedSubject(request);
-            if (action instanceof GetUserAction && privilegedSubject != null)
+            if (action instanceof CreateUserRequestAction && privilegedSubject != null)
             {
                 profiler.checkpoint("check privileged user");
                 subject = Subject.getSubject(AccessController.getContext());
@@ -260,35 +263,35 @@ public class UserServlet extends HttpServlet
     public void doGet(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(UserActionFactory.httpGetFactory(), request, response);
+        doAction(UserRequestActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(UserActionFactory.httpPostFactory(), request, response);
+        doAction(UserRequestActionFactory.httpPostFactory(), request, response);
     }
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(UserActionFactory.httpDeleteFactory(), request, response);
+        doAction(UserRequestActionFactory.httpDeleteFactory(), request, response);
     }
 
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(UserActionFactory.httpPutFactory(), request, response);
+        doAction(UserRequestActionFactory.httpPutFactory(), request, response);
     }
 
     @Override
     public void doHead(HttpServletRequest request, HttpServletResponse response)
         throws IOException
     {
-        doAction(UserActionFactory.httpHeadFactory(), request, response);
+        doAction(UserRequestActionFactory.httpHeadFactory(), request, response);
     }
 
     /**

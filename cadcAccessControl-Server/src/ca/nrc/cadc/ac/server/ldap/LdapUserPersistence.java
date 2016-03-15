@@ -107,15 +107,15 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Add the user to the active users tree.
+     * Add the user to the users tree.
      *
-     * @param user      The user request to put into the active user tree.
+     * @param user      The user request to put into the user tree.
      *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    public void addUser(UserRequest user)
+    public void addUser(User user)
         throws TransientException, AccessControlException, UserAlreadyExistsException
     {
         LdapUserDAO userDAO = null;
@@ -132,15 +132,15 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Add the user to the pending users tree.
+     * Add the user to the user requests tree.
      *
-     * @param user      The user request to put into the pending user tree.
+     * @param userRequest      The user request to put into the pending user tree.
      *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    public void addPendingUser(UserRequest user)
+    public void addUserRequest(UserRequest userRequest)
         throws TransientException, AccessControlException, UserAlreadyExistsException
     {
         LdapUserDAO userDAO = null;
@@ -148,7 +148,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = new LdapUserDAO(conns);
-            userDAO.addPendingUser(user);
+            userDAO.addUserRequest(userRequest);
         }
         finally
         {
@@ -200,8 +200,8 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws UserAlreadyExistsException A user with the same email address already exists
      */
     public User getUserByEmailAddress(String emailAddress)
-            throws UserNotFoundException, TransientException,
-            AccessControlException, UserAlreadyExistsException
+        throws UserNotFoundException, TransientException,
+               AccessControlException, UserAlreadyExistsException
         {
             LdapConnections conns = new LdapConnections(this);
             try
@@ -224,7 +224,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     * @throws TransientException     If an temporary, unexpected problem occurred.
     * @throws AccessControlException If the operation is not permitted.
     */
-    public User getPendingUser(Principal userID)
+    public User getUserRequest(Principal userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
@@ -236,7 +236,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = new LdapUserDAO(conns);
-            return userDAO.getPendingUser(userID);
+            return userDAO.getUserRequest(userID);
         }
         finally
         {
@@ -304,13 +304,13 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Get all user names from the pending users tree.
+     * Get all user names from the user requests tree.
      *
      * @return A collection of strings.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public Collection<User> getPendingUsers()
+    public Collection<User> getUserRequests()
         throws TransientException, AccessControlException
     {
         // admin API: no permission check
@@ -319,7 +319,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = new LdapUserDAO(conns);
-            return userDAO.getPendingUsers();
+            return userDAO.getUserRequests();
         }
         finally
         {
@@ -328,8 +328,8 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Move the pending user specified by userID from the
-     * pending users tree to the active users tree.
+     * Move the user request specified by userID from the
+     * user requests tree to the users tree.
      *
      * @param userID      The user instance to move.
      *
@@ -339,7 +339,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User approvePendingUser(Principal userID)
+    public User approveUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -349,7 +349,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = new LdapUserDAO(conns);
-            return userDAO.approvePendingUser(userID);
+            return userDAO.approveUserRequest(userID);
         }
         finally
         {
@@ -420,7 +420,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Delete the user specified by userID from the pending users tree.
+     * Delete the user specified by userID from the user requests tree.
      *
      * @param userID The userID.
      *
@@ -428,7 +428,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void deletePendingUser(Principal userID)
+    public void deleteUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -438,7 +438,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = new LdapUserDAO(conns);
-            userDAO.deletePendingUser(userID);
+            userDAO.deleteUserRequest(userID);
         }
         finally
         {
@@ -458,7 +458,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws AccessControlException If the operation is not permitted.
      */
     public Boolean doLogin(String userID, String password)
-            throws UserNotFoundException, TransientException, AccessControlException
+        throws UserNotFoundException, TransientException, AccessControlException
     {
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
@@ -484,7 +484,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws AccessControlException If the operation is not permitted.
      */
     public void setPassword(HttpPrincipal userID, String oldPassword, String newPassword)
-            throws UserNotFoundException, TransientException, AccessControlException
+        throws UserNotFoundException, TransientException, AccessControlException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )
@@ -517,7 +517,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws AccessControlException If the operation is not permitted.
      */
     public void resetPassword(HttpPrincipal userID, String newPassword)
-            throws UserNotFoundException, TransientException, AccessControlException
+        throws UserNotFoundException, TransientException, AccessControlException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
         if ( !isMatch(caller, userID) )

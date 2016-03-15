@@ -101,8 +101,6 @@ public class AbstractLdapDAOTest
     static User cadcDaoTest1_User;
     static User cadcDaoTest2_User;
     static User cadcDaoTest3_User;
-    static User cadcDaoTest1_HttpUser;
-    static User cadcDaoTest1_X500User;
     static User cadcDaoTest1_AugmentedUser;
     static User cadcDaoTest2_AugmentedUser;
     static User testMember;
@@ -152,8 +150,9 @@ public class AbstractLdapDAOTest
             user.getIdentities().add(cadcDaoTest1_X500Principal);
             user.personalDetails = new PersonalDetails("CADC", "DAOTest1");
             user.personalDetails.email = cadcDaoTest1_CN + "@canada.ca";
-            UserRequest request = new UserRequest(user, "password1".toCharArray());
-            getUserDAO().addUser(request);
+            UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+            getUserDAO().addUserRequest(userRequest);
+            getUserDAO().approveUserRequest(cadcDaoTest1_HttpPrincipal);
             cadcDaoTest1_User = getUserDAO().getUser(cadcDaoTest1_HttpPrincipal);
         }
 
@@ -168,8 +167,9 @@ public class AbstractLdapDAOTest
             user.getIdentities().add(cadcDaoTest2_X500Principal);
             user.personalDetails = new PersonalDetails("CADC", "DAOTest2");
             user.personalDetails.email = cadcDaoTest2_CN + "@canada.ca";
-            UserRequest request = new UserRequest(user, "password2".toCharArray());
-            getUserDAO().addUser(request);
+            UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+            getUserDAO().addUserRequest(userRequest);
+            getUserDAO().approveUserRequest(cadcDaoTest2_HttpPrincipal);
             cadcDaoTest2_User = getUserDAO().getUser(cadcDaoTest2_HttpPrincipal);
         }
 
@@ -184,8 +184,9 @@ public class AbstractLdapDAOTest
             user.getIdentities().add(cadcDaoTest3_X500Principal);
             user.personalDetails = new PersonalDetails("CADC", "DAOTest3");
             user.personalDetails.email = cadcDaoTest3_CN + "@canada.ca";
-            UserRequest request = new UserRequest(user, "password3".toCharArray());
-            getUserDAO().addUser(request);
+            UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+            getUserDAO().addUserRequest(userRequest);
+            getUserDAO().approveUserRequest(cadcDaoTest3_HttpPrincipal);
             cadcDaoTest3_User = getUserDAO().getUser(cadcDaoTest3_HttpPrincipal);
         }
 
@@ -198,16 +199,6 @@ public class AbstractLdapDAOTest
         cadcDaoTest2_AugmentedUser = getUserDAO().getAugmentedUser(cadcDaoTest2_HttpPrincipal);
         cadcDaoTest2_Subject = new Subject();
         cadcDaoTest2_Subject.getPrincipals().addAll(cadcDaoTest2_AugmentedUser.getIdentities());
-
-        // A cadcDaoTest1 user with only a HttpPrincipal
-//        cadcDaoTest1_HttpUser = new User();
-//        cadcDaoTest1_HttpUser.personalDetails = new PersonalDetails("CADC", "DAOTest1");
-//        cadcDaoTest1_HttpUser.getIdentities().add(cadcDaoTest1_User.getHttpPrincipal());
-//
-//        // A cadcDaoTest1 user with only a X500Principal
-//        cadcDaoTest1_X500User = new User();
-//        cadcDaoTest1_X500User.personalDetails = new PersonalDetails("CADC", "DAOTest1");
-//        cadcDaoTest1_X500User.getIdentities().add(cadcDaoTest1_X500Principal);
 
         // member returned by getMember contains only the fields required by the GMS
         testMember = new User();

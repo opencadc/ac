@@ -146,8 +146,8 @@ public class GetUserAction extends AbstractUserAction
             }
             catch (UserNotFoundException e)
             {
-                user = userPersistence.getPendingUser(principal);
-                profiler.checkpoint("getPendingUser");
+                user = userPersistence.getUserRequest(principal);
+                profiler.checkpoint("getUserRequest");
             }
 
             // Only return user profile info, first and last name.

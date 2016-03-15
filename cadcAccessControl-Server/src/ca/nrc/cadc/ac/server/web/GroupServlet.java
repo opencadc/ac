@@ -93,12 +93,10 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
  *
  * @author majorb
  */
-public class GroupServlet<T extends Principal> extends HttpServlet
+public class GroupServlet extends HttpServlet
 {
     private static final long serialVersionUID = 7854660717655869213L;
     private static final Logger log = Logger.getLogger(GroupServlet.class);
-
-    public static final String GROUP_PERSISTENCE_REF = "groupPersistence";
 
     private GroupPersistence groupPersistence;
 
