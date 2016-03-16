@@ -144,7 +144,7 @@ public class ApproveUser extends AbstractUserCommand
         }
         catch (UserNotFoundException e)
         {
-            this.systemOut.println("Could not find pending user " + this.getPrincipal());
+            this.systemOut.println("Could not find userRequest " + this.getPrincipal());
             return;
         }
 
