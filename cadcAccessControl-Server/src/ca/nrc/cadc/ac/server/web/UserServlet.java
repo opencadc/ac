@@ -126,20 +126,25 @@ public class UserServlet extends HttpServlet
             {
                 x500List = x500Users.split(" ");
                 httpList = httpUsers.split(" ");
-            }
 
-            if (x500List.length != httpList.length)
-            {
-                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
-            }
+                if (x500List.length != httpList.length)
+                {
+                    throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+                }
 
-            privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-            for (int i=0; i<x500List.length; i++)
+                privilegedSubjects = new ArrayList<Subject>(x500Users.length());
+                for (int i=0; i<x500List.length; i++)
+                {
+                    Subject s = new Subject();
+                    s.getPrincipals().add(new X500Principal(x500List[i]));
+                    s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                    privilegedSubjects.add(s);
+                }
+
+            }
+            else
             {
-                Subject s = new Subject();
-                s.getPrincipals().add(new X500Principal(x500List[i]));
-                s.getPrincipals().add(new HttpPrincipal(httpList[i]));
-                privilegedSubjects.add(s);
+                log.warn("No Privileged users configured.");
             }
 
             PluginFactory pluginFactory = new PluginFactory();
