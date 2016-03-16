@@ -179,7 +179,7 @@ public class LdapUserDAO extends LdapDAO
     private String[] identityAttribs = new String[]
     {
         LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_ENTRYDN,
-        LDAP_MEMBEROF // for group cache
+        LDAP_USER_NAME, LDAP_MEMBEROF // for group cache
     };
 
     public LdapUserDAO(LdapConnections connections)
@@ -678,8 +678,9 @@ public class LdapUserDAO extends LdapDAO
             }
 
             User user = new User();
-            user.getIdentities().add(new HttpPrincipal(
-                searchResult.getAttributeValue(LDAP_UID)));
+            String username = searchResult.getAttributeValue(LDAP_USER_NAME);
+            logger.debug("username is " + username);
+            user.getIdentities().add(new HttpPrincipal(username));
 
             String numericID = searchResult.getAttributeValue(LDAP_UID);
             logger.debug("numericID is " + numericID);
@@ -1092,6 +1093,7 @@ public class LdapUserDAO extends LdapDAO
     DN getUserDN(User user)
         throws UserNotFoundException, TransientException
     {
+        // Could be a DNPrincipal from a memberOf or uniquemember entrydn
         Principal userID = user.getHttpPrincipal();
         String searchField = userLdapAttrib.get(userID.getClass());
         if (searchField == null)

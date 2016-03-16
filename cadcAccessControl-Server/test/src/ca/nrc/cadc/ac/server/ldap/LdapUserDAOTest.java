@@ -327,6 +327,38 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     }
 
     /**
+     * Test of getAugmentedUser method, of class LdapUserDAO.
+     */
+    @Test
+    public void getGetAugmentedUser() throws Exception
+    {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(cadcDaoTest1_HttpPrincipal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run()
+                throws Exception
+            {
+                try
+                {
+                    final LdapUserDAO userDAO = getUserDAO();
+                    final User actual = userDAO.getUser(cadcDaoTest1_HttpPrincipal);
+                    assertEquals(cadcDaoTest1_User.getHttpPrincipal(), actual.getHttpPrincipal());
+
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+
+    /**
      * Test of getUserByEmailAddress method, of class LdapUserDAO.
      */
     @Test
