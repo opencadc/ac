@@ -78,18 +78,18 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.net.TransientException;
 
 /**
- * This class provides a list of all active or pending users in the LDAP server.
- * The users' nsaccountlocked attribute is not set.
+ * This class provides a list of all active users in the LDAP server.
+ * Active users are users in the main tree.
  * @author yeunga
  *
  */
-public class ListPendingUsers extends AbstractListUsers
+public class ListUsers extends AbstractListUsers
 {
-    private static final Logger log = Logger.getLogger(ListPendingUsers.class);
+    private static final Logger log = Logger.getLogger(ListUsers.class);
 
     protected Collection<User> getUsers()
     		throws AccessControlException, TransientException
     {
-    	return this.getUserPersistence().getPendingUsers();
+    	return this.getUserPersistence().getUsers();
     }
 }

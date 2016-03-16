@@ -138,7 +138,7 @@ public class ApproveUser extends AbstractUserCommand
 
         try
         {
-            this.getUserPersistence().approvePendingUser(this.getPrincipal());
+            this.getUserPersistence().approveUserRequest(this.getPrincipal());
             this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
             approved = true;
         }
