@@ -66,101 +66,16 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.userrequests;
 
-import ca.nrc.cadc.ac.server.web.WebUtil;
-import org.apache.log4j.Logger;
+import org.junit.Test;
 
-import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-
-
-public abstract class UserRequestActionFactory
+public class CreateUserRequestActionTest
 {
-    private static final Logger log = Logger.getLogger(UserRequestActionFactory.class);
-
-    public abstract AbstractUserRequestAction createAction(HttpServletRequest request)
-        throws IllegalArgumentException, IOException;
-
-    public static UserRequestActionFactory httpGetFactory()
+    @Test
+    public void testCreateUser() throws Exception
     {
-        return new UserRequestActionFactory()
-        {
-            public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
-                // http get not supported
-                throw new UnsupportedOperationException();
-            }
-        };
+
     }
-
-    public static UserRequestActionFactory httpPutFactory()
-    {
-        return new UserRequestActionFactory()
-        {
-            public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
-                AbstractUserRequestAction action = null;
-                String path = request.getPathInfo();
-                log.debug("path: " + path);
-
-                String[] segments = WebUtil.getPathSegments(path);
-
-                if (segments.length == 0)
-                {
-                    action = new CreateUserRequestAction(request.getInputStream());
-                }
-
-                if (action != null)
-                {
-                    log.debug("Returning action: " + action.getClass());
-                    return action;
-                }
-
-                 throw new IllegalArgumentException("Bad PUT request to " + path);
-            }
-        };
-    }
-
-    public static UserRequestActionFactory httpPostFactory()
-    {
-        return new UserRequestActionFactory()
-        {
-            public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
-                // http post not supported
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
-    public static UserRequestActionFactory httpDeleteFactory()
-    {
-        return new UserRequestActionFactory()
-        {
-            public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
-                // http delete not supported
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
-    public static UserRequestActionFactory httpHeadFactory()
-    {
-        return new UserRequestActionFactory()
-        {
-            public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
-                // http head not supported
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
 }
