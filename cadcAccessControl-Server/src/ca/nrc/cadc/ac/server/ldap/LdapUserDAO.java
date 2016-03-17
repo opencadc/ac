@@ -678,7 +678,16 @@ public class LdapUserDAO extends LdapDAO
 
         try
         {
-            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
+            String name;
+            if (userID instanceof NumericPrincipal)
+            {
+                name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
+            }
+            else
+            {
+                name = userID.getName();
+            }
+            Filter filter = Filter.createEqualityFilter(searchField, name);
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("search filter: " + filter);
 
@@ -691,7 +700,7 @@ public class LdapUserDAO extends LdapDAO
 
             if (searchResult == null)
             {
-                String msg = "User not found " + userID.toString();
+                String msg = "User not found " + name;
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
             }
