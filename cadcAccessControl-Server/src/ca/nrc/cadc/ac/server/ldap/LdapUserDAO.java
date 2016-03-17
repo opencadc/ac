@@ -225,7 +225,7 @@ public class LdapUserDAO extends LdapDAO
         {
             HttpPrincipal httpPrincipal = new HttpPrincipal(username);
             User user = getUser(httpPrincipal);
-            String uuid = uuid2string(user.getID().getUUID());
+            long uuid = uuid2long(user.getID().getUUID());
             BindRequest bindRequest = new SimpleBindRequest(
                 getUserDN(uuid, config.getUsersDN()), new String(password));
 
@@ -298,14 +298,14 @@ public class LdapUserDAO extends LdapDAO
 
         try
         {
-            String numericID = String.valueOf(genNextNumericId());
+            long numericID = genNextNumericId();
             String password = UUID.randomUUID().toString();
 
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
-            addAttribute(attributes, LDAP_UID, numericID);
+            addAttribute(attributes, LDAP_UID, String.valueOf(numericID));
             addAttribute(attributes, LDAP_USER_NAME,  EXTERNAL_USER_CN);
             addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
             addAttribute(attributes, LADP_USER_PASSWORD, password);
@@ -409,13 +409,13 @@ public class LdapUserDAO extends LdapDAO
 
         try
         {
-            String numericID = String.valueOf(genNextNumericId());
+            long numericID = genNextNumericId();
 
             List<Attribute> attributes = new ArrayList<Attribute>();
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
             addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
-            addAttribute(attributes, LDAP_UID, numericID);
+            addAttribute(attributes, LDAP_UID, String.valueOf(numericID));
             addAttribute(attributes, LDAP_USER_NAME,  userID.getName());
             addAttribute(attributes, LDAP_LAST_NAME, user.personalDetails.getLastName());
             addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
@@ -508,7 +508,7 @@ public class LdapUserDAO extends LdapDAO
             String name;
             if (userID instanceof NumericPrincipal)
             {
-                name = uuid2string(UUID.fromString(userID.getName()));
+                name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
             }
             else
             {
@@ -859,7 +859,7 @@ public class LdapUserDAO extends LdapDAO
         {
             throw new RuntimeException("BUG: missing HttpPrincipal for " + userID.getName());
         }
-        String uid = "uid=" + uuid2string(userRequest.getID().getUUID());
+        String uid = "uid=" + uuid2long(userRequest.getID().getUUID());
         String dn = uid + "," + config.getUserRequestsDN();
 
         try
@@ -1066,7 +1066,7 @@ public class LdapUserDAO extends LdapDAO
         User user2Delete = getUser(userID, usersDN);
         try
         {
-            String uuid = uuid2string(user2Delete.getID().getUUID());
+            long uuid = uuid2long(user2Delete.getID().getUUID());
             DN userDN = getUserDN(uuid, usersDN);
             if (markDelete)
             {
@@ -1137,7 +1137,7 @@ public class LdapUserDAO extends LdapDAO
 
         // DN can be formulated if it is the numeric id
         if (p instanceof NumericPrincipal)
-            return this.getUserDN(p.getName(), config.getUsersDN());
+            return this.getUserDN(uuid2long(UUID.fromString(p.getName())), config.getUsersDN());
 
         // Otherwise we need to search for the numeric id
         String searchField = userLdapAttrib.get(p.getClass());
@@ -1180,7 +1180,7 @@ public class LdapUserDAO extends LdapDAO
         return searchResult.getAttributeValueAsDN(LDAP_ENTRYDN);
     }
 
-    protected DN getUserDN(String numericID, String usersDN)
+    protected DN getUserDN(long numericID, String usersDN)
             throws LDAPException, TransientException
     {
         return new DN(LDAP_UID + "=" + numericID + "," + usersDN);
@@ -1241,9 +1241,9 @@ public class LdapUserDAO extends LdapDAO
         return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
     }
 
-    protected String uuid2string(UUID uuid)
+    protected long uuid2long(UUID uuid)
     {
-        return String.valueOf(uuid.getLeastSignificantBits());
+        return uuid.getLeastSignificantBits();
     }
 
     protected InternalID getInternalID(String numericID)
