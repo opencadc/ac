@@ -105,6 +105,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     private Profiler profiler = new Profiler(AbstractUserAction.class);
 
     protected boolean isAugmentUser;
+    protected boolean isPrivilegedSubject;
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
     protected UserPersistence userPersistence;
@@ -126,6 +127,16 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     public boolean isAugmentUser()
     {
     	return this.isAugmentUser;
+    }
+
+    public void setPrivilegedSubject(final boolean isPrivilegedSubject)
+    {
+        this.isPrivilegedSubject = isPrivilegedSubject;
+    }
+
+    public boolean isPrivilegedSubject()
+    {
+        return this.isPrivilegedSubject;
     }
 
     public void setLogInfo(UserLogInfo logInfo)

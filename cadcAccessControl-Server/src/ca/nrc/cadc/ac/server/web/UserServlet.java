@@ -84,6 +84,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.ac.server.web.users.CreateUserAction;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.PluginFactory;
@@ -177,15 +178,41 @@ public class UserServlet extends HttpServlet
         {
             log.info(logInfo.start());
             AbstractUserAction action = factory.createAction(request);
+            log.debug("create action " + action.getClass().getSimpleName());
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
             profiler.checkpoint("created action");
 
-            // Special case: if the calling subject has a privileged X500Principal,
-            // AND it is a GET request, do not augment the subject.
             Subject subject;
             Subject privilegedSubject = getPrivilegedSubject(request);
-            if (action instanceof GetUserAction && privilegedSubject != null)
+            log.debug("privileged subject: " + privilegedSubject);
+
+            // If the calling subject is not a PrivilegedSubject,
+            // AND it is a PUT request, throw an AccessControlException
+            if (action instanceof CreateUserAction)
+            {
+                profiler.checkpoint("check non-privileged user");
+                if (privilegedSubject == null)
+                {
+                    action.setPrivilegedSubject(false);
+                    subject = AuthenticationUtil.getSubject(request);
+                    logInfo.setSubject(subject);
+                    log.debug("augmented subject: " + subject);
+                    profiler.checkpoint("augment subject");
+                }
+                else
+                {
+                    action.setPrivilegedSubject(true);
+                    log.debug("subject not augmented: " + privilegedSubject);
+                    subject = privilegedSubject;
+                    logInfo.setSubject(privilegedSubject);
+                    profiler.checkpoint("set privileged user");
+                }
+            }
+
+            // If the calling subject has a privileged X500Principal,
+            // AND it is a GET request, do not augment the subject.
+            else if (action instanceof GetUserAction && privilegedSubject != null)
             {
                 profiler.checkpoint("check privileged user");
                 subject = Subject.getSubject(AccessController.getContext());

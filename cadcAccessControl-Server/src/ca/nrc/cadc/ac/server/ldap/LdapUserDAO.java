@@ -322,7 +322,7 @@ public class LdapUserDAO extends LdapDAO
         }
         catch (LDAPException e)
         {
-            logger.error("addUserRequest Exception: " + e, e);
+            logger.error("addUser Exception: " + e, e);
             LdapUserDAO.checkUserLDAPResult(e.getResultCode());
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
