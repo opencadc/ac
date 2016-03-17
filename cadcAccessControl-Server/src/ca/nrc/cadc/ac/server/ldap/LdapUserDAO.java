@@ -1101,30 +1101,53 @@ public class LdapUserDAO extends LdapDAO
         }
     }
 
-    DN getUserDN(User user)
-        throws UserNotFoundException, TransientException
+    private Principal getPreferredPrincipal(User user)
     {
-        // Could be a DNPrincipal from a memberOf or uniquemember entrydn
-        Principal userID = user.getHttpPrincipal();
-        String searchField = userLdapAttrib.get(userID.getClass());
+        Principal ret = null;
+        Principal next = null;
+        Iterator<Principal> i = user.getIdentities().iterator();
+        while (i.hasNext())
+        {
+            next = i.next();
+            if (next instanceof NumericPrincipal)
+            {
+                return next;
+            }
+            ret = next;
+        }
+        return ret;
+    }
+
+    DN getUserDN(User user)
+        throws UserNotFoundException, TransientException, LDAPException
+    {
+        Principal p = getPreferredPrincipal(user);
+        if (p == null)
+        {
+            throw new UserNotFoundException("No identities");
+        }
+
+        // DN can be formulated if it is the numeric id
+        if (p instanceof NumericPrincipal)
+            return this.getUserDN(p.getName(), config.getUsersDN());
+
+        // Otherwise we need to search for the numeric id
+        String searchField = userLdapAttrib.get(p.getClass());
         if (searchField == null)
         {
             throw new IllegalArgumentException(
-                    "Unsupported principal type " + userID.getClass());
+                    "Unsupported principal type " + p.getClass());
         }
 
-        // change the DN to be in the 'java' format
-        Filter filter;
-//        if (userID instanceof X500Principal)
-//        {
-//            X500Principal orderedPrincipal = AuthenticationUtil.getOrderedForm(
-//                (X500Principal) userID);
-//            filter = Filter.createEqualityFilter(searchField, orderedPrincipal.toString());
-//        }
-//        else
-//        {
-            filter = Filter.createEqualityFilter(searchField, userID.getName());
-//        }
+//      change the DN to be in the 'java' format
+//      if (userID instanceof X500Principal)
+//      {
+//          X500Principal orderedPrincipal = AuthenticationUtil.getOrderedForm(
+//              (X500Principal) userID);
+//          filter = Filter.createEqualityFilter(searchField, orderedPrincipal.toString());
+//      }
+
+        Filter filter = Filter.createEqualityFilter(searchField, p.getName());
         logger.debug("search filter: " + filter);
 
         SearchResultEntry searchResult = null;
@@ -1133,7 +1156,7 @@ public class LdapUserDAO extends LdapDAO
             SearchRequest searchRequest = new SearchRequest(
                 config.getUsersDN(), SearchScope.ONE, filter, LDAP_ENTRYDN);
             searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
-            logger.info("getUserDN: got " + userID.getName() + " from " + config.getUsersDN());
+            logger.debug("getUserDN: got " + p.getName() + " from " + config.getUsersDN());
         }
         catch (LDAPException e)
         {
@@ -1142,26 +1165,17 @@ public class LdapUserDAO extends LdapDAO
 
         if (searchResult == null)
         {
-            String msg = "User not found " + userID.getName() + " in " + config.getUsersDN();
+            String msg = "User not found " + p.getName() + " in " + config.getUsersDN();
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }
         return searchResult.getAttributeValueAsDN(LDAP_ENTRYDN);
     }
 
-    protected DN getUserDN(final String userID, final String usersDN)
+    protected DN getUserDN(String numericID, String usersDN)
             throws LDAPException, TransientException
     {
-        try
-        {
-            return new DN(LDAP_UID + "=" + userID + "," + usersDN);
-        }
-        catch (LDAPException e)
-        {
-            logger.debug("getUserDN Exception: " + e, e);
-            LdapDAO.checkLdapResult(e.getResultCode());
-        }
-        throw new IllegalArgumentException(userID + " not a valid user ID");
+        return new DN(LDAP_UID + "=" + numericID + "," + usersDN);
     }
 
     private void addAttribute(List<Attribute> attributes, final String name, final String value)

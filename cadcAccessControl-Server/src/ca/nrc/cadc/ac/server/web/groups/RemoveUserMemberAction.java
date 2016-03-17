@@ -71,9 +71,6 @@ package ca.nrc.cadc.ac.server.web.groups;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-
-import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberNotFoundException;
@@ -110,7 +107,7 @@ public class RemoveUserMemberAction extends AbstractGroupAction
         groupPersistence.modifyGroup(group);
 
         List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getHttpPrincipal().getName());
+        deletedMembers.add(getUseridForLogging(toRemove));
         logGroupInfo(group.getID(), deletedMembers, null);
     }
 

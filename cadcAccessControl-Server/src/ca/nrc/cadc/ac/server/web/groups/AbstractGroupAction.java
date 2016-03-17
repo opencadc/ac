@@ -69,12 +69,14 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
 import java.util.List;
 
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
@@ -83,9 +85,11 @@ import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
@@ -233,27 +237,26 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         this.logInfo.deletedMembers = deletedMembers;
     }
 
-    // set private field using reflection
-    protected void setField(Object object, Object value, String name)
+    protected String getUseridForLogging(User u)
     {
-        try
+        if (u.getIdentities().isEmpty())
+            return "anonUser";
+
+        Iterator<Principal> i = u.getIdentities().iterator();
+        String ret = null;
+        Principal next = null;
+        while (i.hasNext())
         {
-            Field field = object.getClass().getDeclaredField(name);
-            field.setAccessible(true);
-            field.set(object, value);
+            next = i.next();
+            if (next instanceof HttpPrincipal)
+                return next.getName();
+            if (next instanceof X500Principal)
+                ret = next.getName();
+            else if (ret == null)
+                ret = next.getName();
         }
-        catch (NoSuchFieldException e)
-        {
-            final String error = object.getClass().getSimpleName() +
-                " field " + name + "not found";
-            throw new RuntimeException(error, e);
-        }
-        catch (IllegalAccessException e)
-        {
-            final String error = "unable to update " + name + " in " +
-                object.getClass().getSimpleName();
-            throw new RuntimeException(error, e);
-        }
+        return ret;
     }
+
 
 }
