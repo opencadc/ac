@@ -68,11 +68,13 @@
  */
 package ca.nrc.cadc.ac.server.web.userrequests;
 
-import ca.nrc.cadc.ac.server.web.WebUtil;
-import org.apache.log4j.Logger;
+import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.server.web.WebUtil;
 
 
 public abstract class UserRequestActionFactory
@@ -119,7 +121,7 @@ public abstract class UserRequestActionFactory
                     return action;
                 }
 
-                 throw new IllegalArgumentException("Bad PUT request to " + path);
+                throw new IllegalArgumentException("Bad PUT request to " + path);
             }
         };
     }

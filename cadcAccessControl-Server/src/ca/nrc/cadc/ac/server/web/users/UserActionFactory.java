@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.UUID;
 
 import javax.security.auth.x500.X500Principal;
@@ -76,7 +77,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -113,8 +113,8 @@ public abstract class UserActionFactory
                 else if (segments.length == 1)
                 {
                     String userID = NetUtil.decode(segments[0]);
-                    User user = getUser(userID, request.getParameter("idType"));
-                    action = new GetUserAction(user.getHttpPrincipal(), request.getParameter("detail"));
+                    Principal p = getIdentity(userID, request.getParameter("idType"));
+                    action = new GetUserAction(p, request.getParameter("detail"));
                 }
 
                 if (action != null)
@@ -202,8 +202,8 @@ public abstract class UserActionFactory
                 if (segments.length == 1)
                 {
                     String userID = NetUtil.decode(segments[0]);
-                    User user = getUser(userID, request.getParameter("idType"));
-                    action = new DeleteUserAction(user.getHttpPrincipal());
+                    Principal p = getIdentity(userID, request.getParameter("idType"));
+                    action = new DeleteUserAction(p);
                 }
 
                 if (action != null)
@@ -230,38 +230,36 @@ public abstract class UserActionFactory
         };
     }
 
-    private static User getUser(String userName, String idType)
+    private static Principal getIdentity(String userName, String idType)
     {
-        User user = new User();
         if (idType == null || idType.isEmpty())
         {
             throw new IllegalArgumentException("User endpoint missing idType parameter");
         }
         else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue()))
         {
-            user.getIdentities().add(new HttpPrincipal(userName));
+            return new HttpPrincipal(userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.X500.getValue()))
         {
-            user.getIdentities().add(new X500Principal(userName));
+            return new X500Principal(userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
         {
-            user.getIdentities().add(new NumericPrincipal(UUID.fromString(userName)));
+            return new NumericPrincipal(UUID.fromString(userName));
         }
         else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue()))
         {
-            user.getIdentities().add(new OpenIdPrincipal(userName));
+            return new OpenIdPrincipal(userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue()))
         {
-            user.getIdentities().add(new CookiePrincipal(userName));
+            return new CookiePrincipal(userName);
         }
         else
         {
             throw new IllegalArgumentException("Unregonized userid");
         }
-        return user;
     }
 
 }

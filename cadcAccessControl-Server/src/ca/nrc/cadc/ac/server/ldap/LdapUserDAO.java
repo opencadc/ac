@@ -68,6 +68,24 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.InternalID;
@@ -85,6 +103,7 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.StringUtil;
+
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -108,22 +127,6 @@ import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.x500.X500Principal;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 
 
 /**
@@ -273,12 +276,12 @@ public class LdapUserDAO extends LdapDAO
     public void addUser(final User user)
         throws TransientException, UserAlreadyExistsException
     {
-        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-        if (x500Principals.isEmpty())
+        Set<Principal> principals = user.getIdentities();
+        if (principals.isEmpty())
         {
-            throw new IllegalArgumentException("User missing required X500Principal");
+            throw new IllegalArgumentException("No user identities");
         }
-        Principal userID = x500Principals.iterator().next();
+        Principal idForLogging = principals.iterator().next();
 
         if (user.posixDetails != null)
         {
@@ -286,7 +289,12 @@ public class LdapUserDAO extends LdapDAO
         }
 
         // check current users
-        checkUsers(userID, null, config.getUsersDN());
+        for (Principal p : principals)
+        {
+            checkUsers(p, null, config.getUsersDN());
+        }
+
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
 
         try
         {
@@ -301,11 +309,14 @@ public class LdapUserDAO extends LdapDAO
             addAttribute(attributes, LDAP_USER_NAME,  EXTERNAL_USER_CN);
             addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
             addAttribute(attributes, LADP_USER_PASSWORD, password);
-            addAttribute(attributes, LDAP_DISTINGUISHED_NAME, userID.getName());
+            for (X500Principal p : x500Principals)
+            {
+                addAttribute(attributes, LDAP_DISTINGUISHED_NAME, p.getName());
+            }
 
             DN userDN = getUserDN(numericID, config.getUsersDN());
             AddRequest addRequest = new AddRequest(userDN, attributes);
-            logger.info("adding " + userID.getName() + " to " + config.getUsersDN());
+            logger.info("adding " + idForLogging.getName() + " to " + config.getUsersDN());
             LDAPResult result = getReadWriteConnection().add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
         }
