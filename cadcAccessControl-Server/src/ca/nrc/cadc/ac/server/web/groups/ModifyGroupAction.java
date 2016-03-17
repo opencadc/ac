@@ -102,7 +102,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         {
             if (!oldGroup.getUserMembers().remove(member))
             {
-                addedMembers.add(member.getHttpPrincipal().getName());
+                addedMembers.add(getUseridForLogging(member));
             }
         }
         for (Group gr : group.getGroupMembers())
@@ -119,7 +119,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         List<String> deletedMembers = new ArrayList<String>();
         for (User member : oldGroup.getUserMembers())
         {
-            deletedMembers.add(member.getHttpPrincipal().getName());
+            deletedMembers.add(getUseridForLogging(member));
         }
         for (Group gr : oldGroup.getGroupMembers())
         {

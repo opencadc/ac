@@ -68,6 +68,30 @@
  */
 package ca.nrc.cadc.ac.client;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.security.AccessControlContext;
+import java.security.AccessControlException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -90,28 +114,6 @@ import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import org.apache.log4j.Logger;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.security.AccessControlContext;
-import java.security.AccessControlException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 
 /**
@@ -129,7 +131,7 @@ public class GMSClient implements TransferListener
     // client needs to know which service it is bound to and lookup
     // endpoints using RegistryClient
     private URI serviceURI;
-    
+
     // storing baseURL is now considered bad form but fix is out of scope right now
     private String baseURL;
 
@@ -679,6 +681,12 @@ public class GMSClient implements TransferListener
     public void addUserMember(String targetGroupName, Principal userID)
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
+        if (targetGroupName == null)
+            throw new IllegalArgumentException("targetGroupName required");
+
+        if (userID == null)
+            throw new IllegalArgumentException("userID required");
+
         log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
 
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
@@ -889,7 +897,7 @@ public class GMSClient implements TransferListener
         return getMemberships(null, role);
     }
 
-    
+
     private List<Group> getMemberships(Principal ignore, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
@@ -1098,15 +1106,15 @@ public class GMSClient implements TransferListener
     {
         return isMember(groupName, Role.MEMBER);
     }
-    
+
     /**
-     * 
+     *
      * @param groupName
      * @param role
      * @return
      * @throws UserNotFoundException
      * @throws AccessControlException
-     * @throws IOException 
+     * @throws IOException
      */
     public boolean isMember(String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException

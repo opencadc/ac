@@ -107,7 +107,7 @@ public class AddUserMemberAction extends AbstractGroupAction
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getHttpPrincipal().getName());
+        addedMembers.add(getUseridForLogging(toAdd));
         logGroupInfo(group.getID(), null, addedMembers);
     }
 
