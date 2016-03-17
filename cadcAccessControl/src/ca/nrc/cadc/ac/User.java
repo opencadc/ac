@@ -68,14 +68,14 @@
  */
 package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class User
 {
@@ -155,23 +155,22 @@ public class User
             return false;
         }
 
+        if (this.equals(other))
+        {
+            return true;
+        }
+
         for (Principal identity: getIdentities())
         {
-            boolean found = false;
             for (Principal op: other.getIdentities())
             {
                 if (op.equals(identity))
                 {
-                    found = true;
-                    break;
+                    return true;
                 }
             }
-            if (!found)
-            {
-                return false;
-            }
         }
-        return true;
+        return false;
     }
 
     /* (non-Javadoc)
