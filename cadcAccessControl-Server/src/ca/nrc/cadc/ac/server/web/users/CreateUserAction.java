@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server.web.users;
 import ca.nrc.cadc.ac.User;
 
 import java.io.InputStream;
+import java.security.AccessControlException;
 
 public class CreateUserAction extends AbstractUserAction
 {
@@ -85,6 +86,11 @@ public class CreateUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
+        if (!isPrivilegedSubject)
+        {
+            throw new AccessControlException("non-privileged user cannot create a user");
+        }
+
         final User user = readUser(this.inputStream);
         userPersistence.addUser(user);
 
