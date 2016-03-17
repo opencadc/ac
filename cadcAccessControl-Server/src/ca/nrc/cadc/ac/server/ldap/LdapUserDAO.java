@@ -225,9 +225,9 @@ public class LdapUserDAO extends LdapDAO
         {
             HttpPrincipal httpPrincipal = new HttpPrincipal(username);
             User user = getUser(httpPrincipal);
-            long id = user.getID().getUUID().getLeastSignificantBits();
+            String uuid = uuid2string(user.getID().getUUID());
             BindRequest bindRequest = new SimpleBindRequest(
-                getUserDN(String.valueOf(id), config.getUsersDN()), new String(password));
+                getUserDN(uuid, config.getUsersDN()), new String(password));
 
             LDAPConnection conn = this.getUnboundReadConnection();
             BindResult bindResult = conn.bind(bindRequest);
@@ -505,11 +505,19 @@ public class LdapUserDAO extends LdapDAO
         SearchResultEntry searchResult = null;
         try
         {
-            Filter filter = Filter.createEqualityFilter(searchField, userID.getName());
+            String name;
+            if (userID instanceof NumericPrincipal)
+            {
+                name = uuid2string(UUID.fromString(userID.getName()));
+            }
+            else
+            {
+                name = userID.getName();
+            }
+            Filter filter = Filter.createEqualityFilter(searchField, name);
             logger.debug("getUser search filter: " + filter);
 
-            SearchRequest searchRequest =
-                    new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
+            SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
             searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
             if (searchResult == null)
@@ -733,7 +741,7 @@ public class LdapUserDAO extends LdapDAO
         }
         catch (LDAPException e)
         {
-            logger.debug("getGroup Exception: " + e, e);
+            logger.debug("getAugmentedUser Exception: " + e, e);
             LdapDAO.checkLdapResult(e.getResultCode());
             throw new RuntimeException("BUG: checkLdapResult didn't throw an exception");
         }
@@ -846,12 +854,12 @@ public class LdapUserDAO extends LdapDAO
     public User approveUserRequest(final Principal userID)
         throws UserNotFoundException, TransientException, AccessControlException
     {
-        User pendingUser = getUserRequest(userID);
-        if (pendingUser.getHttpPrincipal() == null)
+        User userRequest = getUserRequest(userID);
+        if (userRequest.getHttpPrincipal() == null)
         {
             throw new RuntimeException("BUG: missing HttpPrincipal for " + userID.getName());
         }
-        String uid = "uid=" + pendingUser.getID().getUUID().getLeastSignificantBits();
+        String uid = "uid=" + uuid2string(userRequest.getID().getUUID());
         String dn = uid + "," + config.getUserRequestsDN();
 
         try
@@ -1058,8 +1066,8 @@ public class LdapUserDAO extends LdapDAO
         User user2Delete = getUser(userID, usersDN);
         try
         {
-            long id = user2Delete.getID().getUUID().getLeastSignificantBits();
-            DN userDN = getUserDN(String.valueOf(id), usersDN);
+            String uuid = uuid2string(user2Delete.getID().getUUID());
+            DN userDN = getUserDN(uuid, usersDN);
             if (markDelete)
             {
                 List<Modification> modifs = new ArrayList<Modification>();
@@ -1217,6 +1225,11 @@ public class LdapUserDAO extends LdapDAO
     {
         Random rand = new Random();
         return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
+    }
+
+    protected String uuid2string(UUID uuid)
+    {
+        return String.valueOf(uuid.getLeastSignificantBits());
     }
 
     protected InternalID getInternalID(String numericID)
