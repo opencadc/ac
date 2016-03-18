@@ -281,20 +281,24 @@ public class LdapUserDAO extends LdapDAO
         {
             throw new IllegalArgumentException("No user identities");
         }
-        Principal idForLogging = principals.iterator().next();
 
         if (user.posixDetails != null)
         {
             throw new UnsupportedOperationException("Support for users PosixDetails not available");
         }
 
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+        if (x500Principals.isEmpty())
+        {
+            throw new IllegalArgumentException("No user X500Principals found");
+        }
+        X500Principal idForLogging = x500Principals.iterator().next();
+
         // check current users
         for (Principal p : principals)
         {
             checkUsers(p, null, config.getUsersDN());
         }
-
-        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
 
         try
         {

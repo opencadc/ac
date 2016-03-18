@@ -70,8 +70,10 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.InputStream;
 import java.security.AccessControlException;
+import java.util.Set;
 
 public class CreateUserAction extends AbstractUserAction
 {
@@ -95,7 +97,12 @@ public class CreateUserAction extends AbstractUserAction
         userPersistence.addUser(user);
 
         syncOut.setCode(201);
-        logUserInfo(user.getHttpPrincipal().getName());
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+        if (!x500Principals.isEmpty())
+        {
+            X500Principal x500Principal = x500Principals.iterator().next();
+            logUserInfo(x500Principal.getName());
+        }
     }
 
 }

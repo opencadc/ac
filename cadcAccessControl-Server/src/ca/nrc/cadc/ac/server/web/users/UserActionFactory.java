@@ -258,7 +258,7 @@ public abstract class UserActionFactory
         }
         else
         {
-            throw new IllegalArgumentException("Unregonized userid");
+            throw new IllegalArgumentException("Unrecognized userid");
         }
     }
 
