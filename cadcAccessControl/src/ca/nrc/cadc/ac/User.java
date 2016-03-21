@@ -155,22 +155,23 @@ public class User
             return false;
         }
 
-        if (this.equals(other))
-        {
-            return true;
-        }
-
         for (Principal identity: getIdentities())
         {
+            boolean found = false;
             for (Principal op: other.getIdentities())
             {
                 if (op.equals(identity))
                 {
-                    return true;
+                    found = true;
+                    break;
                 }
             }
+            if (!found)
+            {
+                return false;
+            }
         }
-        return false;
+        return true;
     }
 
     /* (non-Javadoc)
