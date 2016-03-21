@@ -68,22 +68,13 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.web.SyncOutput;
-import ca.nrc.cadc.ac.server.web.userrequests.AbstractUserRequestAction;
-import ca.nrc.cadc.ac.server.web.userrequests.CreateUserRequestAction;
-import ca.nrc.cadc.ac.server.web.userrequests.UserRequestActionFactory;
-import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
-import ca.nrc.cadc.ac.server.web.users.GetUserAction;
-import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
-import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.ServletPrincipalExtractor;
-import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.util.StringUtil;
-import org.apache.log4j.Logger;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -92,13 +83,21 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.userrequests.AbstractUserRequestAction;
+import ca.nrc.cadc.ac.server.web.userrequests.CreateUserRequestAction;
+import ca.nrc.cadc.ac.server.web.userrequests.UserRequestActionFactory;
+import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
+import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.util.StringUtil;
 
 public class UserRequestServlet extends HttpServlet
 {
@@ -156,12 +155,6 @@ public class UserRequestServlet extends HttpServlet
             log.fatal("Error initializing group persistence", t);
             throw new ExceptionInInitializerError(t);
         }
-    }
-
-    @Override
-    public void destroy()
-    {
-        userPersistence.destroy();
     }
 
     /**
