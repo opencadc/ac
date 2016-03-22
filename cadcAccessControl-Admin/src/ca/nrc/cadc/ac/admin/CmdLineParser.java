@@ -231,7 +231,7 @@ public class CmdLineParser
                 }
                 else
                 {
-                    throw new UsageException("Missing parameter 'dn'");
+                    this.command = new ApproveUser(userID);
                 }
     	    }
 
