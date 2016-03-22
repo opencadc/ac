@@ -112,8 +112,8 @@
     <property name="junit"      value="${ext.dev}/junit.jar" />
     <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
     <property name="jsonassert" value="${ext.dev}/jsonassert.jar" />
-    
-    <property name="testingJars" value="${build}/class:${jsonassert}:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+    <property name="mail"  value="${ext.dev}/mail.jar" />
+    <property name="testingJars" value="${build}/class:${xerces}:${jsonassert}:${jars}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}:${mail}" />
 
     <target name="single-test" depends="compile,compile-test">
         <echo message="Running test suite..." />
