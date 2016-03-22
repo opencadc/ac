@@ -155,8 +155,11 @@
   <property name="easymock"   value="${ext.dev}/easymock.jar" />
   <property name="junit"      value="${ext.dev}/junit.jar" />
   <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
+  <property name="jdom2" value="${ext.dev}/jdom2.jar"/>
+  <property name="json" value="${ext.dev}/json.jar" />
+  <property name="jsonassert" value="${ext.dev}/jsonassert.jar" />
 
-  <property name="testingJars" value="${junit}:${asm}:${cglib}:${easymock}:${objenesis}:{unboundid}:${cadcLog}"/>
+  <property name="testingJars" value="${jsonassert}:${junit}:${asm}:${cglib}:${easymock}:${objenesis}:${jdom2}:${json}:${cadcLog}"/>
 
   <target name="int-test" depends="build,compile-test,setup-test">
     <echo message="Running test suite..."/>

@@ -93,6 +93,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.PropertiesReader;
 
+
 /**
  * This class approves the specified pending user by moving the user
  * from a pending user to an active user in the LDAP server.
@@ -114,19 +115,69 @@ public class ApproveUser extends AbstractUserCommand
 
     private String dn;
 
+
+    /**
+     * Constructor
+     * @param userID Id of the pending user to be approved
+     * @param dn of the pending user to be approved
+     */
+    public ApproveUser(final String userID, final String dn)
+    {
+        super(userID);
+        this.dn = dn;
+    }
+
+
     /**
      * Constructor
      * @param userID Id of the pending user to be approved
      */
-    public ApproveUser(final String userID, final String dn)
+    public ApproveUser(final String userID)
     {
     	super(userID);
-    	this.dn = dn;
     }
+
 
     protected void execute()
 	throws AccessControlException, UserNotFoundException, TransientException
     {
+        User<Principal> user = null;
+        try
+        {
+            // Search the user in the pending tree
+            user = this.getUserPersistence().getPendingUser(this.getPrincipal());
+        }
+        catch (Exception e)
+        {
+            log.info("User not found in userRequests");
+            this.systemOut.println("User not found in userRequests. Impossible to approve it.");
+            this.systemOut.println("Check the validity of the provided uid.");
+            return;
+        }
+        log.debug("User found in userRequests");
+        // If user DN is not provided by command line, search if it is available in UserRequests
+        if (dn == null || dn.isEmpty()) {
+            boolean foundDN = false;
+            for (Principal p : user.getIdentities())
+            {
+                 if (p instanceof X500Principal)
+                 {
+                     this.dn = p.getName();
+                     log.debug("User DN FOUND in pendingUser. userDN = " + dn);
+                     foundDN = true;
+                     break;
+                 }
+            }
+            if(!foundDN)
+            {
+                log.debug("User DN NOT FOUND in UserRequests.");
+                this.systemOut.println("User DN not found in userRequests.");
+                this.systemOut.println("Use --dn option to provide a valid user DN");
+                return;
+            }
+
+        }
+
         X500Principal dnPrincipal = null;
         try
         {
@@ -150,7 +201,7 @@ public class ApproveUser extends AbstractUserCommand
             this.systemOut.println("Could not find pending user " + this.getPrincipal());
         }
 
-        User<Principal> user = null;
+        user = null;
         try
         {
             user = this.getUserPersistence().getUser(this.getPrincipal());
