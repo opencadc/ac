@@ -69,9 +69,15 @@
 package ca.nrc.cadc.ac.client;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.security.auth.Subject;
@@ -81,10 +87,12 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.reg.client.RegistryClient;
 
 
 /**
@@ -95,8 +103,16 @@ public class UserClient
 {
     private static final Logger log = Logger.getLogger(UserClient.class);
 
-    // socket factory to use when connecting
-    private String baseURL;
+    private static final String USERS = "users";
+    private static final String USER_REQUESTS = "reqs";
+
+    private RegistryClient registryClient;
+
+    private URI usersURI;
+
+    // to be used when the client can work with
+    // user requests
+    private URI userReqsURI;
 
     /**
      * Constructor.
@@ -104,30 +120,29 @@ public class UserClient
      * @param baseURL The URL of the supporting access control web service
      *                obtained from the registry.
      */
-    public UserClient(final String baseURL)
+    public UserClient(URI serviceURI)
             throws IllegalArgumentException
     {
-        if (baseURL == null)
-        {
-            throw new IllegalArgumentException("baseURL is required");
-        }
+        this(serviceURI, new RegistryClient());
+    }
+
+    public UserClient(URI serviceURI, RegistryClient registryClient)
+    {
+        if (serviceURI == null)
+            throw new IllegalArgumentException("invalid serviceURI: " + serviceURI);
+        if (serviceURI.getFragment() != null)
+            throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceURI);
+
+        this.registryClient = registryClient;
+
         try
         {
-            new URL(baseURL);
+            this.usersURI = new URI(serviceURI.toASCIIString() + "#" + USERS);
+            this.userReqsURI = new URI(serviceURI.toASCIIString() + "#" + USER_REQUESTS);
         }
-        catch (MalformedURLException e)
+        catch(URISyntaxException ex)
         {
-            throw new IllegalArgumentException("URL is malformed: " +
-                                               e.getMessage());
-        }
-
-        if (baseURL.endsWith("/"))
-        {
-            this.baseURL = baseURL.substring(0, baseURL.length() - 1);
-        }
-        else
-        {
-            this.baseURL = baseURL;
+            throw new RuntimeException("BUG: failed to create standardID from serviceURI + fragment", ex);
         }
     }
 
@@ -137,16 +152,23 @@ public class UserClient
      * associated principals which are then added to the subject.
      *
      * @param subject           The Subject to pull Princials for.
+     * @throws MalformedURLException
      */
-    public void augmentSubject(Subject subject)
+    public void augmentSubject(Subject subject) throws MalformedURLException
     {
     	Principal principal = this.getPrincipal(subject);
     	if (principal != null)
     	{
-	        URL url = this.getURL(principal);
-	    	log.debug("augmentSubject request to " + url.toString());
+
+	        String userID = principal.getName();
+	        String path = NetUtil.encode(userID) + "?idType=" + this.getIdType(principal) + "&detail=identity";
+
+	        // augment subject calls are always https with client certs
+	        URL getUserURL = registryClient.getServiceURL(usersURI, "https", path, AuthMethod.CERT);
+
+	    	log.debug("augmentSubject request to " + getUserURL.toString());
 	        ByteArrayOutputStream out = new ByteArrayOutputStream();
-	        HttpDownload download = new HttpDownload(url, out);
+	        HttpDownload download = new HttpDownload(getUserURL, out);
 	        download.run();
 
 	        int responseCode = download.getResponseCode();
@@ -169,7 +191,49 @@ public class UserClient
     	}
     }
 
+    /**
+     * Obtain all of the users as userID - name in JSON format.
+     *
+     * @return List of HTTP Principal users.
+     * @throws IOException Any errors in reading.
+     */
+    public List<User> getDisplayUsers() throws IOException
+    {
+        URL usersURL = registryClient.getServiceURL(usersURI, "https");
+        final List<User> webUsers = new ArrayList<User>();
+        HttpDownload httpDownload = new HttpDownload(usersURL, new JsonUserListInputStreamWrapper(webUsers));
+        httpDownload.setRequestProperty("Accept", "application/json");
+        httpDownload.run();
 
+        final Throwable error = httpDownload.getThrowable();
+
+        if (error != null)
+        {
+            final String errMessage = error.getMessage();
+            final int responseCode = httpDownload.getResponseCode();
+            log.debug("getDisplayUsers response " + responseCode + ": "
+                      + errMessage);
+            if ((responseCode == 401) || (responseCode == 403)
+                || (responseCode == -1))
+            {
+                throw new AccessControlException(errMessage);
+            }
+            else if (responseCode == 400)
+            {
+                throw new IllegalArgumentException(errMessage);
+            }
+            else
+            {
+                throw new IOException("HttpResponse (" + responseCode + ") - "
+                                      + errMessage);
+            }
+        }
+
+        log.debug("Content-Length: " + httpDownload.getContentLength());
+        log.debug("Content-Type: " + httpDownload.getContentType());
+
+        return webUsers;
+    }
 
     protected Principal getPrincipal(final Subject subject)
     {
@@ -215,24 +279,6 @@ public class UserClient
     	{
     		throw new RuntimeException(e);
     	}
-    }
-
-    protected URL getURL(Principal principal)
-    {
-		try
-		{
-		    String userID = principal.getName();
-			URL url = new URL(this.baseURL + "/users/" + NetUtil.encode(userID) +
-					"?idType=" + this.getIdType(principal) + "&detail=identity");
-			log.debug("getURL(): returned url ="
-					+ ""
-					+ " " + url.toString());
-			return url;
-		}
-		catch (MalformedURLException e)
-		{
-			throw new RuntimeException(e);
-		}
     }
 
     protected String getIdType(Principal principal)

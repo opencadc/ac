@@ -72,7 +72,6 @@ package ca.nrc.cadc.ac.client;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.Principal;
 import java.util.UUID;
 
@@ -102,7 +101,6 @@ public class UserClientTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-
     @Test
     public void testConstructor()
     {
@@ -114,23 +112,7 @@ public class UserClientTest
         }
         catch (IllegalArgumentException iae)
         {
-            Assert.assertEquals("baseURL is required", iae.getMessage());
-        }
-        catch (Throwable t)
-        {
-        	Assert.fail("Unexpected exception: " + t.getMessage());
-        }
-
-        // case 2: test construction with a malformed URL
-        try
-        {
-            new UserClient("noSuchProtocol://localhost");
-            Assert.fail("Malformed URL should throw an illegalArgumentException.");
-        }
-        catch (IllegalArgumentException iae)
-        {
-            Assert.assertTrue("Expecting 'URL is malformed'",
-            		iae.getMessage().contains("URL is malformed"));
+            Assert.assertTrue(iae.getMessage().contains("invalid serviceURI"));
         }
         catch (Throwable t)
         {
@@ -181,9 +163,8 @@ public class UserClientTest
     protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
     {
     	RegistryClient regClient = new RegistryClient();
-    	URI serviceURI = new URI(AC.GMS_SERVICE_URI);
-    	URL baseURL = regClient.getServiceURL(serviceURI, "https");
-    	return new UserClient(baseURL.toString());
+    	URI serviceURI = new URI(AC.UMS_SERVICE_URI);
+    	return new UserClient(serviceURI);
 
     }
 
@@ -192,9 +173,7 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
@@ -214,9 +193,7 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
@@ -238,9 +215,7 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
             UUID uuid = UUID.randomUUID();
@@ -262,9 +237,7 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
             UUID uuid = UUID.randomUUID();

@@ -75,22 +75,23 @@ public class AC
 {
     // Denotes a description given to a group
     public static final String PROPERTY_GROUP_DESCRIPTION = "ivo://ivoa.net/gms#description";
-    
+
     // Denotes the DN of a group owner
     public static final String PROPERTY_OWNER_DN = "ivo://ivoa.net/gms#owner_dn";
-    
+
     // Denotes the DN of a user
     public static final String PROPERTY_USER_DN = "ivo://ivoa.net/gms#user_dn";
-    
+
     // Denotes a group readable by public
     public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
-    
-    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/canfargms";
-    
+
+    public static final String UMS_SERVICE_URI = "ivo://canfar.net/ums";
+    public static final String GMS_SERVICE_URI = "ivo://canfar.net/gms";
+
     // Group URI attribute once the group name is appended
     public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
 
     // User URI with appended UUID represents a unique user
     public static final String USER_URI = "ivo://cadc.nrc.ca/user?";
-    
+
 }

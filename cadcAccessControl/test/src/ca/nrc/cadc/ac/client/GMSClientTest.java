@@ -69,30 +69,27 @@
 
 package ca.nrc.cadc.ac.client;
 
-import java.io.IOException;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
 import java.net.URI;
 import java.net.URL;
-import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.security.auth.Subject;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.net.HttpDownload;
 import org.apache.log4j.Level;
+import org.junit.Assert;
+import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
-
-import org.junit.Assert;
-import org.junit.Test;
-
-import static org.easymock.EasyMock.*;
 
 
 public class GMSClientTest
@@ -102,43 +99,6 @@ public class GMSClientTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    @Test
-    public void testGetDisplayUsers() throws Exception
-    {
-        final HttpDownload mockHTTPDownload = createMock(HttpDownload.class);
-        final RegistryClient mockRegistryClient =
-                createMock(RegistryClient.class);
-        final URI serviceURI = URI.create("http://mysite.com/users");
-
-        mockHTTPDownload.setRequestProperty("Accept", "application/json");
-        expectLastCall().once();
-
-        mockHTTPDownload.run();
-        expectLastCall().once();
-
-        expect(mockHTTPDownload.getThrowable()).andReturn(null).once();
-        expect(mockHTTPDownload.getContentLength()).andReturn(88l).once();
-        expect(mockHTTPDownload.getContentType()).andReturn(
-                "application/json").once();
-
-        expect(mockRegistryClient.getServiceURL(serviceURI, "https")).andReturn(
-                new URL("http://mysite.com/users/endpoint"));
-
-        replay(mockHTTPDownload, mockRegistryClient);
-        final GMSClient testSubject =
-                new GMSClient(serviceURI, mockRegistryClient)
-                {
-                    @Override
-                    HttpDownload createDisplayUsersHTTPDownload(
-                            List<User> webUsers) throws IOException
-                    {
-                        return mockHTTPDownload;
-                    }
-                };
-
-        testSubject.getDisplayUsers();
-        verify(mockHTTPDownload, mockRegistryClient);
-    }
 
 
     @Test
@@ -172,7 +132,6 @@ public class GMSClientTest
         Assert.assertTrue(client.userIsSubject(userID, subject));
         Assert.assertFalse(client.userIsSubject(userID2, subject));
         Assert.assertTrue(client.userIsSubject(userID3, subject));
-        verify(mockRegistryClient);
     }
 
     @Test
@@ -191,7 +150,7 @@ public class GMSClientTest
 
         replay(mockRegistryClient);
         final GMSClient client = new GMSClient(serviceURI, mockRegistryClient);
-        verify(mockRegistryClient);
+
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
@@ -242,6 +201,7 @@ public class GMSClientTest
                 return null;
             }
         });
+
 
         subject = new Subject();
         final HttpPrincipal test2UserID = new HttpPrincipal("test2");

@@ -75,8 +75,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
@@ -96,12 +96,12 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupListReader;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
@@ -124,17 +124,22 @@ public class GMSClient implements TransferListener
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
 
+    private static final String GROUPS = "groups";
+    private static final String SEARCH = "search";
+
     // socket factory to use when connecting
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
 
-    // client needs to know which service it is bound to and lookup
-    // endpoints using RegistryClient
-    private URI serviceURI;
+    private RegistryClient registryClient;
 
-    // storing baseURL is now considered bad form but fix is out of scope right now
-    private String baseURL;
+    private URI groupsURI;
+    private URI searchURI;
 
+    public GMSClient(URI serviceURI)
+    {
+        this(serviceURI, new RegistryClient());
+    }
 
     /**
      * Slightly more complete constructor.  Tests can override the
@@ -145,57 +150,21 @@ public class GMSClient implements TransferListener
      */
     public GMSClient(URI serviceURI, RegistryClient registryClient)
     {
+        if (serviceURI == null)
+            throw new IllegalArgumentException("invalid serviceURI: " + serviceURI);
+        if (serviceURI.getFragment() != null)
+            throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceURI);
+
+        this.registryClient = registryClient;
+
         try
         {
-            URL base = registryClient.getServiceURL(serviceURI, "https");
-            if (base == null)
-                throw new IllegalArgumentException("service not found with https access: " + serviceURI);
-            this.baseURL = base.toExternalForm();
-
-            log.debug("AC Service URI: " + this.baseURL);
+            this.groupsURI = new URI(serviceURI.toASCIIString() + "#" + GROUPS);
+            this.searchURI = new URI(serviceURI.toASCIIString() + "#" + SEARCH);
         }
-        catch(MalformedURLException ex)
+        catch(URISyntaxException ex)
         {
-            throw new RuntimeException("BUG: failed to construct GMS base URL", ex);
-        }
-    }
-
-    public GMSClient(URI serviceURI)
-    {
-        this(serviceURI, new RegistryClient());
-    }
-
-    /**
-     * Constructor.
-     *
-     * @param baseURL The URL of the supporting access control web service
-     * obtained from the registry.
-     * @deprecated
-     */
-    public GMSClient(String baseURL)
-        throws IllegalArgumentException
-    {
-        if (baseURL == null)
-        {
-            throw new IllegalArgumentException("baseURL is required");
-        }
-        try
-        {
-            new URL(baseURL);
-        }
-        catch (MalformedURLException e)
-        {
-            throw new IllegalArgumentException("URL is malformed: " +
-                                               e.getMessage());
-        }
-
-        if (baseURL.endsWith("/"))
-        {
-            this.baseURL = baseURL.substring(0, baseURL.length() - 1);
-        }
-        else
-        {
-            this.baseURL = baseURL;
+            throw new RuntimeException("BUG: failed to create standardID from serviceURI + fragment", ex);
         }
     }
 
@@ -221,66 +190,6 @@ public class GMSClient implements TransferListener
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    /**
-     * Obtain all of the users as userID - name in JSON format.
-     *
-     * @return List of HTTP Principal users.
-     * @throws IOException Any errors in reading.
-     */
-    public List<User> getDisplayUsers() throws IOException
-    {
-        final List<User> webUsers = new ArrayList<User>();
-        final HttpDownload httpDownload =
-                    createDisplayUsersHTTPDownload(webUsers);
-
-        httpDownload.setRequestProperty("Accept", "application/json");
-        httpDownload.run();
-
-        final Throwable error = httpDownload.getThrowable();
-
-        if (error != null)
-        {
-            final String errMessage = error.getMessage();
-            final int responseCode = httpDownload.getResponseCode();
-            log.debug("getDisplayUsers response " + responseCode + ": "
-                      + errMessage);
-            if ((responseCode == 401) || (responseCode == 403)
-                || (responseCode == -1))
-            {
-                throw new AccessControlException(errMessage);
-            }
-            else if (responseCode == 400)
-            {
-                throw new IllegalArgumentException(errMessage);
-            }
-            else
-            {
-                throw new IOException("HttpResponse (" + responseCode + ") - "
-                                      + errMessage);
-            }
-        }
-
-        log.debug("Content-Length: " + httpDownload.getContentLength());
-        log.debug("Content-Type: " + httpDownload.getContentType());
-
-        return webUsers;
-    }
-
-
-    /**
-     * Create a new HTTPDownload instance.  Testers can override as needed.
-     *
-     * @param webUsers          The User objects.
-     * @return                  HttpDownload instance.  Never null.
-     * @throws IOException      Any writing/reading errors.
-     */
-    HttpDownload createDisplayUsersHTTPDownload(
-            final List<User> webUsers) throws IOException
-    {
-        final URL usersListURL = new URL(this.baseURL + "/users");
-        return new HttpDownload(usersListURL,
-                                new JsonUserListInputStreamWrapper(webUsers));
-    }
 
     /**
      * Create a new group.
@@ -297,7 +206,7 @@ public class GMSClient implements TransferListener
         throws GroupAlreadyExistsException, AccessControlException,
                UserNotFoundException, WriterException, IOException
     {
-        URL createGroupURL = new URL(this.baseURL + "/groups");
+        URL createGroupURL = registryClient.getServiceURL(groupsURI, "https", "", AuthMethod.CERT);
         log.debug("createGroupURL request to " + createGroupURL.toString());
 
         // reset the state of the cache
@@ -368,7 +277,8 @@ public class GMSClient implements TransferListener
     public Group getGroup(String groupName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
-        URL getGroupURL = new URL(this.baseURL + "/groups/" + groupName);
+
+        URL getGroupURL = registryClient.getServiceURL(groupsURI, "https", groupName, AuthMethod.CERT);
         log.debug("getGroup request to " + getGroupURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HttpDownload transfer = new HttpDownload(getGroupURL, out);
@@ -422,7 +332,8 @@ public class GMSClient implements TransferListener
     public List<String> getGroupNames()
         throws AccessControlException, IOException
     {
-        final URL getGroupNamesURL = new URL(this.baseURL + "/groups");
+        URL getGroupNamesURL = registryClient.getServiceURL(groupsURI, "https", "", AuthMethod.CERT);
+
         log.debug("getGroupNames request to " + getGroupNamesURL.toString());
 
         final List<String> groupNames = new ArrayList<String>();
@@ -498,7 +409,7 @@ public class GMSClient implements TransferListener
         throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
                AccessControlException, WriterException, IOException
     {
-        URL updateGroupURL = new URL(this.baseURL + "/groups/" + group.getID());
+        URL updateGroupURL = registryClient.getServiceURL(groupsURI, "https", group.getID(), AuthMethod.CERT);
         log.debug("updateGroup request to " + updateGroupURL.toString());
 
         // reset the state of the cache
@@ -565,7 +476,7 @@ public class GMSClient implements TransferListener
     public void deleteGroup(String groupName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
-        URL deleteGroupURL = new URL(this.baseURL + "/groups/" + groupName);
+        URL deleteGroupURL = registryClient.getServiceURL(groupsURI, "https", groupName, AuthMethod.CERT);
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
 
         // reset the state of the cache
@@ -630,9 +541,9 @@ public class GMSClient implements TransferListener
         throws IllegalArgumentException, GroupNotFoundException,
                AccessControlException, IOException
     {
-        URL addGroupMemberURL = new URL(this.baseURL + "/groups/" +
-                                        targetGroupName + "/groupMembers/" +
-                                        groupMemberName);
+
+        String path = targetGroupName + "/groupMembers/" + groupMemberName;
+        URL addGroupMemberURL = registryClient.getServiceURL(groupsURI, "https", path, AuthMethod.CERT);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
 
         // reset the state of the cache
@@ -690,9 +601,8 @@ public class GMSClient implements TransferListener
         log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
 
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        URL addUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName
-                + "/userMembers/" + NetUtil.encode(userID.getName())
-                + "?idType=" + userIDType);
+        String path = targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
+        URL addUserMemberURL = registryClient.getServiceURL(groupsURI, "https", path, AuthMethod.CERT);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
 
@@ -745,9 +655,9 @@ public class GMSClient implements TransferListener
                                   String groupMemberName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
-        URL removeGroupMemberURL = new URL(this.baseURL + "/groups/" +
-                                           targetGroupName + "/groupMembers/" +
-                                           groupMemberName);
+
+        String path = targetGroupName + "/groupMembers/" + groupMemberName;
+        URL removeGroupMemberURL = registryClient.getServiceURL(groupsURI, "https", path, AuthMethod.CERT);
         log.debug("removeGroupMember request to " +
                   removeGroupMemberURL.toString());
 
@@ -813,10 +723,8 @@ public class GMSClient implements TransferListener
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
 
         log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
-
-        URL removeUserMemberURL = new URL(this.baseURL + "/groups/" + targetGroupName
-                + "/userMembers/" + NetUtil.encode(userID.getName())
-                + "?idType=" + userIDType);
+        String path = targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
+        URL removeUserMemberURL = registryClient.getServiceURL(groupsURI, "https", path, AuthMethod.CERT);
 
         log.debug("removeUserMember: " + removeUserMemberURL.toString());
 
@@ -920,17 +828,17 @@ public class GMSClient implements TransferListener
         //String id = userID.getName();
         String roleString = role.getValue();
 
-        StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
-        searchGroupURL.append("/search?");
 
+        StringBuilder searchGroupPath = new StringBuilder("?");
         //searchGroupURL.append("ID=").append(NetUtil.encode(id));
         //searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
-        searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
+        searchGroupPath.append("&ROLE=").append(NetUtil.encode(roleString));
 
-        log.debug("getMemberships request to " + searchGroupURL.toString());
+        URL searchURL = registryClient.getServiceURL(searchURI, "https", searchGroupPath.toString(), AuthMethod.CERT);
+
+        log.debug("getMemberships request to " + searchURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        URL url = new URL(searchGroupURL.toString());
-        HttpDownload transfer = new HttpDownload(url, out);
+        HttpDownload transfer = new HttpDownload(searchURL, out);
 
         transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
@@ -1028,18 +936,18 @@ public class GMSClient implements TransferListener
         //String id = userID.getName();
         String roleString = role.getValue();
 
-        StringBuilder searchGroupURL = new StringBuilder(this.baseURL);
-        searchGroupURL.append("/search?");
+        StringBuilder searchGroupPath = new StringBuilder("?");
 
         //searchGroupURL.append("ID=").append(NetUtil.encode(id));
         //searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
-        searchGroupURL.append("&ROLE=").append(NetUtil.encode(roleString));
-        searchGroupURL.append("&GROUPID=").append(NetUtil.encode(groupName));
+        searchGroupPath.append("&ROLE=").append(NetUtil.encode(roleString));
+        searchGroupPath.append("&GROUPID=").append(NetUtil.encode(groupName));
 
-        log.debug("getMembership request to " + searchGroupURL.toString());
+        URL searchURL = registryClient.getServiceURL(searchURI, "https", searchGroupPath.toString(), AuthMethod.CERT);
+
+        log.debug("getMembership request to " + searchURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        URL url = new URL(searchGroupURL.toString());
-        HttpDownload transfer = new HttpDownload(url, out);
+        HttpDownload transfer = new HttpDownload(searchURL, out);
 
         transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
