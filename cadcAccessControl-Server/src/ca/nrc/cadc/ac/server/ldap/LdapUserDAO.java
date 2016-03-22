@@ -142,6 +142,8 @@ public class LdapUserDAO extends LdapDAO
 
     private final Profiler profiler = new Profiler(LdapUserDAO.class);
 
+    private String internalIdUriPrefix = AC.USER_URI;
+
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
 
@@ -1263,11 +1265,15 @@ public class LdapUserDAO extends LdapDAO
         return uuid.getLeastSignificantBits();
     }
 
+    protected void setInternalIdUriPrefix(String internalIdUriPrefix)
+    {
+        this.internalIdUriPrefix = internalIdUriPrefix;
+    }
+
     protected InternalID getInternalID(String numericID)
     {
         UUID uuid = new UUID(0L, Long.parseLong(numericID));
-
-        final String uriString = AC.USER_URI + uuid.toString();
+        String uriString = internalIdUriPrefix + "?" + uuid.toString();
         URI uri;
         try
         {

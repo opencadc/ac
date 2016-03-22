@@ -92,6 +92,6 @@ public class AC
     public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
 
     // User URI with appended UUID represents a unique user
-    public static final String USER_URI = "ivo://cadc.nrc.ca/user?";
+    public static final String USER_URI = "ivo://cadc.nrc.ca/user";
 
 }

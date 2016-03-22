@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.lang.reflect.Field;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -94,6 +93,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.util.ObjectUtil;
 
 public class LdapGroupPersistence extends LdapPersistence implements GroupPersistence
 {
@@ -182,7 +182,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
             User owner = userDAO.getAugmentedUser(userID);
-            setField(group, owner, "owner");
+            ObjectUtil.setField(group, owner, "owner");
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             groupDAO.addGroup(group);
         }
@@ -394,28 +394,5 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
         return gms.getUserID();
-    }
-
-    // set private field using reflection
-    private void setField(Object object, Object value, String name)
-    {
-        try
-        {
-            Field field = object.getClass().getDeclaredField(name);
-            field.setAccessible(true);
-            field.set(object, value);
-        }
-        catch (NoSuchFieldException e)
-        {
-            final String error = object.getClass().getSimpleName() +
-                " field " + name + "not found";
-            throw new RuntimeException(error, e);
-        }
-        catch (IllegalAccessException e)
-        {
-            final String error = "unable to update " + name + " in " +
-                object.getClass().getSimpleName();
-            throw new RuntimeException(error, e);
-        }
     }
 }

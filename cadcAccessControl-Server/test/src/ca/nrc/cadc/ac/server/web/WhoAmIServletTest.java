@@ -68,20 +68,25 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.AC;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.reg.client.RegistryClient;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 
-import static org.easymock.EasyMock.*;
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.client.RegistryClient;
 
 
 public class WhoAmIServletTest
@@ -127,8 +132,8 @@ public class WhoAmIServletTest
         mockResponse.sendRedirect("/ac/users/CADCtest?idType=HTTP");
         expectLastCall().once();
 
-        expect(mockRegistry.getServiceURL(URI.create(AC.GMS_SERVICE_URI),
-                                          "http", "/users/%s?idType=HTTP")).
+        expect(mockRegistry.getServiceURL(URI.create(AC.UMS_SERVICE_URI + "#users"),
+                                          "http", "/%s?idType=HTTP")).
                 andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);

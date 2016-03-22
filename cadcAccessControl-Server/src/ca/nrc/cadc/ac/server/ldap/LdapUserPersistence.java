@@ -122,7 +122,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             userDAO.addUser(user);
         }
         finally
@@ -147,7 +147,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             userDAO.addUserRequest(userRequest);
         }
         finally
@@ -178,7 +178,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.getUser(userID);
         }
         finally
@@ -206,7 +206,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             LdapConnections conns = new LdapConnections(this);
             try
             {
-                LdapUserDAO userDAO = new LdapUserDAO(conns);
+                LdapUserDAO userDAO = getLdapUserDao(conns);
                 return userDAO.getUserByEmailAddress(emailAddress);
             }
             finally
@@ -235,7 +235,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.getUserRequest(userID);
         }
         finally
@@ -263,7 +263,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             profiler.checkpoint("Create LdapUserDAO");
             User user = userDAO.getAugmentedUser(userID);
             profiler.checkpoint("getAugmentedUser");
@@ -294,7 +294,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.getUsers();
         }
         finally
@@ -318,7 +318,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.getUserRequests();
         }
         finally
@@ -348,7 +348,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.approveUserRequest(userID);
         }
         finally
@@ -380,7 +380,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.modifyUser(user);
         }
         finally
@@ -410,7 +410,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             userDAO.deleteUser(userID);
         }
         finally
@@ -437,7 +437,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             userDAO.deleteUserRequest(userID);
         }
         finally
@@ -464,7 +464,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             return userDAO.doLogin(userID, password);
         }
         finally
@@ -494,7 +494,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             if (userDAO.doLogin(userID.getName(), oldPassword))
             {
                 // oldPassword is correct
@@ -527,7 +527,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
+            userDAO = getLdapUserDao(conns);
             User user = getUser(userID);
 
             if (user != null)
@@ -570,4 +570,24 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         }
         return false;
     }
+
+    private LdapUserDAO getLdapUserDao(LdapConnections conn)
+    {
+        LdapUserDAO dao = new LdapUserDAO(conn);
+        if (getInternalIdUriPrefix() != null)
+            dao.setInternalIdUriPrefix(getInternalIdUriPrefix());
+        return dao;
+    }
+
+    /**
+     * Web services can override this method to change
+     * the user prefix used in the internal ID.
+     *
+     * By default the LdapUserDAO will use AC.USER_URI;
+     */
+    protected String getInternalIdUriPrefix()
+    {
+        return null;
+    }
+
 }
