@@ -166,6 +166,9 @@ public class UserClient
 	        // augment subject calls are always https with client certs
 	        URL getUserURL = registryClient.getServiceURL(usersURI, "https", path, AuthMethod.CERT);
 
+	        if (getUserURL == null)
+	            throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
+
 	    	log.debug("augmentSubject request to " + getUserURL.toString());
 	        ByteArrayOutputStream out = new ByteArrayOutputStream();
 	        HttpDownload download = new HttpDownload(getUserURL, out);
