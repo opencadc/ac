@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -85,12 +86,18 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
@@ -236,6 +243,134 @@ public class UserClient
         log.debug("Content-Type: " + httpDownload.getContentType());
 
         return webUsers;
+    }
+
+    /**
+     * Create an auto-approved user directly in the user tree (not
+     * the userRequest tree) from their x.500 principal.
+     *
+     * @param principal Their x500 Principal
+     * @throws UserAlreadyExistsException
+     * @throws WriterException
+     * @throws IOException
+     * @throws URISyntaxException
+     * @throws ReaderException
+     */
+    public User createX509User(X500Principal principal)
+            throws UserAlreadyExistsException, IOException, WriterException,
+                   ReaderException, URISyntaxException
+    {
+        if (principal == null)
+        {
+            throw new IllegalArgumentException("x500 principal required");
+        }
+
+        User user = new User();
+        user.getIdentities().add(principal);
+        UserWriter userWriter = new UserWriter();
+        StringBuilder userXML = new StringBuilder();
+        userWriter.write(user, userXML);
+
+        URL createUserURL = registryClient.getServiceURL(usersURI, "https", null, AuthMethod.CERT);
+
+        if (createUserURL == null)
+            throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
+        log.debug("createX509User request to " + createUserURL.toString());
+
+        ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString().getBytes());
+        HttpUpload put = new HttpUpload(in, createUserURL);
+
+        put.run();
+        int responseCode = put.getResponseCode();
+
+        if (responseCode == 200 || responseCode == 201)
+        {
+            try
+            {
+                return getUser(principal);
+            }
+            catch (UserNotFoundException e)
+            {
+                log.error("user created but not found",  e);
+                // should not happen
+                throw new IllegalStateException("user created but not found", e);
+            }
+        }
+
+        String message = "";
+        if (put.getThrowable() != null)
+        {
+            log.debug("error calling createX509User", put.getThrowable());
+            message = put.getThrowable().getMessage();
+        }
+
+        if (responseCode == 400)
+        {
+            throw new IllegalArgumentException(message);
+        }
+        if (responseCode == 409) // conflict
+        {
+            throw new UserAlreadyExistsException(message);
+        }
+        if (responseCode == 403)
+        {
+            throw new AccessControlException(message);
+        }
+        throw new IllegalStateException(message);
+    }
+
+    /**
+     * Given a pricipal return the user object.
+     *
+     * @param principal The principal to lookup.
+     * @throws URISyntaxException
+     * @throws IOException
+     * @throws ReaderException
+     * @throws UserNotFoundException
+     */
+    public User getUser(Principal principal)
+            throws ReaderException, IOException, URISyntaxException, UserNotFoundException
+    {
+        String id = NetUtil.encode(principal.getName());
+        String path = "/" + id + "?idType=" + AuthenticationUtil.getPrincipalType(principal);
+
+        URL getUserURL = registryClient.getServiceURL(usersURI, "https", path, AuthMethod.CERT);
+        if (getUserURL == null)
+            throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
+        log.debug("getUser request to " + getUserURL.toString());
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        HttpDownload get = new HttpDownload(getUserURL, out);
+
+        get.run();
+        int responseCode = get.getResponseCode();
+
+        if (responseCode == 200)
+        {
+            UserReader userReader = new UserReader();
+            return userReader.read(out.toString());
+        }
+
+        String message = "";
+        if (get.getThrowable() != null)
+        {
+            log.debug("error calling get user", get.getThrowable());
+            message = get.getThrowable().getMessage();
+        }
+
+        if (responseCode == 400)
+        {
+            throw new IllegalArgumentException(message);
+        }
+        if (responseCode == 404)
+        {
+            throw new UserNotFoundException(message);
+        }
+        if (responseCode == 403)
+        {
+            throw new AccessControlException(message);
+        }
+        throw new IllegalStateException(message);
     }
 
     protected Principal getPrincipal(final Subject subject)
