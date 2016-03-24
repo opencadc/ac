@@ -117,8 +117,8 @@ public class UserClient
     /**
      * Constructor.
      *
-     * @param baseURL The URL of the supporting access control web service
-     *                obtained from the registry.
+     * @param serviceURI    The URI of the supporting access control web service
+     *                      obtained from the registry.
      */
     public UserClient(URI serviceURI)
             throws IllegalArgumentException
@@ -129,7 +129,7 @@ public class UserClient
     public UserClient(URI serviceURI, RegistryClient registryClient)
     {
         if (serviceURI == null)
-            throw new IllegalArgumentException("invalid serviceURI: " + serviceURI);
+            throw new IllegalArgumentException("Service URI cannot be null.");
         if (serviceURI.getFragment() != null)
             throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceURI);
 
@@ -204,7 +204,9 @@ public class UserClient
     {
         URL usersURL = registryClient.getServiceURL(usersURI, "https");
         final List<User> webUsers = new ArrayList<User>();
-        HttpDownload httpDownload = new HttpDownload(usersURL, new JsonUserListInputStreamWrapper(webUsers));
+        HttpDownload httpDownload =
+                new HttpDownload(usersURL,
+                                 new JsonUserListInputStreamWrapper(webUsers));
         httpDownload.setRequestProperty("Accept", "application/json");
         httpDownload.run();
 

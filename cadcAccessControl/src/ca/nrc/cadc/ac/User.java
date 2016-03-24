@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac;
 
+import java.io.PrintWriter;
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.Date;
@@ -77,8 +78,12 @@ import java.util.TreeSet;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 
+import javax.security.auth.x500.X500Principal;
+
 public class User
 {
+    // How on God's green earth is this used?  Where is it set?
+    // jenkinsd 2016.03.24
     private InternalID id;
 
     private Set<Principal> identities = new TreeSet<Principal>(new PrincipalComparator());
@@ -140,6 +145,14 @@ public class User
         }
         return null;
     }
+
+    public X500Principal getX500Principal()
+    {
+        final Set<X500Principal> identities =
+                getIdentities(X500Principal.class);
+        return identities.isEmpty() ? null : identities.iterator().next();
+    }
+
 
     /**
      * A User is considered consistent if the User's set of identities are a superset
