@@ -290,6 +290,10 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
+        // user must also have an approved account
+        if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
+            throw new AccessControlException("Caller does not have authorized account");
+
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try

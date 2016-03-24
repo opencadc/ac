@@ -92,6 +92,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.ObjectUtil;
 
@@ -125,8 +126,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
     {
         // current policy: group names visible to all authenticated users
         Subject caller = AuthenticationUtil.getCurrentSubject();
-        if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
-            throw new AccessControlException("Caller is not authenticated");
+        checkAuthenticatedWithAccount(caller);
 
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
@@ -175,6 +175,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                GroupNotFoundException
     {
         Subject caller = AuthenticationUtil.getCurrentSubject();
+        checkAuthenticatedWithAccount(caller);
         Principal userID = getUser(caller);
 
         LdapConnections conns = new LdapConnections(this);
@@ -394,5 +395,14 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
         return gms.getUserID();
+    }
+
+    private void checkAuthenticatedWithAccount(Subject caller)
+    {
+        if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
+            throw new AccessControlException("Caller is not authenticated");
+
+        if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
+            throw new AccessControlException("Caller does not have authorized account");
     }
 }
