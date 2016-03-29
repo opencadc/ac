@@ -108,15 +108,31 @@ public class UserClientTest
         try
         {
             new UserClient(null);
-            Assert.fail("Null base URL should throw an illegalArgumentException.");
+            Assert.fail("Null service URI should throw an illegalArgumentException.");
         }
         catch (IllegalArgumentException iae)
         {
-            Assert.assertTrue(iae.getMessage().contains("invalid serviceURI"));
+            Assert.assertTrue(iae.getMessage().contains("cannot be null"));
         }
         catch (Throwable t)
         {
         	Assert.fail("Unexpected exception: " + t.getMessage());
+        }
+
+        // case 2: serviceURI with a fragment
+        try
+        {
+            URI uri = new URI("http://foo.com/bar?test#fragment");
+            new UserClient(uri);
+            Assert.fail("Service URI containing a fragment should throw an illegalArgumentException.");
+        }
+        catch (IllegalArgumentException iae)
+        {
+            Assert.assertTrue(iae.getMessage().contains("fragment not allowed"));
+        }
+        catch (Throwable t)
+        {
+            Assert.fail("Unexpected exception: " + t.getMessage());
         }
     }
 
