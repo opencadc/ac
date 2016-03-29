@@ -815,7 +815,7 @@ public class LdapUserDAO extends LdapDAO
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
-            { LDAP_UID, LDAP_FIRST_NAME, LDAP_LAST_NAME };
+            { LDAP_USER_NAME, LDAP_FIRST_NAME, LDAP_LAST_NAME };
         final SearchRequest searchRequest =
             new SearchRequest(usersDN, SearchScope.ONE, filter, attributes);
 
@@ -831,10 +831,10 @@ public class LdapUserDAO extends LdapDAO
                     next.getAttributeValue(LDAP_FIRST_NAME);
                 final String lastName =
                     next.getAttributeValue(LDAP_LAST_NAME).trim();
-                final String uid = next.getAttributeValue(LDAP_UID);
+                final String username = next.getAttributeValue(LDAP_USER_NAME);
 
                 User user = new User();
-                user.getIdentities().add(new HttpPrincipal(uid));
+                user.getIdentities().add(new HttpPrincipal(username));
 
                 // Only add Personal Details if it is relevant.
                 if (StringUtil.hasLength(firstName) &&

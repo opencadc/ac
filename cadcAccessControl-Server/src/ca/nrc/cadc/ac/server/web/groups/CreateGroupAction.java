@@ -107,7 +107,7 @@ public class CreateGroupAction extends AbstractGroupAction
             }
             for (User usr : group.getUserMembers())
             {
-                addedMembers.add(usr.getHttpPrincipal().getName());
+                addedMembers.add(usr.getX500Principal().getName());
             }
         }
         logGroupInfo(group.getID(), null, addedMembers);

@@ -78,6 +78,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.util.ObjectUtil;
 
 public class RemoveUserMemberAction extends AbstractGroupAction
 {
@@ -99,7 +100,12 @@ public class RemoveUserMemberAction extends AbstractGroupAction
         Group group = groupPersistence.getGroup(this.groupName);
 
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User toRemove = getUserPersistence().getUser(userPrincipal);
+
+        User user = getUserPersistence().getAugmentedUser(userPrincipal);
+        User toRemove = new User();
+        ObjectUtil.setField(toRemove, user.getID(), "id");
+        toRemove.getIdentities().addAll(user.getIdentities());
+
         if (!group.getUserMembers().remove(toRemove))
         {
             throw new MemberNotFoundException();
