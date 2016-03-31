@@ -98,7 +98,7 @@ public class CadcBasicAuthenticator extends RealmBase
 {
 
     private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/canfargms";
+    private static final String AC_URI = "ivo://canfar.net/ums";
 
     static
     {
@@ -177,7 +177,7 @@ public class CadcBasicAuthenticator extends RealmBase
     {
         RealmRegistryClient registryClient = new RealmRegistryClient();
         URL loginURL = registryClient.getServiceURL(
-            new URI(AC_URI), "http", "/login");
+            new URI(AC_URI + "#login"), "http", "");
 
         String post = "username=" + username + "&password=" + credentials;
 
