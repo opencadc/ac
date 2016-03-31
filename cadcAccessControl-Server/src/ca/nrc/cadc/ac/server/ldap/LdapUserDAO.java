@@ -520,7 +520,9 @@ public class LdapUserDAO extends LdapDAO
             {
                 name = userID.getName();
             }
-            Filter filter = Filter.createEqualityFilter(searchField, name);
+            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+            Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
+            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
             logger.debug("getUser: search filter = " + filter);
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -620,8 +622,10 @@ public class LdapUserDAO extends LdapDAO
         Filter filter = null;
         try
         {
-            filter = Filter.createEqualityFilter("email", emailAddress);
-            logger.debug("getUserByEmailAddress: search filter = " + filter);
+            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+            Filter equalsFilter = Filter.createEqualityFilter("email", emailAddress);
+            filter = Filter.createANDFilter(notFilter, equalsFilter);
+            logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -695,7 +699,11 @@ public class LdapUserDAO extends LdapDAO
             {
                 name = userID.getName();
             }
-            Filter filter = Filter.createEqualityFilter(searchField, name);
+
+            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+            Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
+            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("getAugmentedUser: search filter = " + filter);
 
@@ -811,7 +819,9 @@ public class LdapUserDAO extends LdapDAO
     {
         final Collection<User> users = new ArrayList<User>();
 
-        Filter filter =  Filter.createPresenceFilter(LDAP_UID);
+        Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+        Filter presenceFilter = Filter.createPresenceFilter(LDAP_UID);
+        Filter filter = Filter.createANDFilter(notFilter, presenceFilter);
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
