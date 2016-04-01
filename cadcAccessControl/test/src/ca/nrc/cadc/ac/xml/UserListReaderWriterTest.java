@@ -1,11 +1,9 @@
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,10 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class UserListReaderWriterTest
 {
@@ -76,11 +78,13 @@ public class UserListReaderWriterTest
         List<User> expected = new ArrayList<User>();
 
         User user1 = new User();
+        user1.getIdentities().add(new HttpPrincipal("foo"));
         InternalID id1 = new InternalID(new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID()));
         TestUtil.setField(user1, id1, AbstractReaderWriter.ID);
         expected.add(user1);
 
         User user2 = new User();
+        user2.getIdentities().add(new HttpPrincipal("foo"));
         InternalID id2 = new InternalID(new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID()));
         TestUtil.setField(user2, id2, AbstractReaderWriter.ID);
         expected.add(user2);

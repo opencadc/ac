@@ -94,8 +94,44 @@ public class InternalID
             throw new IllegalArgumentException("uri is null");
         }
 
+        if (uri.getFragment() != null)
+        {
+            throw new IllegalArgumentException("fragment not allowed");
+        }
+
         this.uri = uri;
         uuid = UUID.fromString(uri.getQuery());
+    }
+
+    /**
+     * Ctor
+     * @param uri unique identifier
+     * @param id The uuid of the identifier
+     */
+    public InternalID(URI uri, UUID id)
+    {
+        if (uri == null)
+        {
+            throw new IllegalArgumentException("uri is null");
+        }
+
+        if (id == null)
+        {
+            throw new IllegalArgumentException("id is null");
+        }
+
+        if (uri.getQuery() != null)
+        {
+            throw new IllegalArgumentException("query not allowed in base uri");
+        }
+
+        if (uri.getFragment() != null)
+        {
+            throw new IllegalArgumentException("fragment not allowed");
+        }
+
+        this.uri = URI.create(uri.toASCIIString() + "?" + id.toString());
+        this.uuid = id;
     }
 
     public URI getURI()

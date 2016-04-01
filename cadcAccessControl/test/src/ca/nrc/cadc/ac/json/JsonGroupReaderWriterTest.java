@@ -68,22 +68,11 @@
  */
 package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -95,10 +84,24 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  * @author jburke
@@ -214,10 +217,12 @@ public class JsonGroupReaderWriterTest
 
         Group groupMember = new Group("member");
         User userMember = new User();
+        userMember.getIdentities().add(new HttpPrincipal("foo"));
         URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         TestUtil.setField(userMember, new InternalID(memberUri), AbstractReaderWriter.ID);
         Group groupAdmin = new Group("admin");
         User userAdmin = new User();
+        userAdmin.getIdentities().add(new HttpPrincipal("bar"));
         URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         TestUtil.setField(userAdmin, new InternalID(adminUri), AbstractReaderWriter.ID);
 

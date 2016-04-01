@@ -71,28 +71,29 @@ package ca.nrc.cadc.ac;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class Group
 {
     private String groupID;
-    
+
     private User owner;
-    
+
     // group's properties
     protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
 
     // group's user members
-    private Set<User> userMembers = new HashSet<User>();
+    private Set<User> userMembers = new TreeSet<User>();
 
     // group's group members
     private Set<Group> groupMembers = new HashSet<Group>();
-    
+
     // group's user admins
-    private Set<User> userAdmins = new HashSet<User>();
-    
+    private Set<User> userAdmins = new TreeSet<User>();
+
     // group's group admins
     private Set<Group> groupAdmins = new HashSet<Group>();
-    
+
     public String description;
     public Date lastModified;
 
@@ -100,9 +101,9 @@ public class Group
 
     /**
      * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
+     *
+     * @param groupID   Unique ID for the group. Must be a valid URI fragment
+     *                  component, so it's restricted to alphanumeric
      *                  and "-", ".","_","~" characters.
      */
     public Group(String groupID)
@@ -122,7 +123,7 @@ public class Group
 
     /**
      * Obtain this Group's unique id.
-     * 
+     *
      * @return String group ID.
      */
     public String getID()
@@ -140,7 +141,7 @@ public class Group
     }
 
     /**
-     * 
+     *
      * @return a set of properties associated with a group
      */
     public Set<GroupProperty> getProperties()
@@ -149,7 +150,7 @@ public class Group
     }
 
     /**
-     * 
+     *
      * @return individual user members of this group
      */
     public Set<User> getUserMembers()
@@ -158,16 +159,16 @@ public class Group
     }
 
     /**
-     * 
+     *
      * @return group members of this group
      */
     public Set<Group> getGroupMembers()
     {
         return groupMembers;
     }
-    
+
     /**
-     * 
+     *
      * @return individual user admins of this group
      */
     public Set<User> getUserAdmins()
@@ -176,7 +177,7 @@ public class Group
     }
 
     /**
-     * 
+     *
      * @return group admins of this group
      */
     public Set<Group> getGroupAdmins()

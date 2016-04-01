@@ -67,23 +67,25 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.User;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.User;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {
@@ -156,7 +158,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     expectGroup.getUserMembers().add(cadcDaoTest2_User);
                     expectGroup.getUserMembers().add(duplicateIdentity);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    expectGroup.getUserMembers().remove(duplicateIdentity);
+                    //expectGroup.getUserMembers().remove(duplicateIdentity);
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     expectGroup.getUserMembers().remove(cadcDaoTest2_User);
@@ -205,7 +207,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     expectGroup.getUserAdmins().add(cadcDaoTest2_User);
                     expectGroup.getUserAdmins().add(duplicateIdentity);
                     actualGroup = getGroupDAO().modifyGroup(expectGroup);
-                    expectGroup.getUserAdmins().remove(duplicateIdentity);
+                    //expectGroup.getUserAdmins().remove(duplicateIdentity);
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     // delete the group
@@ -443,9 +445,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             assertTrue(gr2.getGroupMembers().contains(gr));
         }
 
+        assertEquals(gr1.getUserMembers().size(), gr2.getUserMembers().size());
         assertEquals(gr1.getUserMembers(), gr2.getUserMembers());
-        assertEquals(gr1.getUserMembers().size(), gr2.getUserMembers()
-                .size());
         for (User user : gr1.getUserMembers())
         {
             assertTrue(gr2.getUserMembers().contains(user));
