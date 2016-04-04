@@ -68,18 +68,19 @@
  */
 package ca.nrc.cadc.ac;
 
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class GroupTest
 {
     private static Logger log = Logger.getLogger(GroupTest.class);
-    
+
     @Test
     public void simpleGroupTest() throws Exception
     {
@@ -90,46 +91,47 @@ public class GroupTest
 
         Group group3 = new Group("TestGroup");
         User user = new User();
-        
+        user.getIdentities().add(new HttpPrincipal("foo"));
+
         group3.getUserMembers().add(user);
         assertEquals(1, group3.getUserMembers().size());
 
         Group group4 = group3;
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3, group4);
-        
+
         group4 = new Group("TestGroup");
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group4.getUserMembers().add(user);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group3.getGroupMembers().add(group4);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group4.getUserAdmins().add(user);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group3.getGroupAdmins().add(group4);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group3.description = "Test group";
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group4 = new Group("NewTestGroup-._~.");
         assertFalse(group3.hashCode() == group4.hashCode());
         assertFalse(group3.equals(group4));
-        
+
         // test toString
         System.out.println(group3);
     }
-    
+
     @Test
     public void exceptionTests()
     {
@@ -143,7 +145,7 @@ public class GroupTest
             thrown = true;
         }
         assertTrue(thrown);
-        
+
         // invavlid group IDs
         thrown = false;
         try
@@ -155,7 +157,7 @@ public class GroupTest
             thrown = true;
         }
         assertTrue(thrown);
-        
+
         thrown = false;
         try
         {
@@ -166,7 +168,7 @@ public class GroupTest
             thrown = true;
         }
         assertTrue(thrown);
-        
+
         thrown = false;
         try
         {
@@ -178,5 +180,5 @@ public class GroupTest
         }
         assertTrue(thrown);
     }
-    
+
 }

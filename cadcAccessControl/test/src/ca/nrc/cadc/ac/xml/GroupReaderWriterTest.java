@@ -68,18 +68,11 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -88,10 +81,20 @@ import java.net.URI;
 import java.util.Date;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.HttpPrincipal;
 
 /**
  *
@@ -113,7 +116,7 @@ public class GroupReaderWriterTest
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
-        
+
         try
         {
             InputStream in = null;
@@ -122,7 +125,7 @@ public class GroupReaderWriterTest
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
-        
+
         try
         {
             Reader r = null;
@@ -132,7 +135,7 @@ public class GroupReaderWriterTest
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -145,13 +148,13 @@ public class GroupReaderWriterTest
         }
         catch (WriterException e) {}
     }
-     
+
     @Test
     public void testMinimalReadWrite()
         throws Exception
     {
         Group expected = new Group("groupID");
-                
+
         StringBuilder xml = new StringBuilder();
         GroupWriter groupWriter = new GroupWriter();
         groupWriter.write(expected, xml);
@@ -162,7 +165,7 @@ public class GroupReaderWriterTest
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
-    
+
     @Test
     public void testMaximalReadWrite()
         throws Exception
@@ -184,22 +187,24 @@ public class GroupReaderWriterTest
         expected.lastModified = new Date();
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
         expected.getProperties().add(new GroupProperty("key2", "value2", false));
-        
+
         Group groupMember = new Group("member");
         User userMember = new User();
+        userMember.getIdentities().add(new HttpPrincipal("foo"));
         URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         TestUtil.setField(userMember, new InternalID(memberUri), AbstractReaderWriter.ID);
 
         Group groupAdmin = new Group("admin");
         User userAdmin = new User();
+        userAdmin.getIdentities().add(new HttpPrincipal("bar"));
         URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         TestUtil.setField(userAdmin, new InternalID(adminUri), AbstractReaderWriter.ID);
-        
+
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);
         expected.getGroupAdmins().add(groupAdmin);
         expected.getUserAdmins().add(userAdmin);
-        
+
         StringBuilder xml = new StringBuilder();
         GroupWriter groupWriter = new GroupWriter();
         groupWriter.write(expected, xml);
@@ -234,5 +239,5 @@ public class GroupReaderWriterTest
             throw new RuntimeException("unable to update Group owner field", e);
         }
     }
-    
+
 }

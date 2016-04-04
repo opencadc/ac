@@ -68,25 +68,23 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.io.PrintWriter;
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
 
 import javax.security.auth.x500.X500Principal;
 
-public class User
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+
+public class User implements Comparable<User>
 {
-    // How on God's green earth is this used?  Where is it set?
-    // jenkinsd 2016.03.24
     private InternalID id;
 
-    private Set<Principal> identities = new TreeSet<Principal>(new PrincipalComparator());
+    private SortedSet<Principal> identities = new TreeSet<Principal>(new PrincipalComparator());
 
     public PersonalDetails personalDetails;
     public PosixDetails posixDetails;
@@ -120,15 +118,12 @@ public class User
      */
     public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass)
     {
-        final Set<S> matchedIdentities = new HashSet<S>();
+        final Set<S> matchedIdentities = new TreeSet<S>(new PrincipalComparator());
 
         for (final Principal p : identities)
         {
-            if (p.getClass() == identityClass)
+            if (identityClass.isAssignableFrom(p.getClass()))
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
                 matchedIdentities.add((S) p);
             }
         }
@@ -146,11 +141,18 @@ public class User
         return null;
     }
 
+    /**
+     * @deprecated
+     */
     public X500Principal getX500Principal()
     {
         final Set<X500Principal> identities =
                 getIdentities(X500Principal.class);
-        return identities.isEmpty() ? null : identities.iterator().next();
+        if (!identities.isEmpty())
+        {
+            return identities.iterator().next();
+        }
+        return null;
     }
 
 
@@ -158,56 +160,64 @@ public class User
      * A User is considered consistent if the User's set of identities are a superset
      * of this Users set of identities.
      *
-     * @param other
+     * @param superset
      * @return
      */
-    public boolean isConsistent(final User other)
+    public boolean isConsistent(final User superset)
     {
-        if (other == null)
+        if (superset == null)
         {
             return false;
         }
 
-        for (Principal identity: getIdentities())
+        if (this.identities.isEmpty() || superset.identities.isEmpty())
         {
-            boolean found = false;
-            for (Principal op: other.getIdentities())
-            {
-                if (op.equals(identity))
-                {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-            {
-                return false;
-            }
+            return false;
         }
-        return true;
+
+        return superset.getIdentities().containsAll(this.getIdentities());
+
+//        // could be improved because both sets are ordered
+//        for (Principal identity: getIdentities())
+//        {
+//            boolean found = false;
+//            for (Principal op: superset.getIdentities())
+//            {
+//                if (AuthenticationUtil.equals(op, identity))
+//                {
+//                    found = true;
+//                    break;
+//                }
+//            }
+//            if (!found)
+//            {
+//                return false;
+//            }
+//        }
+//        return true;
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        if (id != null)
-        {
-            result = prime * result + id.hashCode();
-        }
-        else
-        {
-            for (Principal principal : getIdentities())
-            {
-                result = prime * result + principal.hashCode();
-            }
-        }
-        return result;
-    }
+//    /* (non-Javadoc)
+//     * @see java.lang.Object#hashCode()
+//     */
+//    @Override
+//    public int hashCode()
+//    {
+//        int prime = 31;
+//        int result = 1;
+//        if (id != null)
+//        {
+//            result = prime * result + id.hashCode();
+//        }
+//        else
+//        {
+//            for (Principal principal : getIdentities())
+//            {
+//                result = prime * result + principal.hashCode();
+//            }
+//        }
+//        return result;
+//    }
 
     /* (non-Javadoc)
      * @see java.lang.Object#equals(java.lang.Object)
@@ -215,33 +225,39 @@ public class User
     @Override
     public boolean equals(Object obj)
     {
-        if (this == obj)
+        if (obj instanceof User)
         {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof User))
-        {
-            return false;
-        }
-        User other = (User) obj;
-        if (this.id == null && other.id == null)
-        {
-            return isConsistent(other);
-        }
-        if ((this.id == null && other.id != null) ||
-            (this.id != null && other.id == null))
-        {
-            return false;
-        }
-        if (id.equals(other.id))
-        {
-            return true;
+            User user = (User) obj;
+            return (this.isConsistent(user) || user.isConsistent(this));
         }
         return false;
+//        if (this == obj)
+//        {
+//            return true;
+//        }
+//        if (obj == null)
+//        {
+//            return false;
+//        }
+//        if (!(obj instanceof User))
+//        {
+//            return false;
+//        }
+//        User other = (User) obj;
+//        if (this.id == null && other.id == null)
+//        {
+//            return isConsistent(other);
+//        }
+//        if ((this.id == null && other.id != null) ||
+//            (this.id != null && other.id == null))
+//        {
+//            return false;
+//        }
+//        if (id.equals(other.id))
+//        {
+//            return true;
+//        }
+//        return false;
     }
 
     @Override
@@ -263,32 +279,42 @@ public class User
         @Override
         public int compare(Principal o1, Principal o2)
         {
-            int ret = -1;
-            if (o1 == null && o2 == null)
+            if (o1 == null || o2 == null)
             {
-                ret = 0;
+                throw new IllegalArgumentException("Cannot compare null objects");
             }
-            else if (o1 == null && o2 != null)
+
+            if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
             {
-                ret = 1;
+                return 0;
             }
-            else if (o1 != null && o2 == null)
-            {
-                ret = -1;
-            }
-            else if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
-            {
-                ret = 0;
-            }
-            else if (o1.getClass() == o2.getClass())
-            {
-                if (o1.getName().equals(o2.getName()))
-                {
-                    ret = 0;
-                }
-            }
-            return ret;
+
+            return AuthenticationUtil.compare(o1, o2);
         }
+    }
+
+    @Override
+    public int compareTo(User other)
+    {
+        if (other == null)
+        {
+            throw new IllegalArgumentException("Cannot compare null objects");
+        }
+
+        if (this.getIdentities().isEmpty() || other.getIdentities().isEmpty())
+        {
+            throw new IllegalArgumentException("Users need identities for comparison.");
+        }
+
+        if (this.isConsistent(other) || other.isConsistent(this))
+        {
+            return 0;
+        }
+
+        // compare the first pricipals in the order set
+        Principal p1 = this.getIdentities().iterator().next();
+        Principal p2 = other.getIdentities().iterator().next();
+        return AuthenticationUtil.compare(p1, p2);
     }
 
 }
