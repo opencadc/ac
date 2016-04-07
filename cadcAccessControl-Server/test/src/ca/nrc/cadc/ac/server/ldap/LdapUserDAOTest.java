@@ -84,12 +84,12 @@ import java.util.Collection;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.DNPrincipal;
@@ -600,7 +600,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                     userDAO.addUserRequest(userRequest);
                     userDAO.approveUserRequest(userID);
 
-                    userDAO.deleteUser(userID);
+                    userDAO.deleteUser(userID, false);
 
                     return null;
                 }
@@ -777,7 +777,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                     }
 
                     // delete the user
-                    userDAO.deleteUser(testUser.getHttpPrincipal());
+                    userDAO.deleteUser(testUser.getHttpPrincipal(), false);
 
                     // login as deleted user
                     try
@@ -1042,7 +1042,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    userDAO.deleteUser(userID);
+                    userDAO.deleteUser(userID, false);
 
                     return null;
                 }

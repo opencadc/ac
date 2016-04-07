@@ -67,13 +67,15 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.util.Log4jInit;
 import javax.servlet.http.HttpServletRequest;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
+
+import ca.nrc.cadc.util.Log4jInit;
 
 
 public class UserActionFactoryTest
@@ -113,6 +115,7 @@ public class UserActionFactoryTest
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
+            EasyMock.expect(request.getParameter("hard")).andReturn(null);
             EasyMock.replay(request);
             AbstractUserAction action = UserActionFactory.httpDeleteFactory().createAction(request);
             EasyMock.verify(request);

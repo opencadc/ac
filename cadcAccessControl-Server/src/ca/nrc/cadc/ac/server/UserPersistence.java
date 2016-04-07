@@ -239,6 +239,19 @@ public interface UserPersistence
                AccessControlException;
 
     /**
+     * Deactivate the user with the specified Principal from the active users tree.
+     *
+     * @param userID A Principal of the User.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void deactivateUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+
+    /**
      * Delete the user with the specified Principal from the pending users tree.
      *
      * @param userID A Principal of the User.

@@ -266,7 +266,7 @@ public class GetUserActionTest
         final HttpPrincipal userID = new HttpPrincipal("CADCtest");
         final GetUserAction testSubject = new GetUserAction(userID, null);
         testSubject.userPersistence = mockUserPersistence;
-        testSubject.setAugmentUser(true);
+        testSubject.setIsPrivilegedUser(true);
 
         final NumericPrincipal numericPrincipal = new NumericPrincipal(UUID.randomUUID());
         final X500Principal x500Principal = new X500Principal("cn=foo,o=bar");

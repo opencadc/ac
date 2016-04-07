@@ -84,12 +84,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import ca.nrc.cadc.ac.server.web.users.CreateUserAction;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
+import ca.nrc.cadc.ac.server.web.users.CreateUserAction;
 import ca.nrc.cadc.ac.server.web.users.GetUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
@@ -186,6 +186,17 @@ public class UserServlet extends HttpServlet
             Subject subject;
             Subject privilegedSubject = getPrivilegedSubject(request);
             log.debug("privileged subject: " + privilegedSubject);
+            if (privilegedSubject != null)
+            {
+                action.setIsPrivilegedUser(true);
+                action.setPrivilegedSubject(true);
+                logInfo.setSubject(privilegedSubject);
+            }
+            else
+            {
+                action.setIsPrivilegedUser(false);
+                action.setPrivilegedSubject(false);
+            }
 
             // If the calling subject is not a PrivilegedSubject,
             // AND it is a PUT request, throw an AccessControlException
@@ -194,7 +205,6 @@ public class UserServlet extends HttpServlet
                 profiler.checkpoint("check non-privileged user");
                 if (privilegedSubject == null)
                 {
-                    action.setPrivilegedSubject(false);
                     subject = AuthenticationUtil.getSubject(request);
                     logInfo.setSubject(subject);
                     log.debug("augmented subject: " + subject);
@@ -202,7 +212,6 @@ public class UserServlet extends HttpServlet
                 }
                 else
                 {
-                    action.setPrivilegedSubject(true);
                     log.debug("subject not augmented: " + privilegedSubject);
                     subject = privilegedSubject;
                     logInfo.setSubject(privilegedSubject);
@@ -214,11 +223,8 @@ public class UserServlet extends HttpServlet
             // AND it is a GET request, do not augment the subject.
             else if (action instanceof GetUserAction && privilegedSubject != null)
             {
-                profiler.checkpoint("check privileged user");
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
-                action.setAugmentUser(true);
-                logInfo.setSubject(privilegedSubject);
                 profiler.checkpoint("set privileged user");
             }
             else

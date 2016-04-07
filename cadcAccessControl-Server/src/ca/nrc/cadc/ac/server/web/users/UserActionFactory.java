@@ -203,7 +203,13 @@ public abstract class UserActionFactory
                 {
                     String userID = NetUtil.decode(segments[0]);
                     Principal p = getIdentity(userID, request.getParameter("idType"));
-                    action = new DeleteUserAction(p);
+                    String hardDelete = request.getParameter("hard");
+                    boolean markAsDeleted = true;
+                    if (hardDelete != null && hardDelete.equalsIgnoreCase(Boolean.TRUE.toString()))
+                    {
+                        markAsDeleted = false;
+                    }
+                    action = new DeleteUserAction(p, markAsDeleted);
                 }
 
                 if (action != null)

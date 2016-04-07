@@ -72,27 +72,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
-import ca.nrc.cadc.ac.WriterException;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.json.JsonUserReader;
-import ca.nrc.cadc.ac.json.JsonUserRequestReader;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.ac.xml.UserReader;
-import ca.nrc.cadc.ac.xml.UserRequestReader;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -104,7 +100,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     public static final String JSON_CONTENT_TYPE = "application/json";
     private Profiler profiler = new Profiler(AbstractUserAction.class);
 
-    protected boolean isAugmentUser;
+    protected boolean isPrivilegedUser;
     protected boolean isPrivilegedSubject;
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
@@ -114,19 +110,19 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     AbstractUserAction()
     {
-        this.isAugmentUser = false;
+        this.isPrivilegedUser = false;
     }
 
     public abstract void doAction() throws Exception;
 
-    public void setAugmentUser(final boolean isAugmentUser)
+    public void setIsPrivilegedUser(boolean isPrivilegedUser)
     {
-    	this.isAugmentUser = isAugmentUser;
+    	this.isPrivilegedUser = isPrivilegedUser;
     }
 
-    public boolean isAugmentUser()
+    public boolean isPrivilegedUser()
     {
-    	return this.isAugmentUser;
+    	return this.isPrivilegedUser;
     }
 
     public void setPrivilegedSubject(final boolean isPrivilegedSubject)

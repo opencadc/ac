@@ -402,7 +402,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void deleteUser(Principal userID)
+    public void deactivateUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -415,7 +415,36 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = getLdapUserDao(conns);
-            userDAO.deleteUser(userID);
+            userDAO.deleteUser(userID, true);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
+    /**
+     * Delete the user specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void deleteUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+
+        // admin API: permission checks done in action layer
+        // and in ACIs.
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = getLdapUserDao(conns);
+            userDAO.deleteUser(userID, false);
         }
         finally
         {

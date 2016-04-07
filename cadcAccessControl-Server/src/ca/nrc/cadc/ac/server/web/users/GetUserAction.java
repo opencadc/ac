@@ -113,7 +113,7 @@ public class GetUserAction extends AbstractUserAction
          * If the calling Subject user is the notAugmentedX500User, AND it is
          * a GET, call the userDAO to get the User with all identities.
          */
-        if (isAugmentUser())
+        if (isPrivilegedUser())
         {
             log.debug("getting augmented user " + principal.getName());
             user = userPersistence.getAugmentedUser(principal);

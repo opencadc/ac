@@ -1069,11 +1069,11 @@ public class LdapUserDAO extends LdapDAO
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public void deleteUser(final Principal userID)
+    public void deleteUser(final Principal userID, boolean markDelete)
             throws UserNotFoundException, TransientException,
                    AccessControlException
     {
-        deleteUser(userID, config.getUsersDN(), true);
+        deleteUser(userID, config.getUsersDN(), markDelete);
     }
 
     /**
