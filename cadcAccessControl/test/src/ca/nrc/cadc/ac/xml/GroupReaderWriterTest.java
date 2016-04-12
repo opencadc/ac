@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.xml;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -217,8 +218,10 @@ public class GroupReaderWriterTest
         assertEquals(expected.description, actual.description);
         assertEquals(expected.lastModified, actual.lastModified);
         assertEquals(expected.getProperties(), actual.getProperties());
-        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
-        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+        assertTrue(expected.getGroupMembers().containsAll(actual.getGroupMembers()));
+        assertTrue(actual.getGroupMembers().containsAll(expected.getGroupMembers()));
+        assertTrue(expected.getUserMembers().containsAll(actual.getUserMembers()));
+        assertTrue(actual.getUserMembers().containsAll(expected.getUserMembers()));
     }
 
     private void setGroupOwner(Group group, User owner)

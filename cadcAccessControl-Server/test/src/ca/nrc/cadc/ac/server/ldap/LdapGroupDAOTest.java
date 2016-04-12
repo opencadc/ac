@@ -72,7 +72,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
@@ -118,14 +117,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     getGroupDAO().addGroup(expectGroup);
                     Group actualGroup = getGroupDAO().getGroup(expectGroup.getID(), true);
                     log.info("addGroup: " + expectGroup.getID());
-                    for (Principal p : expectGroup.getOwner().getIdentities())
-                    {
-                        log.info("ep: " + p);
-                    }
-                    for (Principal p : actualGroup.getOwner().getIdentities())
-                    {
-                        log.info("ap: " + p);
-                    }
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     Group otherGroup = new Group(getGroupID());
@@ -446,7 +437,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         }
 
         assertEquals(gr1.getUserMembers().size(), gr2.getUserMembers().size());
-        assertEquals(gr1.getUserMembers(), gr2.getUserMembers());
+        assertTrue(gr1.getUserMembers().containsAll(gr2.getUserMembers()));
+        assertTrue(gr2.getUserMembers().containsAll(gr1.getUserMembers()));
         for (User user : gr1.getUserMembers())
         {
             assertTrue(gr2.getUserMembers().contains(user));
@@ -459,9 +451,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             assertTrue(gr2.getGroupAdmins().contains(gr));
         }
 
-        assertEquals(gr1.getUserAdmins(), gr2.getUserAdmins());
-        assertEquals(gr1.getUserAdmins().size(), gr2.getUserAdmins()
-                .size());
+        assertEquals(gr1.getUserAdmins().size(), gr2.getUserAdmins().size());
         for (User user : gr1.getUserAdmins())
         {
             assertTrue(gr2.getUserAdmins().contains(user));

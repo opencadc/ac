@@ -72,6 +72,8 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.User;
@@ -79,6 +81,8 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 
 public class AddUserMemberAction extends AbstractGroupAction
 {
+    private static final Logger log = Logger.getLogger(AddUserMemberAction.class);
+
     private final String groupName;
     private final String userID;
     private final String userIDType;
@@ -92,12 +96,13 @@ public class AddUserMemberAction extends AbstractGroupAction
         this.userIDType = userIDType;
     }
 
-    @SuppressWarnings("unchecked")
+    @Override
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
         User toAdd = new User();
+
         toAdd.getIdentities().add(userPrincipal);
         if (!group.getUserMembers().add(toAdd))
         {

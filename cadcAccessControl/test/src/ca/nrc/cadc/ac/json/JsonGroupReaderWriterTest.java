@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.json;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -258,8 +259,10 @@ public class JsonGroupReaderWriterTest
         assertEquals(expected.lastModified, actual.lastModified);
         assertEquals("Properties don't match.", sortedExpectedProperties,
                      sortedActualProperties);
-        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
-        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+        assertTrue(expected.getGroupMembers().containsAll(actual.getGroupMembers()));
+        assertTrue(actual.getGroupMembers().containsAll(expected.getGroupMembers()));
+        assertTrue(expected.getUserMembers().containsAll(actual.getUserMembers()));
+        assertTrue(actual.getUserMembers().containsAll(expected.getUserMembers()));
     }
 
     class GroupPropertyComparator implements Comparator<GroupProperty>

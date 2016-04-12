@@ -71,7 +71,6 @@ package ca.nrc.cadc.ac;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class Group
 {
@@ -83,13 +82,13 @@ public class Group
     protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
 
     // group's user members
-    private Set<User> userMembers = new TreeSet<User>();
+    private UserSet userMembers = new UserSet();
 
     // group's group members
     private Set<Group> groupMembers = new HashSet<Group>();
 
     // group's user admins
-    private Set<User> userAdmins = new TreeSet<User>();
+    private UserSet userAdmins = new UserSet();
 
     // group's group admins
     private Set<Group> groupAdmins = new HashSet<Group>();
@@ -97,7 +96,9 @@ public class Group
     public String description;
     public Date lastModified;
 
-    public Group() {}
+    public Group()
+    {
+    }
 
     /**
      * Ctor.
@@ -153,7 +154,7 @@ public class Group
      *
      * @return individual user members of this group
      */
-    public Set<User> getUserMembers()
+    public UserSet getUserMembers()
     {
         return userMembers;
     }
@@ -171,7 +172,7 @@ public class Group
      *
      * @return individual user admins of this group
      */
-    public Set<User> getUserAdmins()
+    public UserSet getUserAdmins()
     {
         return userAdmins;
     }
@@ -225,4 +226,5 @@ public class Group
     {
         return getClass().getSimpleName() + "[" + groupID + "]";
     }
+
 }

@@ -199,11 +199,11 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         }
         catch (Throwable t)
         {
+            log.error("Internal Error", t);
             String message = "Internal Error: " + t.getMessage();
             this.logInfo.setSuccess(false);
-            this.logInfo.setMessage(message);
-            log.error(message, t);
             sendError(500, message);
+            this.logInfo.setMessage(message);
         }
         return null;
     }

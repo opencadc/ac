@@ -77,14 +77,14 @@ import java.util.TreeSet;
 
 import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.PrincipalComparator;
 
-public class User implements Comparable<User>
+public class User
 {
     private InternalID id;
 
-    private SortedSet<Principal> identities = new TreeSet<Principal>(new PrincipalComparator());
+    private SortedSet<Principal> identities;
 
     public PersonalDetails personalDetails;
     public PosixDetails posixDetails;
@@ -96,7 +96,12 @@ public class User implements Comparable<User>
      */
     public Object appData;
 
-    public User() {}
+    public User()
+    {
+        PrincipalComparator p = new PrincipalComparator();
+        UserPrincipalComparator u = new UserPrincipalComparator(p);
+        this.identities = new TreeSet<Principal>(u);
+    }
 
     public InternalID getID()
     {
@@ -118,13 +123,15 @@ public class User implements Comparable<User>
      */
     public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass)
     {
-        final Set<S> matchedIdentities = new TreeSet<S>(new PrincipalComparator());
+        PrincipalComparator p = new PrincipalComparator();
+        UserPrincipalComparator u = new UserPrincipalComparator(p);
+        final Set<S> matchedIdentities = new TreeSet<S>(u);
 
-        for (final Principal p : identities)
+        for (final Principal principal : identities)
         {
-            if (identityClass.isAssignableFrom(p.getClass()))
+            if (identityClass.isAssignableFrom(principal.getClass()))
             {
-                matchedIdentities.add((S) p);
+                matchedIdentities.add((S) principal);
             }
         }
 
@@ -165,61 +172,27 @@ public class User implements Comparable<User>
      */
     public boolean isConsistent(final User superset)
     {
+
         if (superset == null)
         {
             return false;
         }
 
-        if (this.identities.isEmpty() || superset.identities.isEmpty())
+        if (this.identities.size() == 0 || superset.identities.size() == 0)
         {
             return false;
         }
 
-        return superset.getIdentities().containsAll(this.getIdentities());
-
-//        // could be improved because both sets are ordered
-//        for (Principal identity: getIdentities())
-//        {
-//            boolean found = false;
-//            for (Principal op: superset.getIdentities())
-//            {
-//                if (AuthenticationUtil.equals(op, identity))
-//                {
-//                    found = true;
-//                    break;
-//                }
-//            }
-//            if (!found)
-//            {
-//                return false;
-//            }
-//        }
-//        return true;
+        PrincipalComparator p = new PrincipalComparator();
+        TreeSet<Principal> set1 = new TreeSet<Principal>(p);
+        TreeSet<Principal> set2 = new TreeSet<Principal>(p);
+        set1.addAll(superset.getIdentities());
+        set2.addAll(this.getIdentities());
+        return set1.containsAll(set2);
     }
 
-//    /* (non-Javadoc)
-//     * @see java.lang.Object#hashCode()
-//     */
-//    @Override
-//    public int hashCode()
-//    {
-//        int prime = 31;
-//        int result = 1;
-//        if (id != null)
-//        {
-//            result = prime * result + id.hashCode();
-//        }
-//        else
-//        {
-//            for (Principal principal : getIdentities())
-//            {
-//                result = prime * result + principal.hashCode();
-//            }
-//        }
-//        return result;
-//    }
 
-    /* (non-Javadoc)
+    /*
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -231,33 +204,6 @@ public class User implements Comparable<User>
             return (this.isConsistent(user) || user.isConsistent(this));
         }
         return false;
-//        if (this == obj)
-//        {
-//            return true;
-//        }
-//        if (obj == null)
-//        {
-//            return false;
-//        }
-//        if (!(obj instanceof User))
-//        {
-//            return false;
-//        }
-//        User other = (User) obj;
-//        if (this.id == null && other.id == null)
-//        {
-//            return isConsistent(other);
-//        }
-//        if ((this.id == null && other.id != null) ||
-//            (this.id != null && other.id == null))
-//        {
-//            return false;
-//        }
-//        if (id.equals(other.id))
-//        {
-//            return true;
-//        }
-//        return false;
     }
 
     @Override
@@ -274,8 +220,15 @@ public class User implements Comparable<User>
         return sb.toString();
     }
 
-    private class PrincipalComparator implements Comparator<Principal>
+    private class UserPrincipalComparator implements Comparator<Principal>
     {
+        private PrincipalComparator p;
+
+        UserPrincipalComparator(PrincipalComparator p)
+        {
+            this.p = p;
+        }
+
         @Override
         public int compare(Principal o1, Principal o2)
         {
@@ -289,32 +242,8 @@ public class User implements Comparable<User>
                 return 0;
             }
 
-            return AuthenticationUtil.compare(o1, o2);
+            return p.compare(o1, o2);
         }
-    }
-
-    @Override
-    public int compareTo(User other)
-    {
-        if (other == null)
-        {
-            throw new IllegalArgumentException("Cannot compare null objects");
-        }
-
-        if (this.getIdentities().isEmpty() || other.getIdentities().isEmpty())
-        {
-            throw new IllegalArgumentException("Users need identities for comparison.");
-        }
-
-        if (this.isConsistent(other) || other.isConsistent(this))
-        {
-            return 0;
-        }
-
-        // compare the first pricipals in the order set
-        Principal p1 = this.getIdentities().iterator().next();
-        Principal p2 = other.getIdentities().iterator().next();
-        return AuthenticationUtil.compare(p1, p2);
     }
 
 }

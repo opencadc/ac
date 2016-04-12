@@ -78,7 +78,6 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.util.ObjectUtil;
 
 public class RemoveUserMemberAction extends AbstractGroupAction
 {
@@ -86,7 +85,7 @@ public class RemoveUserMemberAction extends AbstractGroupAction
     private final String userID;
     private final String userIDType;
 
-    RemoveUserMemberAction(String groupName, String userID, String userIDType)
+    public RemoveUserMemberAction(String groupName, String userID, String userIDType)
     {
         super();
         this.groupName = groupName;
@@ -94,7 +93,7 @@ public class RemoveUserMemberAction extends AbstractGroupAction
         this.userIDType = userIDType;
     }
 
-    @SuppressWarnings("unchecked")
+    @Override
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
@@ -102,18 +101,15 @@ public class RemoveUserMemberAction extends AbstractGroupAction
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
 
         User user = getUserPersistence().getAugmentedUser(userPrincipal);
-        User toRemove = new User();
-        ObjectUtil.setField(toRemove, user.getID(), "id");
-        toRemove.getIdentities().addAll(user.getIdentities());
 
-        if (!group.getUserMembers().remove(toRemove))
+        if (!group.getUserMembers().remove(user))
         {
             throw new MemberNotFoundException();
         }
         groupPersistence.modifyGroup(group);
 
         List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(getUseridForLogging(toRemove));
+        deletedMembers.add(getUseridForLogging(user));
         logGroupInfo(group.getID(), deletedMembers, null);
     }
 
