@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import com.unboundid.ldap.sdk.SearchResult;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
@@ -107,8 +108,6 @@ public class LdapConnectionPool
         OFFLINE
     };
 
-    Profiler profiler = new Profiler(LdapConnectionPool.class);
-
     protected LdapConfig currentConfig;
     private String poolName;
     private LDAPConnectionPool pool;
@@ -137,6 +136,7 @@ public class LdapConnectionPool
         logger.debug("Construct pool: " + poolName + ". system state: " + systemState);
         if (SystemState.ONLINE.equals(systemState) || (SystemState.READONLY.equals(systemState) && readOnly))
         {
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
             synchronized (poolMonitor)
             {
                 if (!boundPool)
@@ -176,23 +176,27 @@ public class LdapConnectionPool
 
         try
         {
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
             LDAPConnection conn = null;
             synchronized (poolMonitor)
             {
                 conn = pool.getConnection();
-                profiler.checkpoint("pool.getConnection");
 
                 // BM: This query to the base dn (starting at dc=) has the
                 // effect of clearing any proxied authorization state associated
                 // with the receiving ldap server connection.  Without this in
                 // place, proxied authorization information is sometimes ignored.
-                logger.debug("Testing connection");
-                int dcIndex = currentConfig.getGroupsDN().indexOf("dc=");
-                String dcDN = currentConfig.getGroupsDN().substring(dcIndex);
-                Filter filter = Filter.createEqualityFilter("dc", "*");
-                SearchRequest searchRequest = new SearchRequest(dcDN, SearchScope.BASE, filter, new String[] {"entrydn"});
-                conn.search(searchRequest);
-                profiler.checkpoint("pool.initConnection");
+//                logger.debug("Testing connection");
+//                int index = currentConfig.getGroupsDN().indexOf(',');
+//                String rdn = currentConfig.getGroupsDN().substring(0, index);
+//                Filter filter = Filter.create("(" + rdn + ")");
+//
+//                index = rdn.indexOf('=');
+//                String attribute = rdn.substring(0, index);
+//
+//                SearchRequest searchRequest = new SearchRequest(currentConfig.getGroupsDN(), SearchScope.BASE, filter, new String[] {attribute});
+//                conn.search(searchRequest);
+//                profiler.checkpoint("pool.initConnection");
             }
             logger.debug(poolName + " pool statistics after borrow:\n" + pool.getConnectionPoolStatistics());
             profiler.checkpoint("get " + poolName + " only connection");
@@ -210,7 +214,9 @@ public class LdapConnectionPool
     {
         if (pool != null)
         {
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
             pool.releaseConnection(conn);
+            profiler.checkpoint("pool.releaseConnection");
             logger.debug(poolName + " pool statistics after release:\n" + pool.getConnectionPoolStatistics());
         }
     }
@@ -225,8 +231,9 @@ public class LdapConnectionPool
         if (pool != null)
         {
             logger.debug("Closing pool...");
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
             pool.close();
-            profiler.checkpoint("Pool closed.");
+            profiler.checkpoint("pool.shutdown");
         }
     }
 

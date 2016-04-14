@@ -138,8 +138,6 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
-    private final Profiler profiler = new Profiler(LdapUserDAO.class);
-
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
 
@@ -209,7 +207,7 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
      * @param password password to verify.
      * @return Boolean
      * @throws TransientException
-     * @throws UserNotFoundExceptionjoellama
+     * @throws UserNotFoundException
      */
     public Boolean doLogin(final String username, final String password)
         throws TransientException, UserNotFoundException
@@ -677,8 +675,8 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
     public User<T> getAugmentedUser(final T userID)
         throws UserNotFoundException, TransientException
     {
+        Profiler profiler = new Profiler(LdapUserDAO.class);
         String searchField = userLdapAttrib.get(userID.getClass());
-        profiler.checkpoint("getAugmentedUser.getSearchField");
         if (searchField == null)
         {
             throw new IllegalArgumentException(
@@ -690,14 +688,14 @@ public class LdapUserDAO<T extends Principal> extends LdapDAO
             Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter(searchField, userID.getName());
             Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
-            profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest = new SearchRequest(
                 config.getUsersDN(), SearchScope.ONE, filter, identityAttribs);
-            profiler.checkpoint("getAugmentedUser.createSearchRequest");
 
-            SearchResultEntry searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            LDAPConnection con = getReadOnlyConnection();
+            profiler.checkpoint("getAugmentedUser.getReadOnlyConnection");
+            SearchResultEntry searchResult = con.searchForEntry(searchRequest);
             profiler.checkpoint("getAugmentedUser.searchForEntry");
 
             if (searchResult == null)

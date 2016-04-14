@@ -90,7 +90,6 @@ import ca.nrc.cadc.profiler.Profiler;
 public class LdapUserPersistence<T extends Principal> extends LdapPersistence implements UserPersistence<T>
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
-    private Profiler profiler = new Profiler(LdapUserPersistence.class);
 
     public LdapUserPersistence()
     {
@@ -263,6 +262,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
         LdapConnections conns = new LdapConnections(this);
         try
         {
+            Profiler profiler = new Profiler(LdapUserPersistence.class);
             userDAO = new LdapUserDAO<T>(conns);
             profiler.checkpoint("Create LdapUserDAO");
             User<T> user = userDAO.getAugmentedUser(userID);
@@ -476,7 +476,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
-     * @param user
+     * @param userID
      * @param oldPassword   current password.
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
@@ -510,8 +510,7 @@ public class LdapUserPersistence<T extends Principal> extends LdapPersistence im
     /**
      * Reset a user's password. The given user and authenticating user must match.
      *
-     * @param user
-     * @param oldPassword   current password.
+     * @param userID
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
      * @throws TransientException   If an temporary, unexpected problem occurred.

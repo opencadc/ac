@@ -101,7 +101,6 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
     public static final String JSON_CONTENT_TYPE = "application/json";
-    private Profiler profiler = new Profiler(AbstractUserAction.class);
 
     protected boolean isAugmentUser;
     protected UserLogInfo logInfo;
@@ -146,6 +145,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     {
         try
         {
+            Profiler profiler = new Profiler(AbstractUserAction.class);
             doAction();
             profiler.checkpoint("doAction");
         }
@@ -219,6 +219,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
 
     private void sendError(int responseCode, String message)
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setCode(responseCode);
         syncOut.setHeader("Content-Type", "text/plain");
         if (message != null)
@@ -256,6 +257,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     protected final UserRequest<Principal> readUserRequest(
             final InputStream inputStream) throws IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         final UserRequest<Principal> userRequest;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
@@ -289,6 +291,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     protected final User<Principal> readUser(final InputStream inputStream)
             throws IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final User<Principal> user;
 
@@ -321,6 +324,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     protected final <T extends Principal> void writeUser(final User<T> user)
             throws IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
 
@@ -345,6 +349,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     protected final <T extends Principal> void writeUsers(final Collection<User<T>> users)
             throws IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
 

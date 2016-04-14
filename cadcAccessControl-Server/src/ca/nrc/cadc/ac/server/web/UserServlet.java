@@ -177,7 +177,7 @@ public class UserServlet<T extends Principal> extends HttpServlet
             AbstractUserAction action = factory.createAction(request);
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
-            profiler.checkpoint("created action");
+//            profiler.checkpoint("created action");
 
             // Special case: if the calling subject has a servops X500Principal,
             // AND it is a GET request, do not augment the subject.
@@ -254,6 +254,7 @@ public class UserServlet<T extends Principal> extends HttpServlet
         }
         finally
         {
+            profiler.checkpoint("Action complete");
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
