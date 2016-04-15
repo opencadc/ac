@@ -90,7 +90,6 @@ import ca.nrc.cadc.profiler.Profiler;
 public class LdapUserPersistence extends LdapPersistence implements UserPersistence
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
-    private Profiler profiler = new Profiler(LdapUserPersistence.class);
 
     public LdapUserPersistence()
     {
@@ -244,7 +243,8 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         }
     }
 
-    /**
+    /**<<<<<<< HEAD
+
      * Get the user specified by userID with all of the users identities.
      *
      * @param userID The userID.
@@ -263,6 +263,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
+            Profiler profiler = new Profiler(LdapUserPersistence.class);
             userDAO = getLdapUserDao(conns);
             profiler.checkpoint("Create LdapUserDAO");
             User user = userDAO.getAugmentedUser(userID);
@@ -509,7 +510,11 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
+<<<<<<< HEAD
      * @param userID        the user.
+=======
+     * @param userID
+>>>>>>> efc84b5d25584bd3014fc6cbc820c5acf0d90a2a
      * @param oldPassword   current password.
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
@@ -543,7 +548,11 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     /**
      * Reset a user's password. The given user and authenticating user must match.
      *
+<<<<<<< HEAD
      * @param userID        The user.
+=======
+     * @param userID
+>>>>>>> efc84b5d25584bd3014fc6cbc820c5acf0d90a2a
      * @param newPassword   new password.
      * @throws UserNotFoundException If the given user does not exist.
      * @throws TransientException   If an temporary, unexpected problem occurred.

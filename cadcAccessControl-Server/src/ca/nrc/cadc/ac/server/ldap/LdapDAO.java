@@ -90,8 +90,6 @@ public abstract class LdapDAO
 
     DN subjDN = null;
 
-    private Profiler profiler = new Profiler(LdapDAO.class);
-
     public LdapDAO(LdapConnections connections)
     {
         this.connections = connections;
@@ -179,8 +177,8 @@ public abstract class LdapDAO
 
         if (config.isSecure())
         {
-            socketFactory = createSSLSocketFactory();
             Profiler profiler = new Profiler(LdapDAO.class);
+            socketFactory = createSSLSocketFactory();
             profiler.checkpoint("createSSLSocketFactory");
         }
         else

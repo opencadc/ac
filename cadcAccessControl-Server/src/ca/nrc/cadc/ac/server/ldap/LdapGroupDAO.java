@@ -141,8 +141,6 @@ public class LdapGroupDAO extends LdapDAO
                     LDAP_MODIFY_TIMESTAMP, LDAP_DESCRIPTION, LDAP_UNIQUE_MEMBER
             };
 
-    private final Profiler profiler = new Profiler(LdapGroupDAO.class);
-
     private LdapUserDAO userDAO;
 
     // this gets filled by the LdapgroupPersistence
@@ -379,6 +377,7 @@ public class LdapGroupDAO extends LdapDAO
             SearchResult searchResult = null;
             try
             {
+                Profiler profiler = new Profiler(LdapGroupDAO.class);
                 LDAPInterface con = getReadOnlyConnection();
                 profiler.checkpoint("getGroupNames.getConnection");
                 searchResult = con.search(searchRequest);
@@ -397,7 +396,7 @@ public class LdapGroupDAO extends LdapDAO
             }
 
             LdapDAO.checkLdapResult(searchResult.getResultCode());
-            profiler.checkpoint("checkLdapResult");
+//            profiler.checkpoint("checkLdapResult");
 
             return groupNames;
         }

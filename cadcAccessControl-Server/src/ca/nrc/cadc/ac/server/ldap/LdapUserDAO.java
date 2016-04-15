@@ -140,8 +140,6 @@ public class LdapUserDAO extends LdapDAO
 
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
 
-    private final Profiler profiler = new Profiler(LdapUserDAO.class);
-
     private String internalIdUriPrefix = AC.USER_URI;
 
     // Map of identity type to LDAP attribute
@@ -680,8 +678,8 @@ public class LdapUserDAO extends LdapDAO
     public User getAugmentedUser(final Principal userID)
         throws UserNotFoundException, TransientException
     {
+        Profiler profiler = new Profiler(LdapUserDAO.class);
         String searchField = userLdapAttrib.get(userID.getClass());
-        profiler.checkpoint("getAugmentedUser.getSearchField");
         if (searchField == null)
         {
             throw new IllegalArgumentException("getAugmentedUser: unsupported principal type " +
@@ -709,9 +707,10 @@ public class LdapUserDAO extends LdapDAO
 
             SearchRequest searchRequest = new SearchRequest(
                 config.getUsersDN(), SearchScope.ONE, filter, identityAttribs);
-            profiler.checkpoint("getAugmentedUser.createSearchRequest");
 
-            SearchResultEntry searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            LDAPConnection con = getReadOnlyConnection();
+            profiler.checkpoint("getAugmentedUser.getReadOnlyConnection");
+            SearchResultEntry searchResult = con.searchForEntry(searchRequest);
             profiler.checkpoint("getAugmentedUser.searchForEntry");
 
             if (searchResult == null)

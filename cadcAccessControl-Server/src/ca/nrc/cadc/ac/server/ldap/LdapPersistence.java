@@ -97,8 +97,6 @@ public abstract class LdapPersistence
     private static final String LDAP_POOL_JNDI_NAME = ConnectionPools.class.getName();
     private static final int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
 
-    Profiler profiler = new Profiler(LdapPersistence.class);
-
     // static monitor is required for when multiple LdapPersistence objects
     // are created.
     private static Object jndiMonitor = new Object();
@@ -208,6 +206,7 @@ public abstract class LdapPersistence
                     }
                     if (pools == null)
                     {
+                        Profiler profiler = new Profiler(LdapPersistence.class);
                         LdapConfig config = LdapConfig.getLdapConfig();
                         pools = createPools(config);
                         InitialContext ic = new InitialContext();
@@ -238,6 +237,7 @@ public abstract class LdapPersistence
 
     private ConnectionPools createPools(LdapConfig config)
     {
+        Profiler profiler = new Profiler(LdapPersistence.class);
         Map<String,LdapConnectionPool> poolMap = new HashMap<String,LdapConnectionPool>(3);
         poolMap.put(POOL_READONLY, new LdapConnectionPool(
             config, config.getReadOnlyPool(), POOL_READONLY, true, true));
@@ -276,6 +276,7 @@ public abstract class LdapPersistence
             else
             {
                 logger.debug("Detected ldap configuration change, rebuilding pools");
+                Profiler profiler = new Profiler(LdapPersistence.class);
                 boolean poolRecreated = false;
                 final ConnectionPools oldPools = pools;
                 ConnectionPools newPools = null;

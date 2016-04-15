@@ -181,7 +181,7 @@ public class UserServlet extends HttpServlet
             log.debug("create action " + action.getClass().getSimpleName());
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
-            profiler.checkpoint("created action");
+//            profiler.checkpoint("created action");
 
             Subject subject;
             Subject privilegedSubject = getPrivilegedSubject(request);
@@ -289,6 +289,7 @@ public class UserServlet extends HttpServlet
         }
         finally
         {
+            profiler.checkpoint("Action complete");
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }

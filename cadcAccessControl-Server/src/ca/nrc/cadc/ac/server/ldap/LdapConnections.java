@@ -91,8 +91,6 @@ class LdapConnections
 {
     private final static Logger log = Logger.getLogger(LdapConnections.class);
 
-    Profiler profiler = new Profiler(LdapConnections.class);
-
     private LdapPersistence persistence;
     private LdapConfig config;
 
@@ -134,6 +132,7 @@ class LdapConnections
             if (autoConfigReadOnlyConn == null)
             {
                 log.debug("Getting new auto config read only connection.");
+                Profiler profiler = new Profiler(LdapConnections.class);
                 autoConfigReadOnlyConn = readOnlyPool.getConnection();
                 profiler.checkpoint("Get read only connection");
             }
@@ -173,6 +172,7 @@ class LdapConnections
             if (autoConfigReadWriteConn == null)
             {
                 log.debug("Getting new auto config read write connection.");
+                Profiler profiler = new Profiler(LdapConnections.class);
                 autoConfigReadWriteConn = readWritePool.getConnection();
                 profiler.checkpoint("Get read write connection");
             }
@@ -212,6 +212,7 @@ class LdapConnections
             if (autoConfigUnboundReadOnlyConn == null)
             {
                 log.debug("Getting new auto config unbound read only connection.");
+                Profiler profiler = new Profiler(LdapConnections.class);
                 autoConfigUnboundReadOnlyConn = unboundReadOnlyPool.getConnection();
                 profiler.checkpoint("Get read write connection");
             }
@@ -242,6 +243,7 @@ class LdapConnections
 
     void releaseConnections()
     {
+        Profiler profiler = new Profiler(LdapConnections.class);
         if (persistence != null)
         {
             if (autoConfigReadOnlyConn != null)

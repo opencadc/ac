@@ -81,14 +81,17 @@ import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.json.JsonUserReader;
+import ca.nrc.cadc.ac.json.JsonUserRequestReader;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserRequestReader;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -98,7 +101,6 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
     public static final String JSON_CONTENT_TYPE = "application/json";
-    private Profiler profiler = new Profiler(AbstractUserAction.class);
 
     protected boolean isPrivilegedUser;
     protected boolean isPrivilegedSubject;
@@ -154,6 +156,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     {
         try
         {
+            Profiler profiler = new Profiler(AbstractUserAction.class);
             doAction();
             profiler.checkpoint("doAction");
         }
@@ -227,6 +230,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
 
     private void sendError(int responseCode, String message)
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setCode(responseCode);
         syncOut.setHeader("Content-Type", "text/plain");
         if (message != null)
@@ -254,6 +258,40 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     }
 
     /**
+     * Read a user request (User pending approval) from the HTTP Request's
+     * stream.
+     *
+     * @param inputStream           The Input Stream to read from.
+     * @return                      User Request instance.
+     * @throws IOException          Any reading errors.
+     */
+    protected final UserRequest readUserRequest(
+            final InputStream inputStream) throws ReaderException, IOException
+    {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
+        final UserRequest userRequest;
+
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
+        {
+            UserRequestReader requestReader = new UserRequestReader();
+            userRequest = requestReader.read(inputStream);
+        }
+        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
+        {
+            JsonUserRequestReader requestReader = new JsonUserRequestReader();
+            userRequest = requestReader.read(inputStream);
+        }
+        else
+        {
+            // Should never happen.
+            throw new IOException("Unknown content being asked for: "
+                                  + acceptedContentType);
+        }
+        profiler.checkpoint("readUserRequest");
+        return userRequest;
+    }
+
+    /**
      * Read the user from the given stream of marshalled data.
      *
      * @param inputStream       The stream to read in.
@@ -264,6 +302,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected User readUser(final InputStream inputStream)
         throws ReaderException, IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final User user;
 
@@ -296,6 +335,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected void writeUser(final User user)
         throws WriterException, IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
 
@@ -320,6 +360,7 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     protected void writeUsers(final Collection<User> users)
         throws WriterException, IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
 
