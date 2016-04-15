@@ -249,7 +249,7 @@ public class UserClient
 
     /**
      * Create an auto-approved user directly in the user tree (not
-     * the userRequest tree) from their x.500 principal.
+     * the userRequest tree) from the principal.
      *
      * @param principal Their x500 Principal
      * @throws UserAlreadyExistsException
@@ -258,13 +258,13 @@ public class UserClient
      * @throws URISyntaxException
      * @throws ReaderException
      */
-    public User createX509User(X500Principal principal)
+    public User createUser(Principal principal)
             throws UserAlreadyExistsException, IOException, WriterException,
                    ReaderException, URISyntaxException
     {
         if (principal == null)
         {
-            throw new IllegalArgumentException("x500 principal required");
+            throw new IllegalArgumentException("principal required");
         }
 
         User user = new User();
@@ -277,7 +277,7 @@ public class UserClient
 
         if (createUserURL == null)
             throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
-        log.debug("createX509User request to " + createUserURL.toString());
+        log.debug("createUser request to " + createUserURL.toString());
 
         ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString().getBytes());
         HttpUpload put = new HttpUpload(in, createUserURL);
