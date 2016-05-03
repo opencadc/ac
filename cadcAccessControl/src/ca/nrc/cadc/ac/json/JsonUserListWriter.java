@@ -93,8 +93,8 @@ public class JsonUserListWriter extends UserListWriter
      * @throws IOException     if the writer fails to write.
      */
     @Override
-    public <T extends Principal> void write(Collection<User<T>> users, Writer writer)
-        throws IOException
+    public <T extends Principal> void write(Collection<User> users, Writer writer)
+        throws WriterException, IOException
     {
         if (users == null)
         {
@@ -106,10 +106,9 @@ public class JsonUserListWriter extends UserListWriter
         document.setRootElement(usersElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("groups");
-        jsonOutputter.getListElementNames().add("users");
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
+        jsonOutputter.getListElementNames().add(GROUPS);
+        jsonOutputter.getListElementNames().add(USERS);
+        jsonOutputter.getListElementNames().add(IDENTITIES);
 
         jsonOutputter.output(document, writer);
     }

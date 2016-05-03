@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2016.                            (c) 2016.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,34 +66,126 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
-public abstract interface UserDetails
+import java.net.URI;
+import java.util.UUID;
+
+/**
+ * Class that represents a numeric id. This is useful for
+ * representing an internal user key reference.
+ *
+ * The expected format of the URI is scheme://authority?uuid
+ */
+public class InternalID
 {
+    private URI uri;
+    private UUID uuid;
+
     /**
-     * Name of the UserDetails element.
+     * Ctor
+     * @param uri unique identifier
      */
-    public static final String NAME = "userDetails";
-    
+    public InternalID(URI uri)
+    {
+        if (uri == null)
+        {
+            throw new IllegalArgumentException("uri is null");
+        }
+
+        if (uri.getFragment() != null)
+        {
+            throw new IllegalArgumentException("fragment not allowed");
+        }
+
+        this.uri = uri;
+        uuid = UUID.fromString(uri.getQuery());
+    }
+
     /**
-     * Name of the property type attribute in the UserDetails element.
+     * Ctor
+     * @param uri unique identifier
+     * @param id The uuid of the identifier
      */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /*
-     * (non-Javadoc)
-     * 
+    public InternalID(URI uri, UUID id)
+    {
+        if (uri == null)
+        {
+            throw new IllegalArgumentException("uri is null");
+        }
+
+        if (id == null)
+        {
+            throw new IllegalArgumentException("id is null");
+        }
+
+        if (uri.getQuery() != null)
+        {
+            throw new IllegalArgumentException("query not allowed in base uri");
+        }
+
+        if (uri.getFragment() != null)
+        {
+            throw new IllegalArgumentException("fragment not allowed");
+        }
+
+        this.uri = URI.create(uri.toASCIIString() + "?" + id.toString());
+        this.uuid = id;
+    }
+
+    public URI getURI()
+    {
+        return uri;
+    }
+
+    public UUID getUUID()
+    {
+        return uuid;
+    }
+
+    /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
-    public abstract int hashCode();
+    @Override
+    public int hashCode()
+    {
+        int prime = 31;
+        int result = 1;
+        result = prime * result + uri.hashCode();
+        return result;
+    }
 
-    /*
-     * (non-Javadoc)
-     * 
+    /* (non-Javadoc)
      * @see java.lang.Object#equals(java.lang.Object)
      */
-    public abstract boolean equals(Object paramObject);
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj)
+        {
+            return true;
+        }
+        if (obj == null)
+        {
+            return false;
+        }
+        if (!(obj instanceof InternalID))
+        {
+            return false;
+        }
+        InternalID other = (InternalID) obj;
+        if (uri.equals(other.uri))
+        {
+            return true;
+        }
+        return false;
+    }
 
-    public abstract String toString();
+    @Override
+    public String toString()
+    {
+        return getClass().getSimpleName() + "[" + uri + "]";
+    }
 
 }

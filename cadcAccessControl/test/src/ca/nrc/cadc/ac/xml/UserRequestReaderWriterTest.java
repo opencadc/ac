@@ -68,11 +68,12 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -80,9 +81,13 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.security.Principal;
+import java.net.URI;
+import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -141,14 +146,18 @@ public class UserRequestReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<HttpPrincipal> expectedUser = new User<HttpPrincipal>(new HttpPrincipal("foo"));
-        expectedUser.getIdentities().add(new NumericPrincipal(123));
-        expectedUser.details.add(new PersonalDetails("firstname", "lastname"));
+        User expectedUser = new User();
+        UUID uuid = UUID.randomUUID();
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
+        TestUtil.setField(expectedUser, new InternalID(uri), AbstractReaderWriter.ID);
+
+        expectedUser.getIdentities().add(new NumericPrincipal(uuid));
+        expectedUser.personalDetails = new PersonalDetails("firstname", "lastname");
 
         char[] expectedPassword = "123456".toCharArray();
 
-        UserRequest<HttpPrincipal> expected =
-            new UserRequest<HttpPrincipal>(expectedUser, expectedPassword);
+        UserRequest expected =
+            new UserRequest(expectedUser, expectedPassword);
 
         StringBuilder xml = new StringBuilder();
         UserRequestWriter userRequestWriter = new UserRequestWriter();

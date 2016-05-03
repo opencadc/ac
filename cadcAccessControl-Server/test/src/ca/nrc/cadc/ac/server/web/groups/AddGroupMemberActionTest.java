@@ -103,8 +103,8 @@ public class AddGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
+            Group group = new Group("group");
+            Group member = new Group("member");
             group.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
@@ -134,9 +134,9 @@ public class AddGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group", null);
-            Group member = new Group("member", null);
-            Group modified = new Group("group", null);
+            Group group = new Group("group");
+            Group member = new Group("member");
+            Group modified = new Group("group");
             modified.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence =

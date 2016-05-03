@@ -92,7 +92,6 @@ public class GroupPropertyTest
         GroupProperty gp2 = gp1;
         assertEquals(gp1.hashCode(), gp2.hashCode());
         assertEquals(gp1, gp2);
-        assertTrue(gp1 == gp2);
         
         // test toString
         System.out.println(gp1);

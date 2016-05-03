@@ -68,18 +68,14 @@
  */
 package ca.nrc.cadc.ac.server;
 
-import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-
-import java.lang.reflect.Constructor;
 import java.net.URL;
-import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Properties;
-import java.util.Set;
+
 import org.apache.log4j.Logger;
 
-import com.unboundid.ldap.sdk.LDAPException;
+import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 
 public class PluginFactory
 {
@@ -118,20 +114,20 @@ public class PluginFactory
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Principal> GroupPersistence<T> createGroupPersistence()
+    public <T extends Principal> GroupPersistence createGroupPersistence()
     {
         String name = GroupPersistence.class.getName();
         String cname = config.getProperty(name);
         if (cname == null)
         {
-            return new LdapGroupPersistence<T>();
+            return new LdapGroupPersistence();
         }
         else
         {
             try
             {
                 Class<?> c = Class.forName(cname);
-                return (GroupPersistence<T>) c.newInstance();
+                return (GroupPersistence) c.newInstance();
             }
             catch (Exception ex)
             {
@@ -141,14 +137,14 @@ public class PluginFactory
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Principal> UserPersistence<T> createUserPersistence()
+    public <T extends Principal> UserPersistence createUserPersistence()
     {
         String name = UserPersistence.class.getName();
         String cname = config.getProperty(name);
 
         if (cname == null)
         {
-            return new LdapUserPersistence<T>();
+            return new LdapUserPersistence();
         }
         else
         {

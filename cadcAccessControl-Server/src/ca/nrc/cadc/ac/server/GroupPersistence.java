@@ -69,7 +69,6 @@
 package ca.nrc.cadc.ac.server;
 
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.util.Collection;
 
 import ca.nrc.cadc.ac.Group;
@@ -79,7 +78,7 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 
-public interface GroupPersistence<T extends Principal>
+public interface GroupPersistence
 {
     /**
      * Call if this object is to be shut down.

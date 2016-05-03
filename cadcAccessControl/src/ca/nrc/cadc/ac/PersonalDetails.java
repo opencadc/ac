@@ -68,48 +68,8 @@
  */
 package ca.nrc.cadc.ac;
 
-public class PersonalDetails implements UserDetails
+public class PersonalDetails
 {
-    /**
-     * Name of the PersonalDetails element.
-     */
-    public static final String NAME = "personalDetails";
-    
-    /**
-     * Name of the firstName element.
-     */
-    public static final String FIRSTNAME = "firstName";
-    
-    /**
-     * Name of the lastName element.
-     */
-    public static final String LASTNAME = "lastName";
-    
-    /**
-     * Name of the email element.
-     */
-    public static final String EMAIL = "email";
-    
-    /**
-     * Name of the email element.
-     */
-    public static final String ADDRESS = "address";
-    
-    /**
-     * Name of the email element.
-     */
-    public static final String INSTITUTE = "institute";
-    
-    /**
-     * Name of the email element.
-     */
-    public static final String CITY = "city";
-    
-    /**
-     * Name of the email element.
-     */
-    public static final String COUNTRY = "country";
-        
     private String firstName;
     private String lastName;
     public String email;
@@ -205,14 +165,14 @@ public class PersonalDetails implements UserDetails
      */
     public String toStringFormatted()
     {
-    	StringBuffer sb = new StringBuffer(NAME + "\n");
-    	sb.append(FIRSTNAME + ": " + firstName +"\n");
-    	sb.append(LASTNAME + ": " + lastName +"\n");
-    	sb.append(EMAIL + ": " + email +"\n");
-    	sb.append(ADDRESS + ": " + address +"\n");
-    	sb.append(INSTITUTE + ": " + institute +"\n");
-    	sb.append(CITY + ": " + city +"\n");
-    	sb.append(COUNTRY + ": " + country +"\n");
+    	StringBuffer sb = new StringBuffer("PersonalDetails" + "\n");
+    	sb.append("firstName" + ": " + firstName +"\n");
+    	sb.append("lastName" + ": " + lastName +"\n");
+    	sb.append("email" + ": " + email +"\n");
+    	sb.append("address" + ": " + address +"\n");
+    	sb.append("institute" + ": " + institute +"\n");
+    	sb.append("city" + ": " + city +"\n");
+    	sb.append("country" + ": " + country +"\n");
 	
     	
     	return sb.toString();

@@ -69,121 +69,48 @@
 package ca.nrc.cadc.ac;
 
 import java.security.Principal;
-import java.util.HashSet;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import javax.security.auth.x500.X500Principal;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 
-public class User<T extends Principal>
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.PrincipalComparator;
+
+public class User
 {
-    private T userID;
-    
-    private Set<Principal> identities = new HashSet<Principal>();
+    private InternalID id;
 
-    public Set<UserDetails> details = new HashSet<UserDetails>();
-    
+    private SortedSet<Principal> identities;
+
+    public PersonalDetails personalDetails;
+    public PosixDetails posixDetails;
+
+    public Date lastModified;
+
     /**
      * Applications can stash some extra stuff here.
      */
     public Object appData;
-    
-    public User(final T userID)
+
+    public User()
     {
-        if (userID == null)
-        {
-            throw new IllegalArgumentException("null userID");
-        }
-        this.userID = userID;
-        identities.add(userID);
+        PrincipalComparator p = new PrincipalComparator();
+        UserPrincipalComparator u = new UserPrincipalComparator(p);
+        this.identities = new TreeSet<Principal>(u);
+    }
+
+    public InternalID getID()
+    {
+        return id;
     }
 
     public Set<Principal> getIdentities()
     {
         return identities;
-    }
-
-    public T getUserID()
-    {
-        return userID;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        int prime = 31;
-        int result = 1;
-        result = prime * result + userID.hashCode();
-        return result;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (getClass() != obj.getClass())
-        {
-            return false;
-        }
-
-        final User other = (User) obj;
-        if (userID instanceof X500Principal)
-        {
-            return AuthenticationUtil.equals(userID, other.userID);
-        }
-        else
-        {
-            return userID.equals(other.userID);
-        }
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + userID.getName() + "]";
-    }
-
-    public <S extends UserDetails>S getUserDetail(final Class<S> userDetailsClass)
-    {
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                return (S) ud;
-            }
-        }
-        return null;
-    }
-
-    public <S extends UserDetails> Set<S> getDetails(
-            final Class<S> userDetailsClass)
-    {
-        final Set<S> matchedDetails = new HashSet<S>();
-
-        for (final UserDetails ud : details)
-        {
-            if (ud.getClass() == userDetailsClass)
-            {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedDetails.add((S) ud);
-            }
-        }
-
-        return matchedDetails;
     }
 
     /**
@@ -194,22 +121,129 @@ public class User<T extends Principal>
      * @return                  Set of matched identities, or empty Set.
      *                          Never null.
      */
-    public <S extends Principal> Set<S> getIdentities(
-            final Class<S> identityClass)
+    public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass)
     {
-        final Set<S> matchedIdentities = new HashSet<S>();
+        PrincipalComparator p = new PrincipalComparator();
+        UserPrincipalComparator u = new UserPrincipalComparator(p);
+        final Set<S> matchedIdentities = new TreeSet<S>(u);
 
-        for (final Principal p : identities)
+        for (final Principal principal : identities)
         {
-            if (p.getClass() == identityClass)
+            if (identityClass.isAssignableFrom(principal.getClass()))
             {
-                // This casting shouldn't happen, but it's the only way to
-                // do this without a lot of work.
-                // jenkinsd 2014.09.26
-                matchedIdentities.add((S) p);
+                matchedIdentities.add((S) principal);
             }
         }
 
         return matchedIdentities;
     }
+
+    public HttpPrincipal getHttpPrincipal()
+    {
+        Set<HttpPrincipal> identities = getIdentities(HttpPrincipal.class);
+        if (!identities.isEmpty())
+        {
+            return identities.iterator().next();
+        }
+        return null;
+    }
+
+    /**
+     * @deprecated
+     */
+    public X500Principal getX500Principal()
+    {
+        final Set<X500Principal> identities =
+                getIdentities(X500Principal.class);
+        if (!identities.isEmpty())
+        {
+            return identities.iterator().next();
+        }
+        return null;
+    }
+
+
+    /**
+     * A User is considered consistent if the User's set of identities are a superset
+     * of this Users set of identities.
+     *
+     * @param superset
+     * @return
+     */
+    public boolean isConsistent(final User superset)
+    {
+
+        if (superset == null)
+        {
+            return false;
+        }
+
+        if (this.identities.size() == 0 || superset.identities.size() == 0)
+        {
+            return false;
+        }
+
+        PrincipalComparator p = new PrincipalComparator();
+        TreeSet<Principal> set1 = new TreeSet<Principal>(p);
+        TreeSet<Principal> set2 = new TreeSet<Principal>(p);
+        set1.addAll(superset.getIdentities());
+        set2.addAll(this.getIdentities());
+        return set1.containsAll(set2);
+    }
+
+
+    /*
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (obj instanceof User)
+        {
+            User user = (User) obj;
+            return (this.isConsistent(user) || user.isConsistent(this));
+        }
+        return false;
+    }
+
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getClass().getSimpleName());
+        sb.append("[");
+        if (id != null)
+        {
+            sb.append(id);
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private class UserPrincipalComparator implements Comparator<Principal>
+    {
+        private PrincipalComparator p;
+
+        UserPrincipalComparator(PrincipalComparator p)
+        {
+            this.p = p;
+        }
+
+        @Override
+        public int compare(Principal o1, Principal o2)
+        {
+            if (o1 == null || o2 == null)
+            {
+                throw new IllegalArgumentException("Cannot compare null objects");
+            }
+
+            if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
+            {
+                return 0;
+            }
+
+            return p.compare(o1, o2);
+        }
+    }
+
 }

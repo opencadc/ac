@@ -68,6 +68,10 @@
  */
 package ca.nrc.cadc.ac.server;
 
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collection;
+
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -75,11 +79,7 @@ import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collection;
-
-public interface UserPersistence<T extends Principal>
+public interface UserPersistence
 {
 
     /**
@@ -88,15 +88,15 @@ public interface UserPersistence<T extends Principal>
     void destroy();
 
     /**
-     * Add the user to the active users tree.
+     * Add the user to the users tree.
      *
-     * @param user      The user request to put into the active users tree.
+     * @param user      The user request to put into the users tree.
      *
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addUser(UserRequest<T> user)
+    void addUser(User user)
         throws TransientException, AccessControlException,
         UserAlreadyExistsException;
 
@@ -109,7 +109,7 @@ public interface UserPersistence<T extends Principal>
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addPendingUser(UserRequest<T> user)
+    void addUserRequest(UserRequest user)
         throws TransientException, AccessControlException,
         UserAlreadyExistsException;
 
@@ -124,7 +124,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> getUser(T userID)
+    User getUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -140,14 +140,14 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<Principal> getUserByEmailAddress(String emailAddress)
-            throws UserNotFoundException, UserAlreadyExistsException, 
+    User getUserByEmailAddress(String emailAddress)
+            throws UserNotFoundException, UserAlreadyExistsException,
             TransientException, AccessControlException;
 
     /**
-     * Get the user specified by userID whose account is pending approval.
+     * Get the user with the specified Principal whose account is pending approval.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @return User instance.
      *
@@ -155,14 +155,14 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> getPendingUser(T userID)
+    User getUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
     /**
-     * Get the user specified by userID with all of the users identities.
+     * Get the user with the specified Principal with all of the users identities.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @return User instance.
      *
@@ -170,7 +170,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> getAugmentedUser(T userID)
+    User getAugmentedUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -181,7 +181,7 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<User<Principal>> getUsers()
+    Collection<User> getUsers()
             throws TransientException, AccessControlException;
 
     /**
@@ -191,14 +191,14 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<User<Principal>> getPendingUsers()
+    Collection<User> getUserRequests()
         throws TransientException, AccessControlException;
 
     /**
-     * Move the pending user specified by userID from the
+     * Move the pending user with the specified Principal from the
      * pending users tree to the active users tree.
      *
-     * @param userID      The userID.
+     * @param userID A Principal of the User.
      *
      * @return User instance.
      *
@@ -206,12 +206,12 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> approvePendingUser(T userID)
+    User approveUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
     /**
-     * Update the user specified by userID in the active users tree.
+     * Update the user with the specified Principal in the active users tree.
      *
      * @param user      The user instance to modify.
      *
@@ -221,33 +221,46 @@ public interface UserPersistence<T extends Principal>
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User<T> modifyUser(User<T> user)
+    User modifyUser(User user)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 
     /**
-     * Delete the user specified by userID from the active users tree.
+     * Delete the user with the specified Principal from the active users tree.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    void deleteUser(T userID)
+    void deleteUser(Principal userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 
     /**
-     * Delete the user specified by userID from the pending users tree.
+     * Deactivate the user with the specified Principal from the active users tree.
      *
-     * @param userID The userID.
+     * @param userID A Principal of the User.
      *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    void deletePendingUser(T userID)
+    void deactivateUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+
+    /**
+     * Delete the user with the specified Principal from the pending users tree.
+     *
+     * @param userID A Principal of the User.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void deleteUserRequest(Principal userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
 

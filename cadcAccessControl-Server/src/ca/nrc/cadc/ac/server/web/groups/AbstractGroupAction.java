@@ -70,10 +70,13 @@ package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
 import java.util.List;
 
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
@@ -82,9 +85,11 @@ import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
@@ -194,11 +199,11 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         }
         catch (Throwable t)
         {
+            log.error("Internal Error", t);
             String message = "Internal Error: " + t.getMessage();
             this.logInfo.setSuccess(false);
-            this.logInfo.setMessage(message);
-            log.error(message, t);
             sendError(500, message);
+            this.logInfo.setMessage(message);
         }
         return null;
     }
@@ -231,5 +236,27 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         this.logInfo.addedMembers = addedMembers;
         this.logInfo.deletedMembers = deletedMembers;
     }
+
+    protected String getUseridForLogging(User u)
+    {
+        if (u.getIdentities().isEmpty())
+            return "anonUser";
+
+        Iterator<Principal> i = u.getIdentities().iterator();
+        String ret = null;
+        Principal next = null;
+        while (i.hasNext())
+        {
+            next = i.next();
+            if (next instanceof HttpPrincipal)
+                return next.getName();
+            if (next instanceof X500Principal)
+                ret = next.getName();
+            else if (ret == null)
+                ret = next.getName();
+        }
+        return ret;
+    }
+
 
 }

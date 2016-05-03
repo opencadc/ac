@@ -76,7 +76,6 @@ import org.jdom2.Document;
 import org.json.JSONException;
 
 import java.io.Reader;
-import java.security.Principal;
 import java.util.List;
 import java.util.Scanner;
 
@@ -94,7 +93,7 @@ public class JsonUserListReader extends UserListReader
      * @throws ReaderException
      */
     @Override
-    public List<User<Principal>> read(Reader reader)
+    public List<User> read(Reader reader)
         throws ReaderException
     {
         if (reader == null)
@@ -108,9 +107,8 @@ public class JsonUserListReader extends UserListReader
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
-            jsonInputter.getListElementMap().put("identities", "identity");
-            jsonInputter.getListElementMap().put("details", "userDetails");
-            jsonInputter.getListElementMap().put("users", "user");
+            jsonInputter.getListElementMap().put(IDENTITIES, IDENTITY);
+            jsonInputter.getListElementMap().put(USERS, USER);
 
             Document document = jsonInputter.input(json);
             return getUserList(document.getRootElement());

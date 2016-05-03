@@ -68,10 +68,11 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -79,7 +80,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.security.Principal;
+import java.net.URI;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -102,7 +104,7 @@ public class UserReaderWriterTest
         {
             String s = null;
             UserReader userReader = new UserReader();
-            User<Principal> u = userReader.read(s);
+            User u = userReader.read(s);
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -111,7 +113,7 @@ public class UserReaderWriterTest
         {
             InputStream in = null;
             UserReader userReader = new UserReader();
-            User<Principal> u = userReader.read(in);
+            User u = userReader.read(in);
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
@@ -120,7 +122,7 @@ public class UserReaderWriterTest
         {
             Reader r = null;
             UserReader userReader = new UserReader();
-            User<Principal> u = userReader.read(r);
+            User u = userReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
@@ -143,9 +145,12 @@ public class UserReaderWriterTest
     public void testReadWrite()
         throws Exception
     {
-        User<Principal> expected = new User<Principal>(new HttpPrincipal("foo"));
-        expected.getIdentities().add(new NumericPrincipal(123));
-        expected.details.add(new PersonalDetails("firstname", "lastname"));
+        User expected = new User();
+        UUID uuid = UUID.randomUUID();
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
+        TestUtil.setField(expected, new InternalID(uri), AbstractReaderWriter.ID);
+        expected.getIdentities().add(new NumericPrincipal(uuid));
+        expected.personalDetails = new PersonalDetails("firstname", "lastname");
         
         StringBuilder xml = new StringBuilder();
         UserWriter userWriter = new UserWriter();
@@ -153,7 +158,7 @@ public class UserReaderWriterTest
         assertFalse(xml.toString().isEmpty());
 
         UserReader userReader = new UserReader();
-        User<? extends Principal> actual = userReader.read(xml.toString());
+        User actual = userReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

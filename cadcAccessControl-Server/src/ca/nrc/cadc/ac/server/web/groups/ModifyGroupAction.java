@@ -74,7 +74,6 @@ import java.util.List;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.profiler.Profiler;
 
@@ -108,7 +107,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         {
             if (!oldGroup.getUserMembers().remove(member))
             {
-                addedMembers.add(member.getUserID().getName());
+                addedMembers.add(getUseridForLogging(member));
             }
         }
         for (Group gr : group.getGroupMembers())
@@ -125,7 +124,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         List<String> deletedMembers = new ArrayList<String>();
         for (User member : oldGroup.getUserMembers())
         {
-            deletedMembers.add(member.getUserID().getName());
+            deletedMembers.add(getUseridForLogging(member));
         }
         for (Group gr : oldGroup.getGroupMembers())
         {

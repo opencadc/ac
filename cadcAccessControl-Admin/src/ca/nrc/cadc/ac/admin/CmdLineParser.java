@@ -187,13 +187,13 @@ public class CmdLineParser
     	if (am.isSet("list"))
     	{
             System.out.println("--list");
-            this.command = new ListActiveUsers();
+            this.command = new ListUsers();
             count++;
     	}
 
     	if (am.isSet("list-pending"))
     	{
-            this.command = new ListPendingUsers();
+            this.command = new ListUserRequests();
             count++;
     	}
 

@@ -98,7 +98,7 @@ public class RejectUser extends AbstractUserCommand
         throws AccessControlException, UserNotFoundException, TransientException 
     {
         // delete user from the pending tree
-        this.getUserPersistence().deletePendingUser(this.getPrincipal());
+        this.getUserPersistence().deleteUserRequest(this.getPrincipal());
         String msg = "User " + this.getPrincipal().getName() + " was rejected successfully.";
         this.systemOut.println(msg);
     }

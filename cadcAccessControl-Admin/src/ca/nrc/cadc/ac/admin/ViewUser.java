@@ -70,7 +70,6 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
-import java.security.Principal;
 
 import org.apache.log4j.Logger;
 
@@ -83,10 +82,10 @@ import ca.nrc.cadc.net.TransientException;
  * @author yeunga
  *
  */
-public class ViewUser extends AbstractUserCommand 
+public class ViewUser extends AbstractUserCommand
 {
     private static final Logger log = Logger.getLogger(ViewUser.class);
-	
+
     /**
      * Constructor
      * @param userID Id of the user to provide details for
@@ -96,22 +95,22 @@ public class ViewUser extends AbstractUserCommand
     	super(userID);
         log.debug("view user: " + userID);
     }
-    
-    protected void execute() 
-        throws AccessControlException, TransientException, UserNotFoundException 
+
+    protected void execute()
+        throws AccessControlException, TransientException, UserNotFoundException
     {
-        try 
+        try
         {
             // Try the main tree first
             log.debug("principal: " + this.getPrincipal());
-            User<Principal> user = this.getUserPersistence().getUser(this.getPrincipal());
+            User user = this.getUserPersistence().getUser(this.getPrincipal());
             this.printUser(user);
-        } 
-        catch (UserNotFoundException e) 
+        }
+        catch (UserNotFoundException e)
         {
             // Not in the main tree, try the pending tree
-            User<Principal> user = this.getUserPersistence().getPendingUser(this.getPrincipal());
+            User user = this.getUserPersistence().getUserRequest(this.getPrincipal());
             this.printUser(user);
-        } 
+        }
     }
 }

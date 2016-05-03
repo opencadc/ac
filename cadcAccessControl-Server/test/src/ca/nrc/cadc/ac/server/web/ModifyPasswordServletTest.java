@@ -187,7 +187,7 @@ public class ModifyPasswordServletTest
         final String newPassword = "newPass";
         HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
-        final UserPersistence<?> mockUserPersistence =
+        final UserPersistence mockUserPersistence =
                 createMock(UserPersistence.class);
         mockUserPersistence.setPassword(userID, oldPassword, newPassword);
         if (hasInternalServerError)

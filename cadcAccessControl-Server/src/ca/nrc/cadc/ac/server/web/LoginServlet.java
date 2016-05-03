@@ -107,20 +107,21 @@ import ca.nrc.cadc.util.StringUtil;
 import com.unboundid.ldap.sdk.LDAPException;
 
 @SuppressWarnings("serial")
-public class LoginServlet<T extends Principal> extends HttpServlet
+public class LoginServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(LoginServlet.class);
+
     private static final String CONTENT_TYPE = "text/plain";
+    private static final String PROXY_ACCESS = "Proxy user access: ";
+
     // " as " - delimiter use for proxy user authentication
     public static final String PROXY_USER_DELIM = "\\s[aA][sS]\\s";
+
     String proxyGroup; // only users in this group can impersonate other users
     String nonImpersonGroup; // users in this group cannot be impersonated
 
-    private static final String PROXY_ACCESS = "Proxy user access: ";
-
-    UserPersistence<T> userPersistence;
-    GroupPersistence<HttpPrincipal> groupPersistence;
-
+    UserPersistence userPersistence;
+    GroupPersistence groupPersistence;
 
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -144,6 +145,7 @@ public class LoginServlet<T extends Principal> extends HttpServlet
             throw new ExceptionInInitializerError(ex);
         }
     }
+
     /**
      * Attempt to login for userid/password.
      */
@@ -338,9 +340,9 @@ public class LoginServlet<T extends Principal> extends HttpServlet
         }
     }
 
-    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence() throws AccessControlException, LDAPException
+    protected LdapGroupPersistence getLdapGroupPersistence() throws AccessControlException, LDAPException
     {
-        LdapGroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
+        LdapGroupPersistence gp = new LdapGroupPersistence();
         gp.setDetailSelector(new GroupDetailSelector()
         {
             @Override

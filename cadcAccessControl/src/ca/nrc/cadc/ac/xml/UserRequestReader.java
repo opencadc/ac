@@ -95,8 +95,8 @@ public class UserRequestReader extends AbstractReaderWriter
      * @return UserRequest UserRequest.
      * @throws java.io.IOException
      */
-    public UserRequest<Principal> read(String xml)
-        throws IOException
+    public UserRequest read(String xml)
+        throws ReaderException, IOException
     {
         if (xml == null)
         {
@@ -113,8 +113,8 @@ public class UserRequestReader extends AbstractReaderWriter
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public UserRequest<Principal> read(InputStream in)
-        throws IOException
+    public UserRequest read(InputStream in)
+        throws ReaderException, IOException
     {
         if (in == null)
         {
@@ -140,8 +140,8 @@ public class UserRequestReader extends AbstractReaderWriter
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public UserRequest<Principal> read(Reader reader)
-        throws IOException
+    public UserRequest read(Reader reader)
+        throws ReaderException, IOException
     {
         if (reader == null)
         {

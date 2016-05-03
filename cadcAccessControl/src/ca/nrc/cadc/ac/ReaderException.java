@@ -68,12 +68,10 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.io.IOException;
-
 /**
  * Class for all Exceptions that occur during reading.
  */
-public class ReaderException extends IOException
+public class ReaderException extends Exception
 {
     /**
      * Constructs a new exception with the specified detail message.  The

@@ -68,7 +68,6 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.security.Principal;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -76,56 +75,44 @@ import java.util.Set;
 public class Group
 {
     private String groupID;
-    
-    private User<? extends Principal> owner;
-    
+
+    private User owner;
+
     // group's properties
     protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
 
     // group's user members
-    private Set<User<? extends Principal>> userMembers = new HashSet<User<? extends Principal>>();
+    private UserSet userMembers = new UserSet();
 
     // group's group members
     private Set<Group> groupMembers = new HashSet<Group>();
-    
+
     // group's user admins
-    private Set<User<? extends Principal>> userAdmins = new HashSet<User<? extends Principal>>();
-    
+    private UserSet userAdmins = new UserSet();
+
     // group's group admins
     private Set<Group> groupAdmins = new HashSet<Group>();
-    
+
     public String description;
     public Date lastModified;
 
-    public Group() {}
-    
-    /**
-     * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
-     *                  and "-", ".","_","~" characters.
-     */
-    public Group(String groupID)
+    public Group()
     {
-        this(groupID, null);
     }
 
     /**
      * Ctor.
-     * 
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment 
-     *                  component, so it's restricted to alphanumeric 
+     *
+     * @param groupID   Unique ID for the group. Must be a valid URI fragment
+     *                  component, so it's restricted to alphanumeric
      *                  and "-", ".","_","~" characters.
-     * @param owner     Owner/Creator of the group.
      */
-    public Group(String groupID, User<? extends Principal> owner)
+    public Group(String groupID)
     {
         if (groupID == null)
         {
-            throw new IllegalArgumentException("Null groupID");
+            throw new IllegalArgumentException("null groupID");
         }
-
         if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
         {
             throw new IllegalArgumentException("Invalid group ID " + groupID +
@@ -133,12 +120,11 @@ public class Group
         }
 
         this.groupID = groupID;
-        this.owner = owner;
     }
 
     /**
      * Obtain this Group's unique id.
-     * 
+     *
      * @return String group ID.
      */
     public String getID()
@@ -150,18 +136,13 @@ public class Group
      * Obtain this group's owner
      * @return owner of the group
      */
-    public User<? extends Principal> getOwner()
+    public User getOwner()
     {
         return owner;
     }
 
-    public void setOwner(User<? extends Principal> owner)
-    {
-        this.owner = owner;
-    }
-
     /**
-     * 
+     *
      * @return a set of properties associated with a group
      */
     public Set<GroupProperty> getProperties()
@@ -170,34 +151,34 @@ public class Group
     }
 
     /**
-     * 
+     *
      * @return individual user members of this group
      */
-    public Set<User<? extends Principal>> getUserMembers()
+    public UserSet getUserMembers()
     {
         return userMembers;
     }
 
     /**
-     * 
+     *
      * @return group members of this group
      */
     public Set<Group> getGroupMembers()
     {
         return groupMembers;
     }
-    
+
     /**
-     * 
+     *
      * @return individual user admins of this group
      */
-    public Set<User<? extends Principal>> getUserAdmins()
+    public UserSet getUserAdmins()
     {
         return userAdmins;
     }
 
     /**
-     * 
+     *
      * @return group admins of this group
      */
     public Set<Group> getGroupAdmins()
@@ -245,4 +226,5 @@ public class Group
     {
         return getClass().getSimpleName() + "[" + groupID + "]";
     }
+
 }

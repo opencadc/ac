@@ -68,30 +68,17 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
-
-import com.unboundid.ldap.sdk.BindRequest;
-import com.unboundid.ldap.sdk.BindResult;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPConnectionPool;
-import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.LDAPInterface;
 import com.unboundid.ldap.sdk.ResultCode;
-import com.unboundid.ldap.sdk.SimpleBindRequest;
-
 import org.apache.log4j.Logger;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
 import java.security.AccessControlException;
-import java.security.AccessController;
 import java.security.GeneralSecurityException;
-import java.security.Principal;
-import java.util.Set;
 
 
 public abstract class LdapDAO

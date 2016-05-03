@@ -89,6 +89,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
+import ca.nrc.cadc.ac.server.web.users.CreateUserAction;
 import ca.nrc.cadc.ac.server.web.users.GetUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
@@ -98,17 +99,14 @@ import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
 
-public class UserServlet<T extends Principal> extends HttpServlet
+public class UserServlet extends HttpServlet
 {
-
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
 
-    public static final String USER_PERSISTENCE_REF = "userPersistence";
+    private List<Subject> privilegedSubjects;
 
-    private List<Subject> notAugmentedSubjects;
-
-    private UserPersistence<T> userPersistence;
+    private UserPersistence userPersistence;
 
     @Override
     public void init(ServletConfig config) throws ServletException
@@ -117,11 +115,11 @@ public class UserServlet<T extends Principal> extends HttpServlet
 
         try
         {
-            String x500Users = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedX500Principals");
-            log.debug("notAugmentedX500Users: " + x500Users);
+            String x500Users = config.getInitParameter(UserServlet.class.getName() + ".PrivilegedX500Principals");
+            log.debug("PrivilegedX500Users: " + x500Users);
 
-            String httpUsers = config.getInitParameter(UserServlet.class.getName() + ".NotAugmentedHttpPrincipals");
-            log.debug("notAugmentedHttpUsers: " + httpUsers);
+            String httpUsers = config.getInitParameter(UserServlet.class.getName() + ".PrivilegedHttpPrincipals");
+            log.debug("PrivilegedHttpUsers: " + httpUsers);
 
             String[] x500List = new String[0];
             String[] httpList = new String[0];
@@ -129,20 +127,25 @@ public class UserServlet<T extends Principal> extends HttpServlet
             {
                 x500List = x500Users.split(" ");
                 httpList = httpUsers.split(" ");
-            }
 
-            if (x500List.length != httpList.length)
-            {
-                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
-            }
+                if (x500List.length != httpList.length)
+                {
+                    throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+                }
 
-            notAugmentedSubjects = new ArrayList<Subject>(x500Users.length());
-            for (int i=0; i<x500List.length; i++)
+                privilegedSubjects = new ArrayList<Subject>(x500Users.length());
+                for (int i=0; i<x500List.length; i++)
+                {
+                    Subject s = new Subject();
+                    s.getPrincipals().add(new X500Principal(x500List[i]));
+                    s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                    privilegedSubjects.add(s);
+                }
+
+            }
+            else
             {
-                Subject s = new Subject();
-                s.getPrincipals().add(new X500Principal(x500List[i]));
-                s.getPrincipals().add(new HttpPrincipal(httpList[i]));
-                notAugmentedSubjects.add(s);
+                log.warn("No Privileged users configured.");
             }
 
             PluginFactory pluginFactory = new PluginFactory();
@@ -175,22 +178,54 @@ public class UserServlet<T extends Principal> extends HttpServlet
         {
             log.info(logInfo.start());
             AbstractUserAction action = factory.createAction(request);
+            log.debug("create action " + action.getClass().getSimpleName());
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
 //            profiler.checkpoint("created action");
 
-            // Special case: if the calling subject has a servops X500Principal,
-            // AND it is a GET request, do not augment the subject.
             Subject subject;
-            Subject notAugmentedSubject = getNotAugmentedSubject(request);
-            if (action instanceof GetUserAction && notAugmentedSubject != null)
+            Subject privilegedSubject = getPrivilegedSubject(request);
+            log.debug("privileged subject: " + privilegedSubject);
+            if (privilegedSubject != null)
             {
-                profiler.checkpoint("check not augmented user");
+                action.setIsPrivilegedUser(true);
+                action.setPrivilegedSubject(true);
+                logInfo.setSubject(privilegedSubject);
+            }
+            else
+            {
+                action.setIsPrivilegedUser(false);
+                action.setPrivilegedSubject(false);
+            }
+
+            // If the calling subject is not a PrivilegedSubject,
+            // AND it is a PUT request, throw an AccessControlException
+            if (action instanceof CreateUserAction)
+            {
+                profiler.checkpoint("check non-privileged user");
+                if (privilegedSubject == null)
+                {
+                    subject = AuthenticationUtil.getSubject(request);
+                    logInfo.setSubject(subject);
+                    log.debug("augmented subject: " + subject);
+                    profiler.checkpoint("augment subject");
+                }
+                else
+                {
+                    log.debug("subject not augmented: " + privilegedSubject);
+                    subject = privilegedSubject;
+                    logInfo.setSubject(privilegedSubject);
+                    profiler.checkpoint("set privileged user");
+                }
+            }
+
+            // If the calling subject has a privileged X500Principal,
+            // AND it is a GET request, do not augment the subject.
+            else if (action instanceof GetUserAction && privilegedSubject != null)
+            {
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
-                action.setAugmentUser(true);
-                logInfo.setSubject(notAugmentedSubject);
-                profiler.checkpoint("set not augmented user");
+                profiler.checkpoint("set privileged user");
             }
             else
             {
@@ -316,9 +351,9 @@ public class UserServlet<T extends Principal> extends HttpServlet
         }
     }
 
-    protected Subject getNotAugmentedSubject(HttpServletRequest request)
+    protected Subject getPrivilegedSubject(HttpServletRequest request)
     {
-        if (notAugmentedSubjects == null || notAugmentedSubjects.isEmpty())
+        if (privilegedSubjects == null || privilegedSubjects.isEmpty())
         {
             return null;
         }
@@ -330,7 +365,7 @@ public class UserServlet<T extends Principal> extends HttpServlet
         {
             if (principal instanceof X500Principal)
             {
-                for (Subject s : notAugmentedSubjects)
+                for (Subject s : privilegedSubjects)
                 {
                     Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
                     for (X500Principal p2 : x500Principals)
@@ -345,7 +380,7 @@ public class UserServlet<T extends Principal> extends HttpServlet
 
             if (principal instanceof HttpPrincipal)
             {
-                for (Subject s : notAugmentedSubjects)
+                for (Subject s : privilegedSubjects)
                 {
                     Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
                     for (HttpPrincipal p2 : httpPrincipals)

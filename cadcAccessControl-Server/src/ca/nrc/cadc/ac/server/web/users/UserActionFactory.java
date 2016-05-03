@@ -68,7 +68,15 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.UUID;
+
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -76,13 +84,6 @@ import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.net.NetUtil;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.net.URL;
-import java.security.Principal;
 
 
 public abstract class UserActionFactory
@@ -112,8 +113,8 @@ public abstract class UserActionFactory
                 else if (segments.length == 1)
                 {
                     String userID = NetUtil.decode(segments[0]);
-                    User user = getUser(userID, request.getParameter("idType"));
-                    action = new GetUserAction(user.getUserID(), request.getParameter("detail"));
+                    Principal p = getIdentity(userID, request.getParameter("idType"));
+                    action = new GetUserAction(p, request.getParameter("detail"));
                 }
 
                 if (action != null)
@@ -201,8 +202,14 @@ public abstract class UserActionFactory
                 if (segments.length == 1)
                 {
                     String userID = NetUtil.decode(segments[0]);
-                    User user = getUser(userID, request.getParameter("idType"));
-                    action = new DeleteUserAction(user.getUserID());
+                    Principal p = getIdentity(userID, request.getParameter("idType"));
+                    String hardDelete = request.getParameter("hard");
+                    boolean markAsDeleted = true;
+                    if (hardDelete != null && hardDelete.equalsIgnoreCase(Boolean.TRUE.toString()))
+                    {
+                        markAsDeleted = false;
+                    }
+                    action = new DeleteUserAction(p, markAsDeleted);
                 }
 
                 if (action != null)
@@ -229,8 +236,7 @@ public abstract class UserActionFactory
         };
     }
 
-    private static User<? extends Principal> getUser(final String userName,
-                                                     final String idType)
+    private static Principal getIdentity(String userName, String idType)
     {
         if (idType == null || idType.isEmpty())
         {
@@ -238,28 +244,27 @@ public abstract class UserActionFactory
         }
         else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue()))
         {
-            return new User<HttpPrincipal>(new HttpPrincipal(userName));
+            return new HttpPrincipal(userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.X500.getValue()))
         {
-            return new User<X500Principal>(new X500Principal(userName));
+            return new X500Principal(userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
         {
-            return new User<NumericPrincipal>(new NumericPrincipal(
-                    Integer.parseInt(userName)));
+            return new NumericPrincipal(UUID.fromString(userName));
         }
         else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue()))
         {
-            return new User<OpenIdPrincipal>(new OpenIdPrincipal(userName));
+            return new OpenIdPrincipal(userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue()))
         {
-            return new User<CookiePrincipal>(new CookiePrincipal(userName));
+            return new CookiePrincipal(userName);
         }
         else
         {
-            throw new IllegalArgumentException("Unregonized userid");
+            throw new IllegalArgumentException("Unrecognized userid");
         }
     }
 

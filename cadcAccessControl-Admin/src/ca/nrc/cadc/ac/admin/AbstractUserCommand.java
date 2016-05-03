@@ -75,7 +75,6 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -86,12 +85,12 @@ import ca.nrc.cadc.net.TransientException;
  * @author yeunga
  *
  */
-public abstract class AbstractUserCommand extends AbstractCommand 
+public abstract class AbstractUserCommand extends AbstractCommand
 {
     private static final Logger log = Logger.getLogger(AbstractUserCommand.class);
-	
+
     private HttpPrincipal principal;
-    protected abstract void execute() 
+    protected abstract void execute()
     		throws UserNotFoundException, AccessControlException, TransientException;
 
     /**
@@ -102,26 +101,26 @@ public abstract class AbstractUserCommand extends AbstractCommand
     {
     	this.principal = new HttpPrincipal(userID);
     }
-    
+
     protected Principal getPrincipal()
     {
     	return this.principal;
     }
-    
+
     protected void doRun() throws AccessControlException, TransientException
     {
-        try 
+        try
         {
             this.execute();
-        } 
-        catch (UserNotFoundException e1) 
+        }
+        catch (UserNotFoundException e1)
         {
             String msg = "User " + this.getPrincipal().getName() + " was not found.";
             this.systemOut.println(msg);
-        } 
+        }
     }
-    
-    protected void printUser(final User<Principal> user)
+
+    protected void printUser(final User user)
     {
         if (user != null)
         {
@@ -133,13 +132,12 @@ public abstract class AbstractUserCommand extends AbstractCommand
             {
                 this.systemOut.println(p.toString());
             }
-                       
+
             // print user's personal details
             this.systemOut.println();
-            PersonalDetails personalDetails = user.getUserDetail(PersonalDetails.class);
-            if (personalDetails != null)
+            if (user.personalDetails != null)
             {
-                this.systemOut.println(personalDetails.toStringFormatted());
+                this.systemOut.println(user.personalDetails.toStringFormatted());
             }
         }
     }

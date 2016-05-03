@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.InputStream;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,7 +108,12 @@ public class CreateGroupAction extends AbstractGroupAction
             }
             for (User usr : group.getUserMembers())
             {
-                addedMembers.add(usr.getUserID().getName());
+                Principal p = usr.getHttpPrincipal();
+                if (p == null)
+                {
+                    p = usr.getX500Principal();
+                }
+                addedMembers.add(p.getName());
             }
         }
         logGroupInfo(group.getID(), null, addedMembers);

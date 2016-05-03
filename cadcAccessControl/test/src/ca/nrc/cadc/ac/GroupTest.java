@@ -71,7 +71,6 @@ package ca.nrc.cadc.ac;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -81,7 +80,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 public class GroupTest
 {
     private static Logger log = Logger.getLogger(GroupTest.class);
-    
+
     @Test
     public void simpleGroupTest() throws Exception
     {
@@ -89,106 +88,91 @@ public class GroupTest
         Group group2 = group1;
         assertEquals(group1.hashCode(), group2.hashCode());
         assertEquals(group1, group2);
-        assertTrue(group1 == group2);
-        
-        User<HttpPrincipal> owner = new User<HttpPrincipal>(new HttpPrincipal("owner"));
-        Group group3 = new Group("TestGroup", owner);
-        User<HttpPrincipal> user = new User<HttpPrincipal>(new HttpPrincipal("user"));
-        
+
+        Group group3 = new Group("TestGroup");
+        User user = new User();
+        user.getIdentities().add(new HttpPrincipal("foo"));
+
         group3.getUserMembers().add(user);
         assertEquals(1, group3.getUserMembers().size());
 
         Group group4 = group3;
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3, group4);
-        assertTrue(group3 == group4);
-        
-        group4 = new Group("TestGroup", owner);
+
+        group4 = new Group("TestGroup");
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group4.getUserMembers().add(user);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group3.getGroupMembers().add(group4);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group4.getUserAdmins().add(user);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group3.getGroupAdmins().add(group4);
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
+
         group3.description = "Test group";
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
-        
-        group4 = new Group("NewTestGroup-._~.", owner);
+
+        group4 = new Group("NewTestGroup-._~.");
         assertFalse(group3.hashCode() == group4.hashCode());
         assertFalse(group3.equals(group4));
-        
+
         // test toString
         System.out.println(group3);
     }
-    
+
     @Test
     public void exceptionTests()
     {
         boolean thrown = false;
         try
         {
-            new Group(null, new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group(null);
         }
         catch(IllegalArgumentException e)
         {
             thrown = true;
         }
         assertTrue(thrown);
-        
-        
-        thrown = false;
-        try
-        {
-            new Group("NewTestGroup", null);
-            thrown = true;
-        }
-        catch(IllegalArgumentException e)
-        {
-            fail("Owner can be null");
-        }
-        assertTrue(thrown);
-        
+
         // invavlid group IDs
         thrown = false;
         try
         {
-            new Group("New/Test/Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group("New/Test/Group");
         }
         catch(IllegalArgumentException e)
         {
             thrown = true;
         }
         assertTrue(thrown);
-        
+
         thrown = false;
         try
         {
-            new Group("New%Test%Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group("New%Test%Group");
         }
         catch(IllegalArgumentException e)
         {
             thrown = true;
         }
         assertTrue(thrown);
-        
+
         thrown = false;
         try
         {
-            new Group("New\\Test\\Group", new User<HttpPrincipal>(new HttpPrincipal("owner")));
+            new Group("New\\Test\\Group");
         }
         catch(IllegalArgumentException e)
         {
@@ -196,5 +180,5 @@ public class GroupTest
         }
         assertTrue(thrown);
     }
-    
+
 }

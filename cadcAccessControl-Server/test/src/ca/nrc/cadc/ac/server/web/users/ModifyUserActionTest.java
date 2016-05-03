@@ -68,40 +68,38 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.security.Principal;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.easymock.EasyMock;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.Principal;
-
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
 
 public class ModifyUserActionTest
 {
     @Test
-    public void run() throws Exception
+    public void testModifyUser() throws Exception
     {
         final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
-        User<Principal> expected = new User<Principal>(httpPrincipal);
+        User expected = new User();
         expected.getIdentities().add(httpPrincipal);
-        final PersonalDetails pd = new PersonalDetails("CADC", "Test");
-        pd.email = "CADC.Test@nrc-cnrc.gc.ca";
-        expected.details.add(pd);
+        expected.personalDetails = new PersonalDetails("CADC", "Test");
+        expected.personalDetails.email = "CADC.Test@nrc-cnrc.gc.ca";
 
         final StringBuilder sb = new StringBuilder();
         final JsonUserWriter userWriter = new JsonUserWriter();
@@ -111,14 +109,11 @@ public class ModifyUserActionTest
         final InputStream inputStream = new ByteArrayInputStream(input);
 
         // Should match the JSON above, without the e-mail modification.
+        final User testUser = new User();
         Principal principal = new HttpPrincipal("CADCtest");
-        final User<Principal> userObject =
-                new User<Principal>(principal);
-        userObject.getIdentities().add(principal);
-        final PersonalDetails personalDetail =
-                new PersonalDetails("CADC", "Test");
-        personalDetail.email = "CADC.Test@nrc-cnrc.gc.ca";
-        userObject.details.add(personalDetail);
+        testUser.getIdentities().add(principal);
+        testUser.personalDetails = new PersonalDetails("CADC", "Test");
+        testUser.personalDetails.email = "CADC.Test@nrc-cnrc.gc.ca";
 
         StringBuffer requestUrl = new StringBuffer();
         requestUrl.append("http://host/ac/users/CADCtest?idType=HTTP");
@@ -129,16 +124,11 @@ public class ModifyUserActionTest
         EasyMock.expect(mockRequest.getContextPath()).andReturn("/ac").once();
         EasyMock.expect(mockRequest.getServletPath()).andReturn("/users").once();
 
-        final SyncOutput mockSyncOut =
-                createMock(SyncOutput.class);
-
         @SuppressWarnings("unchecked")
-        final UserPersistence<Principal> mockUserPersistence =
-                createMock(UserPersistence.class);
+        final UserPersistence mockUserPersistence = createMock(UserPersistence.class);
+        expect(mockUserPersistence.modifyUser(testUser)).andReturn(testUser).once();
 
-        expect(mockUserPersistence.modifyUser(userObject)).andReturn(
-            userObject).once();
-
+        final SyncOutput mockSyncOut = createMock(SyncOutput.class);
         mockSyncOut.setHeader("Location", requestUrl.toString());
         expectLastCall().once();
 

@@ -72,8 +72,8 @@ package ca.nrc.cadc.ac.client;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.Principal;
+import java.util.UUID;
 
 import javax.management.remote.JMXPrincipal;
 import javax.security.auth.Subject;
@@ -101,7 +101,6 @@ public class UserClientTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-
     @Test
     public void testConstructor()
     {
@@ -109,31 +108,31 @@ public class UserClientTest
         try
         {
             new UserClient(null);
-            Assert.fail("Null base URL should throw an illegalArgumentException.");
+            Assert.fail("Null service URI should throw an illegalArgumentException.");
         }
         catch (IllegalArgumentException iae)
         {
-            Assert.assertEquals("baseURL is required", iae.getMessage());
+            Assert.assertTrue(iae.getMessage().contains("cannot be null"));
         }
         catch (Throwable t)
         {
         	Assert.fail("Unexpected exception: " + t.getMessage());
         }
 
-        // case 2: test construction with a malformed URL
+        // case 2: serviceURI with a fragment
         try
         {
-            new UserClient("noSuchProtocol://localhost");
-            Assert.fail("Malformed URL should throw an illegalArgumentException.");
+            URI uri = new URI("http://foo.com/bar?test#fragment");
+            new UserClient(uri);
+            Assert.fail("Service URI containing a fragment should throw an illegalArgumentException.");
         }
         catch (IllegalArgumentException iae)
         {
-            Assert.assertTrue("Expecting 'URL is malformed'",
-            		iae.getMessage().contains("URL is malformed"));
+            Assert.assertTrue(iae.getMessage().contains("fragment not allowed"));
         }
         catch (Throwable t)
         {
-        	Assert.fail("Unexpected exception: " + t.getMessage());
+            Assert.fail("Unexpected exception: " + t.getMessage());
         }
     }
 
@@ -180,9 +179,8 @@ public class UserClientTest
     protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
     {
     	RegistryClient regClient = new RegistryClient();
-    	URI serviceURI = new URI(AC.GMS_SERVICE_URI);
-    	URL baseURL = regClient.getServiceURL(serviceURI, "https");
-    	return new UserClient(baseURL.toString());
+    	URI serviceURI = new URI(AC.UMS_SERVICE_URI);
+    	return new UserClient(serviceURI);
 
     }
 
@@ -191,9 +189,7 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
@@ -213,16 +209,15 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
-            s.getPrincipals().add(new NumericPrincipal(1));
+            UUID uuid = UUID.randomUUID();
+            s.getPrincipals().add(new NumericPrincipal(uuid));
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof NumericPrincipal);
-            Assert.assertEquals("1", p.getName());
+            Assert.assertEquals(uuid.toString(), p.getName());
         }
         catch (Throwable t)
         {
@@ -236,16 +231,15 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
-            s.getPrincipals().add(new NumericPrincipal(1));
+            UUID uuid = UUID.randomUUID();
+            s.getPrincipals().add(new NumericPrincipal(uuid));
             s.getPrincipals().add(new HttpPrincipal("bob"));
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof NumericPrincipal);
-            Assert.assertEquals("1", p.getName());
+            Assert.assertEquals(uuid.toString(), p.getName());
         }
         catch (Throwable t)
         {
@@ -259,12 +253,11 @@ public class UserClientTest
     {
         try
         {
-            RegistryClient rc = new RegistryClient();
-            URL u = rc.getServiceURL(new URI("ivo://cadc.nrc.ca/canfargms"));
-            UserClient c = new UserClient(u.toString());
+            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
 
             Subject s = new Subject();
-            s.getPrincipals().add(new NumericPrincipal(1));
+            UUID uuid = UUID.randomUUID();
+            s.getPrincipals().add(new NumericPrincipal(uuid));
             s.getPrincipals().add(new X500Principal("CN=majorb"));
             s.getPrincipals().add(new HttpPrincipal("bob"));
             Principal p = c.getPrincipal(s);
