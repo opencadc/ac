@@ -70,11 +70,9 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.util.Date;
 import java.util.IllegalFormatException;
 import java.util.Properties;
-import java.util.Set;
 
 import javax.mail.Address;
 import javax.mail.Message;
@@ -86,13 +84,11 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.PropertiesReader;
-
 
 /**
  * This class approves the specified pending user by moving the user
@@ -115,69 +111,19 @@ public class ApproveUser extends AbstractUserCommand
 
     private String dn;
 
-
     /**
      * Constructor
      * @param userID Id of the pending user to be approved
-     * @param dn of the pending user to be approved
      */
     public ApproveUser(final String userID, final String dn)
     {
-        super(userID);
-        this.dn = dn;
-    }
-
-
-    /**
-     * Constructor
-     * @param userID Id of the pending user to be approved
-     */
-    public ApproveUser(final String userID)
-    {
     	super(userID);
+    	this.dn = dn;
     }
-
 
     protected void execute()
 	throws AccessControlException, UserNotFoundException, TransientException
     {
-        User<Principal> user = null;
-        try
-        {
-            // Search the user in the pending tree
-            user = this.getUserPersistence().getPendingUser(this.getPrincipal());
-        }
-        catch (Exception e)
-        {
-            log.info("User not found in userRequests");
-            this.systemOut.println("User not found in userRequests. Impossible to approve it.");
-            this.systemOut.println("Check the validity of the provided uid.");
-            return;
-        }
-        log.debug("User found in userRequests");
-        // If user DN is not provided by command line, search if it is available in UserRequests
-        if (dn == null || dn.isEmpty()) {
-            boolean foundDN = false;
-            for (Principal p : user.getIdentities())
-            {
-                 if (p instanceof X500Principal)
-                 {
-                     this.dn = p.getName();
-                     log.debug("User DN FOUND in pendingUser. userDN = " + dn);
-                     foundDN = true;
-                     break;
-                 }
-            }
-            if(!foundDN)
-            {
-                log.debug("User DN NOT FOUND in UserRequests.");
-                this.systemOut.println("User DN not found in userRequests.");
-                this.systemOut.println("Use --dn option to provide a valid user DN");
-                return;
-            }
-
-        }
-
         X500Principal dnPrincipal = null;
         try
         {
@@ -192,16 +138,17 @@ public class ApproveUser extends AbstractUserCommand
 
         try
         {
-            this.getUserPersistence().approvePendingUser(this.getPrincipal());
+            this.getUserPersistence().approveUserRequest(this.getPrincipal());
             this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
             approved = true;
         }
         catch (UserNotFoundException e)
         {
-            this.systemOut.println("Could not find pending user " + this.getPrincipal());
+            this.systemOut.println("Could not find userRequest " + this.getPrincipal());
+            return;
         }
 
-        user = null;
+        User user = null;
         try
         {
             user = this.getUserPersistence().getUser(this.getPrincipal());
@@ -226,7 +173,7 @@ public class ApproveUser extends AbstractUserCommand
 
     }
 
-    private void emailUser(User<Principal>  user)
+    private void emailUser(User  user)
     {
         try
         {
@@ -252,12 +199,10 @@ public class ApproveUser extends AbstractUserCommand
                 return;
             }
 
-            Set<PersonalDetails> pds = user.getDetails(PersonalDetails.class);
             String recipient = null;
-            if (pds != null && !pds.isEmpty())
+            if (user.personalDetails != null)
             {
-                PersonalDetails pd = pds.iterator().next();
-                recipient = pd.email;
+                recipient = user.personalDetails.email;
             }
             if (recipient == null)
             {

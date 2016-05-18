@@ -152,7 +152,7 @@ public class GroupListWriter extends AbstractReaderWriter
     protected final Element getElement(Collection<Group> groups)
         throws WriterException
     {
-        Element groupsElement = new Element("groups");
+        Element groupsElement = new Element(GROUPS);
 
         for (Group group : groups)
         {

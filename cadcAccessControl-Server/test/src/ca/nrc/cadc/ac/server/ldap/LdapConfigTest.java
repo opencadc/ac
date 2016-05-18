@@ -65,19 +65,18 @@
  ************************************************************************
  */
 
-
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.util.Arrays;
-
+import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
+import ca.nrc.cadc.ac.server.ldap.LdapConfig.SystemState;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
+import java.util.Arrays;
 
 /**
  * Tests the LdapConfig class.
@@ -120,6 +119,8 @@ public class LdapConfigTest
             Assert.assertEquals(PoolPolicy.fewestConnections, c.getReadWritePool().getPolicy());
             Assert.assertEquals(30000, c.getReadWritePool().getMaxWait());
             Assert.assertEquals(false, c.getReadWritePool().getCreateIfNeeded());
+
+            Assert.assertTrue("offline mode",c.getSystemState().equals(SystemState.ONLINE));
         }
         catch (Throwable t)
         {
@@ -161,6 +162,8 @@ public class LdapConfigTest
             Assert.assertEquals(PoolPolicy.fewestConnections, c.getReadWritePool().getPolicy());
             Assert.assertEquals(30000, c.getReadWritePool().getMaxWait());
             Assert.assertEquals(false, c.getReadWritePool().getCreateIfNeeded());
+
+            Assert.assertTrue("offline mode",c.getSystemState().equals(SystemState.ONLINE));
         }
         catch (Throwable t)
         {
@@ -227,6 +230,50 @@ public class LdapConfigTest
             LdapConfig c1 = LdapConfig.loadLdapConfig("testConfig1.properties");
             LdapConfig c2 = LdapConfig.loadLdapConfig("testConfig2.properties");
             Assert.assertTrue(!c1.equals(c2));
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t.getMessage());
+        }
+        finally
+        {
+            System.clearProperty(PropertiesReader.class.getName() + ".dir");
+        }
+    }
+
+    @Test
+    public void testReadOnlyMode()
+    {
+        try
+        {
+            System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
+
+            LdapConfig ldapConfig = LdapConfig.loadLdapConfig("testConfig.read-only.properties");
+
+            Assert.assertTrue("read-only mode",ldapConfig.getSystemState().equals(SystemState.READONLY));
+        }
+        catch (Throwable t)
+        {
+            log.error("Unexpected exception", t);
+            Assert.fail("Unexpected exception: " + t.getMessage());
+        }
+        finally
+        {
+            System.clearProperty(PropertiesReader.class.getName() + ".dir");
+        }
+    }
+
+    @Test
+    public void testOfflineMode()
+    {
+        try
+        {
+            System.setProperty(PropertiesReader.class.getName() + ".dir", "test/config");
+
+            LdapConfig ldapConfig = LdapConfig.loadLdapConfig("testConfig.offline.properties");
+
+            Assert.assertTrue("offline mode",ldapConfig.getSystemState().equals(SystemState.OFFLINE));
         }
         catch (Throwable t)
         {

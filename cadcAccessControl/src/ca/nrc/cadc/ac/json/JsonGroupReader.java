@@ -108,13 +108,12 @@ public class JsonGroupReader extends GroupReader
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
-            jsonInputter.getListElementMap().put("identities", "identity");
-            jsonInputter.getListElementMap().put("properties", "property");
-            jsonInputter.getListElementMap().put("details", "userDetails");
-            jsonInputter.getListElementMap().put("groupMembers", "group");
-            jsonInputter.getListElementMap().put("groupAdmins", "group");
-            jsonInputter.getListElementMap().put("userMembers", "user");
-            jsonInputter.getListElementMap().put("userAdmins", "user");
+            jsonInputter.getListElementMap().put(IDENTITIES, IDENTITY);
+            jsonInputter.getListElementMap().put(PROPERTIES, PROPERTY);
+            jsonInputter.getListElementMap().put(GROUP_MEMBERS, GROUP);
+            jsonInputter.getListElementMap().put(GROUP_ADMINS, GROUP);
+            jsonInputter.getListElementMap().put(USER_MEMBERS, USER);
+            jsonInputter.getListElementMap().put(USER_ADMINS, USER);
 
             Document document = jsonInputter.input(json);
             return getGroup(document.getRootElement());

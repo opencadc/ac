@@ -68,16 +68,25 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.security.AccessControlException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.json.JsonUserListWriter;
 import ca.nrc.cadc.ac.json.JsonUserReader;
 import ca.nrc.cadc.ac.json.JsonUserRequestReader;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
-import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.xml.UserListWriter;
@@ -87,47 +96,45 @@ import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
-import org.apache.log4j.Logger;
-
-import com.unboundid.ldap.sdk.LDAPException;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
-public abstract class AbstractUserAction<T extends Principal> implements PrivilegedExceptionAction<Object>
+public abstract class AbstractUserAction implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(AbstractUserAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
     public static final String JSON_CONTENT_TYPE = "application/json";
-    private Profiler profiler = new Profiler(AbstractUserAction.class);
 
-    protected boolean isAugmentUser;
+    protected boolean isPrivilegedUser;
+    protected boolean isPrivilegedSubject;
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
-    protected UserPersistence<T> userPersistence;
+    protected UserPersistence userPersistence;
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
     AbstractUserAction()
     {
-        this.isAugmentUser = false;
+        this.isPrivilegedUser = false;
     }
 
     public abstract void doAction() throws Exception;
 
-    public void setAugmentUser(final boolean isAugmentUser)
+    public void setIsPrivilegedUser(boolean isPrivilegedUser)
     {
-    	this.isAugmentUser = isAugmentUser;
+    	this.isPrivilegedUser = isPrivilegedUser;
     }
 
-    public boolean isAugmentUser()
+    public boolean isPrivilegedUser()
     {
-    	return this.isAugmentUser;
+    	return this.isPrivilegedUser;
+    }
+
+    public void setPrivilegedSubject(final boolean isPrivilegedSubject)
+    {
+        this.isPrivilegedSubject = isPrivilegedSubject;
+    }
+
+    public boolean isPrivilegedSubject()
+    {
+        return this.isPrivilegedSubject;
     }
 
     public void setLogInfo(UserLogInfo logInfo)
@@ -140,7 +147,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
         this.syncOut = syncOut;
     }
 
-    public void setUserPersistence(UserPersistence<T> userPersistence)
+    public void setUserPersistence(UserPersistence userPersistence)
     {
         this.userPersistence = userPersistence;
     }
@@ -149,6 +156,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
     {
         try
         {
+            Profiler profiler = new Profiler(AbstractUserAction.class);
             doAction();
             profiler.checkpoint("doAction");
         }
@@ -183,7 +191,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
         catch (UserAlreadyExistsException e)
         {
             log.debug(e.getMessage(), e);
-            String message = "User not found: " + e.getMessage();
+            String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
         }
@@ -195,9 +203,11 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
         }
         catch (TransientException e)
         {
-            String message = "Internal Transient Error: " + e.getMessage();
+            String message = "Transient Error: " + e.getMessage();
             this.logInfo.setSuccess(false);
             this.logInfo.setMessage(message);
+            if (e.getRetryDelay() > 0)
+                syncOut.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             log.error(message, e);
             sendError(503, message);
         }
@@ -220,6 +230,7 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
 
     private void sendError(int responseCode, String message)
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setCode(responseCode);
         syncOut.setHeader("Content-Type", "text/plain");
         if (message != null)
@@ -254,10 +265,11 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @return                      User Request instance.
      * @throws IOException          Any reading errors.
      */
-    protected final UserRequest<Principal> readUserRequest(
-            final InputStream inputStream) throws IOException
+    protected final UserRequest readUserRequest(
+            final InputStream inputStream) throws ReaderException, IOException
     {
-        final UserRequest<Principal> userRequest;
+        Profiler profiler = new Profiler(AbstractUserAction.class);
+        final UserRequest userRequest;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
@@ -287,11 +299,12 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      *
      * @throws IOException      Any errors in reading the stream.
      */
-    protected final User<Principal> readUser(final InputStream inputStream)
-            throws IOException
+    protected User readUser(final InputStream inputStream)
+        throws ReaderException, IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
-        final User<Principal> user;
+        final User user;
 
         if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
         {
@@ -319,9 +332,10 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      * @param user              The user object to marshall and write out.
      * @throws IOException      Any writing errors.
      */
-    protected final <T extends Principal> void writeUser(final User<T> user)
-            throws IOException
+    protected void writeUser(final User user)
+        throws WriterException, IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
 
@@ -343,9 +357,10 @@ public abstract class AbstractUserAction<T extends Principal> implements Privile
      *
      * @param users         The Map of user IDs to names.
      */
-    protected final <T extends Principal> void writeUsers(final Collection<User<T>> users)
-            throws IOException
+    protected void writeUsers(final Collection<User> users)
+        throws WriterException, IOException
     {
+        Profiler profiler = new Profiler(AbstractUserAction.class);
         syncOut.setHeader("Content-Type", acceptedContentType);
         final Writer writer = syncOut.getWriter();
 

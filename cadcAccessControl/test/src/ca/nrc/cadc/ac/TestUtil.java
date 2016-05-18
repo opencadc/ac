@@ -66,34 +66,19 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
-public abstract interface UserDetails
+import java.lang.reflect.Field;
+
+public class TestUtil
 {
-    /**
-     * Name of the UserDetails element.
-     */
-    public static final String NAME = "userDetails";
-    
-    /**
-     * Name of the property type attribute in the UserDetails element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#hashCode()
-     */
-    public abstract int hashCode();
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    public abstract boolean equals(Object paramObject);
-
-    public abstract String toString();
+    public static void setField(Object object, Object value, String name)
+        throws Exception
+    {
+        Field field = object.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(object, value);
+    }
 
 }

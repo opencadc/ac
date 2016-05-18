@@ -94,8 +94,6 @@ public class AuthenticatorImpl implements Authenticator
 {
     private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
 
-    private Profiler profiler = new Profiler(AuthenticatorImpl.class);
-
     public AuthenticatorImpl() { }
 
     /**
@@ -104,6 +102,7 @@ public class AuthenticatorImpl implements Authenticator
      */
     public Subject getSubject(Subject subject)
     {
+        Profiler profiler = new Profiler(AuthenticatorImpl.class);
         log.debug("ac augment subject: " + subject);
         AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
         if (am == null || AuthMethod.ANON.equals(am))
@@ -135,9 +134,10 @@ public class AuthenticatorImpl implements Authenticator
     {
         try
         {
+            Profiler profiler = new Profiler(AuthenticatorImpl.class);
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
-            User<Principal> user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next());
+            User user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next());
             if (user.getIdentities() != null)
             {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");

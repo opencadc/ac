@@ -68,6 +68,10 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.User;
@@ -75,19 +79,13 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 
-import javax.security.auth.x500.X500Principal;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 public class RemoveUserMemberAction extends AbstractGroupAction
 {
     private final String groupName;
     private final String userID;
     private final String userIDType;
 
-    RemoveUserMemberAction(String groupName, String userID, String userIDType)
+    public RemoveUserMemberAction(String groupName, String userID, String userIDType)
     {
         super();
         this.groupName = groupName;
@@ -95,30 +93,27 @@ public class RemoveUserMemberAction extends AbstractGroupAction
         this.userIDType = userIDType;
     }
 
-    @SuppressWarnings("unchecked")
+    @Override
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
 
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-        User<Principal> user = getUserPersistence().getAugmentedUser(userPrincipal);
-        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-        X500Principal x500Principal = x500Principals.iterator().next();
-        User<X500Principal> toRemove = new User<X500Principal>(x500Principal);
 
-        // User members is a Set of User<X500Principal>
-        if (!group.getUserMembers().remove(toRemove))
+        User user = getUserPersistence().getAugmentedUser(userPrincipal);
+
+        if (!group.getUserMembers().remove(user))
         {
             throw new MemberNotFoundException();
         }
         groupPersistence.modifyGroup(group);
 
         List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getUserID().getName());
+        deletedMembers.add(getUseridForLogging(user));
         logGroupInfo(group.getID(), deletedMembers, null);
     }
 
-    protected <T extends Principal> UserPersistence<T> getUserPersistence()
+    protected UserPersistence getUserPersistence()
     {
         PluginFactory pluginFactory = new PluginFactory();
         return pluginFactory.createUserPersistence();

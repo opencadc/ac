@@ -75,8 +75,6 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.RequestValidator;
 import ca.nrc.cadc.ac.xml.GroupListWriter;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
@@ -87,7 +85,6 @@ import ca.nrc.cadc.uws.util.JobLogInfo;
 import org.apache.log4j.Logger;
 
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -221,9 +218,11 @@ public class ACSearchRunner implements JobRunner
 
             syncOut.setResponseCode(503);
             syncOut.setHeader("Content-Type", "text/plain");
+            if (t.getRetryDelay() > 0)
+                syncOut.setHeader("Retry-After", Integer.toString(t.getRetryDelay()));
             try
             {
-                syncOut.getOutputStream().write(t.getMessage().getBytes());
+                syncOut.getOutputStream().write(("Transient Exception: " + t.getMessage()).getBytes());
             }
             catch (IOException e)
             {

@@ -69,10 +69,14 @@
 package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
@@ -92,8 +96,10 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.auth.AuthenticatorImpl;
+import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
+import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
@@ -101,20 +107,21 @@ import ca.nrc.cadc.util.StringUtil;
 import com.unboundid.ldap.sdk.LDAPException;
 
 @SuppressWarnings("serial")
-public class LoginServlet<T extends Principal> extends HttpServlet
+public class LoginServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(LoginServlet.class);
+
     private static final String CONTENT_TYPE = "text/plain";
+    private static final String PROXY_ACCESS = "Proxy user access: ";
+
     // " as " - delimiter use for proxy user authentication
     public static final String PROXY_USER_DELIM = "\\s[aA][sS]\\s";
+
     String proxyGroup; // only users in this group can impersonate other users
     String nonImpersonGroup; // users in this group cannot be impersonated
 
-    private static final String PROXY_ACCESS = "Proxy user access: ";
-
-    UserPersistence<T> userPersistence;
-    GroupPersistence<HttpPrincipal> groupPersistence;
-
+    UserPersistence userPersistence;
+    GroupPersistence groupPersistence;
 
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -138,6 +145,7 @@ public class LoginServlet<T extends Principal> extends HttpServlet
             throw new ExceptionInInitializerError(ex);
         }
     }
+
     /**
      * Attempt to login for userid/password.
      */
@@ -152,6 +160,7 @@ public class LoginServlet<T extends Principal> extends HttpServlet
             log.info(logInfo.start());
             String userID = request.getParameter("username");
             String password = request.getParameter("password");
+            String scope = request.getParameter("scope");
 
             if (userID == null || userID.length() == 0)
                 throw new IllegalArgumentException("Missing username");
@@ -174,9 +183,31 @@ public class LoginServlet<T extends Principal> extends HttpServlet
                 (!StringUtil.hasText(proxyUser) &&
                         userPersistence.doLogin(userID, password)))
             {
-        	    String token =
-        	            new SSOCookieManager().generate(
-        	                    new HttpPrincipal(userID, proxyUser));
+                String token = null;
+                HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
+                if (scope != null)
+                {
+                    // This cookie will be scope to a certain URI,
+                    // such as a VOSpace node
+                    URI uri = null;
+                    try
+                    {
+                        uri = new URI(scope);
+                    }
+                    catch (URISyntaxException e)
+                    {
+                        throw new IllegalArgumentException("Invalid scope: " + scope);
+                    }
+
+                    final Calendar expiryDate = new GregorianCalendar(DateUtil.UTC);
+                    expiryDate.add(Calendar.HOUR, SSOCookieManager.SSO_COOKIE_LIFETIME_HOURS);
+                    DelegationToken dt = new DelegationToken(p, uri, expiryDate.getTime());
+                    token = DelegationToken.format(dt);
+                }
+                else
+                {
+                    token = new SSOCookieManager().generate(p);
+                }
         	    response.setContentType(CONTENT_TYPE);
         	    response.setContentLength(token.length());
         	    response.getWriter().write(token);
@@ -207,6 +238,18 @@ public class LoginServlet<T extends Principal> extends HttpServlet
     	    response.setContentType(CONTENT_TYPE);
             response.getWriter().write(message);
             response.setStatus(401);
+        }
+        catch (TransientException e)
+        {
+            log.debug(e.getMessage(), e);
+            String message = e.getMessage();
+            logInfo.setMessage(message);
+            logInfo.setSuccess(false);
+            response.setContentType("CONTENT_TYPE");
+            if (e.getRetryDelay() > 0)
+                response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
+            response.getWriter().write("Transient Error: " + message);
+            response.setStatus(503);
         }
         catch (Throwable t)
         {
@@ -297,9 +340,9 @@ public class LoginServlet<T extends Principal> extends HttpServlet
         }
     }
 
-    protected LdapGroupPersistence<HttpPrincipal> getLdapGroupPersistence() throws AccessControlException, LDAPException
+    protected LdapGroupPersistence getLdapGroupPersistence() throws AccessControlException, LDAPException
     {
-        LdapGroupPersistence<HttpPrincipal> gp = new LdapGroupPersistence<HttpPrincipal>();
+        LdapGroupPersistence gp = new LdapGroupPersistence();
         gp.setDetailSelector(new GroupDetailSelector()
         {
             @Override

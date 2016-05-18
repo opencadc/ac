@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2016.                            (c) 2016.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,129 +66,126 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.util.Log4jInit;
+package ca.nrc.cadc.ac;
 
-import java.io.*;
-import java.security.AccessControlException;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import static org.easymock.EasyMock.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.net.URI;
+import java.util.UUID;
 
 /**
- * @author jburke
+ * Class that represents a numeric id. This is useful for
+ * representing an internal user key reference.
+ *
+ * The expected format of the URI is scheme://authority?uuid
  */
-public class AbstractUserActionTest
+public class InternalID
 {
-    private final static Logger log = Logger.getLogger(AbstractUserActionTest.class);
+    private URI uri;
+    private UUID uuid;
 
-    @BeforeClass
-    public static void setUpClass()
+    /**
+     * Ctor
+     * @param uri unique identifier
+     */
+    public InternalID(URI uri)
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-    }
-
-    @Test
-    public void testDoActionAccessControlException() throws Exception
-    {
-        String message = "Permission Denied";
-        int responseCode = 403;
-        Exception e = new AccessControlException("");
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionIllegalArgumentException() throws Exception
-    {
-        String message = "message";
-        int responseCode = 400;
-        Exception e = new IllegalArgumentException("message");
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionUserNotFoundException() throws Exception
-    {
-        String message = "User not found: foo";
-        int responseCode = 404;
-        Exception e = new UserNotFoundException("foo");
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionUnsupportedOperationException() throws Exception
-    {
-        String message = "Not yet implemented.";
-        int responseCode = 501;
-        Exception e = new UnsupportedOperationException();
-        testDoAction(message, responseCode, e);
-    }
-
-    @Test
-    public void testDoActionTransientException() throws Exception
-    {
-        HttpServletResponse response = createMock(HttpServletResponse.class);
-        expect(response.isCommitted()).andReturn(Boolean.FALSE);
-        response.setContentType("text/plain");
-        expectLastCall().once();
-        expect(response.getWriter())
-                .andReturn(new PrintWriter(new StringWriter())).once();
-
-        response.setStatus(503);
-        expectLastCall().once();
-        replay(response);
-
-        UsersActionImpl action = new UsersActionImpl();
-        action.setException(new TransientException("foo"));
-        action.doAction();
-    }
-
-    private void testDoAction(String message, int responseCode, Exception e)
-            throws Exception
-    {
-        HttpServletResponse response =
-                createMock(HttpServletResponse.class);
-        expect(response.isCommitted()).andReturn(Boolean.FALSE);
-        response.setContentType("text/plain");
-        expectLastCall().once();
-        expect(response.getWriter())
-                .andReturn(new PrintWriter(new StringWriter())).once();
-
-        response.setStatus(responseCode);
-        expectLastCall().once();
-        replay(response);
-
-        UsersActionImpl action = new UsersActionImpl();
-        action.setException(e);
-        action.doAction();
-    }
-
-    public class UsersActionImpl extends AbstractUserAction
-    {
-        Exception exception;
-
-        public UsersActionImpl()
+        if (uri == null)
         {
-            super();
+            throw new IllegalArgumentException("uri is null");
         }
 
-        public void doAction() throws Exception
+        if (uri.getFragment() != null)
         {
-            throw exception;
+            throw new IllegalArgumentException("fragment not allowed");
         }
 
-        public void setException(Exception e)
+        this.uri = uri;
+        uuid = UUID.fromString(uri.getQuery());
+    }
+
+    /**
+     * Ctor
+     * @param uri unique identifier
+     * @param id The uuid of the identifier
+     */
+    public InternalID(URI uri, UUID id)
+    {
+        if (uri == null)
         {
-            this.exception = e;
+            throw new IllegalArgumentException("uri is null");
         }
+
+        if (id == null)
+        {
+            throw new IllegalArgumentException("id is null");
+        }
+
+        if (uri.getQuery() != null)
+        {
+            throw new IllegalArgumentException("query not allowed in base uri");
+        }
+
+        if (uri.getFragment() != null)
+        {
+            throw new IllegalArgumentException("fragment not allowed");
+        }
+
+        this.uri = URI.create(uri.toASCIIString() + "?" + id.toString());
+        this.uuid = id;
+    }
+
+    public URI getURI()
+    {
+        return uri;
+    }
+
+    public UUID getUUID()
+    {
+        return uuid;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode()
+    {
+        int prime = 31;
+        int result = 1;
+        result = prime * result + uri.hashCode();
+        return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj)
+        {
+            return true;
+        }
+        if (obj == null)
+        {
+            return false;
+        }
+        if (!(obj instanceof InternalID))
+        {
+            return false;
+        }
+        InternalID other = (InternalID) obj;
+        if (uri.equals(other.uri))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public String toString()
+    {
+        return getClass().getSimpleName() + "[" + uri + "]";
     }
 
 }

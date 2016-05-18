@@ -71,28 +71,9 @@ package ca.nrc.cadc.ac;
 /**
  * Represents the posix account details associated with a user account.
  */
-public class PosixDetails implements UserDetails
+public class PosixDetails
 {
-    /**
-     * Name of the PosixDetails element.
-     */
-    public static final String NAME = "posixDetails";
-    
-    /**
-     * Name of the uid element.
-     */
-    public static final String UID = "uid";
-    
-    /**
-     * Name of the gid element.
-     */
-    public static final String GID = "gid";
-    
-    /**
-     * Name of the homeDirectory element.
-     */
-    public static final String HOME_DIRECTORY = "homeDirectory";
-        
+    private String username;
     private long uid;
     private long gid;
     private String homeDirectory;
@@ -103,22 +84,34 @@ public class PosixDetails implements UserDetails
     public String loginShell;
 
     /**
-     * 
+     * @param userName user name
      * @param uid posix uid
      * @param gid posix gid
      * @param homeDirectory home directory
      */
-    public PosixDetails(long uid, long gid, String homeDirectory)
+    public PosixDetails(String username, long uid, long gid, String homeDirectory)
     {
-        this.uid = uid;
-        this.gid = gid;
+        if (username == null)
+        {
+            throw new IllegalArgumentException("username is null");
+        }
         if (homeDirectory == null)
         {
-            throw new IllegalArgumentException(
-                "null home directory in POSIX details");
+            throw new IllegalArgumentException("homeDirectory in null");
         }
 
+        this.username = username;
+        this.uid = uid;
+        this.gid = gid;
         this.homeDirectory = homeDirectory;
+    }
+
+    /**
+     * @return the username
+     */
+    public String getUsername()
+    {
+        return username;
     }
 
     /**
@@ -155,9 +148,10 @@ public class PosixDetails implements UserDetails
     {
         int prime = 31;
         int result = 1;
+        result = prime * result + username.hashCode();
+        result = prime * result + (int) (uid ^ uid >>> 32);
         result = prime * result + (int) (gid ^ gid >>> 32);
         result = prime * result + homeDirectory.hashCode();
-        result = prime * result + (int) (uid ^ uid >>> 32);
         return result;
     }
 
@@ -182,6 +176,14 @@ public class PosixDetails implements UserDetails
             return false;
         }
         PosixDetails other = (PosixDetails) obj;
+        if (!username.equals(other.getUsername()))
+        {
+            return false;
+        }
+        if (uid != other.uid)
+        {
+            return false;
+        }
         if (gid != other.gid)
         {
             return false;
@@ -197,7 +199,7 @@ public class PosixDetails implements UserDetails
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[" + uid + ", " + 
+        return getClass().getSimpleName() + "[" + username + "," + uid + ", " +
                gid + ", " + homeDirectory + "]";
     }
 

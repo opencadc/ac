@@ -68,39 +68,48 @@
  */
 package ca.nrc.cadc.ac.json;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import javax.security.auth.x500.X500Principal;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.security.auth.x500.X500Principal;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.security.Principal;
-import java.util.*;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  * @author jburke
  */
 public class JsonGroupReaderWriterTest
 {
-    private static Logger log = Logger
-            .getLogger(JsonGroupReaderWriterTest.class);
+    private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
 
     @BeforeClass
     public static void setUpClass()
@@ -181,7 +190,11 @@ public class JsonGroupReaderWriterTest
     public void testMaximalReadWrite()
             throws Exception
     {
-        User<Principal> owner = new User<Principal>(new HttpPrincipal("foo"));
+        User owner = new User();
+        UUID uuid = UUID.randomUUID();
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" +uuid);
+        TestUtil.setField(owner, new InternalID(uri), AbstractReaderWriter.ID);
+
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
         owner.getIdentities().add(x500Principal);
         PersonalDetails personalDetails = new PersonalDetails("foo", "bar");
@@ -190,21 +203,29 @@ public class JsonGroupReaderWriterTest
         personalDetails.institute = "institute";
         personalDetails.city = "city";
         personalDetails.country = "country";
-        owner.details.add(personalDetails);
-        PosixDetails posixDetails = new PosixDetails(123L, 456L, "/dev/null");
-        owner.details.add(posixDetails);
+        owner.personalDetails = personalDetails;
+        PosixDetails posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
+        owner.posixDetails = posixDetails;
 
-        Group expected = new Group("groupID", owner);
+        Group expected = new Group("groupID");
+
+
         expected.description = "description";
         expected.lastModified = new Date();
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
         expected.getProperties().add(new GroupProperty("key2", "value2", true));
         expected.getProperties().add(new GroupProperty("key3", "value3", true));
 
-        Group groupMember = new Group("member", new User<Principal>(new OpenIdPrincipal("bar")));
-        User<Principal> userMember = new User<Principal>(new HttpPrincipal("baz"));
-        Group groupAdmin = new Group("admin", new User<Principal>(new X500Principal("cn=foo,o=ca")));
-        User<Principal> userAdmin = new User<Principal>(new HttpPrincipal("admin"));
+        Group groupMember = new Group("member");
+        User userMember = new User();
+        userMember.getIdentities().add(new HttpPrincipal("foo"));
+        URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setField(userMember, new InternalID(memberUri), AbstractReaderWriter.ID);
+        Group groupAdmin = new Group("admin");
+        User userAdmin = new User();
+        userAdmin.getIdentities().add(new HttpPrincipal("bar"));
+        URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+        TestUtil.setField(userAdmin, new InternalID(adminUri), AbstractReaderWriter.ID);
 
         expected.getGroupMembers().add(groupMember);
         expected.getUserMembers().add(userMember);
@@ -238,8 +259,10 @@ public class JsonGroupReaderWriterTest
         assertEquals(expected.lastModified, actual.lastModified);
         assertEquals("Properties don't match.", sortedExpectedProperties,
                      sortedActualProperties);
-        assertEquals(expected.getGroupMembers(), actual.getGroupMembers());
-        assertEquals(expected.getUserMembers(), actual.getUserMembers());
+        assertTrue(expected.getGroupMembers().containsAll(actual.getGroupMembers()));
+        assertTrue(actual.getGroupMembers().containsAll(expected.getGroupMembers()));
+        assertTrue(expected.getUserMembers().containsAll(actual.getUserMembers()));
+        assertTrue(actual.getUserMembers().containsAll(expected.getUserMembers()));
     }
 
     class GroupPropertyComparator implements Comparator<GroupProperty>

@@ -74,32 +74,6 @@ package ca.nrc.cadc.ac;
  */
 public class GroupProperty
 {
-    /**
-     * Name of the GroupProperty element.
-     */
-    public static final String NAME = "property";
-    
-    /**
-     * Name of the property key attribute in the GroupProperty element.
-     */
-    public static final String KEY_ATTRIBUTE = "key";
-    
-    /**
-     * Name of the property type attribute in the GroupProperty element.
-     */
-    public static final String TYPE_ATTRIBUTE = "type";
-    
-    /**
-     * Name of the property readOnly attribute in the GroupProperty element.
-     */
-    public static final String READONLY_ATTRIBUTE = "readOnly";
-    
-    /**
-     * Allowed types.
-     */
-    public static final String STRING_TYPE = "String";
-    public static final String INTEGER_TYPE = "Integer";
-    
     // The property identifier
     private String key;
     

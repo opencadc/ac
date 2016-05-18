@@ -138,7 +138,35 @@
         <pathelement path="${jars}:${testingJars}"/>
       </classpath>
       <sysproperty key="ca.nrc.cadc.util.PropertiesReader.dir" value="test"/>
+
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapConfigTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapConnectionsTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapDAOTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapGroupDAOTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.ldap.LdapPersistenceTest" />-->
       <test name="ca.nrc.cadc.ac.server.ldap.LdapUserDAOTest" />
+
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.AddGroupMemberActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.DeleteGroupActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.GetGroupNamesActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.GroupActionFactoryTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.RemoveGroupMemberActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.groups.RemoveUserMemberActionTest" />-->
+
+      <!--<test name="ca.nrc.cadc.ac.server.web.users.GetUserActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.users.GetUserListActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.users.ModifyUserActionTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.users.UserActionFactoryTest" />-->
+
+      <!--<test name="ca.nrc.cadc.ac.server.web.ModifyPasswordServletTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.ResetPasswordServletTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.UserLoginServletTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.UserServletTest" />-->
+      <!--<test name="ca.nrc.cadc.ac.server.web.WhoAmIServletTest" />-->
+
+      <!--<test name="ca.nrc.cadc.ac.server.RequestValidatorTest" />-->
+
       <formatter type="plain" usefile="false" />
     </junit>
   </target>

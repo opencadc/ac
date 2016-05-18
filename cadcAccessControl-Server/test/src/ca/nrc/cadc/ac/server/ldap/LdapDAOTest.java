@@ -85,6 +85,8 @@ import org.junit.Test;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import java.security.PrivilegedExceptionAction;
+import java.util.UUID;
+
 import org.junit.Assert;
 
 import static org.junit.Assert.assertEquals;
@@ -94,15 +96,6 @@ import static org.junit.Assert.assertTrue;
 
 public class LdapDAOTest extends AbstractLdapDAOTest
 {
-    static LdapConfig config;
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        // get the configuration of the development server from and config files...
-        config = getLdapConfig();
-    }
     @Test
     public void testLdapBindConnection() throws Exception
     {
@@ -157,7 +150,7 @@ public class LdapDAOTest extends AbstractLdapDAOTest
         });
 
 
-        NumericPrincipal numPrincipal = new NumericPrincipal(1866);
+        NumericPrincipal numPrincipal = new NumericPrincipal(UUID.randomUUID());
         subject.getPrincipals().add(numPrincipal);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()

@@ -223,7 +223,7 @@ public class CmdLineParserTest
     	    String[] dArgs = {"--list", "-d"};
     	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof ListActiveUsers);
+    	    Assert.assertTrue(parser.getCommand() instanceof ListUsers);
     	}
     	catch (Exception e)
     	{
@@ -236,7 +236,7 @@ public class CmdLineParserTest
     	    String[] dArgs = {"--list-pending", "-d"};
     	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof ListPendingUsers);
+    	    Assert.assertTrue(parser.getCommand() instanceof ListUserRequests);
     	}
     	catch (Exception e)
     	{

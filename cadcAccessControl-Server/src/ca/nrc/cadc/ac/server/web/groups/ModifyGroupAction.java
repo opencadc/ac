@@ -74,8 +74,8 @@ import java.util.List;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.profiler.Profiler;
 
 public class ModifyGroupAction extends AbstractGroupAction
 {
@@ -93,17 +93,21 @@ public class ModifyGroupAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
+        Profiler profiler = new Profiler(ModifyGroupAction.class);
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
         Group oldGroup = groupPersistence.getGroup(this.groupName);
+        profiler.checkpoint("get Group");
+
         groupPersistence.modifyGroup(group);
+        profiler.checkpoint("modify Group");
 
         List<String> addedMembers = new ArrayList<String>();
         for (User member : group.getUserMembers())
         {
             if (!oldGroup.getUserMembers().remove(member))
             {
-                addedMembers.add(member.getUserID().getName());
+                addedMembers.add(getUseridForLogging(member));
             }
         }
         for (Group gr : group.getGroupMembers())
@@ -120,7 +124,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         List<String> deletedMembers = new ArrayList<String>();
         for (User member : oldGroup.getUserMembers())
         {
-            deletedMembers.add(member.getUserID().getName());
+            deletedMembers.add(getUseridForLogging(member));
         }
         for (Group gr : oldGroup.getGroupMembers())
         {
@@ -131,6 +135,7 @@ public class ModifyGroupAction extends AbstractGroupAction
             deletedMembers = null;
         }
         logGroupInfo(group.getID(), deletedMembers, addedMembers);
+        profiler.checkpoint("log GroupInfo");
 
         syncOut.setHeader("Location", request);
         syncOut.setCode(303);

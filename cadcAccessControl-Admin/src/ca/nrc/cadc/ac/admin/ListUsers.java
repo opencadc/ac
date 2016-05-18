@@ -70,7 +70,6 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.AccessControlException;
-import java.security.Principal;
 import java.util.Collection;
 
 import org.apache.log4j.Logger;
@@ -84,11 +83,11 @@ import ca.nrc.cadc.net.TransientException;
  * @author yeunga
  *
  */
-public class ListActiveUsers extends AbstractListUsers 
-{	
-    private static final Logger log = Logger.getLogger(ListActiveUsers.class);
-    
-    protected Collection<User<Principal>> getUsers() 
+public class ListUsers extends AbstractListUsers
+{
+    private static final Logger log = Logger.getLogger(ListUsers.class);
+
+    protected Collection<User> getUsers()
     		throws AccessControlException, TransientException
     {
     	return this.getUserPersistence().getUsers();

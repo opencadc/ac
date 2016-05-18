@@ -168,7 +168,7 @@ public class GroupReader extends AbstractReaderWriter
 
         String groupElemName = root.getName();
 
-        if (!groupElemName.equalsIgnoreCase("group"))
+        if (!groupElemName.equalsIgnoreCase(GROUP))
         {
             String error = "Expected group element, found " + groupElemName;
             throw new ReaderException(error);

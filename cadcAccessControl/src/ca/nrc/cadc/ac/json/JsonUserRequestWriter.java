@@ -78,7 +78,6 @@ import org.jdom2.Element;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.security.Principal;
 
 /**
  * Class to write a JSON representation of a UserRequest object.
@@ -94,8 +93,8 @@ public class JsonUserRequestWriter extends UserRequestWriter
      * @throws WriterException
      */
     @Override
-    public <T extends Principal> void write(UserRequest<T> userRequest, Writer writer)
-        throws IOException
+    public void write(UserRequest userRequest, Writer writer)
+        throws WriterException, IOException
     {
         if (userRequest == null)
         {
@@ -107,15 +106,14 @@ public class JsonUserRequestWriter extends UserRequestWriter
         document.setRootElement(userRequestElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("groups");
-        jsonOutputter.getListElementNames().add("users");
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
-        jsonOutputter.getListElementNames().add("properties");
-        jsonOutputter.getListElementNames().add("groupMembers");
-        jsonOutputter.getListElementNames().add("groupAdmins");
-        jsonOutputter.getListElementNames().add("userMembers");
-        jsonOutputter.getListElementNames().add("userAdmins");
+        jsonOutputter.getListElementNames().add(GROUPS);
+        jsonOutputter.getListElementNames().add(USERS);
+        jsonOutputter.getListElementNames().add(IDENTITIES);
+        jsonOutputter.getListElementNames().add(PROPERTIES);
+        jsonOutputter.getListElementNames().add(GROUP_MEMBERS);
+        jsonOutputter.getListElementNames().add(GROUP_ADMINS);
+        jsonOutputter.getListElementNames().add(USER_MEMBERS);
+        jsonOutputter.getListElementNames().add(USER_ADMINS);
 
         jsonOutputter.output(document, writer);
     }

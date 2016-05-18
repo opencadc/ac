@@ -69,150 +69,192 @@
 
 package ca.nrc.cadc.ac;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.UUID;
 
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
 
 public class UserTest
 {
     private static Logger log = Logger.getLogger(UserTest.class);
 
     @Test
+    public void isConsistentTest() throws Exception
+    {
+        User user1 = new User();
+        User user2 = null;
+
+        assertFalse(user1.isConsistent(user2));
+
+        user2 = new User();
+        //assertTrue(user1.isConsistent(user2));
+
+        HttpPrincipal httpPrincipal = new HttpPrincipal("foo");
+        user1.getIdentities().add(httpPrincipal);
+        assertFalse(user1.isConsistent(user2));
+        assertFalse(user2.isConsistent(user1));
+
+        user2.getIdentities().add(httpPrincipal);
+        assertTrue(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+
+        X500Principal x500Principal1 = new X500Principal("cn=foo,c=bar");
+        X500Principal x500Principal2 = new X500Principal("cn=bar,c=foo");
+
+        user1.getIdentities().add(x500Principal1);
+        assertFalse(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+
+        user2.getIdentities().add(x500Principal2);
+        assertFalse(user1.isConsistent(user2));
+        assertFalse(user2.isConsistent(user1));
+
+        user2.getIdentities().add(x500Principal1);
+        assertTrue(user1.isConsistent(user2));
+        assertFalse(user2.isConsistent(user1));
+
+        user1.getIdentities().add(x500Principal2);
+        assertTrue(user1.isConsistent(user2));
+        assertTrue(user2.isConsistent(user1));
+    }
+
+    @Test
     public void simpleEqualityTests() throws Exception
     {
+        User user1 = new User();
+        User user2 = new User();
 
-        User<HttpPrincipal> user1 = new User<HttpPrincipal>(
-                new HttpPrincipal("user1"));
-        User<HttpPrincipal> user2 = user1;
+        //assertEquals(user1, user2);
+        //assertEquals(user1.hashCode(), user2.hashCode());
+
+        // set InternalID
+//        URI uri1 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+//        InternalID internalID1 = new InternalID(uri1);
+//        TestUtil.setField(user1, internalID1, AbstractReaderWriter.ID);
+//
+//        URI uri2 = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
+//        InternalID internalID2 = new InternalID(uri2);
+//        TestUtil.setField(user2, internalID2, AbstractReaderWriter.ID);
+//        assertFalse(user1.equals(user2));
+//        assertFalse(user1.hashCode() == user2.hashCode());
+
+        user1 = new User();
+        user2 = new User();
+
+        HttpPrincipal httpPrincipal1 = new HttpPrincipal("foo");
+        user1.getIdentities().add(httpPrincipal1);
+        assertFalse(user1.equals(user2));
+        //assertFalse(user1.hashCode() == user2.hashCode());
+
+        user2.getIdentities().add(httpPrincipal1);
+        assertTrue(user1.equals(user2));
+        //assertEquals(user1.hashCode(), user2.hashCode());
+
+        HttpPrincipal httpPrincipal2 = new HttpPrincipal("bar");
+        assertFalse(user1.getIdentities().add(httpPrincipal2));
+        assertTrue(user1.equals(user2));
+        //assertEquals(user1.hashCode(), user2.hashCode());
+
+//        X500Principal x500Principal1 = new X500Principal("cn=foo,c=bar");
+//        X500Principal x500Principal2 = new X500Principal("cn=bart,c=foo");
+//
+//        user1.getIdentities().add(x500Principal1);
+//        assertFalse(user1.equals(user2));
+//        //assertFalse(user1.hashCode() == user2.hashCode());
+//
+//        user2.getIdentities().add(x500Principal1);
+//        assertTrue(user1.equals(user2));
+//        //assertEquals(user1.hashCode(), user2.hashCode());
+//
+//        user1.getIdentities().add(x500Principal2);
+//        assertFalse(user1.equals(user2));
+//        //assertFalse(user1.hashCode() == user2.hashCode());
+//
+//        user2.getIdentities().add(x500Principal2);
+//        assertTrue(user1.equals(user2));
+//        //assertEquals(user1.hashCode(), user2.hashCode());
+//
+//        assertEquals(user1, user2);
+//        //assertEquals(user1.hashCode(), user2.hashCode());
+
+        user1.personalDetails = new PersonalDetails("Joe", "Raymond");
         assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
+        //assertEquals(user1.hashCode(), user2.hashCode());
 
-        user2 = new User<HttpPrincipal>(new HttpPrincipal("user1"));
+        user1.posixDetails = new PosixDetails("jray", 12, 23, "/home/jray");
         assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        user1.details.add(new PersonalDetails("Joe", "Raymond"));
-        assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-
-        User<X500Principal> user3 = new User<X500Principal>(
-                new X500Principal("cn=aaa,ou=ca"));
-        User<HttpPrincipal> user4 = new User<HttpPrincipal>(
-                new HttpPrincipal("cn=aaa,ou=ca"));
-        assertFalse(user3.equals(user4));
-        assertFalse(user3.hashCode() == user4.hashCode());
-
-        user1.getIdentities().add(new X500Principal("cn=aaa,ou=ca"));
-        assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        user1.details.add(new PosixDetails(12, 23,
-                "/home/myhome"));
-        assertEquals(user1, user2);
-        assertEquals(user1.hashCode(), user2.hashCode());
-
-        User<NumericPrincipal> user5 = new User<NumericPrincipal>(
-                new NumericPrincipal(32));
-        assertFalse(user1.equals(user5));
-        
-        // visual test of toString
-        System.out.println(user1);
-        System.out.println(new PersonalDetails("Joe", "Raymond"));
-        System.out.println(new PosixDetails(12, 23,"/home/myhome"));
-        
-    }
-    
-    @Test
-    public void exceptionTests()
-    {
-        boolean thrown = false;
-        try
-        {
-            new User<NumericPrincipal>(null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails(null, "Raymond");
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new PersonalDetails("Joe", null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        
-        thrown = false;
-        try
-        {
-            new PosixDetails(11, 22, null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new HttpPrincipal(null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-        
-        thrown = false;
-        try
-        {
-            new OpenIdPrincipal(null);
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
+        //assertEquals(user1.hashCode(), user2.hashCode());
     }
 
     @Test
-    public void getDetails() throws Exception
+    public void comparatorTest() throws Exception
     {
-        final User<HttpPrincipal> testSubject =
-                new User<HttpPrincipal>(new HttpPrincipal("test"));
+        User user = new User();
+        boolean result = false;
 
-        testSubject.details.add(new PersonalDetails("First", "Last"));
+        // HttpPrincipal
+        HttpPrincipal httpPrincipal1 = new HttpPrincipal("foo");
+        HttpPrincipal httpPrincipal2 = new HttpPrincipal("bar");
 
-        assertTrue("Should be empty.",
-                   testSubject.getDetails(PosixDetails.class).isEmpty());
+        result = user.getIdentities().add(httpPrincipal1);
+        assertTrue(result);
+        result = user.getIdentities().add(httpPrincipal1);
+        assertFalse(result);
 
-        assertEquals("Should be 1.", 1,
-                     testSubject.getDetails(PersonalDetails.class).size());
+        result = user.getIdentities().add(httpPrincipal2);
+        assertFalse(result);
+
+        // X500Principal
+        X500Principal x500Principal1 = new X500Principal("cn=foo,c=bar");
+        X500Principal x500Principal2 = new X500Principal("cn=bar,c=foo");
+
+        result = user.getIdentities().add(x500Principal1);
+        assertTrue(result);
+        result = user.getIdentities().add(x500Principal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(x500Principal2);
+        assertTrue(result);
+        result = user.getIdentities().add(x500Principal2);
+        assertFalse(result);
+
+        // NumericPrincipal
+        NumericPrincipal numericPrincipal1 = new NumericPrincipal(UUID.randomUUID());
+        NumericPrincipal numericPrincipal2 = new NumericPrincipal(UUID.randomUUID());
+
+        result = user.getIdentities().add(numericPrincipal1);
+        assertTrue(result);
+        result = user.getIdentities().add(numericPrincipal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(numericPrincipal2);
+        assertTrue(result);
+        result = user.getIdentities().add(numericPrincipal2);
+        assertFalse(result);
+
+        // DNPrincipal
+        DNPrincipal dnPrincipal1 = new DNPrincipal("cn=foo,dc=bar");
+        DNPrincipal dnPrincipal2 = new DNPrincipal("cn=bar,dc=foo");
+
+        result = user.getIdentities().add(dnPrincipal1);
+        assertTrue(result);
+        result = user.getIdentities().add(dnPrincipal1);
+        assertFalse(result);
+
+        result = user.getIdentities().add(dnPrincipal2);
+        assertTrue(result);
+        result = user.getIdentities().add(dnPrincipal2);
+        assertFalse(result);
     }
+
 }

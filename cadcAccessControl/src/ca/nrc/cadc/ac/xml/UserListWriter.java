@@ -95,7 +95,7 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws java.io.IOException
      * @throws WriterException
      */
-    public <T extends Principal> void write(Collection<User<T>> users, StringBuilder builder)
+    public <T extends Principal> void write(Collection<User> users, StringBuilder builder)
         throws IOException, WriterException
     {
         write(users, new StringBuilderWriter(builder));
@@ -109,7 +109,7 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(Collection<User<T>> users, OutputStream out)
+    public <T extends Principal> void write(Collection<User> users, OutputStream out)
         throws IOException, WriterException
     {
         OutputStreamWriter outWriter;
@@ -132,7 +132,7 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
-    public <T extends Principal> void write(Collection<User<T>> users, Writer writer)
+    public <T extends Principal> void write(Collection<User> users, Writer writer)
         throws IOException, WriterException
     {
         if (users == null)
@@ -152,11 +152,11 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws WriterException
      */
     protected final <T extends Principal> Element getElement(
-            Collection<User<T>> users) throws WriterException
+            Collection<User> users) throws WriterException
     {
         Element usersElement = new Element("users");
 
-        for (User<T> user : users)
+        for (User user : users)
         {
             usersElement.addContent(getElement(user));
         }

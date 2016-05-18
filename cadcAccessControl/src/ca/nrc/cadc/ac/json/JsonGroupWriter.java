@@ -92,7 +92,8 @@ public class JsonGroupWriter extends GroupWriter
      * @throws WriterException
      */
     @Override
-    public void write(Group group, Writer writer) throws IOException
+    public void write(Group group, Writer writer)
+        throws WriterException, IOException
     {
         if (group == null)
         {
@@ -104,15 +105,14 @@ public class JsonGroupWriter extends GroupWriter
         document.setRootElement(groupElement);
 
         JsonOutputter jsonOutputter = new JsonOutputter();
-        jsonOutputter.getListElementNames().add("groups");
-        jsonOutputter.getListElementNames().add("users");
-        jsonOutputter.getListElementNames().add("identities");
-        jsonOutputter.getListElementNames().add("details");
-        jsonOutputter.getListElementNames().add("properties");
-        jsonOutputter.getListElementNames().add("groupMembers");
-        jsonOutputter.getListElementNames().add("groupAdmins");
-        jsonOutputter.getListElementNames().add("userMembers");
-        jsonOutputter.getListElementNames().add("userAdmins");
+        jsonOutputter.getListElementNames().add(GROUPS);
+        jsonOutputter.getListElementNames().add(USERS);
+        jsonOutputter.getListElementNames().add(IDENTITIES);
+        jsonOutputter.getListElementNames().add(PROPERTIES);
+        jsonOutputter.getListElementNames().add(GROUP_MEMBERS);
+        jsonOutputter.getListElementNames().add(GROUP_ADMINS);
+        jsonOutputter.getListElementNames().add(USER_MEMBERS);
+        jsonOutputter.getListElementNames().add(USER_ADMINS);
 
         jsonOutputter.output(document, writer);
     }

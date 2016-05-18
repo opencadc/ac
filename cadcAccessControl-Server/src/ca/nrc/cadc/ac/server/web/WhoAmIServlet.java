@@ -68,22 +68,24 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import ca.nrc.cadc.ac.AC;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.log.ServletLogInfo;
-import ca.nrc.cadc.reg.client.RegistryClient;
-import org.apache.log4j.Logger;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.Set;
+
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.reg.client.RegistryClient;
 
 /**
  * Servlet to handle GET requests asking for the current User.  This servlet
@@ -95,7 +97,7 @@ public class WhoAmIServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(WhoAmIServlet.class);
 
-    static final String USER_GET_PATH = "/users/%s?idType=HTTP";
+    static final String USER_GET_PATH = "/%s?idType=HTTP";
 
     /**
      * Handle a /whoami GET operation.
@@ -158,13 +160,13 @@ public class WhoAmIServlet extends HttpServlet
      * @param scheme       The scheme
      */
     void redirect(final HttpServletResponse response,
-                  final HttpPrincipal webPrincipal, 
+                  final HttpPrincipal webPrincipal,
                   final String scheme) throws IOException
     {
         final RegistryClient registryClient = getRegistryClient();
         final URL redirectURL =
                 registryClient.getServiceURL(
-                        URI.create(AC.GMS_SERVICE_URI), scheme, USER_GET_PATH);
+                        URI.create(AC.UMS_SERVICE_URI + "#users"), scheme, USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =

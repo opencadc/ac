@@ -82,7 +82,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -101,7 +100,7 @@ public class UserListReader extends AbstractReaderWriter
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public List<User<Principal>> read(String xml)
+    public List<User> read(String xml)
         throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
@@ -120,7 +119,7 @@ public class UserListReader extends AbstractReaderWriter
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public List<User<Principal>> read(InputStream in)
+    public List<User> read(InputStream in)
         throws ReaderException, IOException
     {
         if (in == null)
@@ -147,7 +146,7 @@ public class UserListReader extends AbstractReaderWriter
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public List<User<Principal>> read(Reader reader)
+    public List<User> read(Reader reader)
         throws ReaderException, IOException
     {
         if (reader == null)
@@ -170,7 +169,7 @@ public class UserListReader extends AbstractReaderWriter
 
         String userElemName = root.getName();
 
-        if (!userElemName.equalsIgnoreCase("users"))
+        if (!userElemName.equalsIgnoreCase(USERS))
         {
             String error = "Expected users element, found " + userElemName;
             throw new ReaderException(error);
@@ -186,12 +185,12 @@ public class UserListReader extends AbstractReaderWriter
      * @return A List of User objects.
      * @throws ReaderException
      */
-    protected final List<User<Principal>> getUserList(Element element)
+    protected final List<User> getUserList(Element element)
         throws ReaderException
     {
-        List<User<Principal>> users = new ArrayList<User<Principal>>();
+        List<User> users = new ArrayList<User>();
 
-        List<Element> userElements = element.getChildren("user");
+        List<Element> userElements = element.getChildren(USER);
         for (Element userElement : userElements)
         {
             users.add(getUser(userElement));

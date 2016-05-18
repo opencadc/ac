@@ -73,18 +73,16 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.LdapPool;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.PoolPolicy;
+import ca.nrc.cadc.ac.server.ldap.LdapConfig.SystemState;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
 import com.unboundid.ldap.sdk.FewestConnectionsServerSet;
-import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPConnectionOptions;
 import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.RoundRobinServerSet;
-import com.unboundid.ldap.sdk.SearchRequest;
-import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.ServerSet;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 
@@ -100,15 +98,15 @@ public class LdapConnectionPool
 {
     private static final Logger logger = Logger.getLogger(LdapConnectionPool.class);
 
-    Profiler profiler = new Profiler(LdapConnectionPool.class);
-
     protected LdapConfig currentConfig;
     private String poolName;
     private LDAPConnectionPool pool;
     private Object poolMonitor = new Object();
     private LDAPConnectionOptions connectionOptions;
+    private boolean readOnly;
+    private SystemState systemState;
 
-    public LdapConnectionPool(LdapConfig config, LdapPool poolConfig, String poolName, boolean boundPool)
+    public LdapConnectionPool(LdapConfig config, LdapPool poolConfig, String poolName, boolean boundPool, boolean readOnly)
     {
         if (config == null)
             throw new IllegalArgumentException("config required");
@@ -122,38 +120,73 @@ public class LdapConnectionPool
         connectionOptions.setAutoReconnect(true);
         currentConfig = config;
         this.poolName = poolName;
-        synchronized (poolMonitor)
+        this.readOnly = readOnly;
+
+        systemState = config.getSystemState();
+        logger.debug("Construct pool: " + poolName + ". system state: " + systemState);
+        if (SystemState.ONLINE.equals(systemState) || (SystemState.READONLY.equals(systemState) && readOnly))
         {
-            if (!boundPool)
-                pool = createPool(config, poolConfig, poolName, null, null);
-            else
-                pool = createPool(config, poolConfig, poolName, config.getAdminUserDN(), config.getAdminPasswd());
-            logger.debug(poolName + " statistics after create:\n" + pool.getConnectionPoolStatistics());
-            profiler.checkpoint("Create read only pool.");
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
+            synchronized (poolMonitor)
+            {
+                if (!boundPool)
+                    pool = createPool(config, poolConfig, poolName, null, null);
+                else
+                    pool = createPool(config, poolConfig, poolName, config.getAdminUserDN(), config.getAdminPasswd());
+
+                if (pool != null)
+                {
+                    logger.debug(poolName + " statistics after create:\n" + pool.getConnectionPoolStatistics());
+                    profiler.checkpoint("Create read only pool.");
+                }
+            }
+        }
+        else
+        {
+            logger.debug("Not creating pool " + poolName + " because system state is " + systemState);
         }
     }
 
     public LDAPConnection getConnection() throws TransientException
     {
+
+        logger.debug("Get connection: " + poolName + ". system state: " + systemState);
+        if (SystemState.OFFLINE.equals(systemState))
+        {
+            throw new TransientException("The system is down for maintenance.", 600);
+        }
+
+        if (SystemState.READONLY.equals(systemState))
+        {
+            if (!readOnly)
+            {
+                throw new TransientException("The system is in read-only mode.", 600);
+            }
+        }
+
         try
         {
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
             LDAPConnection conn = null;
             synchronized (poolMonitor)
             {
                 conn = pool.getConnection();
-                profiler.checkpoint("pool.getConnection");
 
                 // BM: This query to the base dn (starting at dc=) has the
                 // effect of clearing any proxied authorization state associated
                 // with the receiving ldap server connection.  Without this in
                 // place, proxied authorization information is sometimes ignored.
-                logger.debug("Testing connection");
-                int dcIndex = currentConfig.getGroupsDN().indexOf("dc=");
-                String dcDN = currentConfig.getGroupsDN().substring(dcIndex);
-                Filter filter = Filter.createEqualityFilter("dc", "*");
-                SearchRequest searchRequest = new SearchRequest(dcDN, SearchScope.BASE, filter, new String[] {"entrydn"});
-                conn.search(searchRequest);
-                profiler.checkpoint("pool.initConnection");
+//                logger.debug("Testing connection");
+//                int index = currentConfig.getGroupsDN().indexOf(',');
+//                String rdn = currentConfig.getGroupsDN().substring(0, index);
+//                Filter filter = Filter.create("(" + rdn + ")");
+//
+//                index = rdn.indexOf('=');
+//                String attribute = rdn.substring(0, index);
+//
+//                SearchRequest searchRequest = new SearchRequest(currentConfig.getGroupsDN(), SearchScope.BASE, filter, new String[] {attribute});
+//                conn.search(searchRequest);
+//                profiler.checkpoint("pool.initConnection");
             }
             logger.debug(poolName + " pool statistics after borrow:\n" + pool.getConnectionPoolStatistics());
             profiler.checkpoint("get " + poolName + " only connection");
@@ -169,8 +202,13 @@ public class LdapConnectionPool
 
     public void releaseConnection(LDAPConnection conn)
     {
-        pool.releaseConnection(conn);
-        logger.debug(poolName + " pool statistics after release:\n" + pool.getConnectionPoolStatistics());
+        if (pool != null)
+        {
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
+            pool.releaseConnection(conn);
+            profiler.checkpoint("pool.releaseConnection");
+            logger.debug(poolName + " pool statistics after release:\n" + pool.getConnectionPoolStatistics());
+        }
     }
 
     public LdapConfig getCurrentConfig()
@@ -180,9 +218,13 @@ public class LdapConnectionPool
 
     public void shutdown()
     {
-        logger.debug("Closing pool...");
-        pool.close();
-        profiler.checkpoint("Pool closed.");
+        if (pool != null)
+        {
+            logger.debug("Closing pool...");
+            Profiler profiler = new Profiler(LdapConnectionPool.class);
+            pool.close();
+            profiler.checkpoint("pool.shutdown");
+        }
     }
 
     public String getName()
@@ -191,7 +233,6 @@ public class LdapConnectionPool
     }
 
     private LDAPConnectionPool createPool(LdapConfig config, LdapPool poolConfig, String poolName, String bindID, String bindPW)
-
     {
         try
         {
@@ -243,6 +284,5 @@ public class LdapConnectionPool
             throw new IllegalStateException(e);
         }
     }
-
 
 }

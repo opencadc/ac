@@ -82,7 +82,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.security.Principal;
 
 /**
  * Class to read a XML representation of a User to a User object.
@@ -98,8 +97,8 @@ public class UserReader extends AbstractReaderWriter
      * @throws java.io.IOException
      * @throws java.net.URISyntaxException
      */
-    public User<Principal> read(String xml)
-        throws IOException, URISyntaxException
+    public User read(String xml)
+        throws ReaderException, IOException, URISyntaxException
     {
         if (xml == null)
         {
@@ -115,8 +114,8 @@ public class UserReader extends AbstractReaderWriter
      * @return User User.
      * @throws java.io.IOException
      */
-    public User<Principal> read(InputStream in)
-        throws IOException
+    public User read(InputStream in)
+        throws ReaderException, IOException
     {
         if (in == null)
         {
@@ -142,8 +141,8 @@ public class UserReader extends AbstractReaderWriter
      * @throws ReaderException
      * @throws java.io.IOException
      */
-    public User<Principal> read(Reader reader)
-        throws IOException
+    public User read(Reader reader)
+        throws ReaderException, IOException
     {
         if (reader == null)
         {

@@ -68,15 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.InputStream;
-
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.server.UserPersistence;
 
-import javax.servlet.http.HttpServletResponse;
-import java.security.Principal;
-
+import javax.security.auth.x500.X500Principal;
+import java.io.InputStream;
+import java.security.AccessControlException;
+import java.util.Set;
 
 public class CreateUserAction extends AbstractUserAction
 {
@@ -91,11 +88,21 @@ public class CreateUserAction extends AbstractUserAction
 
     public void doAction() throws Exception
     {
-        final UserRequest<Principal> userRequest = readUserRequest(this.inputStream);
-        userPersistence.addPendingUser(userRequest);
+        if (!isPrivilegedSubject)
+        {
+            throw new AccessControlException("non-privileged user cannot create a user");
+        }
+
+        final User user = readUser(this.inputStream);
+        userPersistence.addUser(user);
 
         syncOut.setCode(201);
-        logUserInfo(userRequest.getUser().getUserID().getName());
+        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
+        if (!x500Principals.isEmpty())
+        {
+            X500Principal x500Principal = x500Principals.iterator().next();
+            logUserInfo(x500Principal.getName());
+        }
     }
 
 }

@@ -68,12 +68,10 @@
  */
 package ca.nrc.cadc.ac;
 
-import java.io.IOException;
-
 /**
  * Base exception for all Writer class exceptions.
  */
-public class WriterException extends IOException
+public class WriterException extends Exception
 {
     /**
      * Constructs a new exception with the specified detail message.  The

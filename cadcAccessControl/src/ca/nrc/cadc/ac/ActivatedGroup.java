@@ -69,11 +69,13 @@
 package ca.nrc.cadc.ac;
 
 
+import java.lang.reflect.Field;
+
 public class ActivatedGroup extends Group
 {
     public ActivatedGroup(Group group)
     {
-        super(group.getID(), group.getOwner());
+        super(group.getID());
         this.description = group.description;
         this.properties = group.getProperties();
         this.lastModified = group.lastModified;
@@ -82,4 +84,5 @@ public class ActivatedGroup extends Group
         this.getUserAdmins().addAll(group.getUserAdmins());
         this.getGroupAdmins().addAll(group.getGroupAdmins());
     }
+
 }

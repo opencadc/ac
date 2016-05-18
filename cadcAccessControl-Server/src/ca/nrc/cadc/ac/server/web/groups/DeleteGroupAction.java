@@ -72,7 +72,6 @@ import java.util.ArrayList;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
 
 public class DeleteGroupAction extends AbstractGroupAction
 {
@@ -97,7 +96,7 @@ public class DeleteGroupAction extends AbstractGroupAction
             }
             for (User usr : deletedGroup.getUserMembers())
             {
-                this.logInfo.deletedMembers.add(usr.getUserID().getName());
+                this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
             }
         }
     }

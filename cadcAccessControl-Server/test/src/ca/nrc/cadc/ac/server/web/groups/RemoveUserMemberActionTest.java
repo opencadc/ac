@@ -71,9 +71,16 @@ package ca.nrc.cadc.ac.server.web.groups;
 import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
 import java.security.Principal;
+import java.util.UUID;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
+import javax.security.auth.x500.X500Principal;
+
+import ca.nrc.cadc.ac.AC;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.ObjectUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -84,11 +91,10 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
-
-import javax.security.auth.x500.X500Principal;
 
 /**
  *
@@ -110,27 +116,32 @@ public class RemoveUserMemberActionTest
     {
         try
         {
+            User user = new User();
+            InternalID internalID = new InternalID(new URI(AC.USER_URI + "?" + UUID.randomUUID()));
+            ObjectUtil.setField(user, internalID, "id");
+
             String userID = "cn=foo,c=ca";
             String userIDType = IdentityType.X500.getValue();
-            Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
-            User<Principal> user = new User<Principal>(userPrincipal);
-            user.getIdentities().add(userPrincipal);
+            Principal x500Principal = AuthenticationUtil.createPrincipal(userID, userIDType);
+            user.getIdentities().add(x500Principal);
 
-            Group group = new Group("group", null);
-            group.getUserMembers().add(new <X500Principal>User(new X500Principal("cn=bar,c=ca")));
+            Group group = new Group("group");
+            User member = new User();
+            member.getIdentities().add(new X500Principal("cn=bar,c=ca"));
+            group.getUserMembers().add(member);
 
             final GroupPersistence mockGroupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(mockGroupPersistence.getGroup("group")).andReturn(group);
 
-            final UserPersistence<Principal> mockUserPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(mockUserPersistence.getAugmentedUser(userPrincipal)).andReturn(user);
+            final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);
+            EasyMock.expect(mockUserPersistence.getAugmentedUser(x500Principal)).andReturn(user);
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 
             RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType)
             {
                 @Override
-                protected UserPersistence<Principal> getUserPersistence()
+                protected UserPersistence getUserPersistence()
                 {
                     return mockUserPersistence;
                 }
@@ -157,13 +168,17 @@ public class RemoveUserMemberActionTest
     {
         try
         {
+            User user = new User();
+            InternalID internalID = new InternalID(new URI(AC.USER_URI + "?" + UUID.randomUUID()));
+            ObjectUtil.setField(user, internalID, "id");
+
             String userID = "cn=foo,c=ca";
             String userIDType = IdentityType.X500.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
-            User<Principal> user = new User<Principal>(userPrincipal);
             user.getIdentities().add(new X500Principal(userID));
+            user.getIdentities().add(new HttpPrincipal("foo"));
 
-            Group group = new Group("group", null);
+            Group group = new Group("group");
             group.getUserMembers().add(user);
 
             final GroupPersistence mockGroupPersistence = EasyMock.createMock(GroupPersistence.class);
@@ -171,7 +186,7 @@ public class RemoveUserMemberActionTest
             mockGroupPersistence.modifyGroup(group);
             EasyMock.expectLastCall();
 
-            final UserPersistence<Principal> mockUserPersistence = EasyMock.createMock(UserPersistence.class);
+            final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);
             EasyMock.expect(mockUserPersistence.getAugmentedUser(userPrincipal)).andReturn(user);
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
@@ -179,7 +194,7 @@ public class RemoveUserMemberActionTest
             RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType)
             {
                 @Override
-                protected UserPersistence<Principal> getUserPersistence()
+                protected UserPersistence getUserPersistence()
                 {
                     return mockUserPersistence;
                 }
@@ -189,6 +204,8 @@ public class RemoveUserMemberActionTest
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);
             action.doAction();
+
+            EasyMock.verify(mockGroupPersistence, mockUserPersistence);
         }
         catch (Throwable t)
         {
