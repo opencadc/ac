@@ -1,4 +1,4 @@
-package ca.nrc.cadc.ac.auth;
+package ca.nrc.cadc.auth;
 
 import java.net.MalformedURLException;
 import java.net.URI;
