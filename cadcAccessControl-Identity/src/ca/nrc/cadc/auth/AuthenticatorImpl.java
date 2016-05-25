@@ -2,7 +2,6 @@ package ca.nrc.cadc.auth;
 
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 
 import javax.security.auth.Subject;
@@ -10,12 +9,8 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.AC;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.Authenticator;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.avail.CheckResource;
 import ca.nrc.cadc.vosi.avail.CheckWebService;
@@ -77,15 +72,12 @@ public class AuthenticatorImpl implements Authenticator
         try
         {
             RegistryClient regClient = new RegistryClient();
-            URI serviceURI = new URI(AC.GMS_SERVICE_URI);
+            LocalAuthority localAuth = new LocalAuthority();
+            URI serviceURI = localAuth.getServiceURI("gms");
             URL availURL = regClient.getServiceURL(serviceURI, "http", "/availability");
             return new CheckWebService(availURL.toExternalForm());
         }
         catch (MalformedURLException e)
-        {
-            throw new RuntimeException(e);
-        }
-        catch (URISyntaxException e)
         {
             throw new RuntimeException(e);
         }

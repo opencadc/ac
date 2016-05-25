@@ -3,7 +3,6 @@ package ca.nrc.cadc.auth;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -18,13 +17,10 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.client.UserClient;
-import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.avail.CheckResource;
 import ca.nrc.cadc.vosi.avail.CheckWebService;
@@ -112,7 +108,10 @@ public class ACIdentityManager implements IdentityManager
             @Override
             public NumericPrincipal run() throws Exception
             {
-                UserClient userClient = new UserClient(new URI(AC.UMS_SERVICE_URI));
+                LocalAuthority localAuth = new LocalAuthority();
+                URI serviceURI = localAuth.getServiceURI("ums");
+
+                UserClient userClient = new UserClient(serviceURI);
                 User newUser = userClient.createUser(x500Principal);
 
                 Set<NumericPrincipal> set = newUser.getIdentities(NumericPrincipal.class);
@@ -205,7 +204,9 @@ public class ACIdentityManager implements IdentityManager
             {
                 public Object run() throws Exception
                 {
-                    URI serviceURI = new URI(AC.UMS_SERVICE_URI);
+                    LocalAuthority localAuth = new LocalAuthority();
+                    URI serviceURI = localAuth.getServiceURI("ums");
+
                     UserClient userClient = new UserClient(serviceURI);
                     userClient.augmentSubject(subject);
                     return null;
@@ -233,15 +234,12 @@ public class ACIdentityManager implements IdentityManager
         try
         {
             RegistryClient regClient = new RegistryClient();
-            URI serviceURI = new URI(AC.GMS_SERVICE_URI);
+            LocalAuthority localAuth = new LocalAuthority();
+            URI serviceURI = localAuth.getServiceURI("gms");
             URL availURL = regClient.getServiceURL(serviceURI, "http", "/availability");
             return new CheckWebService(availURL.toExternalForm());
         }
         catch (MalformedURLException e)
-        {
-            throw new RuntimeException(e);
-        }
-        catch (URISyntaxException e)
         {
             throw new RuntimeException(e);
         }
