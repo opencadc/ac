@@ -85,13 +85,10 @@ public class AC
     // Denotes a group readable by public
     public static final String PROPERTY_PUBLIC = "ivo://ivoa.net/gms#public";
 
-    public static final String UMS_SERVICE_URI = "ivo://canfar.net/ums";
-    public static final String GMS_SERVICE_URI = "ivo://canfar.net/gms";
+    public static final String UMS_SERVICE_URI = "ivo://cadc.nrc.ca/ums";
+    public static final String GMS_SERVICE_URI = "ivo://cadc.nrc.ca/gms";
 
     // Group URI attribute once the group name is appended
     public static final String GROUP_URI = "ivo://cadc.nrc.ca/gms#";
-
-    // User URI with appended UUID represents a unique user
-    public static final String USER_URI = "ivo://cadc.nrc.ca/user";
 
 }
