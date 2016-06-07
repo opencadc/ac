@@ -131,52 +131,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         catch (IllegalArgumentException expected) {}
     }
 
-    /**
-     * Test of addUser method, of class LdapUserDAO.
-     */
-    @Test
-    public void testAddUserRequest() throws Exception
-    {
-        // add user using HttpPrincipal
-        String username = createUsername();
-        final HttpPrincipal userID = new HttpPrincipal(username);
-
-        final User testUser = new User();
-        testUser.getIdentities().add(userID);
-
-        testUser.personalDetails = new PersonalDetails("foo", "bar");
-        testUser.personalDetails.email = username + "@canada.ca";
-
-        final UserRequest userRequest = new UserRequest(testUser, "password".toCharArray());
-
-        DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
-        Subject subject = new Subject();
-        subject.getPrincipals().add(dnPrincipal);
-
-        // do everything as owner
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run()
-                throws Exception
-            {
-                try
-                {
-                    final LdapUserDAO userDAO = getUserDAO();
-                    userDAO.addUserRequest(userRequest);
-
-                    final User actual = userDAO.getUserRequest(userID);
-                    check(testUser, actual);
-
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Problems", e);
-                }
-            }
-        });
-    }
-
     @Test
     public void testAddUser() throws Exception
     {
@@ -220,23 +174,23 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
      * Test of addUserRequest method, of class LdapUserDAO.
      */
     @Test
-    public void testAddPendingUser() throws Exception
+    public void testAddUserRequest() throws Exception
     {
         // add user using HttpPrincipal
         final String username = createUsername();
         final HttpPrincipal userID = new HttpPrincipal(username);
 
-        final User httpExpected = new User();
-        httpExpected.getIdentities().add(userID);
+        final User expectedUser = new User();
+        expectedUser.getIdentities().add(userID);
 
-        PersonalDetails pd = new PersonalDetails("foo", "bar");
-        pd.email = username + "@canada.ca";
-        httpExpected.personalDetails = pd;
+        expectedUser.personalDetails = new PersonalDetails("foo", "bar");
+        expectedUser.personalDetails.email = username + "@canada.ca";
 
-        UserRequest userRequest = new UserRequest(httpExpected, "123456".toCharArray());
+        UserRequest userRequest = new UserRequest(expectedUser, "123456".toCharArray());
 
-        final LdapUserDAO httpUserDAO = getUserDAO();
-        httpUserDAO.addUserRequest(userRequest);
+        // Adding a new user is done anonymously
+        final LdapUserDAO userDAO = getUserDAO();
+        userDAO.addUserRequest(userRequest);
 
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUserRequestsDN());
         Subject subject = new Subject();
@@ -250,8 +204,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    final User actual = httpUserDAO.getUserRequest(userID);
-                    check(httpExpected, actual);
+                    final User actualUser = userDAO.getUserRequest(userID);
+                    check(expectedUser, actualUser);
 
                     return null;
                 }
@@ -261,9 +215,48 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-    }
 
-    // TODO testAddUser for an existing user
+        // try and add another user with the same username
+        final User dupUsername = new User();
+        dupUsername.getIdentities().add(userID);
+
+        dupUsername.personalDetails = new PersonalDetails("foo", "bar");
+        dupUsername.personalDetails.email = username + "@foo.com";
+
+        UserRequest dupUsernameRequest = new UserRequest(dupUsername, "123456".toCharArray());
+
+        try
+        {
+            userDAO.addUserRequest(dupUsernameRequest);
+            fail("adding a duplicate user should throw a UserAlreadyExistsException");
+        }
+        catch (UserAlreadyExistsException expected)
+        {
+            log.debug("expected exception: " + expected.getMessage());
+        }
+
+        // try and add another user with the same email address
+        final String username2 = createUsername();
+        final HttpPrincipal userID2 = new HttpPrincipal(username);
+
+        final User dupEmail = new User();
+        dupEmail.getIdentities().add(userID2);
+
+        dupEmail.personalDetails = new PersonalDetails("foo", "bar");
+        dupEmail.personalDetails.email = username + "@canada.ca";
+
+        UserRequest dupEmailRequest = new UserRequest(dupEmail, "123456".toCharArray());
+
+        try
+        {
+            userDAO.addUserRequest(dupEmailRequest);
+            fail("adding a user with an existing email address should throw a UserAlreadyExistsException");
+        }
+        catch (UserAlreadyExistsException expected)
+        {
+            log.debug("expected exception: " + expected.getMessage());
+        }
+    }
 
     /**
      * Test of getUser method, of class LdapUserDAO.
