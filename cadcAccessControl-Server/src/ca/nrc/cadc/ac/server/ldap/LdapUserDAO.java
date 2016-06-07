@@ -1273,11 +1273,6 @@ public class LdapUserDAO extends LdapDAO
         return uuid.getLeastSignificantBits();
     }
 
-    protected void setInternalIdUriPrefix(String internalIdUriPrefix)
-    {
-        this.internalIdUriPrefix = internalIdUriPrefix;
-    }
-
     protected InternalID getInternalID(String numericID)
     {
         UUID uuid = new UUID(0L, Long.parseLong(numericID));

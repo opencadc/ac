@@ -71,18 +71,12 @@ package ca.nrc.cadc.tomcat;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
-
-import org.apache.catalina.realm.GenericPrincipal;
-import org.apache.catalina.realm.RealmBase;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 /**
  * Custom class for Tomcat realm authentication.
@@ -98,7 +92,7 @@ public class CadcBasicAuthenticator extends RealmBase
 {
 
     private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://canfar.net/ums";
+    private static final String AC_URI = "ivo://cadc.nrc.ca/ums";
 
     static
     {

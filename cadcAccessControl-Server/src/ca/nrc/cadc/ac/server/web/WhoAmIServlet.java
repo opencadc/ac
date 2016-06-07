@@ -81,10 +81,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
 /**
@@ -164,9 +164,15 @@ public class WhoAmIServlet extends HttpServlet
                   final String scheme) throws IOException
     {
         final RegistryClient registryClient = getRegistryClient();
+
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI umsServiceURI = localAuthority.getServiceURI("ums");
+
+        log.debug("ums service uri: " + umsServiceURI);
+
         final URL redirectURL =
                 registryClient.getServiceURL(
-                        URI.create(AC.UMS_SERVICE_URI + "#users"), scheme, USER_GET_PATH);
+                        URI.create(umsServiceURI.toString() + "#users"), scheme, USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =

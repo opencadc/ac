@@ -69,7 +69,26 @@
 
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.AC;
+import java.io.IOException;
+import java.io.Writer;
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.Principal;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.jdom2.Attribute;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.InternalID;
@@ -85,24 +104,7 @@ import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.date.DateUtil;
-import org.jdom2.Attribute;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
-
-import javax.security.auth.x500.X500Principal;
-import java.io.IOException;
-import java.io.Writer;
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.Principal;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 
 /**
  * AbstractReaderWriter TODO describe class
@@ -148,6 +150,15 @@ public abstract class AbstractReaderWriter
     public static final String USER_ADMINS = "userAdmins";
     public static final String USER_MEMBERS = "userMembers";
     public static final String USER_REQUEST = "userRequest";
+
+    private String gmsServiceURI;
+
+    public AbstractReaderWriter()
+    {
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceURI = localAuthority.getServiceURI("gms");
+        gmsServiceURI = serviceURI.toString();
+    }
 
     /**
      * Write to root Element to a writer.
@@ -469,13 +480,13 @@ public abstract class AbstractReaderWriter
         }
 
         // Group groupID
-        int index = uri.indexOf(AC.GROUP_URI);
+        int index = uri.indexOf(gmsServiceURI);
         if (index == -1)
         {
             String error = "group uri attribute malformed: " + uri;
             throw new ReaderException(error);
         }
-        String groupID = uri.substring(AC.GROUP_URI.length());
+        String groupID = uri.substring(gmsServiceURI.length() + 1);
 
         // Group owner
         User user = null;
@@ -922,7 +933,7 @@ public abstract class AbstractReaderWriter
 
         // Create the root group element.
         Element groupElement = new Element(GROUP);
-        String groupURI = AC.GROUP_URI + group.getID();
+        String groupURI = gmsServiceURI + "#" + group.getID();
         groupElement.setAttribute(new Attribute(URI, groupURI));
 
         // Group owner

@@ -77,10 +77,6 @@ import java.util.UUID;
 
 import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.ac.AC;
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.ObjectUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -88,13 +84,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.ObjectUtil;
 
 /**
  *
@@ -117,7 +117,9 @@ public class RemoveUserMemberActionTest
         try
         {
             User user = new User();
-            InternalID internalID = new InternalID(new URI(AC.USER_URI + "?" + UUID.randomUUID()));
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI umsServiceURI = localAuthority.getServiceURI("ums");
+            InternalID internalID = new InternalID(new URI(umsServiceURI.toASCIIString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 
             String userID = "cn=foo,c=ca";
@@ -169,7 +171,9 @@ public class RemoveUserMemberActionTest
         try
         {
             User user = new User();
-            InternalID internalID = new InternalID(new URI(AC.USER_URI + "?" + UUID.randomUUID()));
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI umsServiceURI = localAuthority.getServiceURI("ums");
+            InternalID internalID = new InternalID(new URI(umsServiceURI.toString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 
             String userID = "cn=foo,c=ca";

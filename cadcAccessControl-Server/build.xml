@@ -115,6 +115,9 @@
     <mkdir dir="${user.home}/config" />
     <copy overwrite="true" file="test/LdapConfig.test.properties"
           todir="${user.home}/config/"/>
+    <copy overwrite="true"
+          file="${env.CADC_PREFIX}/etc/LocalAuthority.properties"
+          tofile="${build}/class/LocalAuthority.properties"/>
   </target>
 
   <!-- JAR files needed to run the test suite -->
