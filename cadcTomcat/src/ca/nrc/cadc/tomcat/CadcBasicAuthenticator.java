@@ -78,6 +78,11 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.realm.RealmBase;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 /**
  * Custom class for Tomcat realm authentication.
  *
