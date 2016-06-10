@@ -86,7 +86,6 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -101,6 +100,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.StringUtil;
 
@@ -139,8 +139,6 @@ public class LdapUserDAO extends LdapDAO
             "email address ";
 
     private static final Logger logger = Logger.getLogger(LdapUserDAO.class);
-
-    private String internalIdUriPrefix = AC.USER_URI;
 
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
@@ -740,7 +738,10 @@ public class LdapUserDAO extends LdapDAO
             user.getIdentities().add(new DNPrincipal(searchResult.getAttributeValue(LDAP_ENTRYDN)));
 
             // cache memberOf values in the user
-            GroupMemberships gms = new GroupMemberships(userID);
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI("gms");
+
+            GroupMemberships gms = new GroupMemberships(gmsServiceURI.toString(), userID);
             user.appData = gms; // add even if empty
             String[] mems = searchResult.getAttributeValues(LDAP_MEMBEROF);
             if (mems != null && mems.length > 0)
@@ -926,8 +927,6 @@ public class LdapUserDAO extends LdapDAO
     public User modifyUser(final User user)
             throws UserNotFoundException, TransientException, AccessControlException
     {
-        // Will we always have a HttpPrincipal?
-        User existingUser = getUser(user.getHttpPrincipal());
 
         List<Modification> mods = new ArrayList<Modification>();
 
@@ -1274,15 +1273,12 @@ public class LdapUserDAO extends LdapDAO
         return uuid.getLeastSignificantBits();
     }
 
-    protected void setInternalIdUriPrefix(String internalIdUriPrefix)
-    {
-        this.internalIdUriPrefix = internalIdUriPrefix;
-    }
-
     protected InternalID getInternalID(String numericID)
     {
         UUID uuid = new UUID(0L, Long.parseLong(numericID));
-        String uriString = internalIdUriPrefix + "?" + uuid.toString();
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI umsServiceURI = localAuthority.getServiceURI("ums");
+        String uriString = umsServiceURI.toString() + "?" + uuid.toString();
         URI uri;
         try
         {

@@ -84,8 +84,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
 
@@ -132,7 +132,10 @@ public class WhoAmIServletTest
         mockResponse.sendRedirect("/ac/users/CADCtest?idType=HTTP");
         expectLastCall().once();
 
-        expect(mockRegistry.getServiceURL(URI.create(AC.UMS_SERVICE_URI + "#users"),
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI umsServiceURI = localAuthority.getServiceURI("ums");
+
+        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
                                           "http", "/%s?idType=HTTP")).
                 andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
 

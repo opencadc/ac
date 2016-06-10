@@ -69,47 +69,55 @@
 
 package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.Role;
-import org.apache.log4j.Logger;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
+
 /**
  * Class used to hold list of groups in which a user is known to be a member.
- * 
+ *
  * @author pdowler
  */
 public class GroupMemberships implements Comparable
 {
     private static final Logger log = Logger.getLogger(GroupMemberships.class);
 
+    private String serviceURI;
     private Principal userID;
     private Map<Role, List<Group>> memberships = new HashMap<Role, List<Group>>();
     private Map<Role, Boolean> complete = new HashMap<Role, Boolean>();
 
     public GroupMemberships() { init(); }
-    
-    public GroupMemberships(Principal userID)
+
+    public GroupMemberships(String serviceURI, Principal userID)
     {
+        this.serviceURI = serviceURI;
         this.userID = userID;
         init();
     }
-    
+
     public boolean isComplete(Role role)
     {
         return complete.get(role);
     }
-    
+
+    public String getServiceURI()
+    {
+        return serviceURI;
+    }
+
     public List<Group> getMemberships(Role role)
     {
         return memberships.get(role);
     }
-    
+
     private void init()
     {
         for (Role role : Role.values())
@@ -123,14 +131,14 @@ public class GroupMemberships implements Comparable
     {
         return userID;
     }
-    
+
     public void add(Group group, Role role)
     {
         List<Group> groups = memberships.get(role);
         if (!groups.contains(group))
             groups.add(group);
     }
-    
+
     public void add(List<Group> groups, Role role)
     {
         List<Group> cur = memberships.get(role);
@@ -141,7 +149,7 @@ public class GroupMemberships implements Comparable
             complete.put(role, Boolean.TRUE);
         }
     }
-    
+
     // only allow one in a set - makes clearCache simple too
     public boolean equals(Object rhs)
     {

@@ -84,10 +84,9 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.AC;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 
 
@@ -96,9 +95,13 @@ public class UserClientTest
 
     private static final Logger log = Logger.getLogger(UserClientTest.class);
 
+    private URI umsServiceURI;
+
     public UserClientTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        LocalAuthority localAuthority = new LocalAuthority();
+        umsServiceURI = localAuthority.getServiceURI("ums");
     }
 
     @Test
@@ -178,9 +181,7 @@ public class UserClientTest
 
     protected UserClient createUserClient() throws URISyntaxException, MalformedURLException
     {
-    	RegistryClient regClient = new RegistryClient();
-    	URI serviceURI = new URI(AC.UMS_SERVICE_URI);
-    	return new UserClient(serviceURI);
+    	return new UserClient(umsServiceURI);
 
     }
 
@@ -189,7 +190,7 @@ public class UserClientTest
     {
         try
         {
-            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
+            UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
@@ -209,7 +210,7 @@ public class UserClientTest
     {
         try
         {
-            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
+            UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
             s.getPrincipals().add(new HttpPrincipal("bob"));
@@ -231,7 +232,7 @@ public class UserClientTest
     {
         try
         {
-            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
+            UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
             UUID uuid = UUID.randomUUID();
@@ -253,7 +254,7 @@ public class UserClientTest
     {
         try
         {
-            UserClient c = new UserClient(new URI(AC.UMS_SERVICE_URI));
+            UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
             UUID uuid = UUID.randomUUID();

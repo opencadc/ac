@@ -112,8 +112,14 @@
     <property name="junit"      value="${ext.dev}/junit.jar" />
     <property name="objenesis"  value="${ext.dev}/objenesis.jar" />
     <property name="jsonassert" value="${ext.dev}/jsonassert.jar" />
-    <property name="mail"  value="${ext.dev}/mail.jar" />
-    <property name="testingJars" value="${build}/class:${xerces}:${jsonassert}:${jars}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}:${mail}" />
+    
+    <property name="testingJars" value="${build}/class:${jsonassert}:${jars}:${xerces}:${asm}:${cglib}:${easymock}:${junit}:${objenesis}" />
+	
+	<target name="setup-test">
+        <copy overwrite="true"
+              file="${env.CADC_PREFIX}/etc/LocalAuthority.properties"
+              tofile="${build}/class/LocalAuthority.properties"/>
+	</target>
 
     <target name="single-test" depends="compile,compile-test">
         <echo message="Running test suite..." />

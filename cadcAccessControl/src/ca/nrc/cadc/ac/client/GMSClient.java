@@ -133,6 +133,7 @@ public class GMSClient implements TransferListener
 
     private RegistryClient registryClient;
 
+    private URI gmsServiceURI;
     private URI groupsURI;
     private URI searchURI;
 
@@ -159,6 +160,7 @@ public class GMSClient implements TransferListener
 
         try
         {
+            this.gmsServiceURI = serviceURI;
             this.groupsURI = new URI(serviceURI.toASCIIString() + "#" + GROUPS);
             this.searchURI = new URI(serviceURI.toASCIIString() + "#" + SEARCH);
         }
@@ -1100,11 +1102,20 @@ public class GMSClient implements TransferListener
             Set<GroupMemberships> gset = subject.getPrivateCredentials(GroupMemberships.class);
             if (gset == null || gset.isEmpty())
             {
-                GroupMemberships mems = new GroupMemberships(userID);
+                GroupMemberships mems = new GroupMemberships(gmsServiceURI.toString(), userID);
                 subject.getPrivateCredentials().add(mems);
                 return mems;
             }
             GroupMemberships mems = gset.iterator().next();
+
+            // check to ensure they have the same service URI
+            if (!gmsServiceURI.toString().equals(mems.getServiceURI()))
+            {
+                log.debug("Not using cache because of differing service URIs: " +
+                    "[" + gmsServiceURI.toString() + "][" + mems.getServiceURI() + "]");
+                return null;
+            }
+
             return mems;
         }
         return null; // no cache
