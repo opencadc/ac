@@ -75,6 +75,8 @@ import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -104,7 +106,7 @@ public class UserServlet extends HttpServlet
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
 
-    private List<Subject> privilegedSubjects;
+    protected List<Subject> privilegedSubjects;
 
     private UserPersistence userPersistence;
 
@@ -121,24 +123,37 @@ public class UserServlet extends HttpServlet
             String httpUsers = config.getInitParameter(UserServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("PrivilegedHttpUsers: " + httpUsers);
 
-            String[] x500List = new String[0];
-            String[] httpList = new String[0];
+            List<String> x500List = new ArrayList<String>();
+            List<String> httpList = new ArrayList<String>();
             if (x500Users != null && httpUsers != null)
             {
-                x500List = x500Users.split(" ");
-                httpList = httpUsers.split(" ");
+                Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
+                Matcher x500Matcher = pattern.matcher(x500Users);
+                Matcher httpMatcher = pattern.matcher(httpUsers);
 
-                if (x500List.length != httpList.length)
+                while (x500Matcher.find())
+                {
+                    String next = x500Matcher.group(1);
+                    x500List.add(next.replace("\"", ""));
+                }
+
+                while (httpMatcher.find())
+                {
+                    String next = httpMatcher.group(1);
+                    httpList.add(next.replace("\"", ""));
+                }
+
+                if (x500List.size() != httpList.size())
                 {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
 
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-                for (int i=0; i<x500List.length; i++)
+                for (int i=0; i<x500List.size(); i++)
                 {
                     Subject s = new Subject();
-                    s.getPrincipals().add(new X500Principal(x500List[i]));
-                    s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                    s.getPrincipals().add(new X500Principal(x500List.get(i)));
+                    s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
                     privilegedSubjects.add(s);
                 }
 
