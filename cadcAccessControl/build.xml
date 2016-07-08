@@ -117,7 +117,7 @@
 	
 	<target name="setup-test">
         <copy overwrite="true"
-              file="${env.CADC_PREFIX}/etc/LocalAuthority.properties"
+              file="${env.A}/etc/LocalAuthority.properties"
               tofile="${build}/class/LocalAuthority.properties"/>
 	</target>
 

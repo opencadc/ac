@@ -84,6 +84,8 @@ import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -110,47 +112,22 @@ public class UserClient
 {
     private static final Logger log = Logger.getLogger(UserClient.class);
 
-    private static final String USERS = "users";
-    private static final String USER_REQUESTS = "reqs";
-
-    private RegistryClient registryClient;
-
-    private URI usersURI;
-
-    // to be used when the client can work with
-    // user requests
-    private URI userReqsURI;
+    private URI serviceID;
 
     /**
      * Constructor.
      *
-     * @param serviceURI    The URI of the supporting access control web service
+     * @param serviceID    The URI of the supporting access control web service
      *                      obtained from the registry.
      */
-    public UserClient(URI serviceURI)
+    public UserClient(URI serviceID)
             throws IllegalArgumentException
     {
-        this(serviceURI, new RegistryClient());
-    }
-
-    public UserClient(URI serviceURI, RegistryClient registryClient)
-    {
-        if (serviceURI == null)
+        if (serviceID == null)
             throw new IllegalArgumentException("Service URI cannot be null.");
-        if (serviceURI.getFragment() != null)
-            throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceURI);
-
-        this.registryClient = registryClient;
-
-        try
-        {
-            this.usersURI = new URI(serviceURI.toASCIIString() + "#" + USERS);
-            this.userReqsURI = new URI(serviceURI.toASCIIString() + "#" + USER_REQUESTS);
-        }
-        catch(URISyntaxException ex)
-        {
-            throw new RuntimeException("BUG: failed to create standardID from serviceURI + fragment", ex);
-        }
+        if (serviceID.getFragment() != null)
+            throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceID);
+        this.serviceID = serviceID;
     }
 
     /**
@@ -171,10 +148,12 @@ public class UserClient
 	        String path = NetUtil.encode(userID) + "?idType=" + this.getIdType(principal) + "&detail=identity";
 
 	        // augment subject calls are always https with client certs
-	        URL getUserURL = registryClient.getServiceURL(usersURI, "https", path, AuthMethod.CERT);
+            URL usersURL = getRegistryClient()
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT);
+            URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
 	        if (getUserURL == null)
-	            throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
+	            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01_URI);
 
 	    	log.debug("augmentSubject request to " + getUserURL.toString());
 	        ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -209,7 +188,8 @@ public class UserClient
      */
     public List<User> getDisplayUsers() throws IOException
     {
-        URL usersURL = registryClient.getServiceURL(usersURI, "https");
+        URL usersURL = getRegistryClient()
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT);
         final List<User> webUsers = new ArrayList<User>();
         HttpDownload httpDownload =
                 new HttpDownload(usersURL,
@@ -273,10 +253,11 @@ public class UserClient
         StringBuilder userXML = new StringBuilder();
         userWriter.write(user, userXML);
 
-        URL createUserURL = registryClient.getServiceURL(usersURI, "https", null, AuthMethod.CERT);
+        URL createUserURL = getRegistryClient()
+            .getServiceURL(this.serviceID, Standards.UMS_REQS_01_URI, AuthMethod.CERT);
 
         if (createUserURL == null)
-            throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
+            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01_URI);
         log.debug("createUser request to " + createUserURL.toString());
 
         ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString().getBytes());
@@ -336,9 +317,11 @@ public class UserClient
         String id = NetUtil.encode(principal.getName());
         String path = "/" + id + "?idType=" + AuthenticationUtil.getPrincipalType(principal);
 
-        URL getUserURL = registryClient.getServiceURL(usersURI, "https", path, AuthMethod.CERT);
+        URL usersURL = getRegistryClient()
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT);
+        URL getUserURL = new URL(usersURL.toExternalForm() + path);
         if (getUserURL == null)
-            throw new IllegalArgumentException("No service endpoint for uri " + usersURI);
+            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01_URI);
         log.debug("getUser request to " + getUserURL.toString());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -433,4 +416,10 @@ public class UserClient
 
         return idTypeStr;
     }
+
+    protected RegistryClient getRegistryClient()
+    {
+        return new RegistryClient();
+    }
+
 }
