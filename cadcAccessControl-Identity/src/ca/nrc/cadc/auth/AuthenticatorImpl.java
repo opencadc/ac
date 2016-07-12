@@ -7,6 +7,7 @@ import java.net.URL;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.profiler.Profiler;
@@ -74,7 +75,8 @@ public class AuthenticatorImpl implements Authenticator
             RegistryClient regClient = new RegistryClient();
             LocalAuthority localAuth = new LocalAuthority();
             URI serviceURI = localAuth.getServiceURI("gms");
-            URL availURL = regClient.getServiceURL(serviceURI, "http", "/availability");
+            URL serviceURL = regClient.getServiceURL(serviceURI, Standards.GMS_01_URI, AuthMethod.ANON);
+            URL availURL = new URL(serviceURL.toExternalForm() + "/availability");
             return new CheckWebService(availURL.toExternalForm());
         }
         catch (MalformedURLException e)
