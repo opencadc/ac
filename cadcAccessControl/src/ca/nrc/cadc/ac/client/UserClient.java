@@ -149,11 +149,11 @@ public class UserClient
 
 	        // augment subject calls are always https with client certs
             URL usersURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT);
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
             URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
 	        if (getUserURL == null)
-	            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01_URI);
+	            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
 
 	    	log.debug("augmentSubject request to " + getUserURL.toString());
 	        ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -189,7 +189,7 @@ public class UserClient
     public List<User> getDisplayUsers() throws IOException
     {
         URL usersURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
         final List<User> webUsers = new ArrayList<User>();
         HttpDownload httpDownload =
                 new HttpDownload(usersURL,
@@ -254,10 +254,10 @@ public class UserClient
         userWriter.write(user, userXML);
 
         URL createUserURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_REQS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_REQS_01, AuthMethod.CERT);
 
         if (createUserURL == null)
-            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01_URI);
+            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01);
         log.debug("createUser request to " + createUserURL.toString());
 
         ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString().getBytes());
@@ -318,10 +318,10 @@ public class UserClient
         String path = "/" + id + "?idType=" + AuthenticationUtil.getPrincipalType(principal);
 
         URL usersURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
         URL getUserURL = new URL(usersURL.toExternalForm() + path);
         if (getUserURL == null)
-            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01_URI);
+            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
         log.debug("getUser request to " + getUserURL.toString());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();

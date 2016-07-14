@@ -183,7 +183,7 @@ public class GMSClient implements TransferListener
                UserNotFoundException, WriterException, IOException
     {
         URL createGroupURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         log.debug("createGroupURL request to " + createGroupURL.toString());
 
         // reset the state of the cache
@@ -255,7 +255,7 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, AccessControlException, IOException
     {
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL getGroupURL = new URL(groupsURL.toExternalForm() + "/" + groupName);
         log.debug("getGroup request to " + getGroupURL.toString());
 
@@ -311,7 +311,7 @@ public class GMSClient implements TransferListener
         throws AccessControlException, IOException
     {
         URL getGroupNamesURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
 
         log.debug("getGroupNames request to " + getGroupNamesURL.toString());
 
@@ -389,7 +389,7 @@ public class GMSClient implements TransferListener
                AccessControlException, WriterException, IOException
     {
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL updateGroupURL = new URL(groupsURL.toExternalForm() + "/" + group.getID());
         log.debug("updateGroup request to " + updateGroupURL.toString());
 
@@ -458,7 +458,7 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, AccessControlException, IOException
     {
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL deleteGroupURL = new URL(groupsURL.toExternalForm() + "/" + groupName);
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
 
@@ -527,7 +527,7 @@ public class GMSClient implements TransferListener
 
         String path = targetGroupName + "/groupMembers/" + groupMemberName;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL addGroupMemberURL = new URL(groupsURL.toExternalForm() + "/" +  path);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
 
@@ -588,7 +588,7 @@ public class GMSClient implements TransferListener
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
         String path = targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL addUserMemberURL = new URL(groupsURL.toExternalForm() + "/" + path);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
@@ -645,7 +645,7 @@ public class GMSClient implements TransferListener
 
         String path = targetGroupName + "/groupMembers/" + groupMemberName;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL removeGroupMemberURL = new URL(groupsURL.toExternalForm() + "/" + path);
         log.debug("removeGroupMember request to " +
                   removeGroupMemberURL.toString());
@@ -714,7 +714,7 @@ public class GMSClient implements TransferListener
         log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
         String path = targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL removeUserMemberURL = new URL(groupsURL.toExternalForm() + "/" + path);
 
         log.debug("removeUserMember: " + removeUserMemberURL.toString());
@@ -826,7 +826,7 @@ public class GMSClient implements TransferListener
         searchGroupPath.append("&ROLE=").append(NetUtil.encode(roleString));
 
         URL searchURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
         URL getMembershipsURL = new URL(searchURL.toExternalForm() + "/" + searchGroupPath.toString());
 
         log.debug("getMemberships request to " + getMembershipsURL.toString());
@@ -937,7 +937,7 @@ public class GMSClient implements TransferListener
         searchGroupPath.append("&GROUPID=").append(NetUtil.encode(groupName));
 
         URL searchURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01_URI, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
         URL getMembershipURL = new URL(searchURL.toExternalForm() + "/" + searchGroupPath.toString());
 
         log.debug("getMembership request to " + getMembershipURL.toString());

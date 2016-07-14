@@ -237,8 +237,12 @@ public class ACIdentityManager implements IdentityManager
             RegistryClient regClient = new RegistryClient();
             LocalAuthority localAuth = new LocalAuthority();
             URI serviceURI = localAuth.getServiceURI("gms");
-            URL serviceURL = regClient.getServiceURL(serviceURI, Standards.GMS_01_URI, AuthMethod.ANON);
-            URL availURL = new URL(serviceURL.toExternalForm() + "/availability");
+            URL serviceURL = regClient.getServiceURL(serviceURI, Standards.GMS_GROUPS_01, AuthMethod.ANON);
+
+            // Hack to strip off the groups endpoint to get the base url of the service.
+            String serviceUrl = serviceURL.toExternalForm();
+            int index = serviceUrl.lastIndexOf('/');
+            URL availURL =  new URL(serviceUrl.substring(0, index)+ "/availability");
             return new CheckWebService(availURL.toExternalForm());
         }
         catch (MalformedURLException e)

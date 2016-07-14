@@ -116,7 +116,7 @@ public class GMSClientTest
 
         final URI serviceID = URI.create("ivo://mysite.com/users");
 
-        expect(mockRegistryClient.getServiceURL(serviceID, Standards.UMS_USERS_01_URI, AuthMethod.CERT))
+        expect(mockRegistryClient.getServiceURL(serviceID, Standards.UMS_USERS_01, AuthMethod.CERT))
             .andReturn(new URL("http://mysite.com/users"));
 
         replay(mockRegistryClient);
@@ -154,7 +154,7 @@ public class GMSClientTest
         final RegistryClient mockRegistryClient =
                 createMock(RegistryClient.class);
 
-        expect(mockRegistryClient.getServiceURL(serviceID, Standards.GMS_GROUPS_01_URI, AuthMethod.CERT ))
+        expect(mockRegistryClient.getServiceURL(serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT ))
             .andReturn(new URL("http://mysite.com/users"));
 
         replay(mockRegistryClient);
