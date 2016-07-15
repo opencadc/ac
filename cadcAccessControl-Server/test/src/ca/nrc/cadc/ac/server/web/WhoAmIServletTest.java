@@ -82,6 +82,8 @@ import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.reg.Standards;
 import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -135,9 +137,12 @@ public class WhoAmIServletTest
         LocalAuthority localAuthority = new LocalAuthority();
         URI umsServiceURI = localAuthority.getServiceURI("ums");
 
-        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
-                                          "http", "/%s?idType=HTTP")).
-                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
+//        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
+//                                          "http", "/%s?idType=HTTP")).
+//                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
+
+        expect(mockRegistry.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.PASSWORD))
+            .andReturn(new URL("http://mysite.com/ac/users")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);
 

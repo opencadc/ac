@@ -79,6 +79,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -170,9 +172,8 @@ public class WhoAmIServlet extends HttpServlet
 
         log.debug("ums service uri: " + umsServiceURI);
 
-        final URL redirectURL =
-                registryClient.getServiceURL(
-                        URI.create(umsServiceURI.toString() + "#users"), scheme, USER_GET_PATH);
+        final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.PASSWORD);
+        final URL redirectURL = new URL(serviceURL.toExternalForm() + USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =
@@ -181,8 +182,7 @@ public class WhoAmIServlet extends HttpServlet
 
         log.debug("redirecting to " + redirectURI.toASCIIString());
 
-        response.sendRedirect(redirectURI.getPath() + "?"
-                              + redirectURI.getQuery());
+        response.sendRedirect(redirectURI.getPath() + "?" + redirectURI.getQuery());
     }
 
     /**
