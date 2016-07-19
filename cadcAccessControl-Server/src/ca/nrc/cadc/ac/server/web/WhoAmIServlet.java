@@ -169,10 +169,9 @@ public class WhoAmIServlet extends HttpServlet
 
         LocalAuthority localAuthority = new LocalAuthority();
         URI umsServiceURI = localAuthority.getServiceURI("ums");
-
         log.debug("ums service uri: " + umsServiceURI);
 
-        final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.PASSWORD);
+        final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT);
         final URL redirectURL = new URL(serviceURL.toExternalForm() + USER_GET_PATH);
 
         // Take the first one.
