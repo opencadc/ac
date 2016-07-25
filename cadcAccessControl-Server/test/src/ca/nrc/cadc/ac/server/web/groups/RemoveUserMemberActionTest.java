@@ -118,7 +118,7 @@ public class RemoveUserMemberActionTest
         {
             User user = new User();
             LocalAuthority localAuthority = new LocalAuthority();
-            URI umsServiceURI = localAuthority.getServiceURI("ums");
+            URI umsServiceURI = localAuthority.getServiceURI("ac");
             InternalID internalID = new InternalID(new URI(umsServiceURI.toASCIIString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 
@@ -172,7 +172,7 @@ public class RemoveUserMemberActionTest
         {
             User user = new User();
             LocalAuthority localAuthority = new LocalAuthority();
-            URI umsServiceURI = localAuthority.getServiceURI("ums");
+            URI umsServiceURI = localAuthority.getServiceURI("ac");
             InternalID internalID = new InternalID(new URI(umsServiceURI.toString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 

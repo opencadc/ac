@@ -135,7 +135,7 @@ public class WhoAmIServletTest
         expectLastCall().once();
 
         LocalAuthority localAuthority = new LocalAuthority();
-        URI umsServiceURI = localAuthority.getServiceURI("ums");
+        URI umsServiceURI = localAuthority.getServiceURI("ac");
 
 //        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
 //                                          "http", "/%s?idType=HTTP")).

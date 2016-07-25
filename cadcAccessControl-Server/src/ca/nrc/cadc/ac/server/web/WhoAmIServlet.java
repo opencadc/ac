@@ -168,7 +168,7 @@ public class WhoAmIServlet extends HttpServlet
         final RegistryClient registryClient = getRegistryClient();
 
         LocalAuthority localAuthority = new LocalAuthority();
-        URI umsServiceURI = localAuthority.getServiceURI("ums");
+        URI umsServiceURI = localAuthority.getServiceURI("ac");
 
         log.debug("ums service uri: " + umsServiceURI);
 

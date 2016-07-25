@@ -156,7 +156,7 @@ public abstract class AbstractReaderWriter
     public AbstractReaderWriter()
     {
         LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI("gms");
+        URI serviceURI = localAuthority.getServiceURI("ac");
         gmsServiceURI = serviceURI.toString();
     }
 

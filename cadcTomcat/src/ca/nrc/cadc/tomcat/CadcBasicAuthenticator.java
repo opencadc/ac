@@ -97,7 +97,7 @@ public class CadcBasicAuthenticator extends RealmBase
 {
 
     private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/ums";
+    private static final String AC_URI = "ivo://cadc.nrc.ca/ac";
 
     static
     {

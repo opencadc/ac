@@ -739,7 +739,7 @@ public class LdapUserDAO extends LdapDAO
 
             // cache memberOf values in the user
             LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI("gms");
+            URI gmsServiceURI = localAuthority.getServiceURI("ac");
 
             GroupMemberships gms = new GroupMemberships(gmsServiceURI.toString(), userID);
             user.appData = gms; // add even if empty
@@ -1277,7 +1277,7 @@ public class LdapUserDAO extends LdapDAO
     {
         UUID uuid = new UUID(0L, Long.parseLong(numericID));
         LocalAuthority localAuthority = new LocalAuthority();
-        URI umsServiceURI = localAuthority.getServiceURI("ums");
+        URI umsServiceURI = localAuthority.getServiceURI("ac");
         String uriString = umsServiceURI.toString() + "?" + uuid.toString();
         URI uri;
         try

@@ -101,7 +101,7 @@ public class UserClientTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         LocalAuthority localAuthority = new LocalAuthority();
-        umsServiceURI = localAuthority.getServiceURI("ums");
+        umsServiceURI = localAuthority.getServiceURI("ac");
     }
 
     @Test
