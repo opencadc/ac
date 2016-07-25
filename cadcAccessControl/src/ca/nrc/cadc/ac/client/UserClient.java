@@ -145,7 +145,7 @@ public class UserClient
     	{
 
 	        String userID = principal.getName();
-	        String path = NetUtil.encode(userID) + "?idType=" + this.getIdType(principal) + "&detail=identity";
+	        String path = "/" + NetUtil.encode(userID) + "?idType=" + this.getIdType(principal) + "&detail=identity";
 
 	        // augment subject calls are always https with client certs
             URL usersURL = getRegistryClient()
@@ -254,7 +254,7 @@ public class UserClient
         userWriter.write(user, userXML);
 
         URL createUserURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_REQS_01, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
 
         if (createUserURL == null)
             throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01);

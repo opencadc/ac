@@ -525,10 +525,10 @@ public class GMSClient implements TransferListener
                AccessControlException, IOException
     {
 
-        String path = targetGroupName + "/groupMembers/" + groupMemberName;
+        String path = "/" + targetGroupName + "/groupMembers/" + groupMemberName;
         URL groupsURL = getRegistryClient()
             .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL addGroupMemberURL = new URL(groupsURL.toExternalForm() + "/" +  path);
+        URL addGroupMemberURL = new URL(groupsURL.toExternalForm() + path);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
 
         // reset the state of the cache
@@ -586,10 +586,10 @@ public class GMSClient implements TransferListener
         log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
 
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String path = targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
+        String path = "/" + targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
         URL groupsURL = getRegistryClient()
             .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL addUserMemberURL = new URL(groupsURL.toExternalForm() + "/" + path);
+        URL addUserMemberURL = new URL(groupsURL.toExternalForm() + path);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
 
@@ -643,10 +643,10 @@ public class GMSClient implements TransferListener
         throws GroupNotFoundException, AccessControlException, IOException
     {
 
-        String path = targetGroupName + "/groupMembers/" + groupMemberName;
+        String path = "/" + targetGroupName + "/groupMembers/" + groupMemberName;
         URL groupsURL = getRegistryClient()
             .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL removeGroupMemberURL = new URL(groupsURL.toExternalForm() + "/" + path);
+        URL removeGroupMemberURL = new URL(groupsURL.toExternalForm() + path);
         log.debug("removeGroupMember request to " +
                   removeGroupMemberURL.toString());
 
@@ -712,10 +712,10 @@ public class GMSClient implements TransferListener
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
 
         log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
-        String path = targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
+        String path = "/" + targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
         URL groupsURL = getRegistryClient()
             .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL removeUserMemberURL = new URL(groupsURL.toExternalForm() + "/" + path);
+        URL removeUserMemberURL = new URL(groupsURL.toExternalForm() + path);
 
         log.debug("removeUserMember: " + removeUserMemberURL.toString());
 
@@ -827,7 +827,7 @@ public class GMSClient implements TransferListener
 
         URL searchURL = getRegistryClient()
             .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
-        URL getMembershipsURL = new URL(searchURL.toExternalForm() + "/" + searchGroupPath.toString());
+        URL getMembershipsURL = new URL(searchURL.toExternalForm() + searchGroupPath.toString());
 
         log.debug("getMemberships request to " + getMembershipsURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -938,7 +938,7 @@ public class GMSClient implements TransferListener
 
         URL searchURL = getRegistryClient()
             .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
-        URL getMembershipURL = new URL(searchURL.toExternalForm() + "/" + searchGroupPath.toString());
+        URL getMembershipURL = new URL(searchURL.toExternalForm() + searchGroupPath.toString());
 
         log.debug("getMembership request to " + getMembershipURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
