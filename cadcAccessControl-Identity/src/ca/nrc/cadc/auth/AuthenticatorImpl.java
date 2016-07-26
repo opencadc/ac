@@ -74,7 +74,7 @@ public class AuthenticatorImpl implements Authenticator
         {
             RegistryClient regClient = new RegistryClient();
             LocalAuthority localAuth = new LocalAuthority();
-            URI serviceURI = localAuth.getServiceURI("gms");
+            URI serviceURI = localAuth.getServiceURI(Standards.GMS_GROUPS_01.toString());
             URL serviceURL = regClient.getServiceURL(serviceURI, Standards.GMS_GROUPS_01, AuthMethod.ANON);
 
             // Hack to strip off the groups endpoint to get the base url of the service.

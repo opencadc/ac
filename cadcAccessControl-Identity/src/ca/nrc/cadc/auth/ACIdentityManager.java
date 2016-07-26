@@ -110,7 +110,7 @@ public class ACIdentityManager implements IdentityManager
             public NumericPrincipal run() throws Exception
             {
                 LocalAuthority localAuth = new LocalAuthority();
-                URI serviceURI = localAuth.getServiceURI("ums");
+                URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toString());
 
                 UserClient userClient = new UserClient(serviceURI);
                 User newUser = userClient.createUser(x500Principal);
@@ -206,7 +206,7 @@ public class ACIdentityManager implements IdentityManager
                 public Object run() throws Exception
                 {
                     LocalAuthority localAuth = new LocalAuthority();
-                    URI serviceURI = localAuth.getServiceURI("ums");
+                    URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toString());
 
                     UserClient userClient = new UserClient(serviceURI);
                     userClient.augmentSubject(subject);
@@ -236,7 +236,7 @@ public class ACIdentityManager implements IdentityManager
         {
             RegistryClient regClient = new RegistryClient();
             LocalAuthority localAuth = new LocalAuthority();
-            URI serviceURI = localAuth.getServiceURI("gms");
+            URI serviceURI = localAuth.getServiceURI(Standards.GMS_GROUPS_01.toString());
             URL serviceURL = regClient.getServiceURL(serviceURI, Standards.GMS_GROUPS_01, AuthMethod.ANON);
 
             // Hack to strip off the groups endpoint to get the base url of the service.
