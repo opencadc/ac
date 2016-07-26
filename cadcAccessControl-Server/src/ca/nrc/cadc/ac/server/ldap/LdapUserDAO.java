@@ -100,6 +100,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.StringUtil;
@@ -739,7 +740,7 @@ public class LdapUserDAO extends LdapDAO
 
             // cache memberOf values in the user
             LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI("ac");
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
 
             GroupMemberships gms = new GroupMemberships(gmsServiceURI.toString(), userID);
             user.appData = gms; // add even if empty
@@ -1277,7 +1278,7 @@ public class LdapUserDAO extends LdapDAO
     {
         UUID uuid = new UUID(0L, Long.parseLong(numericID));
         LocalAuthority localAuthority = new LocalAuthority();
-        URI umsServiceURI = localAuthority.getServiceURI("ac");
+        URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_REQS_01.toString());
         String uriString = umsServiceURI.toString() + "?" + uuid.toString();
         URI uri;
         try

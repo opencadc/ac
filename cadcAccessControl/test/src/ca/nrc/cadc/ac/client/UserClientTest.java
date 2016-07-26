@@ -86,6 +86,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 
@@ -101,7 +102,7 @@ public class UserClientTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         LocalAuthority localAuthority = new LocalAuthority();
-        umsServiceURI = localAuthority.getServiceURI("ac");
+        umsServiceURI = localAuthority.getServiceURI(Standards.UMS_USERS_01.toString());
     }
 
     @Test

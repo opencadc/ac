@@ -104,6 +104,7 @@ import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 
 /**
@@ -156,7 +157,7 @@ public abstract class AbstractReaderWriter
     public AbstractReaderWriter()
     {
         LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI("ac");
+        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
         gmsServiceURI = serviceURI.toString();
     }
 

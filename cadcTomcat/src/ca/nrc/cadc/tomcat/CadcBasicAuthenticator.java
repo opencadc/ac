@@ -83,6 +83,8 @@ import org.apache.catalina.realm.RealmBase;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.reg.Standards;
+
 /**
  * Custom class for Tomcat realm authentication.
  *
@@ -97,7 +99,7 @@ public class CadcBasicAuthenticator extends RealmBase
 {
 
     private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://cadc.nrc.ca/ac";
+    private static final String AC_URI = Standards.UMS_LOGIN_01.toString();
 
     static
     {
