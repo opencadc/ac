@@ -71,7 +71,6 @@
 package ca.nrc.cadc.tomcat;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 import junit.framework.Assert;
 
@@ -80,10 +79,12 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+
 public class CadcBasicAuthenticatorTest
 {
 
-    private static Logger log = Logger.getLogger(CadcBasicAuthenticatorTest.class);
+    private static Logger log =
+            Logger.getLogger(CadcBasicAuthenticatorTest.class);
 
     static
     {
@@ -97,7 +98,8 @@ public class CadcBasicAuthenticatorTest
         try
         {
             TestAuthenticator auth = new TestAuthenticator(true);
-            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user",
+                                                                      "pass");
 
             Assert.assertNotNull(p);
             Assert.assertEquals("wrong num roles", 1, p.getRoles().length);
@@ -117,7 +119,8 @@ public class CadcBasicAuthenticatorTest
         try
         {
             TestAuthenticator auth = new TestAuthenticator(false);
-            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user", "pass");
+            GenericPrincipal p = (GenericPrincipal) auth.authenticate("user",
+                                                                      "pass");
 
             Assert.assertNull(p);
         }
@@ -138,8 +141,7 @@ public class CadcBasicAuthenticatorTest
         }
 
         @Override
-        boolean login(String username, String credentials)
-                throws URISyntaxException, IOException
+        boolean login(String username, String credentials) throws IOException
         {
             return authenticate;
         }

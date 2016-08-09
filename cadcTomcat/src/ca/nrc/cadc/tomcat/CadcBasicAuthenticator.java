@@ -71,11 +71,9 @@ package ca.nrc.cadc.tomcat;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.catalina.realm.GenericPrincipal;
@@ -83,11 +81,12 @@ import org.apache.catalina.realm.RealmBase;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+
 /**
  * Custom class for Tomcat realm authentication.
- *
+ * <p>
  * This class was written against the Apache Tomcat 7 (7.0.33.0) API
- *
+ * <p>
  * Authentication checks are performed as REST calls to servers
  * implementing the cadcAccessControl-Server code.
  *
@@ -97,13 +96,26 @@ public class CadcBasicAuthenticator extends RealmBase
 {
 
     private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
-    private static final String AC_URI = "ivo://ivoa.net/std/UMS#login-0.1";
+
+    private String loginURL;
+
 
     static
     {
         RealmUtil.initLogging();
         Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
     }
+
+    /**
+     * Set the login URL for the current host.  Used by the realm configuration.
+     *
+     * @param loginURL      The String login URL.
+     */
+    public void setLoginURL(final String loginURL)
+    {
+        this.loginURL = loginURL;
+    }
+
 
     @Override
     protected String getName()
@@ -139,7 +151,7 @@ public class CadcBasicAuthenticator extends RealmBase
             if (valid)
             {
                 // authentication ok, add public role
-                List<String> roles = Arrays.asList("public");
+                List<String> roles = Collections.singletonList("public");
 
                 // Don't want to return the password here in the principal
                 // in case it makes it into the servlet somehow
@@ -151,7 +163,8 @@ public class CadcBasicAuthenticator extends RealmBase
         catch (Throwable t)
         {
             success = false;
-            String message = "Could not do http basic authentication: " + t.getMessage();
+            String message = "Could not do http basic authentication: "
+                             + t.getMessage();
             log.error(message, t);
             throw new IllegalStateException(message, t);
         }
@@ -159,28 +172,30 @@ public class CadcBasicAuthenticator extends RealmBase
         {
             long duration = System.currentTimeMillis() - start;
 
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            json.append("\"method\":\"AUTH\",");
-            json.append("\"user\":\"" + username + "\",");
-            json.append("\"success\":" + success + ",");
-            json.append("\"time\":" + duration);
-            json.append("}");
+            // Converted from StringBuilder as it was unnecessary.
+            // jenkinsd 2016.08.09
+            String json = "{" +
+                          "\"method\":\"AUTH\"," +
+                          "\"user\":\"" + username + "\"," +
+                          "\"success\":" + success + "," +
+                          "\"time\":" + duration +
+                          "}";
 
-            log.info(json.toString());
+            log.info(json);
         }
     }
 
     boolean login(String username, String credentials)
-            throws URISyntaxException, IOException
+            throws IOException
     {
-        RealmRegistryClient registryClient = new RealmRegistryClient();
-        URL loginURL = registryClient.getServiceURL(
-            new URI(AC_URI + "#login"), "http", "");
-
+        AuthenticationLookup registryClient = new AuthenticationLookup();
+        URL authServiceURL =
+                registryClient.configureAuthenticationServiceURL(
+                        new URL(loginURL));
         String post = "username=" + username + "&password=" + credentials;
 
-        HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
+        HttpURLConnection conn =
+                (HttpURLConnection) authServiceURL.openConnection();
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
 
@@ -190,7 +205,7 @@ public class CadcBasicAuthenticator extends RealmBase
         int responseCode = conn.getResponseCode();
 
         log.debug("Http POST to /ac/login returned " +
-                responseCode + " for user " + username);
+                  responseCode + " for user " + username);
 
         if (responseCode != 200)
         {
@@ -199,7 +214,8 @@ public class CadcBasicAuthenticator extends RealmBase
             {
                 // not an unauthorized, so log the
                 // possible server side error
-                String errorMessage = "Error calling /ac/login, error code: " + responseCode;
+                String errorMessage = "Error calling /ac/login, error code: "
+                                      + responseCode;
                 throw new IllegalStateException(errorMessage);
             }
 
@@ -209,7 +225,6 @@ public class CadcBasicAuthenticator extends RealmBase
 
         return true;
     }
-
 
 
 }

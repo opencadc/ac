@@ -136,7 +136,7 @@
             </classpath>
 
             <test name="ca.nrc.cadc.tomcat.CadcBasicAuthenticatorTest"/>
-            <test name="ca.nrc.cadc.tomcat.RealmRegistryClientTest"/>
+            <test name="ca.nrc.cadc.tomcat.AuthenticationLookupTest"/>
             <formatter type="plain" usefile="false"/>
         </junit>
     </target>

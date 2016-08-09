@@ -70,6 +70,7 @@
 package ca.nrc.cadc.tomcat;
 
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 
@@ -84,12 +85,12 @@ import org.junit.Test;
 
 
 /**
- *
  * @author pdowler
  */
-public class RealmRegistryClientTest
+public class AuthenticationLookupTest
 {
-    private static Logger log = Logger.getLogger(RealmRegistryClientTest.class);
+    private static Logger log = Logger
+            .getLogger(AuthenticationLookupTest.class);
 
     static
     {
@@ -130,120 +131,58 @@ public class RealmRegistryClientTest
     {
     }
 
-    static String DUMMY_URI = "ivo://example.com/srv";
-    static String DUMMY_URL = "http://www.example.com/current/path/to/my/service";
-    static String DUMMY_CERT_URL = "https://www.example.com/current/path/to/my/service";
-    static String DUMMY_PASSWORD_URL = "http://www.example.com/current/path/to/my/auth-service";
-    static String DUMMY_TOKEN_URL = DUMMY_URL;
-    static String DUMMY_COOKIE_URL = DUMMY_URL;
+    static URL DUMMY_URL;
 
-    @Test
-    public void testNotFound() throws Exception
+    static
     {
         try
         {
-            RealmRegistryClient rc = new RealmRegistryClient();
-
-            URL url = rc.getServiceURL(new URI("ivo://foo/bar"), null, null);
-            Assert.assertNull(url);
+            DUMMY_URL = new URL(
+                    "http://www.example.com/current/path/to/my/service");
         }
-        catch(Exception unexpected)
+        catch (MalformedURLException e)
         {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
+            // Will never happen.
         }
     }
+
 
     @Test
     public void testFound() throws Exception
     {
-        try
-        {
-            RealmRegistryClient rc = new RealmRegistryClient();
+        AuthenticationLookup authLookup = new AuthenticationLookup();
 
-            URL expected = new URL(DUMMY_URL);
-            URL url = rc.getServiceURL(new URI(DUMMY_URI), null, null);
-            Assert.assertEquals(expected, url);
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
+        URL url = authLookup.configureAuthenticationServiceURL(DUMMY_URL);
+        Assert.assertEquals(DUMMY_URL, url);
     }
 
-    @Test
-    public void testFoundViaConfigFile() throws Exception
-    {
-        String home = System.getProperty("user.home");
-        try
-        {
-            String fakeHome = System.getProperty("user.dir") + "/test";
-            log.debug("setting user.home = " + fakeHome);
-            System.setProperty("user.home", fakeHome);
-            RealmRegistryClient rc = new RealmRegistryClient();
-
-            URL expected = new URL("http://alt.example.com/current/path/to/my/service");
-            URL url = rc.getServiceURL(new URI("ivo://example.com/srv"), "http", null);
-            Assert.assertEquals(expected, url);
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-        finally
-        {
-            // reset
-            System.setProperty("user.home", home);
-        }
-    }
-
-
-    @Test
-    public void testFoundWithProtocol() throws Exception
-    {
-        try
-        {
-            RealmRegistryClient rc = new RealmRegistryClient();
-
-            URL expected = new URL(DUMMY_URL);
-            URL url = rc.getServiceURL(new URI(DUMMY_URI), "http", null);
-            Assert.assertEquals(expected, url);
-
-            expected = new URL(DUMMY_CERT_URL);
-            url = rc.getServiceURL(new URI(DUMMY_URI), "https", null);
-            Assert.assertEquals(expected, url);
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
 
     @Test
     public void testFoundLocal() throws Exception
     {
         try
         {
-            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.local", "true");
-            RealmRegistryClient rc = new RealmRegistryClient();
+            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.local",
+                               "true");
+            AuthenticationLookup authLookup = new AuthenticationLookup();
 
-            String localhost = InetAddress.getLocalHost().getCanonicalHostName();
-            URL expected = new URL("http://" + localhost + "/current/path/to/my/service");
+            String localhost = InetAddress.getLocalHost()
+                    .getCanonicalHostName();
+            URL expected = new URL("http://" + localhost
+                                   + "/current/path/to/my/service");
 
-            URL url = rc.getServiceURL(new URI(DUMMY_URI), null, null);
+            URL url = authLookup.configureAuthenticationServiceURL(DUMMY_URL);
             Assert.assertEquals(expected, url);
         }
-        catch(Exception unexpected)
+        catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
         finally
         {
-            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.local", "false");
+            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.local",
+                               "false");
         }
     }
 
@@ -252,23 +191,27 @@ public class RealmRegistryClientTest
     {
         try
         {
-            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.host", "foo.bar.com");
-            RealmRegistryClient rc = new RealmRegistryClient();
+            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.host",
+                               "foo.bar.com");
+            AuthenticationLookup authLookup = new AuthenticationLookup();
 
-            URL url = rc.getServiceURL(new URI(DUMMY_URI), null, null);
-            Assert.assertEquals("http://foo.bar.com/current/path/to/my/service", url.toExternalForm());
+            URL url = authLookup.configureAuthenticationServiceURL(DUMMY_URL);
+            Assert.assertEquals("http://foo.bar.com/current/path/to/my/service",
+                                url.toExternalForm());
 
-            url = rc.getServiceURL(new URI(DUMMY_URI), null, null);
-            Assert.assertEquals("http://foo.bar.com/current/path/to/my/service", url.toExternalForm());
+            url = authLookup.configureAuthenticationServiceURL(DUMMY_URL);
+            Assert.assertEquals("http://foo.bar.com/current/path/to/my/service",
+                                url.toExternalForm());
         }
-        catch(Exception unexpected)
+        catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
         finally
         {
-            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.host", "");
+            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.host",
+                               "");
         }
     }
 
@@ -277,21 +220,26 @@ public class RealmRegistryClientTest
     {
         try
         {
-            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.shortHostname", "foo");
-            RealmRegistryClient rc = new RealmRegistryClient();
+            System.setProperty(
+                    "ca.nrc.cadc.reg.client.RegistryClient.shortHostname",
+                    "foo");
+            AuthenticationLookup authLookup = new AuthenticationLookup();
 
-            URL url = rc.getServiceURL(new URI(DUMMY_URI), null, null);
-            Assert.assertEquals("http://foo.example.com/current/path/to/my/service", url.toExternalForm());
+            URL url = authLookup.configureAuthenticationServiceURL(DUMMY_URL);
+            Assert.assertEquals(
+                    "http://foo.example.com/current/path/to/my/service",
+                    url.toExternalForm());
 
         }
-        catch(Exception unexpected)
+        catch (Exception unexpected)
         {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
         finally
         {
-            System.setProperty("ca.nrc.cadc.reg.client.RegistryClient.shortHostname", "");
+            System.setProperty(
+                    "ca.nrc.cadc.reg.client.RegistryClient.shortHostname", "");
         }
     }
 }
