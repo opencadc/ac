@@ -1,6 +1,5 @@
 package ca.nrc.cadc.auth;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 
@@ -10,6 +9,7 @@ import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.avail.CheckResource;
@@ -69,17 +69,10 @@ public class AuthenticatorImpl implements Authenticator
 
     public static CheckResource getAvailabilityCheck()
     {
-        try
-        {
-            RegistryClient regClient = new RegistryClient();
-            LocalAuthority localAuth = new LocalAuthority();
-            URI serviceURI = localAuth.getServiceURI("gms");
-            URL availURL = regClient.getServiceURL(serviceURI, "http", "/availability");
-            return new CheckWebService(availURL.toExternalForm());
-        }
-        catch (MalformedURLException e)
-        {
-            throw new RuntimeException(e);
-        }
+        RegistryClient regClient = new RegistryClient();
+        LocalAuthority localAuth = new LocalAuthority();
+        URI serviceURI = localAuth.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        URL availURL = regClient.getServiceURL(serviceURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+        return new CheckWebService(availURL.toExternalForm());
     }
 }

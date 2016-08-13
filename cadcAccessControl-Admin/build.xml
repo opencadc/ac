@@ -93,6 +93,7 @@
   <!-- JAR files to be included in classpath and war file -->
   <property name="cadcAC" value="${lib}/cadcAccessControl.jar"/>
   <property name="cadcAC-Server" value="${lib}/cadcAccessControl-Server.jar"/>
+  <property name="cadcReg" value="${lib}/cadcRegistry.jar"/>
   <property name="cadcLog" value="${lib}/cadcLog.jar"/>
   <property name="cadcUtil" value="${lib}/cadcUtil.jar"/>
   <property name="log4j" value="${ext.lib}/log4j.jar"/>
@@ -102,16 +103,21 @@
   <property name="mail" value="${ext.lib}/mail.jar"/>
 
   <property name="cadc" value="${cadcAC}:${cadcAC-Server}:${cadcUtil}"/>
-  <property name="client.cadc.jars" value="${cadcAC}:${cadcAC-Server}:${cadcLog}:${cadcUtil}"/>
+  <property name="client.cadc.jars" value="${cadcAC}:${cadcAC-Server}:${cadcLog}:${cadcUtil}:${cadcReg}"/>
   <property name="client.external.jars" value="${unboundid}:${log4j}:${servlet-api}:${mail}"/>
 
   <property name="jars" value="${cadc}:${client.cadc.jars}:${client.external.jars}"/>
 
-  <target name="build" depends="compile,manifest">
+  <target name="copyResources" depends="compile">
+    <copy overwrite="true"
+      file="${env.A}/etc/LocalAuthority.properties"
+      tofile="${build}/class/LocalAuthority.properties"/>
+  </target>
+
+  <target name="build" depends="compile,copyResources,manifest">
     <jar jarfile="${build}/lib/${project}.jar"
          basedir="${build}/class" update="no"
          manifest="${build}/tmp/${project}.mf">
-      <include name="ca/nrc/cadc/**"/>
     </jar>
   </target>
 

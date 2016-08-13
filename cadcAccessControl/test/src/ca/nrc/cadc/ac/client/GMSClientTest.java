@@ -81,6 +81,8 @@ import java.util.List;
 
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
@@ -112,13 +114,20 @@ public class GMSClientTest
         final RegistryClient mockRegistryClient =
                 createMock(RegistryClient.class);
 
-        final URI serviceURI = URI.create("http://mysite.com/users");
+        final URI serviceID = URI.create("ivo://mysite.com/users");
 
-        expect(mockRegistryClient.getServiceURL(serviceURI, "https")).andReturn(
-                new URL("http://mysite.com/users/endpoint"));
+        expect(mockRegistryClient.getServiceURL(serviceID, Standards.UMS_USERS_01, AuthMethod.CERT))
+            .andReturn(new URL("http://mysite.com/users"));
 
         replay(mockRegistryClient);
-        GMSClient client = new GMSClient(serviceURI, mockRegistryClient);
+        GMSClient client = new GMSClient(serviceID)
+        {
+            @Override
+            protected RegistryClient getRegistryClient()
+            {
+                return mockRegistryClient;
+            }
+        };
 
         Assert.assertFalse(client.userIsSubject(null, null));
         Assert.assertFalse(client.userIsSubject(userID, null));
@@ -141,16 +150,22 @@ public class GMSClientTest
         final HttpPrincipal test1UserID = new HttpPrincipal("test");
         subject.getPrincipals().add(test1UserID);
 
-        final URI serviceURI = URI.create("http://mysite.com/users");
+        final URI serviceID = URI.create("ivo://mysite.com/users");
         final RegistryClient mockRegistryClient =
                 createMock(RegistryClient.class);
 
-        expect(mockRegistryClient.getServiceURL(serviceURI, "https")).andReturn(
-                new URL("http://mysite.com/users/endpoint"));
+        expect(mockRegistryClient.getServiceURL(serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT ))
+            .andReturn(new URL("http://mysite.com/users"));
 
         replay(mockRegistryClient);
-        final GMSClient client = new GMSClient(serviceURI, mockRegistryClient);
-
+        final GMSClient client = new GMSClient(serviceID)
+        {
+            @Override
+            protected RegistryClient getRegistryClient()
+            {
+                return mockRegistryClient;
+            }
+        };
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {

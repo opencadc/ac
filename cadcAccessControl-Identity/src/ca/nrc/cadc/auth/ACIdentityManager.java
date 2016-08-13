@@ -1,7 +1,6 @@
 package ca.nrc.cadc.auth;
 
 import java.io.File;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.security.Principal;
@@ -20,6 +19,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.client.UserClient;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.avail.CheckResource;
@@ -109,7 +109,7 @@ public class ACIdentityManager implements IdentityManager
             public NumericPrincipal run() throws Exception
             {
                 LocalAuthority localAuth = new LocalAuthority();
-                URI serviceURI = localAuth.getServiceURI("ums");
+                URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toString());
 
                 UserClient userClient = new UserClient(serviceURI);
                 User newUser = userClient.createUser(x500Principal);
@@ -205,7 +205,7 @@ public class ACIdentityManager implements IdentityManager
                 public Object run() throws Exception
                 {
                     LocalAuthority localAuth = new LocalAuthority();
-                    URI serviceURI = localAuth.getServiceURI("ums");
+                    URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toString());
 
                     UserClient userClient = new UserClient(serviceURI);
                     userClient.augmentSubject(subject);
@@ -231,17 +231,10 @@ public class ACIdentityManager implements IdentityManager
      */
     public static CheckResource getAvailabilityCheck()
     {
-        try
-        {
-            RegistryClient regClient = new RegistryClient();
-            LocalAuthority localAuth = new LocalAuthority();
-            URI serviceURI = localAuth.getServiceURI("gms");
-            URL availURL = regClient.getServiceURL(serviceURI, "http", "/availability");
-            return new CheckWebService(availURL.toExternalForm());
-        }
-        catch (MalformedURLException e)
-        {
-            throw new RuntimeException(e);
-        }
+        RegistryClient regClient = new RegistryClient();
+        LocalAuthority localAuth = new LocalAuthority();
+        URI serviceURI = localAuth.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        URL availURL = regClient.getServiceURL(serviceURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+        return new CheckWebService(availURL.toExternalForm());
     }
 }

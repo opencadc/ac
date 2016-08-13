@@ -82,15 +82,31 @@ import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.reg.Standards;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.Log4jInit;
 
 
 public class WhoAmIServletTest
 {
+    private final static Logger log = Logger.getLogger(WhoAmIServletTest.class);
+
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
     @Test
     public void doGet() throws Exception
     {
@@ -133,11 +149,14 @@ public class WhoAmIServletTest
         expectLastCall().once();
 
         LocalAuthority localAuthority = new LocalAuthority();
-        URI umsServiceURI = localAuthority.getServiceURI("ums");
+        URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_WHOAMI_01.toString());
 
-        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
-                                          "http", "/%s?idType=HTTP")).
-                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
+//        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
+//                                          "http", "/%s?idType=HTTP")).
+//                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
+
+        expect(mockRegistry.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT))
+            .andReturn(new URL("http://mysite.com/ac/users")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);
 

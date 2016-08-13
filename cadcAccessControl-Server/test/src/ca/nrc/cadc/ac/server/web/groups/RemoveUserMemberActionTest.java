@@ -92,6 +92,7 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.ObjectUtil;
@@ -118,7 +119,7 @@ public class RemoveUserMemberActionTest
         {
             User user = new User();
             LocalAuthority localAuthority = new LocalAuthority();
-            URI umsServiceURI = localAuthority.getServiceURI("ums");
+            URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_REQS_01.toString());
             InternalID internalID = new InternalID(new URI(umsServiceURI.toASCIIString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 
@@ -172,7 +173,7 @@ public class RemoveUserMemberActionTest
         {
             User user = new User();
             LocalAuthority localAuthority = new LocalAuthority();
-            URI umsServiceURI = localAuthority.getServiceURI("ums");
+            URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_REQS_01.toString());
             InternalID internalID = new InternalID(new URI(umsServiceURI.toString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 

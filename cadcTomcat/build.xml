@@ -86,7 +86,7 @@
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
 
-    <property name="cadc"               value="${lib}/cadcUtil.jar" />
+    <property name="cadc"               value="${lib}/cadcUtil.jar:${lib}/cadcRegistry.jar" />
     <property name="log4j"              value="${ext.lib}/log4j.jar" />
     <property name="tomcat"             value="${ext.lib}/catalina.jar:${ext.lib}/tomcat-util.jar:${ext.lib}/tomcat-coyote.jar" />
     <property name="jars"               value="${cadc}:${log4j}:${tomcat}" />
@@ -136,7 +136,7 @@
             </classpath>
 
             <test name="ca.nrc.cadc.tomcat.CadcBasicAuthenticatorTest"/>
-            <test name="ca.nrc.cadc.tomcat.RealmRegistryClientTest"/>
+            <test name="ca.nrc.cadc.tomcat.AuthenticationLookupTest"/>
             <formatter type="plain" usefile="false"/>
         </junit>
     </target>
