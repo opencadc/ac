@@ -16,16 +16,19 @@ repositories {
 }
 
 sourceCompatibility = 1.7
-group = 'opencadc'
+group = 'org.opencadc'
 
 version = '1.0'
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
+    compile 'org.apache.tomcat:tomcat-catalina:7.0.+'
+    compile 'org.apache.tomcat:tomcat-coyote:7.0.+'
 
-    compile 'opencadc:cadcUtil:1.+'
-    compile 'opencadc:cadcLog:1.+'
-    compile 'opencadc:cadcRegistry:1.+'
-    compile 'opencadc:cadcVOSI:1.+'
-    compile 'opencadc:cadcAccessControl:1.+'
+    compile 'org.opencadc:cadc-util:1.+'
+    compile 'org.opencadc:cadc-registry:1.+'
+
+    testCompile 'junit:junit:4.+'
+    testCompile 'javax.servlet:javax.servlet-api:3.1.+'
+    testCompile 'commons-logging:commons-logging:1.+'
 }
