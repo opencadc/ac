@@ -1,0 +1,6 @@
+language: java
+jdk:
+  - openjdk7
+  - oraclejdk8
+script: for mod in cadcAccessControl  cadcAccessControl-Admin  cadcAccessControl-Identity  cadcAccessControl-Server  cadcTomcat; do cd $mod; gradle assemble check install; cd ..; done
+
