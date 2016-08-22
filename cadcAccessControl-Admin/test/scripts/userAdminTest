@@ -1,3 +1,0 @@
-#!/bin/bash
-
-java -Dca.nrc.cadc.util.PropertiesReader.dir=test -Xmx128m -jar ${CADC_ROOT}/lib/userAdmin.jar $*

@@ -1,0 +1,2 @@
+#LDAP server   user DN                                    password
+devLdap        uid=testuser,ou=testorg,dc=test            secret      NA      NA
