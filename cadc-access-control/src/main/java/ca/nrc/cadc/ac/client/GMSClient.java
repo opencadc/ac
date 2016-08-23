@@ -76,7 +76,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
@@ -999,7 +998,7 @@ public class GMSClient implements TransferListener
      * Check group membership of the current Subject.
      *
      * @param groupName
-     * @return
+     * @return true if the current Subject is a member of the group, false otherwise
      * @throws UserNotFoundException
      * @throws AccessControlException
      * @throws IOException
@@ -1014,7 +1013,7 @@ public class GMSClient implements TransferListener
      *
      * @param groupName
      * @param role
-     * @return
+     * @return true if the current Subject is a member of the group with the specified role, false otherwise
      * @throws UserNotFoundException
      * @throws AccessControlException
      * @throws IOException

@@ -254,7 +254,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
      *
      * @param role
      * @param groupID check membership in a specific group or null to get all groups
-     * @return
+     * @return the groups
      * @throws UserNotFoundException
      * @throws GroupNotFoundException
      * @throws TransientException

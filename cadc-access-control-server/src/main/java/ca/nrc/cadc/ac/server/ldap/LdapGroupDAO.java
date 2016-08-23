@@ -161,7 +161,6 @@ public class LdapGroupDAO extends LdapDAO
      * Persists a group.
      *
      * @param group The group to create
-     * @return created group
      * @throws GroupAlreadyExistsException If a group with the same ID already
      *                                     exists.
      * @throws TransientException          If an temporary, unexpected problem occurred.
@@ -791,7 +790,7 @@ public class LdapGroupDAO extends LdapDAO
 
     /**
      * @param groupID
-     * @return
+     * @return the Distinguished Name of the group
      */
     protected DN getGroupDN(final String groupID) throws TransientException
     {
@@ -809,7 +808,7 @@ public class LdapGroupDAO extends LdapDAO
 
     /**
      * @param groupID
-     * @return
+     * @return the Distinguished Name of the admin group
      */
     protected DN getAdminGroupDN(final String groupID) throws TransientException
     {

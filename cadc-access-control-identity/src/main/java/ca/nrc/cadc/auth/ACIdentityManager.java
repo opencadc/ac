@@ -227,7 +227,7 @@ public class ACIdentityManager implements IdentityManager
     /**
      * The returned CheckResource is the same as the one from AuthenticatorImpl.
      *
-     * @return
+     * @return the CheckResource
      */
     public static CheckResource getAvailabilityCheck()
     {

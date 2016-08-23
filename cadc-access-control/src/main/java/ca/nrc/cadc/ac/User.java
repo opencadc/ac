@@ -168,7 +168,7 @@ public class User
      * of this Users set of identities.
      *
      * @param superset
-     * @return
+     * @return true if the user is consistent, false otherwise
      */
     public boolean isConsistent(final User superset)
     {
