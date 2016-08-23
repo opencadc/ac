@@ -158,7 +158,6 @@ public interface GroupPersistence
     /**
      * Obtain a Collection of Groups that fit the given query.
      *
-     * @param userID The userID.
      * @param role Role of the user, either owner, member, or read/write.
      * @param groupID The Group ID.
      *

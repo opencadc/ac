@@ -84,7 +84,7 @@ public class PosixDetails
     public String loginShell;
 
     /**
-     * @param userName user name
+     * @param username user name
      * @param uid posix uid
      * @param gid posix gid
      * @param homeDirectory home directory
