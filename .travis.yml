@@ -2,5 +2,5 @@ language: java
 jdk:
   - openjdk7
   - oraclejdk8
-script: for mod in cadc-access-control  cadc-access-control-admin  cadc-access-control-identity  cadc-access-control-server  cadc-tomcat; do cd $mod; gradle assemble check install; cd ..; done
+script: for mod in cadc-access-control  cadc-access-control-admin  cadc-access-control-identity  cadc-access-control-server  cadc-tomcat; do cd $mod; gradle assemble check install || break -1; cd ..; done
 
