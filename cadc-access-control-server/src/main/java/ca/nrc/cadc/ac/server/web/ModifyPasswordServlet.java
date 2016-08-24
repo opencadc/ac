@@ -95,7 +95,7 @@ import ca.nrc.cadc.util.StringUtil;
  * Servlet to handle password changes.  Passwords are an integral part of the
  * access control system and are handled differently to accommodate stricter
  * guidelines.
- * <p/>
+ * <p>
  * This servlet handles POST only.  It relies on the Subject being set higher
  * up by the AccessControlFilter as configured in the web descriptor.
  */
