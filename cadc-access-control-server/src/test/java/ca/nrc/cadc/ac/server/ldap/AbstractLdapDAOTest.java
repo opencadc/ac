@@ -137,19 +137,18 @@ public class AbstractLdapDAOTest
         {
             config = getLdapConfig();
         }
-        catch (RuntimeException e)
-        {
-            log.warn("Skipping integration test: no ~/.dbrc file");
-            org.junit.Assume.assumeTrue(false);
-            return;
-        }
         catch (NoSuchElementException e)
         {
             log.warn("Skipping integration test: no entry in ~/.dbrc file");
             org.junit.Assume.assumeTrue(false);
             return;
         }
-
+        catch (RuntimeException e)
+        {
+            log.warn("Skipping integration test: no ~/.dbrc file");
+            org.junit.Assume.assumeTrue(false);
+            return;
+        }
         cadcDaoTest1_HttpPrincipal = new HttpPrincipal(cadcDaoTest1_CN);
         cadcDaoTest2_HttpPrincipal = new HttpPrincipal(cadcDaoTest2_CN);
         cadcDaoTest3_HttpPrincipal = new HttpPrincipal(cadcDaoTest3_CN);
@@ -239,7 +238,7 @@ public class AbstractLdapDAOTest
         return new LdapUserDAO(connections);
     }
 
-    static protected LdapConfig getLdapConfig()
+    static protected LdapConfig getLdapConfig() throws Exception
     {
         return LdapConfig.loadLdapConfig(CONFIG);
     }
