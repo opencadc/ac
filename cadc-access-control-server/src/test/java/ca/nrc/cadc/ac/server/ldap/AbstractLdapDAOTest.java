@@ -83,7 +83,6 @@ import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import java.lang.reflect.Field;
 import java.util.UUID;
-import java.io.FileNotFoundException;
 import java.util.NoSuchElementException;
 
 /**
@@ -138,7 +137,7 @@ public class AbstractLdapDAOTest
         {
             config = getLdapConfig();
         }
-        catch (FileNotFoundException e)
+        catch (RuntimeException e)
         {
             log.warn("Skipping integration test: no ~/.dbrc file");
             org.junit.Assume.assumeTrue(false);
@@ -240,7 +239,7 @@ public class AbstractLdapDAOTest
         return new LdapUserDAO(connections);
     }
 
-    static protected LdapConfig getLdapConfig() throws Exception
+    static protected LdapConfig getLdapConfig()
     {
         return LdapConfig.loadLdapConfig(CONFIG);
     }
