@@ -76,18 +76,23 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import java.lang.reflect.Field;
 import java.util.UUID;
+import java.io.FileNotFoundException;
+import java.util.NoSuchElementException;
 
 /**
  * Created by jburke on 2014-11-03.
  */
 public class AbstractLdapDAOTest
 {
+    private static final Logger log = Logger.getLogger(AbstractLdapDAOTest.class);
+
     static final String CONFIG = LdapConfig.class.getSimpleName() + ".test.properties";
 
     protected static final String SERVOPS_PEM = System.getProperty("user.home") + "/.pub/proxy.pem";
@@ -129,7 +134,22 @@ public class AbstractLdapDAOTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
 
         // get the configuration of the development server from and config files...
-        config = getLdapConfig();
+        try
+        {
+            config = getLdapConfig();
+        }
+        catch (FileNotFoundException e)
+        {
+            log.warn("Skipping integration test: no ~/.dbrc file");
+            org.junit.Assume.assumeTrue(false);
+            return;
+        }
+        catch (NoSuchElementException e)
+        {
+            log.warn("Skipping integration test: no entry in ~/.dbrc file");
+            org.junit.Assume.assumeTrue(false);
+            return;
+        }
 
         cadcDaoTest1_HttpPrincipal = new HttpPrincipal(cadcDaoTest1_CN);
         cadcDaoTest2_HttpPrincipal = new HttpPrincipal(cadcDaoTest2_CN);
@@ -220,7 +240,7 @@ public class AbstractLdapDAOTest
         return new LdapUserDAO(connections);
     }
 
-    static protected LdapConfig getLdapConfig()
+    static protected LdapConfig getLdapConfig() throws Exception
     {
         return LdapConfig.loadLdapConfig(CONFIG);
     }
