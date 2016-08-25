@@ -115,7 +115,6 @@ public class GroupReader extends AbstractReaderWriter
      * @return Group Group.
      * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
     public Group read(InputStream in)
         throws ReaderException, IOException
@@ -143,7 +142,6 @@ public class GroupReader extends AbstractReaderWriter
      * @return Group Group.
      * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
     public Group read(Reader reader)
         throws ReaderException, IOException

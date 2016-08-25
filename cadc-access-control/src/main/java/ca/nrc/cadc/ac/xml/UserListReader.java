@@ -117,7 +117,6 @@ public class UserListReader extends AbstractReaderWriter
      * @return List of Users.
      * @throws ReaderException
      * @throws java.io.IOException
-     * @throws java.net.URISyntaxException
      */
     public List<User> read(InputStream in)
         throws ReaderException, IOException
