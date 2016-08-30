@@ -109,7 +109,7 @@ public class ACIdentityManager implements IdentityManager
             public NumericPrincipal run() throws Exception
             {
                 LocalAuthority localAuth = new LocalAuthority();
-                URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toString());
+                URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
 
                 UserClient userClient = new UserClient(serviceURI);
                 User newUser = userClient.createUser(x500Principal);
@@ -205,7 +205,7 @@ public class ACIdentityManager implements IdentityManager
                 public Object run() throws Exception
                 {
                     LocalAuthority localAuth = new LocalAuthority();
-                    URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toString());
+                    URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
 
                     UserClient userClient = new UserClient(serviceURI);
                     userClient.augmentSubject(subject);
@@ -233,7 +233,7 @@ public class ACIdentityManager implements IdentityManager
     {
         RegistryClient regClient = new RegistryClient();
         LocalAuthority localAuth = new LocalAuthority();
-        URI serviceURI = localAuth.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
         URL availURL = regClient.getServiceURL(serviceURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
         return new CheckWebService(availURL.toExternalForm());
     }

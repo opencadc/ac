@@ -71,7 +71,7 @@ public class AuthenticatorImpl implements Authenticator
     {
         RegistryClient regClient = new RegistryClient();
         LocalAuthority localAuth = new LocalAuthority();
-        URI serviceURI = localAuth.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
         URL availURL = regClient.getServiceURL(serviceURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
         return new CheckWebService(availURL.toExternalForm());
     }
