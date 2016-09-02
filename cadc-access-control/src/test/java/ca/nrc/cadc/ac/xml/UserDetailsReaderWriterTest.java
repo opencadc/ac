@@ -68,17 +68,21 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -87,6 +91,18 @@ import static org.junit.Assert.fail;
 public class UserDetailsReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
+
+    @BeforeClass
+    public void setup()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public void teardown()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @Test
     public void testReaderExceptions()
@@ -99,7 +115,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element = new Element("foo");
         try
         {
@@ -124,7 +140,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         }
         catch (ReaderException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -145,7 +161,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         }
         catch (WriterException e) {}
     }
-     
+
     @Test
     public void testReadWritePersonalDetails()
         throws Exception
@@ -158,7 +174,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         expected.institute = "institute";
         Element element = getElement(expected);
         assertNotNull(element);
-        
+
         PersonalDetails actual = getPersonalDetails(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
@@ -168,7 +184,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         assertEquals(expected.email, actual.email);
         assertEquals(expected.institute, actual.institute);
     }
-    
+
     @Test
     public void testReadWritePosixDetails()
         throws Exception
@@ -176,10 +192,10 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
         PosixDetails expected = new PosixDetails("username", 123l, 456, "/dev/null");
         Element element = getElement(expected);
         assertNotNull(element);
-        
+
         PosixDetails actual = getPosixDetails(element);
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
-    
+
 }

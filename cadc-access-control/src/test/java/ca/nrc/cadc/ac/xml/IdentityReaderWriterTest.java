@@ -68,23 +68,28 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.security.Principal;
+import java.util.UUID;
+
+import javax.management.remote.JMXPrincipal;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.Test;
-
-import javax.management.remote.JMXPrincipal;
-import javax.security.auth.x500.X500Principal;
-import java.security.Principal;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -93,6 +98,18 @@ import static org.junit.Assert.fail;
 public class IdentityReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
+
+    @BeforeClass
+    public void setup()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public void teardown()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @Test
     public void testReaderExceptions()
@@ -105,7 +122,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element = new Element("foo");
         try
         {
@@ -113,7 +130,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
             fail("element not named 'identity' should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element = new Element("identity");
         try
         {
@@ -121,7 +138,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
             fail("element without 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element.setAttribute("type", "foo");
         try
         {
@@ -130,7 +147,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
         }
         catch (ReaderException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -142,7 +159,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
             fail("null Identity should throw WriterException");
         }
         catch (WriterException e) {}
-         
+
         p = new JMXPrincipal("foo");
         try
         {
@@ -151,7 +168,7 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testReadWrite()
         throws Exception
@@ -160,41 +177,41 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
         Principal expected = new X500Principal("cn=foo,o=bar");
         Element element = getElement(expected);
         assertNotNull(element);
-         
+
         Principal actual = getPrincipal(element);
         assertNotNull(actual);
-         
+
         assertEquals(expected, actual);
 
         // CADC
         expected = new NumericPrincipal(UUID.randomUUID());
         element = getElement(expected);
         assertNotNull(element);
-         
+
         actual = getPrincipal(element);
         assertNotNull(actual);
-         
+
         assertEquals(expected, actual);
-        
+
         // OpenID
         expected = new OpenIdPrincipal("bar");
         element = getElement(expected);
         assertNotNull(element);
-         
+
         actual = getPrincipal(element);
         assertNotNull(actual);
-         
+
         assertEquals(expected, actual);
-        
+
         // HTTP
         expected = new HttpPrincipal("baz");
         element = getElement(expected);
         assertNotNull(element);
-         
+
         actual = getPrincipal(element);
         assertNotNull(actual);
-         
+
         assertEquals(expected, actual);
     }
-    
+
 }

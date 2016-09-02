@@ -85,6 +85,8 @@ import java.util.UUID;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
@@ -96,6 +98,7 @@ import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -104,6 +107,18 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 public class GroupReaderWriterTest
 {
     private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
+
+    @BeforeClass
+    public void setup()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public void teardown()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @Test
     public void testReaderExceptions()

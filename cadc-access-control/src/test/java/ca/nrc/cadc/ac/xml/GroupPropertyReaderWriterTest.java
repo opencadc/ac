@@ -68,16 +68,22 @@
  */
 package ca.nrc.cadc.ac.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -86,6 +92,18 @@ import static org.junit.Assert.*;
 public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
+
+    @BeforeClass
+    public void setup()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public void teardown()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @BeforeClass
     public static void setUpClass()
@@ -104,7 +122,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
             fail("null element should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element = new Element("foo");
         try
         {
@@ -112,7 +130,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
             fail("element not named 'property' should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element = new Element("property");
         try
         {
@@ -120,7 +138,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
             fail("element without 'key' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element.setAttribute("key", "foo");
         try
         {
@@ -128,7 +146,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
             fail("element without 'type' attribute should throw ReaderException");
         }
         catch (ReaderException e) {}
-         
+
         element.setAttribute("type", "Double");
         try
         {
@@ -137,7 +155,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
         }
         catch (ReaderException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -149,7 +167,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
             fail("null GroupProperty should throw WriterException");
         }
         catch (WriterException e) {}
-         
+
         GroupProperty groupProperty = new GroupProperty("key", new Double(1.0), true);
         try
         {
@@ -158,7 +176,7 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testReadWrite()
         throws Exception
@@ -167,21 +185,21 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
         GroupProperty expected = new GroupProperty("key", "value", true);
         Element element = getElement(expected);
         assertNotNull(element);
-         
+
         GroupProperty actual = getGroupProperty(element);
         assertNotNull(actual);
-         
+
         assertEquals(expected, actual);
-         
+
         // Integer tuype
         expected = new GroupProperty("key", new Integer(1), false);
         element = getElement(expected);
         assertNotNull(element);
-         
+
         actual = getGroupProperty(element);
         assertNotNull(actual);
-         
+
         assertEquals(expected, actual);
     }
-     
+
 }

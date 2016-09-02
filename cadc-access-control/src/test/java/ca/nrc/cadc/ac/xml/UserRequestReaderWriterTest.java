@@ -68,15 +68,10 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,10 +79,19 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -96,6 +100,18 @@ import static org.junit.Assert.fail;
 public class UserRequestReaderWriterTest
 {
     private static Logger log = Logger.getLogger(UserRequestReaderWriterTest.class);
+
+    @BeforeClass
+    public void setup()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public void teardown()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @Test
     public void testReaderExceptions()
@@ -109,7 +125,7 @@ public class UserRequestReaderWriterTest
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
-        
+
         try
         {
             InputStream in = null;
@@ -118,7 +134,7 @@ public class UserRequestReaderWriterTest
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
-        
+
         try
         {
             Reader r = null;
@@ -128,7 +144,7 @@ public class UserRequestReaderWriterTest
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -141,7 +157,7 @@ public class UserRequestReaderWriterTest
         }
         catch (WriterException e) {}
     }
-     
+
     @Test
     public void testReadWrite()
         throws Exception
@@ -171,5 +187,5 @@ public class UserRequestReaderWriterTest
         assertEquals(String.valueOf(expected.getPassword()),
                      String.valueOf(actual.getPassword()));
     }
-    
+
 }
