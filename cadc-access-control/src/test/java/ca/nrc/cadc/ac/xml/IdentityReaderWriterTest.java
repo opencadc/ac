@@ -80,8 +80,8 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -99,13 +99,13 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
 
-    @BeforeClass
+    @Before
     public void setup()
     {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
-    @AfterClass
+    @After
     public void teardown()
     {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");

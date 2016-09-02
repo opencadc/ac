@@ -80,8 +80,8 @@ import java.net.URI;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.InternalID;
@@ -101,13 +101,13 @@ public class UserRequestReaderWriterTest
 {
     private static Logger log = Logger.getLogger(UserRequestReaderWriterTest.class);
 
-    @BeforeClass
+    @Before
     public void setup()
     {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
-    @AfterClass
+    @After
     public void teardown()
     {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
