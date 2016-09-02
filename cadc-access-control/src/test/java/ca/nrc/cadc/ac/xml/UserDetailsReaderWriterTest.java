@@ -74,8 +74,8 @@ import static org.junit.Assert.fail;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -92,14 +92,14 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
 
-    @Before
-    public void setup()
+    @BeforeClass
+    public static void setupClass()
     {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
-    @After
-    public void teardown()
+    @AfterClass
+    public static void teardownClass()
     {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }

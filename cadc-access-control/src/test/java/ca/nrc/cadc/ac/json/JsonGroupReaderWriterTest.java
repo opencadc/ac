@@ -89,6 +89,7 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -103,6 +104,7 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  * @author jburke
@@ -111,10 +113,21 @@ public class JsonGroupReaderWriterTest
 {
     private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
 
-    @BeforeClass
-    public static void setUpClass()
+    static
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac.json", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test

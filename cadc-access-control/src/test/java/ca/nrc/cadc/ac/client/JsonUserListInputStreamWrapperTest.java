@@ -68,21 +68,13 @@
 
 package ca.nrc.cadc.ac.client;
 
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.json.JsonUserListWriter;
-import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URI;
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -90,21 +82,41 @@ import java.util.UUID;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 public class JsonUserListInputStreamWrapperTest
 {
     private static final Logger log = Logger.getLogger(JsonUserListInputStreamWrapperTest.class);
-    
+
     static
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
-    
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
+
     @Test
     public void readInputStream() throws Exception
     {
@@ -131,7 +143,7 @@ public class JsonUserListInputStreamWrapperTest
         userListWriter.write(users, writer);
         String json = writer.toString();
         log.debug("user:\n" + json);
-        
+
         final InputStream inputStream = new ByteArrayInputStream(json.getBytes());
 
         testSubject.read(inputStream);

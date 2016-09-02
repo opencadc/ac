@@ -85,8 +85,8 @@ import java.util.UUID;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
@@ -108,14 +108,14 @@ public class GroupReaderWriterTest
 {
     private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
 
-    @Before
-    public void setup()
+    @BeforeClass
+    public static void setupClass()
     {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
-    @After
-    public void teardown()
+    @AfterClass
+    public static void teardownClass()
     {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }

@@ -75,8 +75,7 @@ import static org.junit.Assert.fail;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -94,14 +93,14 @@ public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
 {
     private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
-    @Before
-    public void setup()
+    @BeforeClass
+    public static void setupClass()
     {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
-    @After
-    public void teardown()
+    @AfterClass
+    public static void teardownClass()
     {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }

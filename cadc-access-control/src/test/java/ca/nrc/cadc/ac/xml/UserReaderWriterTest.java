@@ -79,9 +79,10 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.UUID;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.InternalID;
@@ -90,6 +91,7 @@ import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**
@@ -100,14 +102,19 @@ public class UserReaderWriterTest
 {
     private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
 
-    @Before
-    public void setup()
+    public UserReaderWriterTest()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setupClass()
     {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
-    @After
-    public void teardown()
+    @AfterClass
+    public static void teardownClass()
     {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
@@ -116,6 +123,9 @@ public class UserReaderWriterTest
     public void testReaderExceptions()
         throws Exception
     {
+
+        System.out.println("config dir: " + System.getProperty(PropertiesReader.class.getName() + ".dir"));
+
         try
         {
             String s = null;
