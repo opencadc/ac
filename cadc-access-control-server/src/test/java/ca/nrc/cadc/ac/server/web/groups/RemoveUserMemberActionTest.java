@@ -80,6 +80,7 @@ import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -96,6 +97,7 @@ import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.ObjectUtil;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -109,6 +111,13 @@ public class RemoveUserMemberActionTest
     public static void setUpClass()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test

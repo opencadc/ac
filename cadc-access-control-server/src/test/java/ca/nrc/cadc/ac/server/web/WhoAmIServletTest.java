@@ -82,19 +82,19 @@ import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.reg.Standards;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 public class WhoAmIServletTest
@@ -105,6 +105,13 @@ public class WhoAmIServletTest
     public static void setUpClass()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test

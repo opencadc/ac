@@ -80,7 +80,10 @@ import java.security.Principal;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.log4j.Level;
 import org.easymock.EasyMock;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -89,9 +92,25 @@ import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 public class ModifyUserActionTest
 {
+
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
+
     @Test
     public void testModifyUser() throws Exception
     {

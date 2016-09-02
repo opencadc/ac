@@ -83,11 +83,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Level;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
 
 
@@ -97,6 +100,18 @@ public class ModifyPasswordServletTest
     public ModifyPasswordServletTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setUpClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     public void testSubjectAndPasswords(final Subject subject, final String oldPassword,

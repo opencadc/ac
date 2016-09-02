@@ -78,7 +78,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.security.PrivilegedExceptionAction;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.security.auth.Subject;
@@ -87,6 +86,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -99,6 +100,7 @@ import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 public class GetUserActionTest
 {
@@ -107,6 +109,18 @@ public class GetUserActionTest
     static
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac.server", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test

@@ -84,7 +84,10 @@ import java.util.Collection;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
@@ -96,9 +99,25 @@ import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
+
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
+
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
 
     String createUsername()

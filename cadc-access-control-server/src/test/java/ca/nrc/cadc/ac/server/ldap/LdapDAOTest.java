@@ -68,34 +68,42 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.auth.DNPrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
-import com.unboundid.ldap.sdk.DN;
-import com.unboundid.ldap.sdk.LDAPConnection;
-import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.LDAPInterface;
+import static org.junit.Assert.assertTrue;
 
-import java.security.PrivilegedAction;
-import org.apache.log4j.Level;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.UUID;
 
-import org.junit.Assert;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.log4j.Level;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.unboundid.ldap.sdk.LDAPConnection;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 public class LdapDAOTest extends AbstractLdapDAOTest
 {
+    @BeforeClass
+    public static void setUpClass()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
+
     @Test
     public void testLdapBindConnection() throws Exception
     {
