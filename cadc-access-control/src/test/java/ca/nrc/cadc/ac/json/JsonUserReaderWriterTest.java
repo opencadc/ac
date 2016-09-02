@@ -68,6 +68,22 @@
  */
 package ca.nrc.cadc.ac.json;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.UUID;
+
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
@@ -76,19 +92,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -97,6 +101,18 @@ import static org.junit.Assert.fail;
 public class JsonUserReaderWriterTest
 {
     private static Logger log = Logger.getLogger(JsonUserReaderWriterTest.class);
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @Test
     public void testReaderExceptions()
@@ -110,7 +126,7 @@ public class JsonUserReaderWriterTest
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
-        
+
         try
         {
             InputStream in = null;
@@ -119,7 +135,7 @@ public class JsonUserReaderWriterTest
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
-        
+
         try
         {
             Reader r = null;
@@ -129,7 +145,7 @@ public class JsonUserReaderWriterTest
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -142,7 +158,7 @@ public class JsonUserReaderWriterTest
         }
         catch (WriterException e) {}
     }
-     
+
     @Test
     public void testReadWrite()
         throws Exception
@@ -166,5 +182,5 @@ public class JsonUserReaderWriterTest
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
-    
+
 }

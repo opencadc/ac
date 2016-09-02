@@ -13,17 +13,18 @@ import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServletRequest;
 
-import junit.framework.Assert;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.db.StandaloneContextFactory;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import junit.framework.Assert;
 
 
 public class UserServletTest
@@ -33,6 +34,18 @@ public class UserServletTest
     public UserServletTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test

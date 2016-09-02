@@ -81,7 +81,9 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -89,6 +91,7 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 public class UserClientTest
@@ -97,6 +100,18 @@ public class UserClientTest
     private static final Logger log = Logger.getLogger(UserClientTest.class);
 
     private URI umsServiceURI;
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     public UserClientTest()
     {

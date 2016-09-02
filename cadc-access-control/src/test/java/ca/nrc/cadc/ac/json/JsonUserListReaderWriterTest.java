@@ -1,5 +1,22 @@
 package ca.nrc.cadc.ac.json;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.UUID;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
@@ -7,21 +24,9 @@ import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-import org.json.JSONObject;
-import org.junit.Test;
-import org.skyscreamer.jsonassert.JSONAssert;
-
-import java.io.*;
-import java.net.URI;
-import java.security.Principal;
-import java.util.*;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import static org.junit.Assert.*;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 /**
@@ -30,12 +35,24 @@ import static org.junit.Assert.*;
 public class JsonUserListReaderWriterTest
 {
     private static final Logger log = Logger.getLogger(JsonUserListReaderWriterTest.class);
-    
+
     static
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
-    
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
+
     @Test
     public void testReaderExceptions()
             throws Exception

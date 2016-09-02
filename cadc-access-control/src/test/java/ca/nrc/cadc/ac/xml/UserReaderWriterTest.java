@@ -68,14 +68,10 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -83,10 +79,20 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -96,10 +102,30 @@ public class UserReaderWriterTest
 {
     private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
 
+    public UserReaderWriterTest()
+    {
+        Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
+
     @Test
     public void testReaderExceptions()
         throws Exception
     {
+
+        System.out.println("config dir: " + System.getProperty(PropertiesReader.class.getName() + ".dir"));
+
         try
         {
             String s = null;
@@ -108,7 +134,7 @@ public class UserReaderWriterTest
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
-        
+
         try
         {
             InputStream in = null;
@@ -117,7 +143,7 @@ public class UserReaderWriterTest
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
-        
+
         try
         {
             Reader r = null;
@@ -127,7 +153,7 @@ public class UserReaderWriterTest
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -140,7 +166,7 @@ public class UserReaderWriterTest
         }
         catch (WriterException e) {}
     }
-     
+
     @Test
     public void testReadWrite()
         throws Exception
@@ -151,7 +177,7 @@ public class UserReaderWriterTest
         TestUtil.setField(expected, new InternalID(uri), AbstractReaderWriter.ID);
         expected.getIdentities().add(new NumericPrincipal(uuid));
         expected.personalDetails = new PersonalDetails("firstname", "lastname");
-        
+
         StringBuilder xml = new StringBuilder();
         UserWriter userWriter = new UserWriter();
         userWriter.write(expected, xml);
@@ -162,5 +188,5 @@ public class UserReaderWriterTest
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
-    
+
 }

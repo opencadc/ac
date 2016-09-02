@@ -68,10 +68,10 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import org.apache.log4j.Logger;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,10 +79,14 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
@@ -91,6 +95,18 @@ import static org.junit.Assert.fail;
 public class GroupListReaderWriterTest
 {
     private static Logger log = Logger.getLogger(GroupListReaderWriterTest.class);
+
+    @BeforeClass
+    public static void setupClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+    }
 
     @Test
     public void testReaderExceptions()
@@ -104,7 +120,7 @@ public class GroupListReaderWriterTest
             fail("null String should throw IllegalArgumentException");
         }
         catch (IllegalArgumentException e) {}
-        
+
         try
         {
             InputStream in = null;
@@ -113,7 +129,7 @@ public class GroupListReaderWriterTest
             fail("null InputStream should throw IOException");
         }
         catch (IOException e) {}
-        
+
         try
         {
             Reader r = null;
@@ -123,7 +139,7 @@ public class GroupListReaderWriterTest
         }
         catch (IllegalArgumentException e) {}
     }
-     
+
     @Test
     public void testWriterExceptions()
         throws Exception
@@ -136,15 +152,15 @@ public class GroupListReaderWriterTest
         }
         catch (WriterException e) {}
     }
-     
+
     @Test
     public void testMinimalReadWrite()
         throws Exception
-    {        
+    {
         List<Group> expected = new ArrayList<Group>();
         expected.add(new Group("group1"));
         expected.add(new Group("group2"));
-        
+
         StringBuilder xml = new StringBuilder();
         GroupListWriter groupListWriter = new GroupListWriter();
         groupListWriter.write(expected, xml);

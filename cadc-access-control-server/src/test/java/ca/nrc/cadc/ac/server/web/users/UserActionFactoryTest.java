@@ -72,10 +72,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 
 
 public class UserActionFactoryTest
@@ -85,6 +88,18 @@ public class UserActionFactoryTest
     public UserActionFactoryTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    }
+
+    @BeforeClass
+    public static void setUpClass()
+    {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+    }
+
+    @AfterClass
+    public static void teardownClass()
+    {
+        System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test

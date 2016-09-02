@@ -67,23 +67,24 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.lang.reflect.Field;
+import java.util.NoSuchElementException;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import java.lang.reflect.Field;
-import java.util.UUID;
-import java.util.NoSuchElementException;
+import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  * Created by jburke on 2014-11-03.
@@ -131,6 +132,8 @@ public class AbstractLdapDAOTest
         throws Exception
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
 
         // get the configuration of the development server from and config files...
         try
