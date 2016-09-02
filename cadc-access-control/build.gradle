@@ -3,22 +3,21 @@ plugins {
     id 'maven'
     id 'maven-publish'
     id 'com.jfrog.bintray' version '1.7.1'
+    id 'application'
 }
 
 repositories {
     jcenter()
     mavenLocal()
-
-    // Only here until cadcUtil is in jcenter.
-    maven {
-        url  'http://dl.bintray.com/opencadc/software'
-    }
 }
 
 sourceCompatibility = 1.7
+
 group = 'org.opencadc'
 
-version = '1.0'
+version = '1.0.1'
+
+mainClassName = 'ca.nrc.cadc.ac.client.GMSClientMain'
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
@@ -32,4 +31,8 @@ dependencies {
     testCompile 'org.easymock:easymock:3.+'
     testCompile 'xerces:xercesImpl:2.+'
     testCompile 'org.skyscreamer:jsonassert:1.+'
+}
+
+configurations {
+  runtime.exclude group: 'org.springframework'
 }
