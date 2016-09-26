@@ -15,4 +15,4 @@ In the system, a user is uniquely identified by one Principal (e.g. NumericPrinc
 
 Groups represet associations of users. Groups have an owner, administive members, and actual members.  Members can be groups or users.
 
-![User Object Model](doc/AccessControl.png)
+![User Object Model](doc/AccessControl.0.2.png)
