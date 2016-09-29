@@ -4,7 +4,6 @@ import java.net.URI;
 import java.net.URL;
 
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
@@ -50,17 +49,12 @@ public class AuthenticatorImpl implements Authenticator
             identityManager.augmentSubject(subject);
             prof.checkpoint("AuthenticatorImpl.augmentSubject()");
 
-            if (subject.getPrincipals(HttpPrincipal.class).isEmpty()) // no matching cadc account
+            if (subject.getPrincipals(NumericPrincipal.class).isEmpty()) // no matching internal account
             {
-                // check to see if they connected with an client certificate at least
-                // they should be able to use services with only a client certificate
-                if (subject.getPrincipals(X500Principal.class).isEmpty())
-                {
-                    // if the caller had an invalid or forged CADC_SSO cookie, we could get
-                    // in here and then not match any known identity: drop to anon
-                    log.debug("HttpPrincipal not found - dropping to anon: " + subject);
-                    subject = AuthenticationUtil.getAnonSubject();
-                }
+                // if the caller had an invalid or forged CADC_SSO cookie, we could get
+                // in here and then not match any known identity: drop to anon
+                log.debug("NumericPrincipal not found - dropping to anon: " + subject);
+                subject = AuthenticationUtil.getAnonSubject();
             }
         }
 
