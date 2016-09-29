@@ -69,6 +69,10 @@
 
 package ca.nrc.cadc.auth;
 
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
@@ -77,11 +81,6 @@ import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.profiler.Profiler;
-import org.apache.log4j.Logger;
-
-import javax.security.auth.Subject;
-
-import java.security.Principal;
 
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
@@ -119,9 +118,9 @@ public class AuthenticatorImpl implements Authenticator
 
             // if the caller had an invalid or forged CADC_SSO cookie, we could get
             // in here and then not match any known identity: drop to anon
-            if ( subject.getPrincipals(HttpPrincipal.class).isEmpty() ) // no matching cadc account
+            if ( subject.getPrincipals(NumericPrincipal.class).isEmpty() ) // no matching internal account
             {
-                log.debug("HttpPrincipal not found - dropping to anon: " + subject);
+                log.debug("NumericPrincipal not found - dropping to anon: " + subject);
                 subject = AuthenticationUtil.getAnonSubject();
             }
         }
@@ -162,7 +161,7 @@ public class AuthenticatorImpl implements Authenticator
                 catch(Exception bug)
                 {
                     throw new RuntimeException("BUG: found User.appData but could not store in Subject as GroupMemberships cache", bug);
-                    
+
                 }
             }
             user.appData = null; // avoid loop that prevents GC???
