@@ -94,6 +94,7 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import javax.security.auth.x500.X500Principal;
 
 /**
  *
@@ -187,13 +188,32 @@ public class UserRequestReaderWriterTest
         UserRequestWriter userRequestWriter = new UserRequestWriter();
         userRequestWriter.write(expected, xml);
         assertFalse(xml.toString().isEmpty());
-
+        
         UserRequestReader userRequestReader = new UserRequestReader();
         UserRequest actual = userRequestReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected.getUser(), actual.getUser());
         assertEquals(String.valueOf(expected.getPassword()),
                      String.valueOf(actual.getPassword()));
+    }
+    
+    @Test
+    public void testReadWriteX()
+        throws Exception
+    {
+        User u = new User();
+        u.personalDetails = new PersonalDetails("Patrick", "Dowler");
+        u.getIdentities().add(new X500Principal("cn=patrick dowler,ou=nrc-cnrc.gc.ca,o=grid,c=ca"));
+
+        char[] p = "scallyWaG".toCharArray();
+
+        UserRequest expected = new UserRequest(u, p);
+
+        StringBuilder xml = new StringBuilder();
+        UserRequestWriter w = new UserRequestWriter();
+        w.write(expected, xml);
+        
+        log.info("req:\n" + xml);
     }
 
 }

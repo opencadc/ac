@@ -70,6 +70,7 @@
 package ca.nrc.cadc.ac.client;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.User;
 import java.net.URI;
 import java.security.PrivilegedAction;
@@ -95,10 +96,10 @@ import javax.security.auth.x500.X500Principal;
  * only used for testing.  Should not be used for production
  * work.
  */
-public class GMSClientMain implements PrivilegedAction<Object>
+public class Main implements PrivilegedAction<Object>
 {
 
-    private static Logger log = Logger.getLogger(GMSClientMain.class);
+    private static Logger log = Logger.getLogger(Main.class);
 
     public static final String ARG_ADD_MEMBER = "add-member";
     public static final String ARG_DEL_MEMBER = "remove-member";
@@ -118,12 +119,11 @@ public class GMSClientMain implements PrivilegedAction<Object>
     public static final String ARG_V = "v";
     public static final String ARG_D = "d";
 
-    private GMSClient client;
     private ArgumentMap argMap;
 
-    private GMSClientMain()
+    private Main(ArgumentMap args) 
     {
-        client = new GMSClient(URI.create("ivo://cadc.nrc.ca/canfargms"));
+        this.argMap = args;
     }
 
     public static void main(String[] args)
@@ -149,8 +149,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
         else
             Log4jInit.setLevel("ca", Level.WARN);
 
-        GMSClientMain main = new GMSClientMain();
-        main.argMap = argMap;
+        Main main = new Main(argMap);
 
         Subject subject = CertCmdArgUtil.initSubject(argMap, true);
 
@@ -192,15 +191,15 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
     private static void usage()
     {
-        System.out.println("--create --group=<g>");
-        System.out.println("--get --group=<g>");
-        System.out.println("--delete --group=<g>");
+        System.out.println("--create --group=<uri>");
+        System.out.println("--get --group=<uri>");
+        System.out.println("--delete --group=<uri>");
         System.out.println();
-        System.out.println("--add-member --group=<g> --userid=<u>");
-        System.out.println("--remove-member --group=<g> --userid=<u>");
+        System.out.println("--add-member --group=<uri> --userid=<u>");
+        System.out.println("--remove-member --group=<uri> --userid=<u>");
         System.out.println();
-        System.out.println("--add-admin --group=<g> --userid=<u>");
-        System.out.println("--remove-admin --group=<g> --userid=<u>");
+        System.out.println("--add-admin --group=<uri> --userid=<u>");
+        System.out.println("--remove-admin --group=<uri> --userid=<u>");
     }
 
     @Override
@@ -209,10 +208,14 @@ public class GMSClientMain implements PrivilegedAction<Object>
         try
         {
             String command = getCommand();
-
+            String suri = argMap.getValue(ARG_GROUP);
+            GroupURI guri = new GroupURI(new URI(suri));
+            GMSClient client = new GMSClient(guri.getServiceURI());
+            String group = guri.getName();
+            
             if (command.equals(ARG_ADD_MEMBER))
             {
-                String group = argMap.getValue(ARG_GROUP);
+                
                 String userID = argMap.getValue(ARG_USERID);
 
                 if (group == null)
@@ -225,7 +228,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_DEL_MEMBER))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -237,7 +239,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_ADD_ADMIN))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 String userID = argMap.getValue(ARG_USERID);
 
                 if (group == null)
@@ -278,7 +279,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_DEL_ADMIN))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -317,7 +317,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_CREATE_GROUP))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -335,7 +334,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_GET_GROUP))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -359,7 +357,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_DELETE_GROUP))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
