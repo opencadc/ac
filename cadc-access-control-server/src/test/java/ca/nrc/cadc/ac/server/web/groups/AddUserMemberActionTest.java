@@ -80,6 +80,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
@@ -113,7 +114,7 @@ public class AddUserMemberActionTest
             User user = new User();
             user.getIdentities().add(userPrincipal);
 
-            Group group = new Group("group");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
             group.getUserMembers().add(user);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
@@ -149,8 +150,8 @@ public class AddUserMemberActionTest
             User user = new User();
             user.getIdentities().add(userPrincipal);
 
-            Group group = new Group("group");
-            Group modified = new Group("group");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
+            Group modified = new Group(new GroupURI("ivo://example.org/gms?group"));
             modified.getUserMembers().add(user);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);

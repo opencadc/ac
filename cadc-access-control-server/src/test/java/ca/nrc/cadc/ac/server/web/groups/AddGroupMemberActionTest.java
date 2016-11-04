@@ -73,6 +73,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -81,7 +83,10 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 
 /**
@@ -103,13 +108,16 @@ public class AddGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group");
-            Group member = new Group("member");
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+
+            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
+            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
             group.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
             expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
+            //expect(groupPersistence.getGroup("member")).andReturn(member);
             replay(groupPersistence);
 
             AddGroupMemberAction action = new AddGroupMemberAction("group", "member");
@@ -134,9 +142,12 @@ public class AddGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group");
-            Group member = new Group("member");
-            Group modified = new Group("group");
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+
+            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
+            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
+            Group modified = new Group(new GroupURI(gmsServiceURI + "?group"));
             modified.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence =

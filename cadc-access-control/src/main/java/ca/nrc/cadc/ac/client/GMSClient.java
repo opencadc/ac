@@ -89,12 +89,12 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.Subject;
 
-import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
@@ -113,6 +113,7 @@ import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
 
@@ -128,20 +129,11 @@ public class GMSClient implements TransferListener
     private SSLSocketFactory sslSocketFactory;
     private SSLSocketFactory mySocketFactory;
 
-    private URI serviceID;
-
     /**
      * Constructor.
-     *
-     * @param serviceID            The service ID.
      */
-    public GMSClient(URI serviceID)
+    public GMSClient()
     {
-        if (serviceID == null)
-            throw new IllegalArgumentException("invalid serviceID: " + serviceID);
-        if (serviceID.getFragment() != null)
-            throw new IllegalArgumentException("invalid serviceID (fragment not allowed): " + serviceID);
-        this.serviceID = serviceID;
     }
 
     public void transferEvent(TransferEvent te)
@@ -181,8 +173,9 @@ public class GMSClient implements TransferListener
         throws GroupAlreadyExistsException, AccessControlException,
                UserNotFoundException, WriterException, IOException
     {
+
         URL createGroupURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
+            .getServiceURL(group.getID().getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
         log.debug("createGroupURL request to " + createGroupURL.toString());
 
         // reset the state of the cache
@@ -250,12 +243,13 @@ public class GMSClient implements TransferListener
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
-    public Group getGroup(String groupName)
+    public Group getGroup(GroupURI groupID)
         throws GroupNotFoundException, AccessControlException, IOException
     {
+
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL getGroupURL = new URL(groupsURL.toExternalForm() + "/" + groupName);
+            .getServiceURL(groupID.getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
+        URL getGroupURL = new URL(groupsURL.toExternalForm() + "/" + groupID.getName());
         log.debug("getGroup request to " + getGroupURL.toString());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -306,11 +300,11 @@ public class GMSClient implements TransferListener
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
-    public List<String> getGroupNames()
+    public List<String> getGroupNames(URI serviceID)
         throws AccessControlException, IOException
     {
         URL getGroupNamesURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
+            .getServiceURL(serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
 
         log.debug("getGroupNames request to " + getGroupNamesURL.toString());
 
@@ -388,8 +382,8 @@ public class GMSClient implements TransferListener
                AccessControlException, WriterException, IOException
     {
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL updateGroupURL = new URL(groupsURL.toExternalForm() + "/" + group.getID());
+            .getServiceURL(group.getID().getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
+        URL updateGroupURL = new URL(groupsURL.toExternalForm() + "/" + group.getID().getName());
         log.debug("updateGroup request to " + updateGroupURL.toString());
 
         // reset the state of the cache
@@ -453,12 +447,12 @@ public class GMSClient implements TransferListener
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
-    public void deleteGroup(String groupName)
+    public void deleteGroup(GroupURI groupID)
         throws GroupNotFoundException, AccessControlException, IOException
     {
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
-        URL deleteGroupURL = new URL(groupsURL.toExternalForm() + "/" + groupName);
+            .getServiceURL(groupID.getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
+        URL deleteGroupURL = new URL(groupsURL.toExternalForm() + "/" + groupID.getName());
         log.debug("deleteGroup request to " + deleteGroupURL.toString());
 
         // reset the state of the cache
@@ -519,14 +513,14 @@ public class GMSClient implements TransferListener
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
      */
-    public void addGroupMember(String targetGroupName, String groupMemberName)
+    public void addGroupMember(GroupURI targetGroup, String groupMemberName)
         throws IllegalArgumentException, GroupNotFoundException,
                AccessControlException, IOException
     {
 
-        String path = "/" + targetGroupName + "/groupMembers/" + groupMemberName;
+        String path = "/" + targetGroup.getName() + "/groupMembers/" + groupMemberName;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
+            .getServiceURL(targetGroup.getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL addGroupMemberURL = new URL(groupsURL.toExternalForm() + path);
         log.debug("addGroupMember request to " + addGroupMemberURL.toString());
 
@@ -566,28 +560,28 @@ public class GMSClient implements TransferListener
     /**
      * Add a user as a member of a group.
      *
-     * @param targetGroupName The group in which to add the group member.
+     * @param targetGroup The group in which to add the group member.
      * @param userID The user to add.
      * @throws GroupNotFoundException If the group was not found.
      * @throws UserNotFoundException If the member was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
-    public void addUserMember(String targetGroupName, Principal userID)
+    public void addUserMember(GroupURI targetGroup, Principal userID)
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
-        if (targetGroupName == null)
-            throw new IllegalArgumentException("targetGroupName required");
+        if (targetGroup == null)
+            throw new IllegalArgumentException("targetGroup required");
 
         if (userID == null)
             throw new IllegalArgumentException("userID required");
 
-        log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
+        log.debug("addUserMember: " + targetGroup + " + " + userID.getName());
 
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
-        String path = "/" + targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
+        String path = "/" + targetGroup.getName() + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
+            .getServiceURL(targetGroup.getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL addUserMemberURL = new URL(groupsURL.toExternalForm() + path);
 
         log.debug("addUserMember request to " + addUserMemberURL.toString());
@@ -631,20 +625,20 @@ public class GMSClient implements TransferListener
     /**
      * Remove a group as a member of another group.
      *
-     * @param targetGroupName The group from which to remove the group member.
+     * @param targetGroup The group from which to remove the group member.
      * @param groupMemberName The group member to remove.
      * @throws GroupNotFoundException If the group was not found.
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
-    public void removeGroupMember(String targetGroupName,
+    public void removeGroupMember(GroupURI targetGroup,
                                   String groupMemberName)
         throws GroupNotFoundException, AccessControlException, IOException
     {
 
-        String path = "/" + targetGroupName + "/groupMembers/" + groupMemberName;
+        String path = "/" + targetGroup.getName() + "/groupMembers/" + groupMemberName;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
+            .getServiceURL(targetGroup.getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL removeGroupMemberURL = new URL(groupsURL.toExternalForm() + path);
         log.debug("removeGroupMember request to " +
                   removeGroupMemberURL.toString());
@@ -705,15 +699,15 @@ public class GMSClient implements TransferListener
      * @throws java.io.IOException
      * @throws AccessControlException If unauthorized to perform this operation.
      */
-    public void removeUserMember(String targetGroupName, Principal userID)
+    public void removeUserMember(GroupURI targetGroup, Principal userID)
         throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException
     {
         String userIDType = AuthenticationUtil.getPrincipalType(userID);
 
-        log.debug("removeUserMember: " + targetGroupName + " - " + userID.getName() + " type: " + userIDType);
-        String path = "/" + targetGroupName + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
+        log.debug("removeUserMember: " + targetGroup + " - " + userID.getName() + " type: " + userIDType);
+        String path = "/" + targetGroup.getName() + "/userMembers/" + NetUtil.encode(userID.getName()) + "?idType=" + userIDType;
         URL groupsURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT);
+            .getServiceURL(targetGroup.getServiceID(), Standards.GMS_GROUPS_01, AuthMethod.CERT);
         URL removeUserMemberURL = new URL(groupsURL.toExternalForm() + path);
 
         log.debug("removeUserMember: " + removeUserMemberURL.toString());
@@ -789,14 +783,14 @@ public class GMSClient implements TransferListener
      * @throws ca.nrc.cadc.ac.UserNotFoundException
      * @throws java.io.IOException
      */
-    public List<Group> getMemberships(Role role)
+    public List<Group> getMemberships(URI serviceID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return getMemberships(null, role);
+        return getMemberships(serviceID, null, role);
     }
 
 
-    private List<Group> getMemberships(Principal ignore, Role role)
+    private List<Group> getMemberships(URI serviceID, Principal ignore, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
         if (role == null)
@@ -807,7 +801,7 @@ public class GMSClient implements TransferListener
         Principal userID = getCurrentUserID();
         if (userID != null)
         {
-            List<Group> cachedGroups = getCachedGroups(userID, role, true);
+            List<Group> cachedGroups = getCachedGroups(serviceID, userID, role, true);
             if (cachedGroups != null)
             {
                 return cachedGroups;
@@ -825,7 +819,7 @@ public class GMSClient implements TransferListener
         searchGroupPath.append("&ROLE=").append(NetUtil.encode(roleString));
 
         URL searchURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
+            .getServiceURL(serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
         URL getMembershipsURL = new URL(searchURL.toExternalForm() + searchGroupPath.toString());
 
         log.debug("getMemberships request to " + getMembershipsURL.toString());
@@ -863,7 +857,7 @@ public class GMSClient implements TransferListener
             log.debug("getMemberships returned: " + groupsXML);
             GroupListReader groupListReader = new GroupListReader();
             List<Group> groups = groupListReader.read(groupsXML);
-            setCachedGroups(userID, groups, role);
+            setCachedGroups(serviceID, userID, groups, role);
             return groups;
         }
         catch (Exception bug)
@@ -880,17 +874,17 @@ public class GMSClient implements TransferListener
      *
      * This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
      *
-     * @param groupName Identifies the group.
+     * @param groupID Identifies the group.
      * @return The group or null of the user is not a member.
      * @throws UserNotFoundException If the user does not exist.
      * @throws AccessControlException If not allowed to peform the search.
      * @throws IllegalArgumentException If a parameter is null.
      * @throws IOException If an unknown error occured.
      */
-    public Group getMembership(String groupName)
+    public Group getMembership(GroupURI groupID)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return getMembership(groupName, Role.MEMBER);
+        return getMembership(groupID, Role.MEMBER);
     }
 
     /**
@@ -906,10 +900,10 @@ public class GMSClient implements TransferListener
      * @throws IllegalArgumentException If a parameter is null.
      * @throws IOException If an unknown error occured.
      */
-    public Group getMembership(String groupName, Role role)
+    public Group getMembership(GroupURI groupID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        if (groupName == null || role == null)
+        if (groupID == null || role == null)
         {
             throw new IllegalArgumentException("groupName and role are required.");
         }
@@ -917,7 +911,7 @@ public class GMSClient implements TransferListener
         Principal userID = getCurrentUserID();
         if (userID != null)
         {
-            Group cachedGroup = getCachedGroup(userID, groupName, role);
+            Group cachedGroup = getCachedGroup(userID, groupID, role);
             if (cachedGroup != null)
             {
                 return cachedGroup;
@@ -933,10 +927,10 @@ public class GMSClient implements TransferListener
         //searchGroupURL.append("ID=").append(NetUtil.encode(id));
         //searchGroupURL.append("&IDTYPE=").append(NetUtil.encode(idType));
         searchGroupPath.append("&ROLE=").append(NetUtil.encode(roleString));
-        searchGroupPath.append("&GROUPID=").append(NetUtil.encode(groupName));
+        searchGroupPath.append("&GROUPID=").append(NetUtil.encode(groupID.getName()));
 
         URL searchURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.GMS_SEARCH_01, AuthMethod.CERT);
+            .getServiceURL(groupID.getServiceID(), Standards.GMS_SEARCH_01, AuthMethod.CERT);
         URL getMembershipURL = new URL(searchURL.toExternalForm() + searchGroupPath.toString());
 
         log.debug("getMembership request to " + getMembershipURL.toString());
@@ -985,7 +979,7 @@ public class GMSClient implements TransferListener
                 return ret;
             }
             throw new IllegalStateException(
-                    "Duplicate membership for " + userID + " in group " + groupName);
+                    "Duplicate membership for " + userID + " in group " + groupID);
         }
         catch (Exception bug)
         {
@@ -1003,10 +997,10 @@ public class GMSClient implements TransferListener
      * @throws AccessControlException
      * @throws IOException
      */
-    public boolean isMember(String groupName)
+    public boolean isMember(GroupURI groupID)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return isMember(groupName, Role.MEMBER);
+        return isMember(groupID, Role.MEMBER);
     }
 
     /**
@@ -1018,16 +1012,16 @@ public class GMSClient implements TransferListener
      * @throws AccessControlException
      * @throws IOException
      */
-    public boolean isMember(String groupName, Role role)
+    public boolean isMember(GroupURI groupID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        return isMember(getCurrentUserID(), groupName, role);
+        return isMember(getCurrentUserID(), groupID, role);
     }
 
-    private boolean isMember(Principal userID, String groupName, Role role)
+    private boolean isMember(Principal userID, GroupURI groupID, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
-        Group group = getMembership(groupName, role);
+        Group group = getMembership(groupID, role);
         return group != null;
     }
 
@@ -1083,7 +1077,7 @@ public class GMSClient implements TransferListener
         }
     }
 
-    protected GroupMemberships getGroupCache(Principal userID)
+    protected GroupMemberships getGroupCache(URI serviceID, Principal userID)
     {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
@@ -1113,9 +1107,9 @@ public class GMSClient implements TransferListener
         return null; // no cache
     }
 
-    protected Group getCachedGroup(Principal userID, String groupID, Role role)
+    protected Group getCachedGroup(Principal userID, GroupURI groupID, Role role)
     {
-        List<Group> groups = getCachedGroups(userID, role, false);
+        List<Group> groups = getCachedGroups(groupID.getServiceID(), userID, role, false);
         if (groups == null)
             return null; // no cache
         for (Group g : groups)
@@ -1125,9 +1119,9 @@ public class GMSClient implements TransferListener
         }
         return null;
     }
-    protected List<Group> getCachedGroups(Principal userID, Role role, boolean complete)
+    protected List<Group> getCachedGroups(URI serviceID, Principal userID, Role role, boolean complete)
     {
-        GroupMemberships mems = getGroupCache(userID);
+        GroupMemberships mems = getGroupCache(serviceID, userID);
         if (mems == null)
             return null; // no cache
 
@@ -1141,16 +1135,16 @@ public class GMSClient implements TransferListener
 
     protected void addCachedGroup(Principal userID, Group group, Role role)
     {
-        GroupMemberships mems = getGroupCache(userID);
+        GroupMemberships mems = getGroupCache(group.getID().getServiceID(), userID);
         if (mems == null)
             return; // no cache
 
         mems.add(group, role);
     }
 
-    protected void setCachedGroups(Principal userID, List<Group> groups, Role role)
+    protected void setCachedGroups(URI serviceID, Principal userID, List<Group> groups, Role role)
     {
-        GroupMemberships mems = getGroupCache(userID);
+        GroupMemberships mems = getGroupCache(serviceID, userID);
         if (mems == null)
             return; // no cache
 

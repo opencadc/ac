@@ -85,6 +85,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.PropertiesReader;
 
@@ -158,8 +159,8 @@ public class GroupListReaderWriterTest
         throws Exception
     {
         List<Group> expected = new ArrayList<Group>();
-        expected.add(new Group("group1"));
-        expected.add(new Group("group2"));
+        expected.add(new Group(new GroupURI("ivo://example.org/gms?group1")));
+        expected.add(new Group(new GroupURI("ivo://example.org/gms?group2")));
 
         StringBuilder xml = new StringBuilder();
         GroupListWriter groupListWriter = new GroupListWriter();

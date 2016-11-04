@@ -68,11 +68,15 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 
 public class AddGroupMemberAction extends AbstractGroupAction
 {
@@ -90,7 +94,10 @@ public class AddGroupMemberAction extends AbstractGroupAction
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
-        Group toAdd = new Group(this.groupMemberName);
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        GroupURI toAddID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
+        Group toAdd = new Group(toAddID);
         if (!group.getGroupMembers().add(toAdd))
         {
             throw new GroupAlreadyExistsException(this.groupMemberName);
@@ -98,8 +105,8 @@ public class AddGroupMemberAction extends AbstractGroupAction
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getID());
-        logGroupInfo(group.getID(), null, addedMembers);
+        addedMembers.add(toAdd.getID().getName());
+        logGroupInfo(group.getID().getName(), null, addedMembers);
     }
 
 }

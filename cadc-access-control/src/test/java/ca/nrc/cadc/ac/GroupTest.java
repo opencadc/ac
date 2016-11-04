@@ -72,6 +72,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URISyntaxException;
+
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -84,12 +86,12 @@ public class GroupTest
     @Test
     public void simpleGroupTest() throws Exception
     {
-        Group group1 = new Group("TestGroup");
+        Group group1 = new Group(new GroupURI("ivo://example.org/gms?TestGroup"));
         Group group2 = group1;
         assertEquals(group1.hashCode(), group2.hashCode());
         assertEquals(group1, group2);
 
-        Group group3 = new Group("TestGroup");
+        Group group3 = new Group(new GroupURI("ivo://example.org/gms?TestGroup"));
         User user = new User();
         user.getIdentities().add(new HttpPrincipal("foo"));
 
@@ -100,7 +102,7 @@ public class GroupTest
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3, group4);
 
-        group4 = new Group("TestGroup");
+        group4 = new Group(new GroupURI("ivo://example.org/gms?TestGroup"));
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
 
@@ -124,7 +126,7 @@ public class GroupTest
         assertEquals(group3.hashCode(), group4.hashCode());
         assertEquals(group3,group4);
 
-        group4 = new Group("NewTestGroup-._~.");
+        group4 = new Group(new GroupURI("ivo://example.org/gms?NewTestGroup-._~."));
         assertFalse(group3.hashCode() == group4.hashCode());
         assertFalse(group3.equals(group4));
 
@@ -133,7 +135,7 @@ public class GroupTest
     }
 
     @Test
-    public void exceptionTests()
+    public void exceptionTests() throws URISyntaxException
     {
         boolean thrown = false;
         try
@@ -150,7 +152,7 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New/Test/Group");
+            new Group(new GroupURI("ivo://example.org/New/Test/Group"));
         }
         catch(IllegalArgumentException e)
         {
@@ -161,9 +163,9 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New%Test%Group");
+            new Group(new GroupURI("ivo://example.org/New%Test%Group"));
         }
-        catch(IllegalArgumentException e)
+        catch(URISyntaxException e)
         {
             thrown = true;
         }
@@ -172,9 +174,9 @@ public class GroupTest
         thrown = false;
         try
         {
-            new Group("New\\Test\\Group");
+            new Group(new GroupURI("ivo://example.org/New\\Test\\Group"));
         }
-        catch(IllegalArgumentException e)
+        catch(URISyntaxException e)
         {
             thrown = true;
         }

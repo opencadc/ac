@@ -104,7 +104,7 @@ public class CreateGroupAction extends AbstractGroupAction
             addedMembers = new ArrayList<String>();
             for (Group gr : group.getGroupMembers())
             {
-                addedMembers.add(gr.getID());
+                addedMembers.add(gr.getID().getName());
             }
             for (User usr : group.getUserMembers())
             {
@@ -116,7 +116,7 @@ public class CreateGroupAction extends AbstractGroupAction
                 addedMembers.add(p.getName());
             }
         }
-        logGroupInfo(group.getID(), null, addedMembers);
+        logGroupInfo(group.getID().getName(), null, addedMembers);
     }
 
 }

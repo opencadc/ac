@@ -68,14 +68,22 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+
 public class RemoveGroupMemberAction extends AbstractGroupAction
 {
+    private final static Logger log = Logger.getLogger(RemoveGroupMemberAction.class);
+
     private final String groupName;
     private final String groupMemberName;
 
@@ -89,7 +97,13 @@ public class RemoveGroupMemberAction extends AbstractGroupAction
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
-        Group toRemove = new Group(this.groupMemberName);
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        GroupURI toRemoveID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
+        Group toRemove = new Group(toRemoveID);
+
+        log.debug("group member count: " + group.getGroupMembers().size());
+        log.debug("contains one to remove: " + group.getGroupMembers().contains(toRemove));
 
         if (!group.getGroupMembers().remove(toRemove))
         {
@@ -98,8 +112,8 @@ public class RemoveGroupMemberAction extends AbstractGroupAction
         groupPersistence.modifyGroup(group);
 
         List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getID());
-        logGroupInfo(group.getID(), deletedMembers, null);
+        deletedMembers.add(toRemove.getID().getName());
+        logGroupInfo(group.getID().getName(), deletedMembers, null);
     }
 
 }

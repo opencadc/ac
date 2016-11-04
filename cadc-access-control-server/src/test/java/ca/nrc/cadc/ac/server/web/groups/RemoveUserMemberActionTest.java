@@ -85,6 +85,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.User;
@@ -137,7 +138,7 @@ public class RemoveUserMemberActionTest
             Principal x500Principal = AuthenticationUtil.createPrincipal(userID, userIDType);
             user.getIdentities().add(x500Principal);
 
-            Group group = new Group("group");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
             User member = new User();
             member.getIdentities().add(new X500Principal("cn=bar,c=ca"));
             group.getUserMembers().add(member);
@@ -192,7 +193,7 @@ public class RemoveUserMemberActionTest
             user.getIdentities().add(new X500Principal(userID));
             user.getIdentities().add(new HttpPrincipal("foo"));
 
-            Group group = new Group("group");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
             group.getUserMembers().add(user);
 
             final GroupPersistence mockGroupPersistence = EasyMock.createMock(GroupPersistence.class);

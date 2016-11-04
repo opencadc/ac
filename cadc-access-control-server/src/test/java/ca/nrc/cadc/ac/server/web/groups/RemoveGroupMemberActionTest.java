@@ -71,6 +71,8 @@ package ca.nrc.cadc.ac.server.web.groups;
 import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -79,7 +81,10 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 
 /**
@@ -93,7 +98,7 @@ public class RemoveGroupMemberActionTest
     @BeforeClass
     public static void setUpClass()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
     }
 
     @Test
@@ -101,8 +106,8 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group");
-            Group member = new Group("member");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
+            Group member = new Group(new GroupURI("ivo://example.org/gms?member"));
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
@@ -131,11 +136,14 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            Group member = new Group("member");
-            Group group = new Group("group");
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+
+            Group member = new Group(new GroupURI(gmsServiceURI.toString() + "?member"));
+            Group group = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
             group.getGroupMembers().add(member);
 
-            Group modified = new Group("group");
+            Group modified = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
             modified.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);

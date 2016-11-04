@@ -68,18 +68,19 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
-import java.security.Principal;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.*;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.util.Log4jInit;
 
 /**
  *
@@ -100,7 +101,7 @@ public class DeleteGroupActionTest
     {
         try
         {
-            Group group = new Group("group");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);

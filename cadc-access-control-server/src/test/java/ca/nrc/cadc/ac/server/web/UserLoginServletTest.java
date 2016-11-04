@@ -16,6 +16,7 @@ import org.easymock.EasyMock;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
@@ -77,27 +78,28 @@ public class UserLoginServletTest
             @Override
             protected LdapGroupPersistence getLdapGroupPersistence()
             {
-                proxyGroup = "proxyGroup";
-                nonImpersonGroup = "niGroup";
-                Collection<Group> proxyGroups = new HashSet<Group>();
-                proxyGroups.add(new Group(proxyGroup));
-                Collection<Group> niGroups = new HashSet<Group>();
-                niGroups.add(new Group(nonImpersonGroup));
-                // mock returns a shell instance
-                @SuppressWarnings("unchecked")
-                LdapGroupPersistence mockGp =
-                    (LdapGroupPersistence)EasyMock
-                        .createMock(LdapGroupPersistence.class);
-                mockGp.setDetailSelector(new GroupDetailSelector()
-                {
-                    @Override
-                    public boolean isDetailedSearch(Group g, Role r)
-                    {
-                        return false;
-                    }
-                });
                 try
                 {
+                    proxyGroup = "proxyGroup";
+                    nonImpersonGroup = "niGroup";
+                    Collection<Group> proxyGroups = new HashSet<Group>();
+                    proxyGroups.add(new Group(new GroupURI("ivo://example.com/gms?" + proxyGroup)));
+                    Collection<Group> niGroups = new HashSet<Group>();
+                    niGroups.add(new Group(new GroupURI("ivo://example.com/gms?" + nonImpersonGroup)));
+                    // mock returns a shell instance
+                    @SuppressWarnings("unchecked")
+                    LdapGroupPersistence mockGp =
+                        (LdapGroupPersistence)EasyMock
+                            .createMock(LdapGroupPersistence.class);
+                    mockGp.setDetailSelector(new GroupDetailSelector()
+                    {
+                        @Override
+                        public boolean isDetailedSearch(Group g, Role r)
+                        {
+                            return false;
+                        }
+                    });
+
                     EasyMock.expect(
                             mockGp.getGroups( //new HttpPrincipal("proxyUser"),
                                     Role.MEMBER, proxyGroup)).andReturn(
@@ -115,11 +117,13 @@ public class UserLoginServletTest
                                     Role.MEMBER, nonImpersonGroup)).andReturn(
                             niGroups);
                     replay(mockGp);
+
+                    return mockGp;
                 } catch (Exception e)
                 {
                     throw new RuntimeException(e);
                 }
-                return mockGp;
+
             }
         };
 

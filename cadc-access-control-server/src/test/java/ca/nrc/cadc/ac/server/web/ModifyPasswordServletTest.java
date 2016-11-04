@@ -83,11 +83,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.groups.GroupActionFactoryTest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
@@ -96,6 +98,8 @@ import ca.nrc.cadc.util.StringUtil;
 
 public class ModifyPasswordServletTest
 {
+
+    private final static Logger log = Logger.getLogger(GroupActionFactoryTest.class);
 
     public ModifyPasswordServletTest()
     {
@@ -207,7 +211,7 @@ public class ModifyPasswordServletTest
         mockUserPersistence.setPassword(userID, oldPassword, newPassword);
         if (hasInternalServerError)
         {
-            expectLastCall().andThrow(new RuntimeException());
+            expectLastCall().andThrow(new RuntimeException("intentional"));
         }
 
         final Subject subject = new Subject();
