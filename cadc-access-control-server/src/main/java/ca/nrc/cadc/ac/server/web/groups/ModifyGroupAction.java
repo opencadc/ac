@@ -114,7 +114,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         {
             if (!oldGroup.getGroupMembers().remove(gr))
             {
-                addedMembers.add(gr.getID());
+                addedMembers.add(gr.getID().getName());
             }
         }
         if (addedMembers.isEmpty())
@@ -128,13 +128,13 @@ public class ModifyGroupAction extends AbstractGroupAction
         }
         for (Group gr : oldGroup.getGroupMembers())
         {
-            deletedMembers.add(gr.getID());
+            deletedMembers.add(gr.getID().getName());
         }
         if (deletedMembers.isEmpty())
         {
             deletedMembers = null;
         }
-        logGroupInfo(group.getID(), deletedMembers, addedMembers);
+        logGroupInfo(group.getID().getName(), deletedMembers, addedMembers);
         profiler.checkpoint("log GroupInfo");
 
         syncOut.setHeader("Location", request);

@@ -113,7 +113,7 @@ public class AddUserMemberAction extends AbstractGroupAction
 
         List<String> addedMembers = new ArrayList<String>();
         addedMembers.add(getUseridForLogging(toAdd));
-        logGroupInfo(group.getID(), null, addedMembers);
+        logGroupInfo(group.getID().getName(), null, addedMembers);
     }
 
 }

@@ -69,6 +69,7 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -91,6 +92,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
 {
@@ -124,6 +126,12 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
     public void setGroupPersistence(GroupPersistence groupPersistence)
     {
         this.groupPersistence = groupPersistence;
+    }
+
+    public URI getServiceURI(URI standard)
+    {
+        LocalAuthority localAuthority = new LocalAuthority();
+        return localAuthority.getServiceURI(standard.toString());
     }
 
     public Object run() throws PrivilegedActionException

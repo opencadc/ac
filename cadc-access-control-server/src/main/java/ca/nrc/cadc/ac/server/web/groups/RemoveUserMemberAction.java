@@ -110,7 +110,7 @@ public class RemoveUserMemberAction extends AbstractGroupAction
 
         List<String> deletedMembers = new ArrayList<String>();
         deletedMembers.add(getUseridForLogging(user));
-        logGroupInfo(group.getID(), deletedMembers, null);
+        logGroupInfo(group.getID().getName(), deletedMembers, null);
     }
 
     protected UserPersistence getUserPersistence()

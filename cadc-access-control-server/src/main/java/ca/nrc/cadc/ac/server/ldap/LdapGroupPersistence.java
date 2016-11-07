@@ -223,7 +223,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                AccessControlException, UserNotFoundException
     {
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
-        boolean allowed = isAdmin(callerSubject, group.getID());
+        boolean allowed = isAdmin(callerSubject, group.getID().getName());
 
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
@@ -234,7 +234,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             groupDAO = new LdapGroupDAO(conns, userDAO);
             if (!allowed)
             {
-                Group g = groupDAO.getGroup(group.getID(), false);
+                Group g = groupDAO.getGroup(group.getID().getName(), false);
                 if (isOwner(callerSubject, g))
                     allowed = true;
             }
@@ -287,13 +287,13 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 while ( i.hasNext() )
                 {
                     Group g = i.next();
-                    if (groupID == null || g.getID().equalsIgnoreCase(groupID))
+                    if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID))
                     {
                         if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
                         {
                             try
                             {
-                                Group g2 = groupDAO.getGroup(g.getID(), false);
+                                Group g2 = groupDAO.getGroup(g.getID().getName(), false);
                                 log.debug("role " + role + " loaded: " + g2);
                                 ret.add(g2);
                             }
@@ -340,7 +340,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         List<Group> groups = getGroupCache(caller, Role.MEMBER);
         for (Group g : groups)
         {
-            if (g.getID().equalsIgnoreCase(groupName))
+            if (g.getID().getName().equalsIgnoreCase(groupName))
                 return true;
         }
         return false;
@@ -351,7 +351,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         List<Group> groups = getGroupCache(caller, Role.ADMIN);
         for (Group g : groups)
         {
-            if (g.getID().equalsIgnoreCase(groupName))
+            if (g.getID().getName().equalsIgnoreCase(groupName))
                 return true;
         }
         return false;

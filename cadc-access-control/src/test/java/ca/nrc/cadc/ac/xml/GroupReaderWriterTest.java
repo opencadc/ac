@@ -91,6 +91,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
@@ -169,7 +170,7 @@ public class GroupReaderWriterTest
     public void testMinimalReadWrite()
         throws Exception
     {
-        Group expected = new Group("groupID");
+        Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));
 
         StringBuilder xml = new StringBuilder();
         GroupWriter groupWriter = new GroupWriter();
@@ -197,20 +198,20 @@ public class GroupReaderWriterTest
         owner.personalDetails.country = "country";
         owner.posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
 
-        Group expected = new Group("groupID");
+        Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));
         setGroupOwner(expected, owner);
         expected.description = "description";
         expected.lastModified = new Date();
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
         expected.getProperties().add(new GroupProperty("key2", "value2", false));
 
-        Group groupMember = new Group("member");
+        Group groupMember = new Group(new GroupURI("ivo://example.org/gms?member"));
         User userMember = new User();
         userMember.getIdentities().add(new HttpPrincipal("foo"));
         URI memberUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         TestUtil.setField(userMember, new InternalID(memberUri), AbstractReaderWriter.ID);
 
-        Group groupAdmin = new Group("admin");
+        Group groupAdmin = new Group(new GroupURI("ivo://example.org/gms?admin"));
         User userAdmin = new User();
         userAdmin.getIdentities().add(new HttpPrincipal("bar"));
         URI adminUri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());

@@ -86,25 +86,6 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.client.GroupMemberships;
-import ca.nrc.cadc.auth.DNPrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.util.ObjectUtil;
-import ca.nrc.cadc.util.StringUtil;
-
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -128,6 +109,26 @@ import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
+
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.client.GroupMemberships;
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.util.ObjectUtil;
+import ca.nrc.cadc.util.StringUtil;
 
 
 /**
@@ -781,11 +782,14 @@ public class LdapUserDAO extends LdapDAO
     // some pretty horrible hacks to avoid querying LDAP for group details...
     private Group createGroupFromDN(DN groupDN)
     {
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
         String cn = groupDN.getRDNString();
         String[] parts = cn.split("=");
         if (parts.length == 2 && parts[0].equals("cn"))
         {
-            return new Group(parts[1]);
+            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + parts[1]);
+            return new Group(groupID);
         }
         throw new RuntimeException("BUG: failed to extract group name from " + groupDN
                 .toString());

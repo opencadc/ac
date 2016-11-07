@@ -79,13 +79,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
@@ -154,6 +154,12 @@ public class WhoAmIServlet extends HttpServlet
         }
     }
 
+    public URI getServiceURI(URI standard)
+    {
+        LocalAuthority localAuthority = new LocalAuthority();
+        return localAuthority.getServiceURI(standard.toString());
+    }
+
     /**
      * Forward on to the Service's user endpoint.
      *
@@ -167,8 +173,7 @@ public class WhoAmIServlet extends HttpServlet
     {
         final RegistryClient registryClient = getRegistryClient();
 
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_WHOAMI_01.toString());
+        URI umsServiceURI = getServiceURI(Standards.UMS_WHOAMI_01);
         log.debug("ums service uri: " + umsServiceURI);
 
         final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT);

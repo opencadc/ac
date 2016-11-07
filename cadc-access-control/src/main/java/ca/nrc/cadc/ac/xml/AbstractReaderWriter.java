@@ -91,6 +91,7 @@ import org.jdom2.output.XMLOutputter;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
@@ -104,8 +105,6 @@ import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 
 /**
  * AbstractReaderWriter TODO describe class
@@ -152,13 +151,8 @@ public abstract class AbstractReaderWriter
     public static final String USER_MEMBERS = "userMembers";
     public static final String USER_REQUEST = "userRequest";
 
-    private String gmsServiceURI;
-
     public AbstractReaderWriter()
     {
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-        gmsServiceURI = serviceURI.toString();
     }
 
     /**
@@ -480,15 +474,6 @@ public abstract class AbstractReaderWriter
             throw new ReaderException(error);
         }
 
-        // Group groupID
-        int index = uri.indexOf(gmsServiceURI);
-        if (index == -1)
-        {
-            String error = "group uri attribute malformed: " + uri;
-            throw new ReaderException(error);
-        }
-        String groupID = uri.substring(gmsServiceURI.length() + 1);
-
         // Group owner
         User user = null;
         Element ownerElement = element.getChild(OWNER);
@@ -504,7 +489,8 @@ public abstract class AbstractReaderWriter
             user = getUser(userElement);
         }
 
-        Group group = new Group(groupID);
+        GroupURI groupURI = new GroupURI(uri);
+        Group group = new Group(groupURI);
 
         // set owner field
         setField(group, user, OWNER);
@@ -934,7 +920,7 @@ public abstract class AbstractReaderWriter
 
         // Create the root group element.
         Element groupElement = new Element(GROUP);
-        String groupURI = gmsServiceURI + "#" + group.getID();
+        String groupURI = group.getID().toString();
         groupElement.setAttribute(new Attribute(URI, groupURI));
 
         // Group owner

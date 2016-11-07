@@ -73,6 +73,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -81,6 +83,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.util.Log4jInit;
 
@@ -103,16 +106,25 @@ public class AddGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group");
-            Group member = new Group("member");
+            URI gmsServiceURI = URI.create("ivo://example.org/gms");
+
+            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
+            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
             group.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
             expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
+            //expect(groupPersistence.getGroup("member")).andReturn(member);
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member");
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
+            {
+                @Override
+                public URI getServiceURI(URI standard)
+                {
+                    return URI.create("ivo://example.org/gms");
+                }
+            };
             action.groupPersistence = groupPersistence;
 
             try
@@ -134,9 +146,11 @@ public class AddGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group");
-            Group member = new Group("member");
-            Group modified = new Group("group");
+            URI gmsServiceURI = URI.create("ivo://example.org/gms");
+
+            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
+            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
+            Group modified = new Group(new GroupURI(gmsServiceURI + "?group"));
             modified.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence =
@@ -149,7 +163,14 @@ public class AddGroupMemberActionTest
 
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member");
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
+                {
+                    @Override
+                    public URI getServiceURI(URI standard)
+                    {
+                        return URI.create("ivo://example.org/gms");
+                    }
+                };
             action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);

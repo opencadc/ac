@@ -71,6 +71,8 @@ package ca.nrc.cadc.ac.server.web.groups;
 import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
@@ -79,6 +81,7 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.util.Log4jInit;
 
@@ -93,7 +96,7 @@ public class RemoveGroupMemberActionTest
     @BeforeClass
     public static void setUpClass()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
     }
 
     @Test
@@ -101,15 +104,22 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            Group group = new Group("group");
-            Group member = new Group("member");
+            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
+            Group member = new Group(new GroupURI("ivo://example.org/gms?member"));
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
             EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member");
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member")
+            {
+                @Override
+                public URI getServiceURI(URI standard)
+                {
+                    return URI.create("ivo://example.org/gms");
+                }
+            };
             action.groupPersistence = groupPersistence;
 
             try
@@ -131,11 +141,12 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            Group member = new Group("member");
-            Group group = new Group("group");
+            URI gmsServiceURI = URI.create("ivo://example.org/gms");
+            Group member = new Group(new GroupURI(gmsServiceURI.toString() + "?member"));
+            Group group = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
             group.getGroupMembers().add(member);
 
-            Group modified = new Group("group");
+            Group modified = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
             modified.getGroupMembers().add(member);
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
@@ -145,7 +156,14 @@ public class RemoveGroupMemberActionTest
             EasyMock.expectLastCall();
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member");
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member")
+                {
+                    @Override
+                    public URI getServiceURI(URI standard)
+                    {
+                        return URI.create("ivo://example.org/gms");
+                    }
+                };
             action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);

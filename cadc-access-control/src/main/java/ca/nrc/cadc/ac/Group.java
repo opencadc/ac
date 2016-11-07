@@ -72,9 +72,13 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+
 public class Group
 {
-    private String groupID;
+    private final static Logger log = Logger.getLogger(Group.class);
+
+    private GroupURI groupID;
 
     private User owner;
 
@@ -101,22 +105,15 @@ public class Group
     }
 
     /**
-     * Ctor.
+     * Group Constructor.
      *
-     * @param groupID   Unique ID for the group. Must be a valid URI fragment
-     *                  component, so it's restricted to alphanumeric
-     *                  and "-", ".","_","~" characters.
+     * @param groupID The URI identifying the group.
      */
-    public Group(String groupID)
+    public Group(GroupURI groupID)
     {
         if (groupID == null)
         {
             throw new IllegalArgumentException("null groupID");
-        }
-        if (!groupID.matches("^[a-zA-Z0-9\\-\\.~_]*$"))
-        {
-            throw new IllegalArgumentException("Invalid group ID " + groupID +
-                    ": may not contain space ( ), slash (/), escape (\\), or percent (%)");
         }
 
         this.groupID = groupID;
@@ -127,7 +124,7 @@ public class Group
      *
      * @return String group ID.
      */
-    public String getID()
+    public GroupURI getID()
     {
         return groupID;
     }
@@ -187,15 +184,6 @@ public class Group
     }
 
     /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        return 31 + groupID.toLowerCase().hashCode();
-    }
-
-    /* (non-Javadoc)
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -214,11 +202,25 @@ public class Group
             return false;
         }
         Group other = (Group) obj;
-        if (!groupID.equalsIgnoreCase(other.groupID))
+
+        if (!groupID.equals(other.groupID))
         {
             return false;
         }
         return true;
+    }
+
+    /*
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode()
+    {
+        if (groupID != null)
+        {
+            return 31 + groupID.getURI().toString().toLowerCase().hashCode();
+        }
+        return 0;
     }
 
     @Override

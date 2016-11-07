@@ -92,7 +92,7 @@ public class DeleteGroupAction extends AbstractGroupAction
             this.logInfo.deletedMembers = new ArrayList<String>();
             for (Group gr : deletedGroup.getGroupMembers())
             {
-                this.logInfo.deletedMembers.add(gr.getID());
+                this.logInfo.deletedMembers.add(gr.getID().getName());
             }
             for (User usr : deletedGroup.getUserMembers())
             {
