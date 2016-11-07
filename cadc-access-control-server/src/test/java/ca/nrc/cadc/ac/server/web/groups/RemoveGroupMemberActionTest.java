@@ -112,7 +112,14 @@ public class RemoveGroupMemberActionTest
             EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member");
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member")
+            {
+                @Override
+                public URI getServiceURI(URI standard)
+                {
+                    return URI.create("ivo://example.org/gms");
+                }
+            };
             action.groupPersistence = groupPersistence;
 
             try
