@@ -237,7 +237,7 @@ public class GMSClient implements TransferListener
     /**
      * Get the group object.
      *
-     * @param groupName Identifies the group to get.
+     * @param groupID Identifies the group to get.
      * @return The group.
      * @throws GroupNotFoundException If the group was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
@@ -442,7 +442,7 @@ public class GMSClient implements TransferListener
     /**
      * Delete the group.
      *
-     * @param groupName Identifies the group to delete.
+     * @param groupID Identifies the group to delete.
      * @throws GroupNotFoundException If the group was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
@@ -506,7 +506,7 @@ public class GMSClient implements TransferListener
     /**
      * Add a group as a member of another group.
      *
-     * @param targetGroupName The group in which to add the group member.
+     * @param targetGroup The group in which to add the group member.
      * @param groupMemberName The group member to add.
      * @throws IllegalArgumentException If cyclical membership is detected.
      * @throws GroupNotFoundException If the group was not found.
@@ -692,7 +692,7 @@ public class GMSClient implements TransferListener
     /**
      * Remove a user as a member of a group.
      *
-     * @param targetGroupName The group from which to remove the group member.
+     * @param targetGroup The group from which to remove the group member.
      * @param userID The user to remove.
      * @throws GroupNotFoundException If the group was not found.
      * @throws UserNotFoundException If the member was not found.
@@ -892,7 +892,7 @@ public class GMSClient implements TransferListener
      * identified by userID, is a member (of type role) of that group.
      * Return null otherwise.
      *
-     * @param groupName Identifies the group.
+     * @param groupID Identifies the group.
      * @param role The membership role to search.
      * @return The group or null of the user is not a member.
      * @throws UserNotFoundException If the user does not exist.
@@ -991,7 +991,7 @@ public class GMSClient implements TransferListener
     /**
      * Check group membership of the current Subject.
      *
-     * @param groupName
+     * @param groupID
      * @return true if the current Subject is a member of the group, false otherwise
      * @throws UserNotFoundException
      * @throws AccessControlException
@@ -1005,7 +1005,7 @@ public class GMSClient implements TransferListener
 
     /**
      *
-     * @param groupName
+     * @param groupID
      * @param role
      * @return true if the current Subject is a member of the group with the specified role, false otherwise
      * @throws UserNotFoundException
