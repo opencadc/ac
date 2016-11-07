@@ -86,12 +86,7 @@ public class GroupURI
     private String name;
 
     /**
-     * Attempts to create a URI using the specified uri. The is expected
-     * to be in the format:
-     *
-     * <code>
-     * ivo://<authority>/gms?<groupName>
-     * </code>
+     * Attempts to create a URI using the specified uri.
      *
      * @param uri The URI to use.
      * @throws IllegalArgumentException if the URI scheme is not vos
