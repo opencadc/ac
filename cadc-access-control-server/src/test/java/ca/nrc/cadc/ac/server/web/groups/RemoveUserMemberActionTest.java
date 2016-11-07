@@ -94,8 +94,6 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.PropertiesReader;
@@ -128,8 +126,8 @@ public class RemoveUserMemberActionTest
         try
         {
             User user = new User();
-            LocalAuthority localAuthority = new LocalAuthority();
-            URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_REQS_01.toString());
+
+            URI umsServiceURI = URI.create("ivo://example.org/ums");
             InternalID internalID = new InternalID(new URI(umsServiceURI.toASCIIString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 
@@ -182,8 +180,7 @@ public class RemoveUserMemberActionTest
         try
         {
             User user = new User();
-            LocalAuthority localAuthority = new LocalAuthority();
-            URI umsServiceURI = localAuthority.getServiceURI(Standards.UMS_REQS_01.toString());
+            URI umsServiceURI = URI.create("ivo://example.org/ums");
             InternalID internalID = new InternalID(new URI(umsServiceURI.toString() + "?" + UUID.randomUUID()));
             ObjectUtil.setField(user, internalID, "id");
 
@@ -212,6 +209,11 @@ public class RemoveUserMemberActionTest
                 protected UserPersistence getUserPersistence()
                 {
                     return mockUserPersistence;
+                }
+                @Override
+                public URI getServiceURI(URI standard)
+                {
+                    return URI.create("ivo://example.org/gms");
                 }
             };
             action.setGroupPersistence(mockGroupPersistence);

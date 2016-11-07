@@ -83,8 +83,6 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 
 /**
@@ -136,9 +134,7 @@ public class RemoveGroupMemberActionTest
     {
         try
         {
-            LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-
+            URI gmsServiceURI = URI.create("ivo://example.org/gms");
             Group member = new Group(new GroupURI(gmsServiceURI.toString() + "?member"));
             Group group = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
             group.getGroupMembers().add(member);
@@ -153,7 +149,14 @@ public class RemoveGroupMemberActionTest
             EasyMock.expectLastCall();
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member");
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member")
+                {
+                    @Override
+                    public URI getServiceURI(URI standard)
+                    {
+                        return URI.create("ivo://example.org/gms");
+                    }
+                };
             action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);

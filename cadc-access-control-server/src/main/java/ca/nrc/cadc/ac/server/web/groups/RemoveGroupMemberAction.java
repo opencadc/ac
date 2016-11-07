@@ -78,7 +78,6 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 
 public class RemoveGroupMemberAction extends AbstractGroupAction
 {
@@ -97,8 +96,7 @@ public class RemoveGroupMemberAction extends AbstractGroupAction
     public void doAction() throws Exception
     {
         Group group = groupPersistence.getGroup(this.groupName);
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        URI gmsServiceURI = getServiceURI(Standards.GMS_GROUPS_01);
         GroupURI toRemoveID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
         Group toRemove = new Group(toRemoveID);
 
