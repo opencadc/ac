@@ -165,7 +165,7 @@ public class GroupTest
         {
             new Group(new GroupURI("ivo://example.org/New%Test%Group"));
         }
-        catch(URISyntaxException e)
+        catch(IllegalArgumentException e)
         {
             thrown = true;
         }
@@ -176,7 +176,7 @@ public class GroupTest
         {
             new Group(new GroupURI("ivo://example.org/New\\Test\\Group"));
         }
-        catch(URISyntaxException e)
+        catch(IllegalArgumentException e)
         {
             thrown = true;
         }

@@ -788,16 +788,8 @@ public class LdapUserDAO extends LdapDAO
         String[] parts = cn.split("=");
         if (parts.length == 2 && parts[0].equals("cn"))
         {
-            try
-            {
-                GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + parts[1]);
-                return new Group(groupID);
-            }
-            catch (URISyntaxException e)
-            {
-                logger.error("Illegal Group ID", e);
-                throw new IllegalStateException("Illegal Group ID", e);
-            }
+            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + parts[1]);
+            return new Group(groupID);
         }
         throw new RuntimeException("BUG: failed to extract group name from " + groupDN
                 .toString());

@@ -15,7 +15,7 @@ public class GroupURITest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
     }
 
     @Test
@@ -23,17 +23,14 @@ public class GroupURITest
     {
         try
         {
-            // wrong scheme
-            assertIllegalArgument("iko://cadc.nrc.ca/gms?gname", "scheme");
-
-            // fragment instead of query
-            assertIllegalArgument("ivo://cadc.nrc.ca/gms#gname", "fragment");
+            // no scheme
+            assertIllegalArgument("example.org/gms?gname", "scheme");
 
             // no authority
             assertIllegalArgument("ivo://gms?gname", "authority");
 
-            // extended path in group
-            assertIllegalArgument("ivo://cadc.nrc.ca/gms/path?gname", "path");
+            // no path
+            assertIllegalArgument("ivo://example.org/gname", "name");
         }
         catch (Throwable t)
         {
@@ -43,7 +40,7 @@ public class GroupURITest
     }
 
     @Test
-    public void testCorrect()
+    public void testCorrect1()
     {
         try
         {
@@ -53,6 +50,26 @@ public class GroupURITest
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals("name", g.getName());
             Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toString());
+            Assert.assertEquals("ivo://my.authority/gms?name", g.toString());
+        }
+        catch (Throwable t)
+        {
+            log.error("Test Failed", t);
+        }
+    }
+
+    @Test
+    public void testCorrect2()
+    {
+        try
+        {
+            GroupURI g = new GroupURI("ivo://my.authority/gms#name");
+            Assert.assertEquals("ivo", g.getURI().getScheme());
+            Assert.assertEquals("my.authority", g.getAuthority());
+            Assert.assertEquals("/gms", g.getURI().getPath());
+            Assert.assertEquals("name", g.getName());
+            Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toString());
+            Assert.assertEquals("ivo://my.authority/gms?name", g.toString());
         }
         catch (Throwable t)
         {

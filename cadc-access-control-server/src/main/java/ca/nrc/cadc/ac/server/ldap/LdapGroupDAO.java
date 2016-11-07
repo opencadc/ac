@@ -70,7 +70,6 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -753,55 +752,47 @@ public class LdapGroupDAO extends LdapDAO
     private Group createGroupFromSearchResult(SearchResultEntry result, String[] attributes)
             throws LDAPException, TransientException
     {
+        if (result.getAttribute(LDAP_NSACCOUNTLOCK) != null)
+        {
+            throw new RuntimeException("BUG: found group with nsaccountlock set: " +
+                                        result.getAttributeValue(LDAP_ENTRYDN));
+        }
+
+        String entryDN = result.getAttributeValue(LDAP_ENTRYDN);
+        String groupName = result.getAttributeValue(LDAP_CN);
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI gmsServiceID = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        if (attributes == PUB_GROUP_ATTRS)
+        {
+            GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
+            return new Group(groupID);
+        }
+
+        String ownerDN = result.getAttributeValue(LDAP_OWNER);
+        if (ownerDN == null)
+        {
+            throw new AccessControlException(groupName);
+        }
         try
         {
-            if (result.getAttribute(LDAP_NSACCOUNTLOCK) != null)
+            User owner = userDAO.getUser(new DNPrincipal(ownerDN));
+            GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
+            Group group = new Group(groupID);
+            setField(group, owner, LDAP_OWNER);
+            if (result.hasAttribute(LDAP_DESCRIPTION))
             {
-                throw new RuntimeException("BUG: found group with nsaccountlock set: " +
-                                            result.getAttributeValue(LDAP_ENTRYDN));
+                group.description = result.getAttributeValue(LDAP_DESCRIPTION);
             }
-
-            String entryDN = result.getAttributeValue(LDAP_ENTRYDN);
-            String groupName = result.getAttributeValue(LDAP_CN);
-            LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceID = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-            if (attributes == PUB_GROUP_ATTRS)
+            if (result.hasAttribute(LDAP_MODIFY_TIMESTAMP))
             {
-                GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
-                return new Group(groupID);
+                group.lastModified = result.getAttributeValueAsDate(LDAP_MODIFY_TIMESTAMP);
             }
-
-            String ownerDN = result.getAttributeValue(LDAP_OWNER);
-            if (ownerDN == null)
-            {
-                throw new AccessControlException(groupName);
-            }
-            try
-            {
-                User owner = userDAO.getUser(new DNPrincipal(ownerDN));
-                GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
-                Group group = new Group(groupID);
-                setField(group, owner, LDAP_OWNER);
-                if (result.hasAttribute(LDAP_DESCRIPTION))
-                {
-                    group.description = result.getAttributeValue(LDAP_DESCRIPTION);
-                }
-                if (result.hasAttribute(LDAP_MODIFY_TIMESTAMP))
-                {
-                    group.lastModified = result.getAttributeValueAsDate(LDAP_MODIFY_TIMESTAMP);
-                }
-                return group;
-            }
-            catch (UserNotFoundException ex)
-            {
-                throw new RuntimeException("Invalid state: owner does not exist: " +
-                                            ownerDN + " group: " + entryDN);
-            }
+            return group;
         }
-        catch (URISyntaxException e)
+        catch (UserNotFoundException ex)
         {
-            logger.error("invalid group URI", e);
-            throw new IllegalStateException("Invalid group URI", e);
+            throw new RuntimeException("Invalid state: owner does not exist: " +
+                                        ownerDN + " group: " + entryDN);
         }
     }
 

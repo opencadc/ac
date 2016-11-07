@@ -82,10 +82,8 @@ public class GroupURI
 {
     private static Logger log = Logger.getLogger(GroupURI.class);
 
-    public static final String SCHEME = "ivo";
-    public static final String PATH = "/gms";
-
     private URI uri;
+    private String name;
 
     /**
      * Attempts to create a URI using the specified uri. The is expected
@@ -104,26 +102,12 @@ public class GroupURI
             throw new IllegalArgumentException("Null URI");
         }
 
-        String fragment = uri.getFragment();
-        if (fragment != null && fragment.length() > 0)
-        {
-            throw new IllegalArgumentException("Fragment not allowed in group URIs");
-        }
-
-        try
-        {
-            this.uri = new URI(uri.getScheme(), uri.getAuthority(),
-                    uri.getPath(), uri.getQuery(), fragment);
-        }
-        catch (URISyntaxException e)
-        {
-            throw new IllegalArgumentException("URI malformed: " + uri.toString());
-        }
+        this.uri = uri;
 
         // Ensure the scheme is correct
-        if (uri.getScheme() == null || !uri.getScheme().equalsIgnoreCase(SCHEME))
+        if (uri.getScheme() == null)
         {
-            throw new IllegalArgumentException("GroupURI scheme must be " + SCHEME);
+            throw new IllegalArgumentException("GroupURI scheme is required.");
         }
 
         if (uri.getAuthority() == null)
@@ -131,20 +115,38 @@ public class GroupURI
             throw new IllegalArgumentException("Group authority is required.");
         }
 
-        if (uri.getPath() == null || !uri.getPath().equalsIgnoreCase(PATH))
+        if (uri.getPath() == null || uri.getPath().length() == 0)
         {
-            if (PATH.contains(uri.getAuthority()))
+            throw new IllegalArgumentException("Missing authority and/or path.");
+        }
+
+        log.debug("URI: " + uri);
+        log.debug("  scheme: " + uri.getScheme());
+        log.debug("  authority: " + uri.getAuthority());
+        log.debug("  path: " + uri.getPath());
+
+        String fragment = uri.getFragment();
+        String query = uri.getQuery();
+        if (query == null)
+        {
+            if (fragment != null)
             {
-                throw new IllegalArgumentException("Missing authority");
+                // allow the fragment to define the group name (old style)
+                name = fragment;
             }
-            throw new IllegalArgumentException("GroupURI path must be " + PATH);
+            else
+            {
+                throw new IllegalArgumentException("Group name is required.");
+            }
         }
-
-        if (uri.getQuery() == null)
+        else
         {
-            throw new IllegalArgumentException("Group name is required.");
+            if (fragment != null)
+            {
+                throw new IllegalArgumentException("Fragment not allowed in group URIs");
+            }
+            name = query;
         }
-
     }
 
     /**
@@ -152,9 +154,8 @@ public class GroupURI
      * that takes a URI object.
      */
     public GroupURI(String uri)
-        throws URISyntaxException
     {
-        this(new URI(uri));
+        this(URI.create(uri));
     }
 
     @Override
@@ -167,7 +168,7 @@ public class GroupURI
         if (rhs instanceof GroupURI)
         {
             GroupURI vu = (GroupURI) rhs;
-            return uri.equals(vu.uri);
+            return uri.toString().equals(vu.uri.toString());
         }
         return false;
     }
@@ -199,7 +200,7 @@ public class GroupURI
      */
     public String getName()
     {
-        return uri.getQuery();
+        return name;
     }
 
     public URI getServiceID()
@@ -222,7 +223,7 @@ public class GroupURI
     @Override
     public String toString()
     {
-        return uri.toString();
+        return getServiceID() + "?" + name;
     }
 
 }

@@ -489,19 +489,7 @@ public abstract class AbstractReaderWriter
             user = getUser(userElement);
         }
 
-        GroupURI groupURI = null;
-        try
-        {
-            groupURI = new GroupURI(uri);
-        }
-        catch (URISyntaxException e)
-        {
-            throw new ReaderException("Invalid uri: " + uri + ": " + e.getMessage());
-        }
-        catch (IllegalArgumentException e)
-        {
-            throw new ReaderException("Invalid group uri: " + uri + ": " + e.getMessage());
-        }
+        GroupURI groupURI = new GroupURI(uri);
         Group group = new Group(groupURI);
 
         // set owner field
