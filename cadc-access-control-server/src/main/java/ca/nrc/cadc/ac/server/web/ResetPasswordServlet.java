@@ -104,6 +104,8 @@ import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Servlet to handle password resets.  Passwords are an integral part of the
@@ -133,26 +135,44 @@ public class ResetPasswordServlet extends HttpServlet
             String httpUsers = config.getInitParameter(ResetPasswordServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("privilegedHttpUsers: " + httpUsers);
 
-            String[] x500List = new String[0];
-            String[] httpList = new String[0];
+            List<String> x500List = new ArrayList<String>();
+            List<String> httpList = new ArrayList<String>();
             if (x500Users != null && httpUsers != null)
             {
-                x500List = x500Users.split(" ");
-                httpList = httpUsers.split(" ");
+                Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
+                Matcher x500Matcher = pattern.matcher(x500Users);
+                Matcher httpMatcher = pattern.matcher(httpUsers);
 
-                if (x500List.length != httpList.length)
+                while (x500Matcher.find())
+                {
+                    String next = x500Matcher.group(1);
+                    x500List.add(next.replace("\"", ""));
+                }
+
+                while (httpMatcher.find())
+                {
+                    String next = httpMatcher.group(1);
+                    httpList.add(next.replace("\"", ""));
+                }
+
+                if (x500List.size() != httpList.size())
                 {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
 
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-                for (int i=0; i<x500List.length; i++)
+                for (int i=0; i<x500List.size(); i++)
                 {
                     Subject s = new Subject();
-                    s.getPrincipals().add(new X500Principal(x500List[i]));
-                    s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                    s.getPrincipals().add(new X500Principal(x500List.get(i)));
+                    s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
                     privilegedSubjects.add(s);
                 }
+
+            }
+            else
+            {
+                log.warn("No Privileged users configured.");
             }
 
             PluginFactory pluginFactory = new PluginFactory();
