@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.ac.client;
 
+import java.net.URI;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
@@ -95,10 +96,10 @@ import ca.nrc.cadc.util.Log4jInit;
  * only used for testing.  Should not be used for production
  * work.
  */
-public class GMSClientMain implements PrivilegedAction<Object>
+public class Main implements PrivilegedAction<Object>
 {
 
-    private static Logger log = Logger.getLogger(GMSClientMain.class);
+    private static Logger log = Logger.getLogger(Main.class);
 
     public static final String ARG_ADD_MEMBER = "add-member";
     public static final String ARG_DEL_MEMBER = "remove-member";
@@ -118,12 +119,11 @@ public class GMSClientMain implements PrivilegedAction<Object>
     public static final String ARG_V = "v";
     public static final String ARG_D = "d";
 
-    private GMSClient client;
     private ArgumentMap argMap;
 
-    private GMSClientMain()
+    private Main(ArgumentMap args)
     {
-        client = new GMSClient();
+        this.argMap = args;
     }
 
     public static void main(String[] args)
@@ -149,8 +149,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
         else
             Log4jInit.setLevel("ca", Level.WARN);
 
-        GMSClientMain main = new GMSClientMain();
-        main.argMap = argMap;
+        Main main = new Main(argMap);
 
         Subject subject = CertCmdArgUtil.initSubject(argMap, true);
 
@@ -192,15 +191,15 @@ public class GMSClientMain implements PrivilegedAction<Object>
 
     private static void usage()
     {
-        System.out.println("--create --group=<g>");
-        System.out.println("--get --group=<g>");
-        System.out.println("--delete --group=<g>");
+        System.out.println("--create --group=<uri>");
+        System.out.println("--get --group=<uri>");
+        System.out.println("--delete --group=<uri>");
         System.out.println();
-        System.out.println("--add-member --group=<g> --userid=<u>");
-        System.out.println("--remove-member --group=<g> --userid=<u>");
+        System.out.println("--add-member --group=<uri> --userid=<u>");
+        System.out.println("--remove-member --group=<uri> --userid=<u>");
         System.out.println();
-        System.out.println("--add-admin --group=<g> --userid=<u>");
-        System.out.println("--remove-admin --group=<g> --userid=<u>");
+        System.out.println("--add-admin --group=<uri> --userid=<u>");
+        System.out.println("--remove-admin --group=<uri> --userid=<u>");
     }
 
     @Override
@@ -209,12 +208,14 @@ public class GMSClientMain implements PrivilegedAction<Object>
         try
         {
             String command = getCommand();
-
-            GroupURI groupID = null;
+            String suri = argMap.getValue(ARG_GROUP);
+            GroupURI guri = new GroupURI(new URI(suri));
+            GMSClient client = new GMSClient(guri.getServiceID());
+            String group = guri.getName();
 
             if (command.equals(ARG_ADD_MEMBER))
             {
-                String group = argMap.getValue(ARG_GROUP);
+
                 String userID = argMap.getValue(ARG_USERID);
 
                 if (group == null)
@@ -223,11 +224,10 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 if (userID == null)
                     throw new IllegalArgumentException("No userid specified");
 
-                client.addUserMember(new GroupURI(group), new HttpPrincipal(userID));
+                client.addUserMember(group, new HttpPrincipal(userID));
             }
             else if (command.equals(ARG_DEL_MEMBER))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -235,11 +235,10 @@ public class GMSClientMain implements PrivilegedAction<Object>
                 if (member == null)
                     throw new IllegalArgumentException("No user specified");
 
-                client.removeUserMember(new GroupURI(group), new HttpPrincipal(member));
+                client.removeUserMember(group, new HttpPrincipal(member));
             }
             else if (command.equals(ARG_ADD_ADMIN))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 String userID = argMap.getValue(ARG_USERID);
 
                 if (group == null)
@@ -249,7 +248,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
                     throw new IllegalArgumentException("No userid specified");
                 HttpPrincipal hp = new HttpPrincipal(userID);
 
-                Group cur = client.getGroup(new GroupURI(group));
+                Group cur = client.getGroup(group);
                 boolean update = true;
                 for (User admin : cur.getUserAdmins())
                 {
@@ -280,7 +279,6 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_DEL_ADMIN))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -289,7 +287,7 @@ public class GMSClientMain implements PrivilegedAction<Object>
                     throw new IllegalArgumentException("No user specified");
                 HttpPrincipal hp = new HttpPrincipal(userID);
 
-                Group cur = client.getGroup(new GroupURI(group));
+                Group cur = client.getGroup(group);
                 boolean update = false;
                 Iterator<User> iter = cur.getUserAdmins().iterator();
                 while (iter.hasNext())
@@ -319,29 +317,15 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_CREATE_GROUP))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
-
-                GroupURI groupURI = null;
-                try
-                {
-                    groupURI = new GroupURI(group);
-                }
-                catch (Exception e)
-                {
-                    String message = "Invalid group URI format '" +
-                        group + "': " + e.getMessage();
-                    log.debug(message, e);
-                    throw new IllegalArgumentException(message);
-                }
 
                 AccessControlContext accessControlContext = AccessController.getContext();
                 Subject subject = Subject.getSubject(accessControlContext);
                 Set<X500Principal> principals = subject.getPrincipals(X500Principal.class);
                 X500Principal p = principals.iterator().next();
 
-                Group g = new Group(groupURI);
+                Group g = new Group(guri);
 
                 User member = new User();
                 member.getIdentities().add(p);
@@ -350,11 +334,10 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_GET_GROUP))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
-                Group g = client.getGroup(new GroupURI(group));
+                Group g = client.getGroup(group);
                 System.out.println("found: " + g.getID());
                 System.out.println("\t" + g.description);
                 System.out.println("owner: " + g.getOwner());
@@ -374,11 +357,10 @@ public class GMSClientMain implements PrivilegedAction<Object>
             }
             else if (command.equals(ARG_DELETE_GROUP))
             {
-                String group = argMap.getValue(ARG_GROUP);
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
-                client.deleteGroup(new GroupURI(group));
+                client.deleteGroup(group);
             }
 
             return null;
