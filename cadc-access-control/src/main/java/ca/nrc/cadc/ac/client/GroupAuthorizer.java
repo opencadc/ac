@@ -87,6 +87,14 @@ public class GroupAuthorizer implements Authorizer
 
     private GroupURI groupURI;
     
+    private GroupAuthorizer() { }
+    
+    /**
+     * Create an authorizer that allows members of the specified group and denies
+     * all other users. The string argument must be a valid GroupURI.
+     * 
+     * @param uri group identifier for the allow group
+     */
     public GroupAuthorizer(String uri) 
     { 
         try
