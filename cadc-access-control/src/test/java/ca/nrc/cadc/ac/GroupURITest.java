@@ -19,6 +19,18 @@ public class GroupURITest
     }
 
     @Test
+    public void testEquals()
+    {
+        GroupURI uri1 = new GroupURI("ivo://example.org/gms?name");
+        GroupURI uri2 = new GroupURI("ivo://example.org/gms?name");
+        Assert.assertTrue(uri1.equals(uri2));
+
+        uri1 = new GroupURI("ivo://example.org/gms?name");
+        uri2 = new GroupURI("ivo://example.org/gms#name");
+        Assert.assertTrue(uri1.equals(uri2));
+    }
+
+    @Test
     public void testMalformed()
     {
         try

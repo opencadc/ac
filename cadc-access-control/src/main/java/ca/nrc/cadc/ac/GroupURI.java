@@ -156,16 +156,19 @@ public class GroupURI
     }
 
     @Override
-    public boolean equals(Object rhs)
+    public boolean equals(Object other)
     {
-        if (rhs == null)
+        if (other == null)
             return false;
-        if (this == rhs)
+        if (this == other)
             return true;
-        if (rhs instanceof GroupURI)
+        if (other instanceof GroupURI)
         {
-            GroupURI vu = (GroupURI) rhs;
-            return uri.toString().equals(vu.uri.toString());
+
+            GroupURI oID = (GroupURI) other;
+            String otherURI = getServiceIDString() + "?" + oID.getName();
+            String thisURI = getServiceIDString() + "?" + this.getName();
+            return thisURI.equals(otherURI);
         }
         return false;
     }
@@ -200,15 +203,20 @@ public class GroupURI
         return name;
     }
 
-    public URI getServiceID()
+    public String getServiceIDString()
     {
-        String serviceID = uri.getScheme() +
+        return uri.getScheme() +
             "://" +
             uri.getAuthority() +
             uri.getPath();
+    }
+
+    public URI getServiceID()
+    {
+        String serviceIDString = getServiceIDString();
         try
         {
-            return new URI(serviceID);
+            return new URI(serviceIDString);
         }
         catch (URISyntaxException e)
         {
