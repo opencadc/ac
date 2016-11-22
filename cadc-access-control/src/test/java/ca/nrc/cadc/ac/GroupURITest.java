@@ -58,7 +58,6 @@ public class GroupURITest
         {
             GroupURI g = new GroupURI("ivo://my.authority/gms?name");
             Assert.assertEquals("ivo", g.getURI().getScheme());
-            Assert.assertEquals("my.authority", g.getAuthority());
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals("name", g.getName());
             Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toString());
@@ -77,7 +76,6 @@ public class GroupURITest
         {
             GroupURI g = new GroupURI("ivo://my.authority/gms#name");
             Assert.assertEquals("ivo", g.getURI().getScheme());
-            Assert.assertEquals("my.authority", g.getAuthority());
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals("name", g.getName());
             Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toString());

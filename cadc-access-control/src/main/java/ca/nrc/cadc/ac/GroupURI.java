@@ -160,11 +160,8 @@ public class GroupURI
             return true;
         if (other instanceof GroupURI)
         {
-
-            GroupURI oID = (GroupURI) other;
-            String otherURI = getServiceIDString() + "?" + oID.getName();
-            String thisURI = getServiceIDString() + "?" + this.getName();
-            return thisURI.equals(otherURI);
+            GroupURI otherURI = (GroupURI) other;
+            return uri.equals(otherURI.getURI());
         }
         return false;
     }
@@ -180,16 +177,6 @@ public class GroupURI
     }
 
     /**
-     * Returns the decoded authority component of the URI.
-     *
-     * @return authority of the URI, or null if the authority is undefined.
-     */
-    public String getAuthority()
-    {
-        return uri.getAuthority();
-    }
-
-    /**
      * Returns the decoded fragment component of the URI.
      *
      * @return fragment of the URI, or null if the fragment is undefined.
@@ -199,17 +186,12 @@ public class GroupURI
         return uri.getQuery();
     }
 
-    public String getServiceIDString()
+    public URI getServiceID()
     {
-        return uri.getScheme() +
+        String serviceIDString = uri.getScheme() +
             "://" +
             uri.getAuthority() +
             uri.getPath();
-    }
-
-    public URI getServiceID()
-    {
-        String serviceIDString = getServiceIDString();
         try
         {
             return new URI(serviceIDString);
