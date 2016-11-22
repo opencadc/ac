@@ -83,7 +83,6 @@ public class GroupURI
     private static Logger log = Logger.getLogger(GroupURI.class);
 
     private URI uri;
-    private String name;
 
     /**
      * Attempts to create a URI using the specified uri.
@@ -98,8 +97,6 @@ public class GroupURI
         {
             throw new IllegalArgumentException("Null URI");
         }
-
-        this.uri = uri;
 
         // Ensure the scheme is correct
         if (uri.getScheme() == null)
@@ -117,13 +114,9 @@ public class GroupURI
             throw new IllegalArgumentException("Missing authority and/or path.");
         }
 
-        log.debug("URI: " + uri);
-        log.debug("  scheme: " + uri.getScheme());
-        log.debug("  authority: " + uri.getAuthority());
-        log.debug("  path: " + uri.getPath());
-
         String fragment = uri.getFragment();
         String query = uri.getQuery();
+        String name = null;
         if (query == null)
         {
             if (fragment != null)
@@ -144,6 +137,9 @@ public class GroupURI
             }
             name = query;
         }
+
+        this.uri = URI.create(
+            uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
     }
 
     /**
@@ -156,16 +152,16 @@ public class GroupURI
     }
 
     @Override
-    public boolean equals(Object rhs)
+    public boolean equals(Object other)
     {
-        if (rhs == null)
+        if (other == null)
             return false;
-        if (this == rhs)
+        if (this == other)
             return true;
-        if (rhs instanceof GroupURI)
+        if (other instanceof GroupURI)
         {
-            GroupURI vu = (GroupURI) rhs;
-            return uri.toString().equals(vu.uri.toString());
+            GroupURI otherURI = (GroupURI) other;
+            return uri.equals(otherURI.getURI());
         }
         return false;
     }
@@ -181,34 +177,24 @@ public class GroupURI
     }
 
     /**
-     * Returns the decoded authority component of the URI.
-     *
-     * @return authority of the URI, or null if the authority is undefined.
-     */
-    public String getAuthority()
-    {
-        return uri.getAuthority();
-    }
-
-    /**
      * Returns the decoded fragment component of the URI.
      *
      * @return fragment of the URI, or null if the fragment is undefined.
      */
     public String getName()
     {
-        return name;
+        return uri.getQuery();
     }
 
     public URI getServiceID()
     {
-        String serviceID = uri.getScheme() +
+        String serviceIDString = uri.getScheme() +
             "://" +
             uri.getAuthority() +
             uri.getPath();
         try
         {
-            return new URI(serviceID);
+            return new URI(serviceIDString);
         }
         catch (URISyntaxException e)
         {
@@ -220,7 +206,7 @@ public class GroupURI
     @Override
     public String toString()
     {
-        return getServiceID() + "?" + name;
+        return uri.toString();
     }
 
 }
