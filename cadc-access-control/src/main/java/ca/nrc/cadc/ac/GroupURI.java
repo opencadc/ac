@@ -83,7 +83,6 @@ public class GroupURI
     private static Logger log = Logger.getLogger(GroupURI.class);
 
     private URI uri;
-    private String name;
 
     /**
      * Attempts to create a URI using the specified uri.
@@ -98,8 +97,6 @@ public class GroupURI
         {
             throw new IllegalArgumentException("Null URI");
         }
-
-        this.uri = uri;
 
         // Ensure the scheme is correct
         if (uri.getScheme() == null)
@@ -117,13 +114,9 @@ public class GroupURI
             throw new IllegalArgumentException("Missing authority and/or path.");
         }
 
-        log.debug("URI: " + uri);
-        log.debug("  scheme: " + uri.getScheme());
-        log.debug("  authority: " + uri.getAuthority());
-        log.debug("  path: " + uri.getPath());
-
         String fragment = uri.getFragment();
         String query = uri.getQuery();
+        String name = null;
         if (query == null)
         {
             if (fragment != null)
@@ -144,6 +137,9 @@ public class GroupURI
             }
             name = query;
         }
+
+        this.uri = URI.create(
+            uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
     }
 
     /**
@@ -200,7 +196,7 @@ public class GroupURI
      */
     public String getName()
     {
-        return name;
+        return uri.getQuery();
     }
 
     public String getServiceIDString()
@@ -228,7 +224,7 @@ public class GroupURI
     @Override
     public String toString()
     {
-        return getServiceID() + "?" + name;
+        return uri.toString();
     }
 
 }
