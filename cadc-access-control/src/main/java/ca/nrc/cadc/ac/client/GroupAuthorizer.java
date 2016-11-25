@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2016.                            (c) 2016.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,151 +62,94 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac;
+package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.auth.Authorizer;
+import ca.nrc.cadc.cred.client.CredUtil;
+import ca.nrc.cadc.net.TransientException;
+import java.io.FileNotFoundException;
 import java.net.URI;
-import java.net.URISyntaxException;
-
+import java.security.AccessControlException;
 import org.apache.log4j.Logger;
 
 /**
- * Identifier for a group.
  *
+ * @author pdowler
  */
-public class GroupURI
+public class GroupAuthorizer implements Authorizer
 {
-    private static Logger log = Logger.getLogger(GroupURI.class);
+    private static final Logger log = Logger.getLogger(GroupAuthorizer.class);
 
-    private URI uri;
-
+    private GroupURI groupURI;
+    
+    private GroupAuthorizer() { }
+    
     /**
-     * Attempts to create a URI using the specified uri.
-     *
-     * @param uri The URI to use.
-     * @throws IllegalArgumentException if the URI scheme is not vos
-     * @throws NullPointerException if uri is null
+     * Create an authorizer that allows members of the specified group and denies
+     * all other users. The string argument must be a valid GroupURI.
+     * 
+     * @param uri group identifier for the allow group
      */
-    public GroupURI(URI uri)
-    {
-        if (uri == null)
-        {
-            throw new IllegalArgumentException("Null URI");
-        }
-
-        // Ensure the scheme is correct
-        if (uri.getScheme() == null)
-        {
-            throw new IllegalArgumentException("GroupURI scheme is required.");
-        }
-
-        if (uri.getAuthority() == null)
-        {
-            throw new IllegalArgumentException("Group authority is required.");
-        }
-
-        if (uri.getPath() == null || uri.getPath().length() == 0)
-        {
-            throw new IllegalArgumentException("Missing authority and/or path.");
-        }
-
-        String fragment = uri.getFragment();
-        String query = uri.getQuery();
-        String name = null;
-        if (query == null)
-        {
-            if (fragment != null)
-            {
-                // allow the fragment to define the group name (old style)
-                name = fragment;
-            }
-            else
-            {
-                throw new IllegalArgumentException("Group name is required.");
-            }
-        }
-        else
-        {
-            if (fragment != null)
-            {
-                throw new IllegalArgumentException("Fragment not allowed in group URIs");
-            }
-            name = query;
-        }
-
-        this.uri = URI.create(
-            uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
-    }
-
-    /**
-     * Constructs a URI from the string and calls the constructor
-     * that takes a URI object.
-     */
-    public GroupURI(String uri)
-    {
-        this(URI.create(uri));
-    }
-
-    @Override
-    public boolean equals(Object other)
-    {
-        if (other == null)
-            return false;
-        if (this == other)
-            return true;
-        if (other instanceof GroupURI)
-        {
-            GroupURI otherURI = (GroupURI) other;
-            return uri.equals(otherURI.getURI());
-        }
-        return false;
-    }
-
-    /**
-     * Returns the underlying URI object.
-     *
-     * @return The URI object for this GroupURI.
-     */
-    public URI getURI()
-    {
-        return uri;
-    }
-
-    /**
-     * Returns the decoded fragment component of the URI.
-     *
-     * @return fragment of the URI, or null if the fragment is undefined.
-     */
-    public String getName()
-    {
-        return uri.getQuery();
-    }
-
-    public URI getServiceID()
-    {
-        String serviceIDString = uri.getScheme() +
-            "://" +
-            uri.getAuthority() +
-            uri.getPath();
+    public GroupAuthorizer(String uri) 
+    { 
         try
         {
-            return new URI(serviceIDString);
+            this.groupURI = new GroupURI(uri);
         }
-        catch (URISyntaxException e)
-        {
-            log.error("Could not create service ID", e);
-            throw new IllegalStateException(e);
-        }
+        finally { }
     }
 
     @Override
-    public String toString()
+    public Object getReadPermission(URI uri) 
+        throws AccessControlException, FileNotFoundException, TransientException
     {
-        return uri.toString();
+        checkMembership();
+        return null;
     }
 
+    @Override
+    public Object getWritePermission(URI uri) throws AccessControlException, FileNotFoundException, TransientException
+    {
+        checkMembership();
+        return null;
+    }
+    
+    private void checkMembership()
+    {
+        try
+        {
+            if ( CredUtil.checkCredentials())
+            {
+                GMSClient gms = new GMSClient(groupURI.getServiceID());
+                if ( gms.isMember(groupURI.getName(), Role.MEMBER))
+                    return;
+
+                throw new AccessControlException("permission denied");
+            }
+            throw new AccessControlException("permission denied (no credentials)");
+        }
+        catch (AccessControlException e)
+        {
+            throw e;
+        }
+        catch (Throwable e)
+        {
+            String errorMessage = "Failed to check " + groupURI + " group membership: " + e
+                    .getMessage();
+            log.error(errorMessage, e);
+            Throwable cause = e.getCause();
+            while (cause != null)
+            {
+                log.error("                    reason: "
+                          + cause.getCause());
+                cause = cause.getCause();
+            }
+            throw new IllegalStateException(errorMessage);
+        }
+    }
 }

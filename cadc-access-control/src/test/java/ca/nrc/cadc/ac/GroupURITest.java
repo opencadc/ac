@@ -19,6 +19,18 @@ public class GroupURITest
     }
 
     @Test
+    public void testEquals()
+    {
+        GroupURI uri1 = new GroupURI("ivo://example.org/gms?name");
+        GroupURI uri2 = new GroupURI("ivo://example.org/gms?name");
+        Assert.assertTrue(uri1.equals(uri2));
+
+        uri1 = new GroupURI("ivo://example.org/gms?name");
+        uri2 = new GroupURI("ivo://example.org/gms#name");
+        Assert.assertTrue(uri1.equals(uri2));
+    }
+
+    @Test
     public void testMalformed()
     {
         try
@@ -46,7 +58,6 @@ public class GroupURITest
         {
             GroupURI g = new GroupURI("ivo://my.authority/gms?name");
             Assert.assertEquals("ivo", g.getURI().getScheme());
-            Assert.assertEquals("my.authority", g.getAuthority());
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals("name", g.getName());
             Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toString());
@@ -65,7 +76,6 @@ public class GroupURITest
         {
             GroupURI g = new GroupURI("ivo://my.authority/gms#name");
             Assert.assertEquals("ivo", g.getURI().getScheme());
-            Assert.assertEquals("my.authority", g.getAuthority());
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals("name", g.getName());
             Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toString());
