@@ -118,6 +118,7 @@ public class UserRequestServlet extends HttpServlet
      * using input parameters read from it. Users who do augment
      * subject calls are constructed by taking the principals out of the ServletConfig
      * input parameter.
+     * </p>
      * 
      * <p>
      * The UserRequestServlet in the web deployment descriptor file 
@@ -125,13 +126,14 @@ public class UserRequestServlet extends HttpServlet
      * <ul>
      * <li><code>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedX500Principals</code>
      * is a list of trusted administrators DNs. It is a multi-line list with
-     * line breaks between the trusted DNs and each DN eclosed in double quotes.
+     * line breaks between the trusted DNs and each DN eclosed in double quotes.</li>
      * <li><code>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedHttpPrincipals</code>
      * is a list of space separated userids (HTTP identities) corresponding 
-     * to the previous DNs.
+     * to the previous DNs.</li>
      * </ul>
      * The two lists of principal names must be of the same
      * length and correspond to each other in order.
+     * </p>
      * 
      * @param config           The servlet configuration object.
      * @param response         The HTTP Response.
