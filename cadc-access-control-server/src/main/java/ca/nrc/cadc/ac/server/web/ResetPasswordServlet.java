@@ -122,6 +122,34 @@ public class ResetPasswordServlet extends HttpServlet
     List<Subject> privilegedSubjects;
     UserPersistence userPersistence;
 
+    /**
+     * Servlet initialization method.
+     * 
+     * <p>
+     * Receives the servlet configuration object and initializes UserPersistence 
+     * using input parameters read from it. Users who do augment
+     * subject calls are constructed by taking the principals out of the ServletConfig 
+     * input parameter.
+     * 
+     * <p>
+     * The ResetPasswordServlet configuration in the web deployment descriptor file 
+     * <code>web.xml</code> must have two input parameters:
+     * <ul>
+     * <li><code>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedX500Principals</code>
+     * is a list of trusted administrators DNs. It is a multi-line list with
+     * line breaks between the trusted DNs and each DN eclosed in double quotes.
+     * <li><code>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedHttpPrincipals</code>
+     * is a list of space separated userids (HTTP identities) corresponding 
+     * to the previous DNs.
+     * </ul>
+     * The two lists of principal names must be of the same
+     * length and correspond to each other in order.
+     * 
+     * @param config           The servlet configuration object.
+     * @param response         The HTTP Response.
+     * 
+     * @throws javax.servlet.ServletException   For general Servlet exceptions.
+     */
     @Override
     public void init(final ServletConfig config) throws ServletException
     {
