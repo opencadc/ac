@@ -130,25 +130,22 @@ public class ResetPasswordServlet extends HttpServlet
      * using input parameters read from it. Users who do augment
      * subject calls are constructed by taking the principals out of the ServletConfig 
      * input parameter.
-     * </p>
      * 
      * <p>
      * The ResetPasswordServlet configuration in the web deployment descriptor file 
      * <code>web.xml</code> must have two input parameters:
      * <ul>
      * <li><code>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedX500Principals</code>
-     * is a list of trusted administrators DNs. It is a multi-line list with
-     * line breaks between the trusted DNs and each DN eclosed in double quotes.</li>
+     * is a list of trusted administrators DNs. Each DN must be enclosed in double quotes.
+     * The list can be multi-line for readability.</li>
      * <li><code>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedHttpPrincipals</code>
-     * is a list of space separated userids (HTTP identities) corresponding 
-     * to the previous DNs.</li>
+     * is a list of space separated userids (HTTP identities),  enclosed in double quotes, 
+     * corresponding to the previous DNs.</li>
      * </ul>
      * The two lists of principal names must be of the same
      * length and correspond to each other in order.
-     * </p>
      * 
      * @param config           The servlet configuration object.
-     * @param response         The HTTP Response.
      * 
      * @throws javax.servlet.ServletException   For general Servlet exceptions.
      */
@@ -164,7 +161,7 @@ public class ResetPasswordServlet extends HttpServlet
 
             String httpUsers = config.getInitParameter(ResetPasswordServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("privilegedHttpUsers: " + httpUsers);
-
+            
             List<String> x500List = new ArrayList<String>();
             List<String> httpList = new ArrayList<String>();
             if (x500Users != null && httpUsers != null)
@@ -172,13 +169,13 @@ public class ResetPasswordServlet extends HttpServlet
                 Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
                 Matcher x500Matcher = pattern.matcher(x500Users);
                 Matcher httpMatcher = pattern.matcher(httpUsers);
-
+                
                 while (x500Matcher.find())
                 {
-                    String next = x500Matcher.group(1);
+                    String next = x500Matcher.group(1);                
                     x500List.add(next.replace("\"", ""));
                 }
-
+                
                 while (httpMatcher.find())
                 {
                     String next = httpMatcher.group(1);
@@ -205,7 +202,7 @@ public class ResetPasswordServlet extends HttpServlet
                 log.warn("No Privileged users configured.");
             }
 
-            PluginFactory pluginFactory = new PluginFactory();
+            PluginFactory pluginFactory = getPluginFactory();
             userPersistence = pluginFactory.createUserPersistence();
         }
         catch (Throwable t)
@@ -214,7 +211,14 @@ public class ResetPasswordServlet extends HttpServlet
             throw new ExceptionInInitializerError(t);
         }
     }
+    
+    
+    protected PluginFactory getPluginFactory()
+    {
+        return new PluginFactory();
+    }
 
+    
     protected boolean isPrivilegedSubject(final HttpServletRequest request)
     {
         if (privilegedSubjects == null || privilegedSubjects.isEmpty())
