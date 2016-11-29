@@ -109,7 +109,34 @@ public class UserServlet extends HttpServlet
     protected List<Subject> privilegedSubjects;
 
     private UserPersistence userPersistence;
-
+    
+    /**
+     * Servlet initialization method.
+     * 
+     * <p>
+     * Receives the servlet configuration object and initializes UserPersistence 
+     * using input parameters read from it. Users who do augment
+     * subject calls are constructed by taking the principals out of the ServletConfig
+     * input parameter.
+     * 
+     * <p>
+     * The UserServlet configuration in the web deployment descriptor file 
+     * <code>web.xml</code> must have two input parameters:
+     * <ul>
+     * <li><code>ca.nrc.cadc.ac.server.web.UserServlet.PrivilegedX500Principals</code>
+     * is a list of trusted administrators DNs. Each DN must be enclosed in double quotes.
+     * The list can be multi-line for readability.</li>
+     * <li><code>ca.nrc.cadc.ac.server.web.UserServlet.PrivilegedHttpPrincipals</code>
+     * is a list of space separated userids (HTTP identities),  enclosed in double quotes, 
+     * corresponding to the previous DNs.</li>
+     * </ul>
+     * The two lists of principal names must be of the same
+     * length and correspond to each other in order.
+     * 
+     * @param config           The servlet configuration object.
+     * 
+     * @throws javax.servlet.ServletException   For general Servlet exceptions.
+     */
     @Override
     public void init(ServletConfig config) throws ServletException
     {

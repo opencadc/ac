@@ -98,6 +98,8 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class UserRequestServlet extends HttpServlet
 {
@@ -108,6 +110,33 @@ public class UserRequestServlet extends HttpServlet
 
     private UserPersistence userPersistence;
 
+    /**
+     * Servlet initialization method.
+     * 
+     * <p>
+     * Receives the servlet configuration object and initializes UserPersistence 
+     * using input parameters read from it. Users who do augment
+     * subject calls are constructed by taking the principals out of the ServletConfig
+     * input parameter.
+     * 
+     * <p>
+     * The UserRequestServlet configuration in the web deployment descriptor file 
+     * <code>web.xml</code> must have two input parameters:
+     * <ul>
+     * <li><code>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedX500Principals</code>
+     * is a list of trusted administrators DNs. Each DN must be enclosed in double quotes.
+     * The list can be multi-line for readability.</li>
+     * <li><code>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedHttpPrincipals</code>
+     * is a list of space separated userids (HTTP identities),  enclosed in double quotes, 
+     * corresponding to the previous DNs.</li>
+     * </ul>
+     * The two lists of principal names must be of the same
+     * length and correspond to each other in order.
+     * 
+     * @param config           The servlet configuration object.
+     * 
+     * @throws javax.servlet.ServletException   For general Servlet exceptions.
+     */
     @Override
     public void init(ServletConfig config) throws ServletException
     {
@@ -121,33 +150,46 @@ public class UserRequestServlet extends HttpServlet
             String httpUsers = config.getInitParameter(UserRequestServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("PrivilegedHttpUsers: " + httpUsers);
 
-            String[] x500List = new String[0];
-            String[] httpList = new String[0];
+            List<String> x500List = new ArrayList<String>();
+            List<String> httpList = new ArrayList<String>();
             if (x500Users != null && httpUsers != null)
             {
-                x500List = x500Users.split(" ");
-                httpList = httpUsers.split(" ");
+                Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
+                Matcher x500Matcher = pattern.matcher(x500Users);
+                Matcher httpMatcher = pattern.matcher(httpUsers);
+                while (x500Matcher.find())
+                {
+                    String next = x500Matcher.group(1);
+                    x500List.add(next.replace("\"", ""));
+                }
 
-                if (x500List.length != httpList.length)
+                while (httpMatcher.find())
+                {
+                    String next = httpMatcher.group(1);
+                    httpList.add(next.replace("\"", ""));
+                }
+
+                if (x500List.size() != httpList.size())
                 {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
 
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-                for (int i = 0; i < x500List.length; i++)
+                for (int i=0; i<x500List.size(); i++)
                 {
                     Subject s = new Subject();
-                    s.getPrincipals().add(new X500Principal(x500List[i]));
-                    s.getPrincipals().add(new HttpPrincipal(httpList[i]));
+                    s.getPrincipals().add(new X500Principal(x500List.get(i)));
+                    s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
                     privilegedSubjects.add(s);
                 }
+
             }
             else
             {
                 log.warn("No Privileged users configured.");
             }
 
-            PluginFactory pluginFactory = new PluginFactory();
+            PluginFactory pluginFactory = getPluginFactory();
             userPersistence = pluginFactory.createUserPersistence();
         }
         catch (Throwable t)
@@ -155,6 +197,12 @@ public class UserRequestServlet extends HttpServlet
             log.fatal("Error initializing group persistence", t);
             throw new ExceptionInInitializerError(t);
         }
+    }
+    
+    
+    protected PluginFactory getPluginFactory()
+    {
+        return new PluginFactory();
     }
 
     /**
