@@ -99,9 +99,9 @@ public class GroupURI
         }
 
         // Ensure the scheme is correct
-        if (uri.getScheme() == null)
+        if (uri.getScheme() == null || !"ivo".equals(uri.getScheme()))
         {
-            throw new IllegalArgumentException("GroupURI scheme is required.");
+            throw new IllegalArgumentException("GroupURI scheme must be 'ivo'.");
         }
 
         if (uri.getAuthority() == null)
