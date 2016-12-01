@@ -79,6 +79,7 @@ import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -114,10 +115,23 @@ public class WhoAmIServletTest
     }
 
     @Test
-    public void doGet() throws Exception
+    public void doGetWithHttpPrincipal() throws Exception
     {
         final Subject subject = new Subject();
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
+        doGet(subject, AuthMethod.PASSWORD, "CADCtest", "http");
+    }
+
+    @Test
+    public void doGetWithCert() throws Exception
+    {
+        final Subject subject = new Subject();
+        subject.getPrincipals().add(new X500Principal("CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca"));
+        doGet(subject, AuthMethod.CERT, "CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca", "x500");
+    }
+
+    public void doGet(final Subject subject, final AuthMethod authMethod, final String restUserid, final String restType) throws Exception
+    {
 
         final RegistryClient mockRegistry = createMock(RegistryClient.class);
         final WhoAmIServlet testSubject = new WhoAmIServlet()
@@ -145,6 +159,12 @@ public class WhoAmIServletTest
             {
                 return URI.create("ivo://example.org/ums");
             }
+
+            @Override
+            public AuthMethod getAuthMethod(Subject subject)
+            {
+                return authMethod;
+            }
         };
 
         final HttpServletRequest mockRequest =
@@ -155,9 +175,10 @@ public class WhoAmIServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getScheme()).andReturn("http");
 
-        mockResponse.sendRedirect("/ac/users/CADCtest?idType=HTTP");
+        String redirect = "/ac/users/" + restUserid + "?idType=" + restType;
+        log.debug("expected redirect: " + redirect);
+        mockResponse.sendRedirect(redirect);
         expectLastCall().once();
 
         URI umsServiceURI = URI.create("ivo://example.org/ums");
@@ -166,7 +187,7 @@ public class WhoAmIServletTest
 //                                          "http", "/%s?idType=HTTP")).
 //                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
 
-        expect(mockRegistry.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT))
+        expect(mockRegistry.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, authMethod))
             .andReturn(new URL("http://mysite.com/ac/users")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);

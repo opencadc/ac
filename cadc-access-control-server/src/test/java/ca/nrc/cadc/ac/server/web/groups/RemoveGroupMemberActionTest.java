@@ -96,7 +96,7 @@ public class RemoveGroupMemberActionTest
     @BeforeClass
     public static void setUpClass()
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test

@@ -131,7 +131,7 @@ public class AbstractLdapDAOTest
     public static void setUpBeforeClass()
         throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
 
