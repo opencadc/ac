@@ -71,9 +71,10 @@ package ca.nrc.cadc.ac.server.web;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import java.util.Set;
+import java.security.Principal;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -84,6 +85,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
@@ -99,7 +101,7 @@ public class WhoAmIServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(WhoAmIServlet.class);
 
-    static final String USER_GET_PATH = "/%s?idType=HTTP";
+    static final String USER_GET_PATH = "/%s?idType=%s";
 
     /**
      * Handle a /whoami GET operation.
@@ -119,19 +121,23 @@ public class WhoAmIServlet extends HttpServlet
         log.info(logInfo.start());
         try
         {
-            final Subject currentSubject = getSubject(request);
-            final Set<HttpPrincipal> currentWebPrincipals =
-                    currentSubject.getPrincipals(HttpPrincipal.class);
-
-            if (currentWebPrincipals.isEmpty())
+            final Subject subject = getSubject(request);
+            AuthMethod authMethod = getAuthMethod(subject);
+            if (AuthMethod.ANON.equals(authMethod))
             {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
-            else
+
+            Principal principal = getPrincipalForRestCall(subject);
+            if (principal == null)
             {
-                redirect(response, currentWebPrincipals.toArray(
-                        new HttpPrincipal[1])[0], request.getScheme());
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().print("No supported identities for /whoami");
+                return;
             }
+
+            redirect(response, principal, authMethod);
         }
         catch (IllegalArgumentException e)
         {
@@ -154,10 +160,35 @@ public class WhoAmIServlet extends HttpServlet
         }
     }
 
+    private Principal getPrincipalForRestCall(Subject s)
+    {
+        // TODO: Would be better to add this type of checking to AuthenticationUtil.
+        //       But: a better fix would probably be to remove the userid and
+        //            authentication type from the get user REST call.  Only the
+        //            calling user is allowed to get that user, so the information
+        //            is already available.
+
+        if (!s.getPrincipals(HttpPrincipal.class).isEmpty())
+            return s.getPrincipals(HttpPrincipal.class).iterator().next();
+
+        if (!s.getPrincipals(X500Principal.class).isEmpty())
+            return s.getPrincipals(X500Principal.class).iterator().next();
+
+        if (!s.getPrincipals(NumericPrincipal.class).isEmpty())
+            return s.getPrincipals(NumericPrincipal.class).iterator().next();
+
+        return null;
+    }
+
     public URI getServiceURI(URI standard)
     {
         LocalAuthority localAuthority = new LocalAuthority();
         return localAuthority.getServiceURI(standard.toString());
+    }
+
+    public AuthMethod getAuthMethod(Subject subject)
+    {
+        return AuthenticationUtil.getAuthMethod(subject);
     }
 
     /**
@@ -167,21 +198,19 @@ public class WhoAmIServlet extends HttpServlet
      * @param webPrincipal The HttpPrincipal instance.
      * @param scheme       The scheme
      */
-    void redirect(final HttpServletResponse response,
-                  final HttpPrincipal webPrincipal,
-                  final String scheme) throws IOException
+    void redirect(HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
     {
         final RegistryClient registryClient = getRegistryClient();
 
         URI umsServiceURI = getServiceURI(Standards.UMS_WHOAMI_01);
         log.debug("ums service uri: " + umsServiceURI);
 
-        final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT);
+        final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, authMethod);
         final URL redirectURL = new URL(serviceURL.toExternalForm() + USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =
-            String.format(redirectURL.toString(), webPrincipal.getName());
+            String.format(redirectURL.toString(), principal.getName(), AuthenticationUtil.getPrincipalType(principal));
         final URI redirectURI = URI.create(redirectUrl);
 
         log.debug("redirecting to " + redirectURI.toASCIIString());
