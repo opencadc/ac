@@ -37,6 +37,9 @@ public class GroupURITest
         {
             // no scheme
             assertIllegalArgument("example.org/gms?gname", "scheme");
+            
+            // wrong scheme
+            assertIllegalArgument("gms://example.org/gms?gname", "scheme");
 
             // no authority
             assertIllegalArgument("ivo://gms?gname", "authority");
