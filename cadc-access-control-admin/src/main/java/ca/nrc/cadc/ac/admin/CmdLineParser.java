@@ -72,9 +72,12 @@
 import java.io.PrintStream;
 import java.security.cert.CertificateException;
 
+import javax.security.auth.Subject;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.auth.CertCmdArgUtil;
 import ca.nrc.cadc.util.ArgumentMap;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.StringUtil;
@@ -95,6 +98,7 @@ public class CmdLineParser
     private Level logLevel = Level.OFF;
     private AbstractCommand command;
     private boolean isHelpCommand = false;
+    private ArgumentMap am;
 
     /**
      * Constructor.
@@ -105,7 +109,7 @@ public class CmdLineParser
     public CmdLineParser(final String[] args, final PrintStream outStream,
         final PrintStream errStream) throws UsageException, CertificateException
     {
-        ArgumentMap am = new ArgumentMap( args );
+        am = new ArgumentMap( args );
     	this.setLogLevel(am);
     	this.parse(am, outStream, errStream);
     }
@@ -125,6 +129,11 @@ public class CmdLineParser
     public Level getLogLevel()
     {
     	return this.logLevel;
+    }
+
+    public Subject getSubjectFromCert()
+    {
+        return CertCmdArgUtil.initSubject(am);
     }
 
     /*
@@ -294,6 +303,8 @@ public class CmdLineParser
     	StringBuilder sb = new StringBuilder();
     	sb.append("\n");
     	sb.append("Usage: " + APP_NAME + " <command> [-v|--verbose|-d|--debug] [-h|--help]\n");
+    	sb.append(CertCmdArgUtil.getCertArgUsage());
+    	sb.append("\n");
     	sb.append("Where command is\n");
     	sb.append("--list                       : List users in the Users tree\n");
     	sb.append("--list-pending               : List users in the UserRequests tree\n");

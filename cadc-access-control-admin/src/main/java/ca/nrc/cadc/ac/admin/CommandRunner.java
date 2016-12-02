@@ -69,19 +69,17 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.security.Principal;
-import java.util.HashSet;
 import java.util.Set;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DelegationToken;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.SSOCookieCredential;
 import ca.nrc.cadc.auth.X509CertificateChain;
@@ -112,50 +110,59 @@ public class CommandRunner
         AbstractCommand command = commandLineParser.getCommand();
         command.setUserPersistence(userPersistence);
 
-        Principal userIDPrincipal = null;
+        Subject operatorSubject = new Subject();
+
         if (command instanceof AbstractUserCommand)
         {
-            userIDPrincipal = ((AbstractUserCommand) command).getPrincipal();
+            Principal userIDPrincipal = ((AbstractUserCommand) command).getPrincipal();
+            operatorSubject.getPrincipals().add(userIDPrincipal);
         }
-
-        if (userIDPrincipal == null)
+        else
         {
-            // run as the operator
-            LdapConfig config = LdapConfig.getLdapConfig();
-            String proxyDN = config.getProxyUserDN();
-            if (proxyDN == null)
-                throw new IllegalArgumentException("No ldap account in .dbrc");
+            // run as the operator using their cert
+            Subject subjectFromCert = commandLineParser.getSubjectFromCert();
 
-            String userIDLabel = "uid=";
-            int uidIndex = proxyDN.indexOf("uid=");
-            int commaIndex = proxyDN.indexOf(",", userIDLabel.length());
-            String userID = proxyDN.substring(uidIndex + userIDLabel.length(), commaIndex);
-            userIDPrincipal = new HttpPrincipal(userID);
+            if (subjectFromCert == null)
+                throw new IllegalArgumentException("Certificate required");
+
+            Set<X500Principal> pSet = subjectFromCert.getPrincipals(X500Principal.class);
+            if (pSet.isEmpty())
+                throw new IllegalArgumentException("Certificate required");
+
+            operatorSubject.getPrincipals().addAll(subjectFromCert.getPrincipals());
+            operatorSubject.getPublicCredentials().addAll(subjectFromCert.getPublicCredentials());
         }
 
         // run as the user
-        LOGGER.debug("running as " + userIDPrincipal.getName());
-        Set<Principal> userPrincipals = new HashSet<Principal>(1);
-        userPrincipals.add(userIDPrincipal);
-        AnonPrincipalExtractor principalExtractor = new AnonPrincipalExtractor(userPrincipals);
+        AnonPrincipalExtractor principalExtractor = new AnonPrincipalExtractor(operatorSubject);
         Subject subject = AuthenticationUtil.getSubject(principalExtractor);
+        LOGGER.debug("running as: " + subject);
         Subject.doAs(subject, command);
     }
 
     class AnonPrincipalExtractor implements PrincipalExtractor
     {
-        Set<Principal> principals;
+        Subject s;
 
-        AnonPrincipalExtractor(Set<Principal> principals)
+        AnonPrincipalExtractor(Subject s)
         {
-            this.principals = principals;
+            this.s = s;
         }
         public Set<Principal> getPrincipals()
         {
-            return principals;
+            return s.getPrincipals();
         }
         public X509CertificateChain getCertificateChain()
         {
+            LOGGER.debug("getCerfiticateChain called");
+            for (Object o : s.getPublicCredentials())
+            {
+                if (o instanceof X509CertificateChain)
+                {
+                    LOGGER.debug("returning certificate chain.");
+                    return (X509CertificateChain) o;
+                }
+            }
             return null;
         }
         public DelegationToken getDelegationToken()
