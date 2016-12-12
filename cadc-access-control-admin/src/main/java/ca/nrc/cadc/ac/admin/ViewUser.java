@@ -106,7 +106,7 @@ public class ViewUser extends AbstractUserCommand
             User user = this.getUserPersistence().getUser(this.getPrincipal());
             this.printUser(user);
         }
-        catch (UserNotFoundException e)
+        catch (AccessControlException | UserNotFoundException e)
         {
             // Not in the main tree, try the pending tree
             User user = this.getUserPersistence().getUserRequest(this.getPrincipal());

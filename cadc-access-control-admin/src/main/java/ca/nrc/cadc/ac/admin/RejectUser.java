@@ -81,10 +81,10 @@ import ca.nrc.cadc.net.TransientException;
  * @author yeunga
  *
  */
-public class RejectUser extends AbstractUserCommand 
+public class RejectUser extends AbstractUserCommand
 {
     private static final Logger log = Logger.getLogger(RejectUser.class);
-	
+
     /**
      * Constructor
      * @param userID Id of the pending user to be deleted
@@ -93,9 +93,9 @@ public class RejectUser extends AbstractUserCommand
     {
     	super(userID);
     }
-    
-    protected void execute() 
-        throws AccessControlException, UserNotFoundException, TransientException 
+
+    protected void execute()
+        throws AccessControlException, UserNotFoundException, TransientException
     {
         // delete user from the pending tree
         this.getUserPersistence().deleteUserRequest(this.getPrincipal());
