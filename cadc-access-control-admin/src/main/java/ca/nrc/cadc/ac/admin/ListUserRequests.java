@@ -92,4 +92,5 @@ public class ListUserRequests extends AbstractListUsers
     {
     	return this.getUserPersistence().getUserRequests();
     }
+
 }

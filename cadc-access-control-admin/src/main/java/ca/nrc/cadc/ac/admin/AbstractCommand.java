@@ -89,7 +89,6 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
 
     private UserPersistence userPersistence;
 
-
     protected abstract void doRun()
             throws AccessControlException, TransientException;
 

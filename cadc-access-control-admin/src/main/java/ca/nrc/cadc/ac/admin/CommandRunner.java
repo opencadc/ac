@@ -78,11 +78,8 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.DelegationToken;
-import ca.nrc.cadc.auth.PrincipalExtractor;
-import ca.nrc.cadc.auth.SSOCookieCredential;
-import ca.nrc.cadc.auth.X509CertificateChain;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 
@@ -116,6 +113,7 @@ public class CommandRunner
         {
             Principal userIDPrincipal = ((AbstractUserCommand) command).getPrincipal();
             operatorSubject.getPrincipals().add(userIDPrincipal);
+            operatorSubject.getPublicCredentials().add(AuthMethod.PASSWORD);
         }
         else
         {
@@ -130,48 +128,12 @@ public class CommandRunner
                 throw new IllegalArgumentException("Certificate required");
 
             operatorSubject.getPrincipals().addAll(subjectFromCert.getPrincipals());
+            operatorSubject.getPrincipals().add(new HttpPrincipal("authorizedUser"));
             operatorSubject.getPublicCredentials().addAll(subjectFromCert.getPublicCredentials());
+            operatorSubject.getPublicCredentials().add(AuthMethod.CERT);
         }
 
-        // run as the user
-        AnonPrincipalExtractor principalExtractor = new AnonPrincipalExtractor(operatorSubject);
-        Subject subject = AuthenticationUtil.getSubject(principalExtractor);
-        LOGGER.debug("running as: " + subject);
-        Subject.doAs(subject, command);
-    }
-
-    class AnonPrincipalExtractor implements PrincipalExtractor
-    {
-        Subject s;
-
-        AnonPrincipalExtractor(Subject s)
-        {
-            this.s = s;
-        }
-        public Set<Principal> getPrincipals()
-        {
-            return s.getPrincipals();
-        }
-        public X509CertificateChain getCertificateChain()
-        {
-            LOGGER.debug("getCerfiticateChain called");
-            for (Object o : s.getPublicCredentials())
-            {
-                if (o instanceof X509CertificateChain)
-                {
-                    LOGGER.debug("returning certificate chain.");
-                    return (X509CertificateChain) o;
-                }
-            }
-            return null;
-        }
-        public DelegationToken getDelegationToken()
-        {
-            return null;
-        }
-        public SSOCookieCredential getSSOCookieCredential()
-        {
-            return null;
-        }
+        LOGGER.debug("running as: " + operatorSubject);
+        Subject.doAs(operatorSubject, command);
     }
 }
