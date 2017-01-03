@@ -210,6 +210,13 @@ public class LdapConnectionPool
             logger.debug(poolName + " pool statistics after release:\n" + pool.getConnectionPoolStatistics());
         }
     }
+    
+    public String getPoolStatistics()
+    {
+        if (pool != null)
+            return poolName + " pool statistics: " + pool.getConnectionPoolStatistics();
+        return null;
+    }
 
     public LdapConfig getCurrentConfig()
     {
