@@ -629,46 +629,30 @@ public class GMSClient implements TransferListener
         // reset the state of the cache
         clearCache();
 
-        HttpURLConnection conn =
-                (HttpURLConnection) removeGroupMemberURL.openConnection();
-        conn.setRequestMethod("DELETE");
+        HttpDelete delete = new HttpDelete(removeGroupMemberURL, true);
+        delete.setSSLSocketFactory(getSSLSocketFactory());
+        delete.run();
 
-        SSLSocketFactory sf = getSSLSocketFactory();
-        if ((sf != null) && ((conn instanceof HttpsURLConnection)))
+        Throwable error = delete.getThrowable();
+        if (error != null)
         {
-            ((HttpsURLConnection) conn)
-                    .setSSLSocketFactory(getSSLSocketFactory());
-        }
-
-        // Try to handle anonymous access and throw AccessControlException
-        int responseCode = -1;
-        try
-        {
-            responseCode = conn.getResponseCode();
-        }
-        catch (Exception ignore) {}
-
-        if (responseCode != 200)
-        {
-            String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("removeGroupMember response " + responseCode + ": " +
-                      errMessage);
-
-            if ((responseCode == -1) ||
-                (responseCode == 401) ||
-                (responseCode == 403))
+            // transfer returns a -1 code for anonymous access.
+            if ((delete.getResponseCode() == -1) ||
+                (delete.getResponseCode() == 401) ||
+                (delete.getResponseCode() == 403))
             {
-                throw new AccessControlException(errMessage);
+                throw new AccessControlException(error.getMessage());
             }
-            if (responseCode == 400)
+            if (delete.getResponseCode() == 400)
             {
-                throw new IllegalArgumentException(errMessage);
+                throw new IllegalArgumentException(error.getMessage());
             }
-            if (responseCode == 404)
+            if (delete.getResponseCode() == 404)
             {
-                throw new GroupNotFoundException(errMessage);
+                throw new GroupNotFoundException(error.getMessage());
             }
-            throw new IOException(errMessage);
+
+            throw new IOException(error);
         }
     }
 
@@ -698,49 +682,34 @@ public class GMSClient implements TransferListener
         // reset the state of the cache
         clearCache();
 
-        HttpURLConnection conn =
-                (HttpURLConnection) removeUserMemberURL.openConnection();
-        conn.setRequestMethod("DELETE");
+        HttpDelete delete = new HttpDelete(removeUserMemberURL, true);
+        delete.setSSLSocketFactory(getSSLSocketFactory());
+        delete.run();
 
-        SSLSocketFactory sf = getSSLSocketFactory();
-        if ((sf != null) && ((conn instanceof HttpsURLConnection)))
+        Throwable error = delete.getThrowable();
+        if (error != null)
         {
-            ((HttpsURLConnection) conn)
-                    .setSSLSocketFactory(getSSLSocketFactory());
-        }
-
-        // Try to handle anonymous access and throw AccessControlException
-        int responseCode = -1;
-        try
-        {
-            responseCode = conn.getResponseCode();
-        }
-        catch (Exception ignore) {}
-
-        if (responseCode != 200)
-        {
-            String errMessage = NetUtil.getErrorBody(conn);
-            log.debug("removeUserMember response " + responseCode + ": " +
-                      errMessage);
-
-            if ((responseCode == -1) ||
-                (responseCode == 401) ||
-                (responseCode == 403))
+            // transfer returns a -1 code for anonymous access.
+            if ((delete.getResponseCode() == -1) ||
+                (delete.getResponseCode() == 401) ||
+                (delete.getResponseCode() == 403))
             {
-                throw new AccessControlException(errMessage);
+                throw new AccessControlException(error.getMessage());
             }
-            if (responseCode == 400)
+            if (delete.getResponseCode() == 400)
             {
-                throw new IllegalArgumentException(errMessage);
+                throw new IllegalArgumentException(error.getMessage());
             }
-            if (responseCode == 404)
+            if (delete.getResponseCode() == 404)
             {
+                String errMessage = error.getMessage();
                 if (errMessage != null && errMessage.toLowerCase().contains("user"))
                     throw new UserNotFoundException(errMessage);
                 else
                     throw new GroupNotFoundException(errMessage);
             }
-            throw new IOException(errMessage);
+
+            throw new IOException(error);
         }
     }
 
