@@ -1109,7 +1109,7 @@ public class GMSClient implements TransferListener
 
         if (serviceURL == null)
         {
-            throw new AccessControlException(
+            throw new RuntimeException(
                     String.format("Unable to get Service URL for '%s', '%s', '%s'",
                                   serviceID.toString(), Standards.GMS_GROUPS_01,
                                   getAuthMethod()));
@@ -1139,7 +1139,7 @@ public class GMSClient implements TransferListener
         }
         else
         {
-            return AuthMethod.ANON;
+            throw new AccessControlException("Anonymous access not supported.");
         }
     }
 }
