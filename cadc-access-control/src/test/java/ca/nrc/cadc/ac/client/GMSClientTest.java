@@ -69,12 +69,7 @@
 
 package ca.nrc.cadc.ac.client;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-
 import java.net.URI;
-import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,10 +83,7 @@ import org.junit.Test;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
 
 
@@ -103,7 +95,6 @@ public class GMSClientTest
     }
 
 
-
     @Test
     public void testUserIsSubject() throws Exception
     {
@@ -112,24 +103,9 @@ public class GMSClientTest
         HttpPrincipal userID2 = new HttpPrincipal("test2");
         subject.getPrincipals().add(userID);
 
-        final RegistryClient mockRegistryClient =
-                createMock(RegistryClient.class);
-
         final URI serviceID = URI.create("ivo://mysite.com/users");
 
-        expect(mockRegistryClient.getServiceURL(serviceID, Standards.UMS_USERS_01, AuthMethod.CERT))
-            .andReturn(new URL("http://mysite.com/users"));
-
-        replay(mockRegistryClient);
-        GMSClient client = new GMSClient(serviceID)
-        {
-            @Override
-            protected RegistryClient getRegistryClient()
-            {
-                return mockRegistryClient;
-            }
-        };
-
+        GMSClient client = new GMSClient(serviceID);
         Assert.assertFalse(client.userIsSubject(null, null));
         Assert.assertFalse(client.userIsSubject(userID, null));
         Assert.assertFalse(client.userIsSubject(null, subject));
@@ -152,21 +128,7 @@ public class GMSClientTest
         subject.getPrincipals().add(test1UserID);
 
         final URI serviceID = URI.create("ivo://mysite.com/users");
-        final RegistryClient mockRegistryClient =
-                createMock(RegistryClient.class);
-
-        expect(mockRegistryClient.getServiceURL(serviceID, Standards.GMS_GROUPS_01, AuthMethod.CERT ))
-            .andReturn(new URL("http://mysite.com/users"));
-
-        replay(mockRegistryClient);
-        final GMSClient client = new GMSClient(serviceID)
-        {
-            @Override
-            protected RegistryClient getRegistryClient()
-            {
-                return mockRegistryClient;
-            }
-        };
+        final GMSClient client = new GMSClient(serviceID);
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
         {
