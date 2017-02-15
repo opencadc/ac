@@ -1123,7 +1123,7 @@ public class GMSClient implements TransferListener
                 } 
                 if (!domainMatch)
                 {
-                    throw new AccessControlException("No valid public credentials.");
+                    throw new AccessControlException("no SSOCookieCredential for domain " + domain);
                 }
             }
             catch(IOException ex)
