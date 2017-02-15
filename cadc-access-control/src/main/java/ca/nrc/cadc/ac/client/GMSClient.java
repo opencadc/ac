@@ -1104,37 +1104,63 @@ public class GMSClient implements TransferListener
     private URL lookupServiceURL(final URI standard)
             throws AccessControlException
     {
-        final URL serviceURL = getRegistryClient()
-                .getServiceURL(this.serviceID, standard, getAuthMethod());
-
+        Subject subject = AuthenticationUtil.getCurrentSubject();
+        AuthMethod am = getAuthMethod(subject);
+        
+        URL serviceURL = getRegistryClient().getServiceURL(this.serviceID, standard, am);
+        
+        // now that we have a URL we can check if the cookie will actually be sent to it
+        if (AuthMethod.COOKIE.equals(am))
+        {
+            try
+            {
+                boolean domainMatch = false;
+                String domain = NetUtil.getDomainName(serviceURL);
+                for (SSOCookieCredential cc : subject.getPublicCredentials(SSOCookieCredential.class))
+                {
+                    if (cc.getDomain().equals(domain))
+                        domainMatch = true;
+                } 
+                if (!domainMatch)
+                {
+                    throw new AccessControlException("No valid public credentials.");
+                }
+            }
+            catch(IOException ex)
+            {
+                throw new RuntimeException("failure checking domain for cookie use", ex);
+            }
+        }
+        
         if (serviceURL == null)
         {
             throw new RuntimeException(
                     String.format("Unable to get Service URL for '%s', '%s', '%s'",
-                                  serviceID.toString(), Standards.GMS_GROUPS_01,
-                                  getAuthMethod()));
+                                  serviceID.toString(), standard, am));
         }
-        else
-        {
-            return serviceURL;
-        }
+        
+        return serviceURL;
     }
-
-    private AuthMethod getAuthMethod()
+    
+    private AuthMethod getAuthMethod(Subject subject)
     {
-        Subject subject = AuthenticationUtil.getCurrentSubject();
         if (subject != null)
         {
-            for (Object o : subject.getPublicCredentials())
+            // web services use CDP to load a proxy cert so prefer that
+            X509CertificateChain privateKeyChain = X509CertificateChain.findPrivateKeyChain(
+                    subject.getPublicCredentials());
+            if (privateKeyChain != null)
+                return AuthMethod.CERT;
+            
+            // ui applications pass cookie(s) along
+            Set sso = subject.getPublicCredentials(SSOCookieCredential.class);
+            if ( !sso.isEmpty() )
             {
-                if (o instanceof X509CertificateChain)
-                    return AuthMethod.CERT;
-                if (o instanceof SSOCookieCredential)
-                    return AuthMethod.COOKIE;
-                // AuthMethod.PASSWORD not supported
-                // AuthMethod.TOKEN not supported
+                return AuthMethod.COOKIE;
             }
-
+            
+            // AuthMethod.PASSWORD not supported
+            // AuthMethod.TOKEN not supported
             throw new AccessControlException("No valid public credentials.");
         }
         else
