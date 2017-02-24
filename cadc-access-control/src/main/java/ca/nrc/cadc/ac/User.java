@@ -79,7 +79,6 @@ import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PrincipalComparator;
-import org.json.HTTP;
 
 public class User
 {
