@@ -79,6 +79,7 @@ import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PrincipalComparator;
+import org.json.HTTP;
 
 public class User
 {
@@ -218,6 +219,17 @@ public class User
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    public String toPrettyString()
+    {
+        HttpPrincipal p1 = this.getHttpPrincipal();
+        if (p1 != null)
+            return p1.getName();
+        X500Principal p2 = this.getX500Principal();
+        if (p2 != null)
+            return p2.getName();
+        return toString();
     }
 
     private class UserPrincipalComparator implements Comparator<Principal>

@@ -696,6 +696,19 @@ public class GMSClient implements TransferListener
         }
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
     private Principal getCurrentUserID()
     {
         Subject cur = AuthenticationUtil.getCurrentSubject();
