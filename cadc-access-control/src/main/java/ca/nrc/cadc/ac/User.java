@@ -220,6 +220,17 @@ public class User
         return sb.toString();
     }
 
+    public String toPrettyString()
+    {
+        HttpPrincipal p1 = this.getHttpPrincipal();
+        if (p1 != null)
+            return p1.getName();
+        X500Principal p2 = this.getX500Principal();
+        if (p2 != null)
+            return p2.getName();
+        return toString();
+    }
+
     private class UserPrincipalComparator implements Comparator<Principal>
     {
         private PrincipalComparator p;
