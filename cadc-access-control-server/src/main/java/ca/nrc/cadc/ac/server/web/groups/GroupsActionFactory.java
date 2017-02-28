@@ -109,12 +109,16 @@ public abstract class GroupsActionFactory
                 {
                     action = new GetGroupNamesAction();
                 }
-                else if (segments.length == 1)
+                else if ((segments.length == 1) && (segments[0].equals("list")))
+                {
+                    action = new GetGroupsListAction();
+                }
+                else if ((segments.length == 1) && (!segments[0].equals("list")))
                 {
                     String groupName = segments[0];
-                    action = new GetGroupAction(groupName);
+                    action = new GetGroupAction(groupName);                
                 }
-
+                        
                 if (action != null)
                 {
                     log.debug("Returning action: " + action.getClass());

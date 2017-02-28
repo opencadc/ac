@@ -166,8 +166,55 @@ public class GMSClient implements TransferListener
      * @return The list of groups.
      */
     public List<Group> getGroups()
+        throws GroupNotFoundException, AccessControlException, IOException
     {
-        throw new UnsupportedOperationException("Not yet implemented");
+        
+        URL groupsURL = lookupServiceURL(Standards.GMS_GROUPS_01);
+        URL getGroupListURL = new URL(groupsURL.toExternalForm() + "/list");
+        log.debug("getGroup request to " + getGroupListURL.toString());
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        HttpDownload transfer = new HttpDownload(getGroupListURL, out);
+        transfer.setSSLSocketFactory(getSSLSocketFactory());
+        transfer.run();
+
+        Throwable error = transfer.getThrowable();
+        if (error != null)
+        {
+            log.debug("getGroup throwable (" + transfer.getResponseCode() + ")", error);
+            // transfer returns a -1 code for anonymous access.
+            if ((transfer.getResponseCode() == -1) ||
+                (transfer.getResponseCode() == 401) ||
+                (transfer.getResponseCode() == 403))
+            {
+                throw new AccessControlException(error.getMessage());
+            }
+            if (transfer.getResponseCode() == 400)
+            {
+                throw new IllegalArgumentException(error.getMessage());
+            }
+            if (transfer.getResponseCode() == 404)
+            {
+                throw new GroupNotFoundException(error.getMessage());
+            }
+            throw new IOException(error);
+        }
+
+        try
+        {
+            String groupsXML = new String(out.toByteArray(), "UTF-8");
+            log.debug("getGroups returned: " + groupsXML);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> groupsList = groupListReader.read(groupsXML);
+            
+            return groupListReader.read(groupsXML);
+        }
+        catch (Exception bug)
+        {
+            log.error("Unexpected exception", bug);
+            throw new RuntimeException(bug);
+        }
+        
     }
 
     /**
