@@ -84,6 +84,7 @@ import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import ca.nrc.cadc.auth.*;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import org.apache.log4j.Logger;
@@ -95,9 +96,6 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.ac.xml.UserWriter;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.NetUtil;
@@ -149,7 +147,7 @@ public class UserClient
 
 	        // augment subject calls are always https with client certs
             URL usersURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
             URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
 	        if (getUserURL == null)
@@ -189,7 +187,8 @@ public class UserClient
     public List<User> getDisplayUsers() throws IOException
     {
         URL usersURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01,
+                           getAuthMethod());
         final List<User> webUsers = new ArrayList<User>();
         HttpDownload httpDownload =
                 new HttpDownload(usersURL,
@@ -254,7 +253,7 @@ public class UserClient
         userWriter.write(user, userXML);
 
         URL createUserURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
 
         if (createUserURL == null)
             throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01);
@@ -318,7 +317,7 @@ public class UserClient
         String path = "/" + id + "?idType=" + AuthenticationUtil.getPrincipalType(principal);
 
         URL usersURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
         URL getUserURL = new URL(usersURL.toExternalForm() + path);
         if (getUserURL == null)
             throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
@@ -422,4 +421,18 @@ public class UserClient
         return new RegistryClient();
     }
 
+    private AuthMethod getAuthMethod()
+    {
+        Subject subject = AuthenticationUtil.getCurrentSubject();
+        for (Object o : subject.getPublicCredentials())
+        {
+            if (o instanceof X509CertificateChain)
+                return AuthMethod.CERT;
+            if (o instanceof SSOCookieCredential)
+                return AuthMethod.COOKIE;
+            // AuthMethod.PASSWORD not supported
+            // AuthMethod.TOKEN not supported
+        }
+        return AuthMethod.ANON;
+    }
 }
