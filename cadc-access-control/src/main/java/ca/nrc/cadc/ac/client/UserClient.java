@@ -147,7 +147,7 @@ public class UserClient
 
 	        // augment subject calls are always https with client certs
             URL usersURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
             URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
 	        if (getUserURL == null)
