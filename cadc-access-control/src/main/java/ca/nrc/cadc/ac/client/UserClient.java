@@ -495,9 +495,10 @@ public class UserClient
      * This requires that a Subject is in the current context.
      *
      * @return User instance.
+     * @throws IOException      Any reader/writer errors.
+     * @throws UserNotFoundException    If there is no such user.
      */
-    public User whoAmI() throws ReaderException, IOException,
-                                UserNotFoundException
+    public User whoAmI() throws IOException, UserNotFoundException
     {
         final URL whoAmIURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01,
@@ -522,7 +523,7 @@ public class UserClient
             {
                 return userReader.read(out.toString());
             }
-            catch (URISyntaxException e)
+            catch (URISyntaxException | ReaderException e)
             {
                 throw new IllegalStateException(e);
             }
