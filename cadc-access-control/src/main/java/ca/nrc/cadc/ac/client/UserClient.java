@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.client;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -115,16 +116,20 @@ public class UserClient
     /**
      * Constructor.
      *
-     * @param serviceID    The URI of the supporting access control web service
-     *                      obtained from the registry.
+     * @param serviceID The URI of the supporting access control web service
+     *                  obtained from the registry.
      */
     public UserClient(URI serviceID)
             throws IllegalArgumentException
     {
         if (serviceID == null)
+        {
             throw new IllegalArgumentException("Service URI cannot be null.");
+        }
         if (serviceID.getFragment() != null)
+        {
             throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceID);
+        }
         this.serviceID = serviceID;
     }
 
@@ -133,49 +138,53 @@ public class UserClient
      * uses the ac user web service to get all the other
      * associated principals which are then added to the subject.
      *
-     * @param subject           The Subject to pull Princials for.
+     * @param subject The Subject to pull Princials for.
      * @throws MalformedURLException
      */
     public void augmentSubject(Subject subject) throws MalformedURLException
     {
-    	Principal principal = this.getPrincipal(subject);
-    	if (principal != null)
-    	{
+        Principal principal = this.getPrincipal(subject);
+        if (principal != null)
+        {
 
-	        String userID = principal.getName();
-	        String path = "/" + NetUtil.encode(userID) + "?idType=" + this.getIdType(principal) + "&detail=identity";
+            String userID = principal.getName();
+            String path = "/" + NetUtil.encode(userID) + "?idType=" + this
+                    .getIdType(principal) + "&detail=identity";
 
-	        // augment subject calls are always https with client certs
+            // augment subject calls are always https with client certs
             URL usersURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+                    .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
             URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
-	        if (getUserURL == null)
-	            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
+            if (getUserURL == null)
+            {
+                throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
+            }
 
-	    	log.debug("augmentSubject request to " + getUserURL.toString());
-	        ByteArrayOutputStream out = new ByteArrayOutputStream();
-	        HttpDownload download = new HttpDownload(getUserURL, out);
-	        download.run();
+            log.debug("augmentSubject request to " + getUserURL.toString());
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            HttpDownload download = new HttpDownload(getUserURL, out);
+            download.run();
 
-	        int responseCode = download.getResponseCode();
-	        if (responseCode == 404) // not found
-	        {
-	            return;
-	        }
-	        if (responseCode != 200)
-	        {
-	            String message = "Error calling /ac to augment subject";
-	            if (download.getThrowable() != null)
-	            {
-	                throw new IllegalStateException(message, download.getThrowable());
-	            }
-	            throw new IllegalStateException(message);
-	        }
+            int responseCode = download.getResponseCode();
+            if (responseCode == 404) // not found
+            {
+                return;
+            }
+            if (responseCode != 200)
+            {
+                String message = "Error calling /ac to augment subject";
+                if (download.getThrowable() != null)
+                {
+                    throw new IllegalStateException(message, download
+                            .getThrowable());
+                }
+                throw new IllegalStateException(message);
+            }
 
-	        subject.getPrincipals().clear();
-	        subject.getPrincipals().addAll(this.getPrincipals(out));
-    	}
+            subject.getPrincipals().clear();
+            subject.getPrincipals().addAll(this.getPrincipals(out));
+        }
     }
 
     /**
@@ -187,8 +196,8 @@ public class UserClient
     public List<User> getDisplayUsers() throws IOException
     {
         URL usersURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01,
-                           getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01,
+                               getAuthMethod());
         final List<User> webUsers = new ArrayList<User>();
         HttpDownload httpDownload =
                 new HttpDownload(usersURL,
@@ -253,13 +262,16 @@ public class UserClient
         userWriter.write(user, userXML);
 
         URL createUserURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
 
         if (createUserURL == null)
+        {
             throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01);
+        }
         log.debug("createUser request to " + createUserURL.toString());
 
-        ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString().getBytes());
+        ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString()
+                                                                   .getBytes());
         HttpUpload put = new HttpUpload(in, createUserURL);
 
         put.run();
@@ -273,7 +285,7 @@ public class UserClient
             }
             catch (UserNotFoundException e)
             {
-                log.error("user created but not found",  e);
+                log.error("user created but not found", e);
                 // should not happen
                 throw new IllegalStateException("user created but not found", e);
             }
@@ -311,16 +323,20 @@ public class UserClient
      * @throws UserNotFoundException
      */
     public User getUser(Principal principal)
-            throws ReaderException, IOException, URISyntaxException, UserNotFoundException
+            throws ReaderException, IOException, URISyntaxException,
+                   UserNotFoundException
     {
         String id = NetUtil.encode(principal.getName());
-        String path = "/" + id + "?idType=" + AuthenticationUtil.getPrincipalType(principal);
+        String path = "/" + id + "?idType=" + AuthenticationUtil
+                .getPrincipalType(principal);
 
         URL usersURL = getRegistryClient()
-            .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
         URL getUserURL = new URL(usersURL.toExternalForm() + path);
         if (getUserURL == null)
+        {
             throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
+        }
         log.debug("getUser request to " + getUserURL.toString());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -359,7 +375,8 @@ public class UserClient
 
     protected Principal getPrincipal(final Subject subject)
     {
-        if (subject == null || subject.getPrincipals() == null || subject.getPrincipals().isEmpty())
+        if (subject == null || subject.getPrincipals() == null || subject
+                .getPrincipals().isEmpty())
         {
             return null;
         }
@@ -371,13 +388,15 @@ public class UserClient
 
         // in the case that there is more than one principal in the
         // subject, favor x500 principals then numeric principals
-        Set<X500Principal> x500Principals = subject.getPrincipals(X500Principal.class);
+        Set<X500Principal> x500Principals = subject
+                .getPrincipals(X500Principal.class);
         if (x500Principals.size() > 0)
         {
             return x500Principals.iterator().next();
         }
 
-        Set<NumericPrincipal> numericPrincipals = subject.getPrincipals(NumericPrincipal.class);
+        Set<NumericPrincipal> numericPrincipals = subject
+                .getPrincipals(NumericPrincipal.class);
         if (numericPrincipals.size() > 0)
         {
             return numericPrincipals.iterator().next();
@@ -389,28 +408,28 @@ public class UserClient
 
     protected Set<Principal> getPrincipals(ByteArrayOutputStream out)
     {
-    	try
-    	{
-	        String userXML = new String(out.toByteArray(), "UTF-8");
-	        log.debug("userXML Input to getPrincipals(): " + userXML);
+        try
+        {
+            String userXML = new String(out.toByteArray(), "UTF-8");
+            log.debug("userXML Input to getPrincipals(): " + userXML);
 
-	        User user = new UserReader().read(userXML);
-	        return user.getIdentities();
-    	}
-    	catch (Exception e)
-    	{
-    		throw new RuntimeException(e);
-    	}
+            User user = new UserReader().read(userXML);
+            return user.getIdentities();
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     protected String getIdType(Principal principal)
     {
-		String idTypeStr = AuthenticationUtil.getPrincipalType(principal);
+        String idTypeStr = AuthenticationUtil.getPrincipalType(principal);
         if (idTypeStr == null)
         {
-    		final String msg = "Subject has unsupported principal " +
-    				principal.getName();
-	        throw new IllegalArgumentException(msg);
+            final String msg = "Subject has unsupported principal " +
+                               principal.getName();
+            throw new IllegalArgumentException(msg);
         }
 
         return idTypeStr;
@@ -427,14 +446,99 @@ public class UserClient
         for (Object o : subject.getPublicCredentials())
         {
             if (o instanceof X509CertificateChain)
+            {
                 return AuthMethod.CERT;
+            }
             if (o instanceof SSOCookieCredential)
+            {
                 return AuthMethod.COOKIE;
+            }
             // AuthMethod.PASSWORD not supported
             // AuthMethod.TOKEN not supported
         }
 
         throw new AccessControlException(
                 "Authentication required for user data.");
+    }
+
+
+    /**
+     * Used for tests to override.
+     *
+     * @param url               The URL to download from.
+     * @param outputStream      The OutputStream to write to.
+     * @return                  HttpDownload instance used.
+     * @throws IOException      Any errors.
+     */
+    protected HttpDownload download(final URL url,
+                                    final OutputStream outputStream)
+            throws IOException
+    {
+        final HttpDownload get = new HttpDownload(url, outputStream);
+        get.run();
+
+        return get;
+    }
+
+    /**
+     * Override for tests to write to a different output.
+     * @return      OutputStream instance.
+     */
+    protected OutputStream getOutputStream()
+    {
+        return new ByteArrayOutputStream();
+    }
+
+    /**
+     * Obtain the current User for the given Subject.
+     * <p>
+     * This requires that a Subject is in the current context.
+     *
+     * @return User instance.
+     */
+    public User whoAmI() throws ReaderException, IOException,
+                                URISyntaxException, UserNotFoundException
+    {
+        final URL whoAmIURL = getRegistryClient()
+                .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01,
+                               getAuthMethod());
+        if (whoAmIURL == null)
+        {
+            throw new IllegalArgumentException("No service endpoint for uri "
+                                               + Standards.UMS_WHOAMI_01);
+        }
+
+        log.debug("getUser request to " + whoAmIURL.toString());
+
+        OutputStream out = getOutputStream();
+        final HttpDownload get = download(whoAmIURL, out);
+
+        final int responseCode = get.getResponseCode();
+        if (responseCode == 200)
+        {
+            final UserReader userReader = new UserReader();
+            return userReader.read(out.toString());
+        }
+
+        String message = "";
+        if (get.getThrowable() != null)
+        {
+            log.debug("error calling get user", get.getThrowable());
+            message = get.getThrowable().getMessage();
+        }
+
+        if (responseCode == 400)
+        {
+            throw new IllegalArgumentException(message);
+        }
+        if (responseCode == 404)
+        {
+            throw new UserNotFoundException(message);
+        }
+        if (responseCode == 403)
+        {
+            throw new AccessControlException(message);
+        }
+        throw new IllegalStateException(message);
     }
 }
