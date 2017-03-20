@@ -497,7 +497,7 @@ public class UserClient
      * @return User instance.
      */
     public User whoAmI() throws ReaderException, IOException,
-                                URISyntaxException, UserNotFoundException
+                                UserNotFoundException
     {
         final URL whoAmIURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01,
@@ -517,7 +517,15 @@ public class UserClient
         if (responseCode == 200)
         {
             final UserReader userReader = new UserReader();
-            return userReader.read(out.toString());
+
+            try
+            {
+                return userReader.read(out.toString());
+            }
+            catch (URISyntaxException e)
+            {
+                throw new IllegalStateException(e);
+            }
         }
 
         String message = "";
