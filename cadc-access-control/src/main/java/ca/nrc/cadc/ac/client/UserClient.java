@@ -156,11 +156,6 @@ public class UserClient
                     .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
             URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
-            if (getUserURL == null)
-            {
-                throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
-            }
-
             log.debug("augmentSubject request to " + getUserURL.toString());
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             HttpDownload download = new HttpDownload(getUserURL, out);
@@ -333,10 +328,6 @@ public class UserClient
         URL usersURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
         URL getUserURL = new URL(usersURL.toExternalForm() + path);
-        if (getUserURL == null)
-        {
-            throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01);
-        }
         log.debug("getUser request to " + getUserURL.toString());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
