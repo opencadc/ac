@@ -433,6 +433,8 @@ public class UserClient
             // AuthMethod.PASSWORD not supported
             // AuthMethod.TOKEN not supported
         }
-        return AuthMethod.ANON;
+
+        throw new AccessControlException(
+                "Authentication required for user data.");
     }
 }
