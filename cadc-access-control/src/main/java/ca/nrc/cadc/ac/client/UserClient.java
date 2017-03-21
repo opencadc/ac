@@ -431,25 +431,47 @@ public class UserClient
         return new RegistryClient();
     }
 
+    /**
+     * Null safe method for a current Subject.
+     * @return  Subject instance.
+     */
+    private Subject getCurrentSubject()
+    {
+        final Subject subject = AuthenticationUtil.getCurrentSubject();
+
+        return (subject == null) ? new Subject() : subject;
+    }
+
+    /**
+     * Obtain the current AuthMethod instance from the current subject.
+     *
+     * The PASSWORD and TOKEN AuthMethods are NOT supported.
+     *
+     * @return      AuthMethod instance
+     * @throws AccessControlException       For unsupported AuthMethod.
+     */
     private AuthMethod getAuthMethod()
     {
-        Subject subject = AuthenticationUtil.getCurrentSubject();
-        for (Object o : subject.getPublicCredentials())
-        {
-            if (o instanceof X509CertificateChain)
-            {
-                return AuthMethod.CERT;
-            }
-            if (o instanceof SSOCookieCredential)
-            {
-                return AuthMethod.COOKIE;
-            }
-            // AuthMethod.PASSWORD not supported
-            // AuthMethod.TOKEN not supported
-        }
+        final Subject subject = getCurrentSubject();
+        final Set<X509CertificateChain> x509CertificateChains =
+                subject.getPublicCredentials(X509CertificateChain.class);
+        final Set<SSOCookieCredential> cookieCredentials =
+                subject.getPublicCredentials(SSOCookieCredential.class);
 
-        throw new AccessControlException(
-                "Authentication required for user data.");
+        // Prefer X509 Certificate.
+        if (x509CertificateChains.isEmpty() && cookieCredentials.isEmpty())
+        {
+            throw new AccessControlException(
+                    "Authentication required for user data.");
+        }
+        else if (x509CertificateChains.isEmpty())
+        {
+            return AuthMethod.COOKIE;
+        }
+        else
+        {
+            return AuthMethod.CERT;
+        }
     }
 
 
