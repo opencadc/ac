@@ -105,19 +105,8 @@ public class ACIdentityManager implements IdentityManager
 {
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
 
-    //private static final File DEFAULT_PRIVILEGED_PEM_FILE = new File(System.getProperty("user.home") + "/.ssl/cadcproxy.pem");
-    //private static final String ALT_PEM_KEY = ACIdentityManager.class.getName() + ".pemfile";
-
-    //private File privilegedPemFile;
-
     public ACIdentityManager()
     {
-        //privilegedPemFile = DEFAULT_PRIVILEGED_PEM_FILE;
-        //String altPemFile = System.getProperty(ALT_PEM_KEY);
-        //if (altPemFile != null)
-        //{
-        //    privilegedPemFile = new File(altPemFile);
-        //}
     }
 
     /**
