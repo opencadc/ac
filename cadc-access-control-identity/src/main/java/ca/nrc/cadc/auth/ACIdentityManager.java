@@ -87,6 +87,7 @@ import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.client.UserClient;
+import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
@@ -104,19 +105,8 @@ public class ACIdentityManager implements IdentityManager
 {
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
 
-    private static final File DEFAULT_PRIVILEGED_PEM_FILE = new File(System.getProperty("user.home") + "/.ssl/cadcproxy.pem");
-    private static final String ALT_PEM_KEY = ACIdentityManager.class.getName() + ".pemfile";
-
-    private File privilegedPemFile;
-
     public ACIdentityManager()
     {
-        privilegedPemFile = DEFAULT_PRIVILEGED_PEM_FILE;
-        String altPemFile = System.getProperty(ALT_PEM_KEY);
-        if (altPemFile != null)
-        {
-            privilegedPemFile = new File(altPemFile);
-        }
     }
 
     /**
@@ -192,7 +182,8 @@ public class ACIdentityManager implements IdentityManager
             }
         };
 
-        Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
+        //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
+        Subject servopsSubject = CredUtil.createOpsSubject();
         try
         {
             return Subject.doAs(servopsSubject, action);
@@ -282,8 +273,9 @@ public class ACIdentityManager implements IdentityManager
                 }
             };
 
-            log.debug("privileged user cert: " + privilegedPemFile.getAbsolutePath());
-            Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
+            //log.debug("privileged user cert: " + privilegedPemFile.getAbsolutePath());
+            //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
+            Subject servopsSubject = CredUtil.createOpsSubject(); 
             Subject.doAs(servopsSubject, action);
         }
         catch (PrivilegedActionException e)
