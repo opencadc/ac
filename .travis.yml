@@ -8,6 +8,6 @@ addons:
     packages:
       - openjdk-7-jre
       
-script: gradle wrapper; for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; ./gradlew --info build javadoc install || break -1; cd ..; done
+script: for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; gradle wrapper; ./gradlew --info build javadoc install || break -1; cd ..; done
 
 
