@@ -1,7 +1,3 @@
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.0.1' 
-}
-
 plugins {
     id 'java'
     id 'maven'
@@ -39,4 +35,8 @@ dependencies {
 
 configurations {
   runtime.exclude group: 'org.springframework'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.0.1' 
 }
