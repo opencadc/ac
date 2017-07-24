@@ -2,5 +2,11 @@ language: java
 jdk:
   - openjdk7
   - oraclejdk8
-script: for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; gradle wrapper --gradle-version 4.0.1 build --info javadoc install || break -1; cd ..; done
+
+addons:
+  apt:
+    packages:
+      - openjdk-7-jre
+      
+script: for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; gradle --info build javadoc install || break -1; cd ..; done
 
