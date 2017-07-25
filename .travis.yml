@@ -9,6 +9,6 @@ addons:
       - openjdk-7-jre
       - gradle
       
-script: for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; ./gradle --stacktrace build javadoc install || break -1; cd ..; done
+script: for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; gradle --stacktrace build javadoc install || break -1; cd ..; done
 
 
