@@ -9,7 +9,7 @@ addons:
       - openjdk-7-jre
       - gradle
 
-before_script: openssl s_client -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; keytool -importcert -noprompt -file /tmp/gradle.crt -keystore cacerts -alias plugins.gradle.org -storepass changeit;
+before_script: openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; keytool -importcert -noprompt -file /tmp/gradle.crt -keystore cacerts -alias plugins.gradle.org -storepass changeit;
       
 script: for mod in cadc-access-control  cadc-access-control-identity  cadc-access-control-server cadc-access-control-admin cadc-tomcat; do cd $mod; gradle -Djavax.net.debug=ssl:handshake --stacktrace build javadoc install || break -1; cd ..; done
 
