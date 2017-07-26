@@ -83,6 +83,7 @@ public class GroupURI
     private static Logger log = Logger.getLogger(GroupURI.class);
 
     private URI uri;
+    private static String GROUP_NAME_ERRORMSG = "Group Name contains illegal characters (only alphanumeric, '-', '.', '_', '~' allowed";
 
     /**
      * Attempts to create a URI using the specified uri.
@@ -122,7 +123,15 @@ public class GroupURI
             if (fragment != null)
             {
                 // allow the fragment to define the group name (old style)
-                name = fragment;
+                if (isValidGroupName(fragment))
+                {
+                    name = fragment;
+                }
+                else
+                {
+                    throw new IllegalArgumentException(GROUP_NAME_ERRORMSG);
+                }
+
             }
             else
             {
@@ -135,7 +144,15 @@ public class GroupURI
             {
                 throw new IllegalArgumentException("Fragment not allowed in group URIs");
             }
-            name = query;
+
+            if (isValidGroupName(query))
+            {
+                name = query;
+            }
+            else
+            {
+                throw new IllegalArgumentException(GROUP_NAME_ERRORMSG);
+            }
         }
 
         this.uri = URI.create(
@@ -206,7 +223,26 @@ public class GroupURI
     @Override
     public String toString()
     {
+        // Validate name portion
         return uri.toString();
+    }
+
+    /**
+     * Validate groupName passed in. Accepted characters include:
+     * Alphanumerics, "-", ".", "_", "~"
+     * @param groupName
+     * @return boolean
+     */
+    private boolean isValidGroupName(String groupName)
+    {
+        boolean isValid = false;
+
+        if (groupName.matches("^[a-zA-Z0-9_\\-\\.~]+$"))
+        {
+            isValid = true;
+        }
+
+        return isValid;
     }
 
 }
