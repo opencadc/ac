@@ -644,9 +644,13 @@ public class LdapUserDAO extends LdapDAO
         }
 
         String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
-        HttpPrincipal userID = new HttpPrincipal(userIDString);
+
         User user = new User();
-        user.getIdentities().add(userID);
+        // don't add http identities for those with external dns
+        if (!EXTERNAL_USER_CN.equals(userIDString)) {
+            HttpPrincipal userID = new HttpPrincipal(userIDString);
+            user.getIdentities().add(userID);
+        }
 
         // Set the User's private InternalID field
         String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
@@ -852,7 +856,10 @@ public class LdapUserDAO extends LdapDAO
                 final String username = next.getAttributeValue(LDAP_USER_NAME);
 
                 User user = new User();
-                user.getIdentities().add(new HttpPrincipal(username));
+                // don't add http identities for those with external dns
+                if (!EXTERNAL_USER_CN.equals(username)) {
+                    user.getIdentities().add(new HttpPrincipal(username));
+                }
 
                 // Only add Personal Details if it is relevant.
                 if (StringUtil.hasLength(firstName) &&
