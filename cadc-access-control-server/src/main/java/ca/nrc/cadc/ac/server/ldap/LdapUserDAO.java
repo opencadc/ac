@@ -856,19 +856,19 @@ public class LdapUserDAO extends LdapDAO
                 final String username = next.getAttributeValue(LDAP_USER_NAME);
 
                 User user = new User();
-                // don't add http identities for those with external dns
+                // don't add users with no http identities
                 if (!EXTERNAL_USER_CN.equals(username)) {
                     user.getIdentities().add(new HttpPrincipal(username));
-                }
 
-                // Only add Personal Details if it is relevant.
-                if (StringUtil.hasLength(firstName) &&
-                    StringUtil.hasLength(lastName))
-                {
-                    user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
-                }
+                    // Only add Personal Details if it is relevant.
+                    if (StringUtil.hasLength(firstName) &&
+                        StringUtil.hasLength(lastName))
+                    {
+                        user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
+                    }
 
-                users.add(user);
+                    users.add(user);
+                }
             }
         }
         catch (LDAPSearchException e)
