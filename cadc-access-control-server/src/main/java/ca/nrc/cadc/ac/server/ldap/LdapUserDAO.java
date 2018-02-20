@@ -68,23 +68,25 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupURI;
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.client.GroupMemberships;
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.util.ObjectUtil;
+import ca.nrc.cadc.util.StringUtil;
 
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
@@ -110,25 +112,23 @@ import com.unboundid.ldap.sdk.SimpleBindRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedRequest;
 import com.unboundid.ldap.sdk.extensions.PasswordModifyExtendedResult;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupURI;
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.client.GroupMemberships;
-import ca.nrc.cadc.auth.DNPrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.util.ObjectUtil;
-import ca.nrc.cadc.util.StringUtil;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
 
 
 /**
@@ -644,9 +644,13 @@ public class LdapUserDAO extends LdapDAO
         }
 
         String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
-        HttpPrincipal userID = new HttpPrincipal(userIDString);
+
         User user = new User();
-        user.getIdentities().add(userID);
+        // don't add http identities for those with external dns
+        if (!EXTERNAL_USER_CN.equals(userIDString)) {
+            HttpPrincipal userID = new HttpPrincipal(userIDString);
+            user.getIdentities().add(userID);
+        }
 
         // Set the User's private InternalID field
         String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
@@ -723,7 +727,10 @@ public class LdapUserDAO extends LdapDAO
             User user = new User();
             String username = searchResult.getAttributeValue(LDAP_USER_NAME);
             logger.debug("getAugmentedUser: username = " + username);
-            user.getIdentities().add(new HttpPrincipal(username));
+            // don't add http identities for those with external dns
+            if (!EXTERNAL_USER_CN.equals(username)) {
+                user.getIdentities().add(new HttpPrincipal(username));
+            }
 
             String numericID = searchResult.getAttributeValue(LDAP_UID);
             logger.debug("getAugmentedUser: numericID = " + numericID);
@@ -849,16 +856,19 @@ public class LdapUserDAO extends LdapDAO
                 final String username = next.getAttributeValue(LDAP_USER_NAME);
 
                 User user = new User();
-                user.getIdentities().add(new HttpPrincipal(username));
+                // don't add users with no http identities
+                if (!EXTERNAL_USER_CN.equals(username)) {
+                    user.getIdentities().add(new HttpPrincipal(username));
 
-                // Only add Personal Details if it is relevant.
-                if (StringUtil.hasLength(firstName) &&
-                    StringUtil.hasLength(lastName))
-                {
-                    user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
+                    // Only add Personal Details if it is relevant.
+                    if (StringUtil.hasLength(firstName) &&
+                        StringUtil.hasLength(lastName))
+                    {
+                        user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
+                    }
+
+                    users.add(user);
                 }
-
-                users.add(user);
             }
         }
         catch (LDAPSearchException e)
