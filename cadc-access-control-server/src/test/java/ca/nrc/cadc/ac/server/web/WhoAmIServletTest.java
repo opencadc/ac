@@ -68,7 +68,7 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -133,7 +133,7 @@ public class WhoAmIServletTest
     public void doGet(final Subject subject, final AuthMethod authMethod, final String restUserid, final String restType) throws Exception
     {
 
-        final RegistryClient mockRegistry = createMock(RegistryClient.class);
+        final RegistryClient mockRegistry = createNiceMock(RegistryClient.class);
         final WhoAmIServlet testSubject = new WhoAmIServlet()
         {
             /**
@@ -168,9 +168,9 @@ public class WhoAmIServletTest
         };
 
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+                createNiceMock(HttpServletResponse.class);
 
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();

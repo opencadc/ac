@@ -1,7 +1,7 @@
 package ca.nrc.cadc.ac.server.web;
 
 
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -52,7 +52,7 @@ public class UserServletTest
     public void getAcceptedContentTypeJSON() throws Exception
     {
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final UserServlet testSubject = new UserServlet();
 
         expect(mockRequest.getHeader("Accept")).
@@ -70,7 +70,7 @@ public class UserServletTest
     public void getAcceptedContentTypeDefault() throws Exception
     {
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final UserServlet testSubject = new UserServlet();
 
         expect(mockRequest.getHeader("Accept")).andReturn(null).once();
@@ -88,7 +88,7 @@ public class UserServletTest
     {
         try
         {
-            final PluginFactory piMock = EasyMock.createMock(PluginFactory.class);
+            final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
             UserServlet userServlet = new UserServlet(){
@@ -100,7 +100,7 @@ public class UserServletTest
             };
 
             StandaloneContextFactory.initJNDI();
-            ServletConfig config = EasyMock.createMock(ServletConfig.class);
+            ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
                 UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("cn=user1,ou=cadc,o=hia,c=ca cn=user2,ou=cadc,o=hia,c=ca");
@@ -125,7 +125,7 @@ public class UserServletTest
     {
         try
         {
-            final PluginFactory piMock = EasyMock.createMock(PluginFactory.class);
+            final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
             UserServlet userServlet = new UserServlet(){
@@ -137,7 +137,7 @@ public class UserServletTest
             };
 
             StandaloneContextFactory.initJNDI();
-            ServletConfig config = EasyMock.createMock(ServletConfig.class);
+            ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
                 UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("\"cn=user1, ou=cadc, o=hia,c=ca\" \"cn=user2, ou=cadc,o=hia,c=ca\"");
@@ -162,7 +162,7 @@ public class UserServletTest
     {
         try
         {
-            final PluginFactory piMock = EasyMock.createMock(PluginFactory.class);
+            final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
             UserServlet userServlet = new UserServlet(){
@@ -172,7 +172,7 @@ public class UserServletTest
                     return piMock;
                 }
             };
-            ServletConfig config = EasyMock.createMock(ServletConfig.class);
+            ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
                 UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("\"cn=user1, ou=cadc, o=hia,c=ca\"");
@@ -198,7 +198,7 @@ public class UserServletTest
         try
         {
             StandaloneContextFactory.initJNDI();
-            final PluginFactory piMock = EasyMock.createMock(PluginFactory.class);
+            final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
             UserServlet userServlet = new UserServlet(){
@@ -208,7 +208,7 @@ public class UserServletTest
                     return piMock;
                 }
             };
-            ServletConfig config = EasyMock.createMock(ServletConfig.class);
+            ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
                 UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("\"cn=user1, ou=cadc, o=hia,c=ca\" \"cn=user2, ou=cadc,o=hia,c=ca\"");

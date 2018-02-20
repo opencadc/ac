@@ -68,7 +68,7 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -132,9 +132,9 @@ public class ModifyPasswordServletTest
         };
 
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+                createNiceMock(HttpServletResponse.class);
 
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
@@ -207,7 +207,7 @@ public class ModifyPasswordServletTest
         HttpPrincipal userID = new HttpPrincipal("CADCtest");
 
         final UserPersistence mockUserPersistence =
-                createMock(UserPersistence.class);
+                createNiceMock(UserPersistence.class);
         mockUserPersistence.setPassword(userID, oldPassword, newPassword);
         if (hasInternalServerError)
         {
@@ -236,9 +236,9 @@ public class ModifyPasswordServletTest
         };
 
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final HttpServletResponse mockResponse =
-                createMock(HttpServletResponse.class);
+                createNiceMock(HttpServletResponse.class);
 
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();

@@ -38,7 +38,7 @@ public class UserLoginServletTest
     public void getCheckCanImpersonate() throws Throwable
     {
         final AuthenticatorImpl mockAuthenticatorImpl =
-            EasyMock.createMock(AuthenticatorImpl.class);
+            EasyMock.createNiceMock(AuthenticatorImpl.class);
 
         Subject userSubject = new Subject();
         userSubject.getPrincipals().add(new HttpPrincipal("user"));
@@ -90,7 +90,7 @@ public class UserLoginServletTest
                     @SuppressWarnings("unchecked")
                     LdapGroupPersistence mockGp =
                         (LdapGroupPersistence)EasyMock
-                            .createMock(LdapGroupPersistence.class);
+                            .createNiceMock(LdapGroupPersistence.class);
                     mockGp.setDetailSelector(new GroupDetailSelector()
                     {
                         @Override
