@@ -5,7 +5,7 @@ import org.junit.Test;
 
 import javax.servlet.http.HttpServletRequest;
 
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -18,7 +18,7 @@ public class UserRequestServletTest
     public void getAcceptedContentTypeJSON() throws Exception
     {
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final UserRequestServlet testSubject = new UserRequestServlet();
 
         expect(mockRequest.getHeader("Accept")).
@@ -36,7 +36,7 @@ public class UserRequestServletTest
     public void getAcceptedContentTypeDefault() throws Exception
     {
         final HttpServletRequest mockRequest =
-                createMock(HttpServletRequest.class);
+                createNiceMock(HttpServletRequest.class);
         final UserRequestServlet testSubject = new UserRequestServlet();
 
         expect(mockRequest.getHeader("Accept")).andReturn(null).once();

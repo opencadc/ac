@@ -65,7 +65,7 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.auth;
 
@@ -101,12 +101,11 @@ import ca.nrc.cadc.vosi.avail.CheckWebService;
  *
  * @author pdowler
  */
-public class ACIdentityManager implements IdentityManager
-{
+public class ACIdentityManager implements IdentityManager {
+
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
 
-    public ACIdentityManager()
-    {
+    public ACIdentityManager() {
     }
 
     /**
@@ -114,8 +113,8 @@ public class ACIdentityManager implements IdentityManager
      *
      * @return Types.INTEGER
      */
-    public int getOwnerType()
-    {
+    @Override
+    public int getOwnerType() {
         return Types.INTEGER;
     }
 
@@ -125,30 +124,25 @@ public class ACIdentityManager implements IdentityManager
      * @param subject
      * @return an Integer internal CADC ID
      */
-    public Object toOwner(Subject subject)
-    {
+    @Override
+    public Object toOwner(Subject subject) {
         X500Principal x500Principal = null;
-        if (subject != null)
-        {
+        if (subject != null) {
             Set<Principal> principals = subject.getPrincipals();
-            for (Principal principal : principals)
-            {
-                if (principal instanceof NumericPrincipal)
-                {
+            for (Principal principal : principals) {
+                if (principal instanceof NumericPrincipal) {
                     NumericPrincipal cp = (NumericPrincipal) principal;
                     UUID id = cp.getUUID();
                     Long l = Long.valueOf(id.getLeastSignificantBits());
                     return l.intValue();
                 }
-                if (principal instanceof X500Principal)
-                {
+                if (principal instanceof X500Principal) {
                     x500Principal = (X500Principal) principal;
                 }
             }
         }
 
-        if (x500Principal == null)
-        {
+        if (x500Principal == null) {
             return null;
         }
 
@@ -160,13 +154,10 @@ public class ACIdentityManager implements IdentityManager
         return Long.valueOf(numericPrincipal.getUUID().getLeastSignificantBits());
     }
 
-    private NumericPrincipal createX500User(final X500Principal x500Principal)
-    {
-        PrivilegedExceptionAction<NumericPrincipal> action = new PrivilegedExceptionAction<NumericPrincipal>()
-        {
+    private NumericPrincipal createX500User(final X500Principal x500Principal) {
+        PrivilegedExceptionAction<NumericPrincipal> action = new PrivilegedExceptionAction<NumericPrincipal>() {
             @Override
-            public NumericPrincipal run() throws Exception
-            {
+            public NumericPrincipal run() throws Exception {
                 LocalAuthority localAuth = new LocalAuthority();
                 URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
 
@@ -174,8 +165,7 @@ public class ACIdentityManager implements IdentityManager
                 User newUser = userClient.createUser(x500Principal);
 
                 Set<NumericPrincipal> set = newUser.getIdentities(NumericPrincipal.class);
-                if (set.isEmpty())
-                {
+                if (set.isEmpty()) {
                     throw new IllegalStateException("missing internal id");
                 }
                 return set.iterator().next();
@@ -184,12 +174,9 @@ public class ACIdentityManager implements IdentityManager
 
         //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
         Subject servopsSubject = CredUtil.createOpsSubject();
-        try
-        {
+        try {
             return Subject.doAs(servopsSubject, action);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new IllegalStateException("failed to create internal id for user " + x500Principal.getName(), e);
         }
     }
@@ -200,15 +187,12 @@ public class ACIdentityManager implements IdentityManager
      * @param subject
      * @return an X509 distinguished name
      */
-    public String toOwnerString(Subject subject)
-    {
-        if (subject != null)
-        {
+    @Override
+    public String toOwnerString(Subject subject) {
+        if (subject != null) {
             Set<Principal> principals = subject.getPrincipals();
-            for (Principal principal : principals)
-            {
-                if (principal instanceof X500Principal)
-                {
+            for (Principal principal : principals) {
+                if (principal instanceof X500Principal) {
                     return principal.getName();
                 }
             }
@@ -218,28 +202,36 @@ public class ACIdentityManager implements IdentityManager
 
     /**
      * Reconstruct the subject from the stored object. This method also
-     * re-populates the subject with all know alternate principals.
+     * re-populates the subject with all known alternate principals.
      *
      * @param o the stored object
      * @return the complete subject
      */
-    public Subject toSubject(Object o)
-    {
-        try
-        {
-            if (o == null || !(o instanceof Integer))
-            {
+    @Override
+    public Subject toSubject(Object o) {
+        try {
+            if (o == null || !(o instanceof Integer)) {
                 return null;
             }
             Integer i = (Integer) o;
-            if (i <= 0)
-            {
+            if (i <= 0) {
                 // identities <= 0 are internal
                 return new Subject();
             }
 
             UUID uuid = new UUID(0L, (long) i);
             NumericPrincipal p = new NumericPrincipal(uuid);
+
+            Subject s = AuthenticationUtil.getCurrentSubject();
+            if (s != null) {
+                for (Principal cp : s.getPrincipals()) {
+                    if (AuthenticationUtil.equals(p, cp)) {
+                        log.debug("[cache hit] caller Subject matches " + p + ": " + s);
+                        return s;
+                    }
+                }
+            }
+
             Set<Principal> pset = new HashSet<Principal>();
             pset.add(p);
             Subject ret = new Subject(false, pset, new HashSet(), new HashSet());
@@ -249,21 +241,15 @@ public class ACIdentityManager implements IdentityManager
             prof.checkpoint("CadcIdentityManager.augmentSubject");
 
             return ret;
-        }
-        finally
-        {
+        } finally {
 
         }
     }
 
-    public void augmentSubject(final Subject subject)
-    {
-        try
-        {
-            PrivilegedExceptionAction<Object> action = new PrivilegedExceptionAction<Object>()
-            {
-                public Object run() throws Exception
-                {
+    public void augmentSubject(final Subject subject) {
+        try {
+            PrivilegedExceptionAction<Object> action = new PrivilegedExceptionAction<Object>() {
+                public Object run() throws Exception {
                     LocalAuthority localAuth = new LocalAuthority();
                     URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
 
@@ -275,11 +261,9 @@ public class ACIdentityManager implements IdentityManager
 
             //log.debug("privileged user cert: " + privilegedPemFile.getAbsolutePath());
             //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
-            Subject servopsSubject = CredUtil.createOpsSubject(); 
+            Subject servopsSubject = CredUtil.createOpsSubject();
             Subject.doAs(servopsSubject, action);
-        }
-        catch (PrivilegedActionException e)
-        {
+        } catch (PrivilegedActionException e) {
             String msg = "Error augmenting subject " + subject;
             throw new RuntimeException(msg, e);
         }
@@ -290,8 +274,7 @@ public class ACIdentityManager implements IdentityManager
      *
      * @return the CheckResource
      */
-    public static CheckResource getAvailabilityCheck()
-    {
+    public static CheckResource getAvailabilityCheck() {
         RegistryClient regClient = new RegistryClient();
         LocalAuthority localAuth = new LocalAuthority();
         URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
