@@ -79,6 +79,7 @@ import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
@@ -372,7 +373,7 @@ public class UserClientTest
                                                 });
 
         s.getPublicCredentials().add(
-                new SSOCookieCredential("COOKIESESSIONID", "my.domain"));
+                new SSOCookieCredential("COOKIESESSIONID", "my.domain", new Date(System.currentTimeMillis() + 1000*60*60*24)));
 
         final User u =
                 Subject.doAs(s, new PrivilegedExceptionAction<User>()
