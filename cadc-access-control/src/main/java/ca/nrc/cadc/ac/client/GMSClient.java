@@ -1105,7 +1105,10 @@ public class GMSClient implements TransferListener
             throws AccessControlException
     {
         Subject subject = AuthenticationUtil.getCurrentSubject();
-        AuthMethod am = getAuthMethod(subject);
+        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
+        if (am == null || am.equals(AuthMethod.ANON)) {
+            throw new AccessControlException("Anonymous access not supported.");
+        }
         
         URL serviceURL = getRegistryClient().getServiceURL(this.serviceID, standard, am);
         
@@ -1141,31 +1144,5 @@ public class GMSClient implements TransferListener
         
         return serviceURL;
     }
-    
-    private AuthMethod getAuthMethod(Subject subject)
-    {
-        if (subject != null)
-        {
-            // web services use CDP to load a proxy cert so prefer that
-            X509CertificateChain privateKeyChain = X509CertificateChain.findPrivateKeyChain(
-                    subject.getPublicCredentials());
-            if (privateKeyChain != null)
-                return AuthMethod.CERT;
-            
-            // ui applications pass cookie(s) along
-            Set sso = subject.getPublicCredentials(SSOCookieCredential.class);
-            if ( !sso.isEmpty() )
-            {
-                return AuthMethod.COOKIE;
-            }
-            
-            // AuthMethod.PASSWORD not supported
-            // AuthMethod.TOKEN not supported
-            throw new AccessControlException("No valid public credentials.");
-        }
-        else
-        {
-            throw new AccessControlException("Anonymous access not supported.");
-        }
-    }
+   
 }
