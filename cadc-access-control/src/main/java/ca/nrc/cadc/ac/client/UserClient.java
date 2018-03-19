@@ -191,11 +191,7 @@ public class UserClient
     public List<User> getDisplayUsers() throws IOException
     {
         
-        Subject subject = AuthenticationUtil.getCurrentSubject();
-        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
-        if (am == null || am.equals(AuthMethod.ANON)) {
-            throw new AccessControlException("Anonymous access not supported.");
-        }
+        AuthMethod am = getAuthMethod();
         URL usersURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
         final List<User> webUsers = new ArrayList<User>();
@@ -261,11 +257,7 @@ public class UserClient
         StringBuilder userXML = new StringBuilder();
         userWriter.write(user, userXML);
         
-        Subject subject = AuthenticationUtil.getCurrentSubject();
-        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
-        if (am == null || am.equals(AuthMethod.ANON)) {
-            throw new AccessControlException("Anonymous access not supported.");
-        }
+        AuthMethod am = getAuthMethod();
 
         URL createUserURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
@@ -335,12 +327,7 @@ public class UserClient
         String id = NetUtil.encode(principal.getName());
         String path = "/" + id + "?idType=" + AuthenticationUtil
                 .getPrincipalType(principal);
-        
-        Subject subject = AuthenticationUtil.getCurrentSubject();
-        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
-        if (am == null || am.equals(AuthMethod.ANON)) {
-            throw new AccessControlException("Anonymous access not supported.");
-        }
+        AuthMethod am = getAuthMethod();
 
         URL usersURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
@@ -449,18 +436,6 @@ public class UserClient
     }
 
     /**
-     * Null safe method for a current Subject.
-     * @return  Subject instance.
-     */
-    private Subject getCurrentSubject()
-    {
-        final Subject subject = AuthenticationUtil.getCurrentSubject();
-
-        return (subject == null) ? new Subject() : subject;
-    }
-
-
-    /**
      * Used for tests to override.
      *
      * @param url               The URL to download from.
@@ -498,11 +473,7 @@ public class UserClient
      */
     public User whoAmI() throws IOException, UserNotFoundException
     {
-        Subject subject = AuthenticationUtil.getCurrentSubject();
-        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
-        if (am == null || am.equals(AuthMethod.ANON)) {
-            throw new AccessControlException("Anonymous access not supported.");
-        }
+        AuthMethod am = getAuthMethod();
         final URL whoAmIURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01, am);
         if (whoAmIURL == null)
@@ -552,4 +523,14 @@ public class UserClient
         }
         throw new IllegalStateException(message);
     }
+    
+    private AuthMethod getAuthMethod() throws AccessControlException {
+        Subject subject = AuthenticationUtil.getCurrentSubject();
+        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
+        if (am == null || am.equals(AuthMethod.ANON)) {
+            throw new AccessControlException("Anonymous access not supported.");
+        }
+        return am;
+    }
+    
 }
