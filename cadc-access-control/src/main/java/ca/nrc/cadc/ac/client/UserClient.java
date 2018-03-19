@@ -190,9 +190,10 @@ public class UserClient
      */
     public List<User> getDisplayUsers() throws IOException
     {
+        
+        AuthMethod am = getAuthMethod();
         URL usersURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01,
-                               getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
         final List<User> webUsers = new ArrayList<User>();
         HttpDownload httpDownload =
                 new HttpDownload(usersURL,
@@ -255,9 +256,11 @@ public class UserClient
         UserWriter userWriter = new UserWriter();
         StringBuilder userXML = new StringBuilder();
         userWriter.write(user, userXML);
+        
+        AuthMethod am = getAuthMethod();
 
         URL createUserURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
 
         if (createUserURL == null)
         {
@@ -324,9 +327,10 @@ public class UserClient
         String id = NetUtil.encode(principal.getName());
         String path = "/" + id + "?idType=" + AuthenticationUtil
                 .getPrincipalType(principal);
+        AuthMethod am = getAuthMethod();
 
         URL usersURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
         URL getUserURL = new URL(usersURL.toExternalForm() + path);
         log.debug("getUser request to " + getUserURL.toString());
 
@@ -432,50 +436,6 @@ public class UserClient
     }
 
     /**
-     * Null safe method for a current Subject.
-     * @return  Subject instance.
-     */
-    private Subject getCurrentSubject()
-    {
-        final Subject subject = AuthenticationUtil.getCurrentSubject();
-
-        return (subject == null) ? new Subject() : subject;
-    }
-
-    /**
-     * Obtain the current AuthMethod instance from the current subject.
-     *
-     * The PASSWORD and TOKEN AuthMethods are NOT supported.
-     *
-     * @return      AuthMethod instance
-     * @throws AccessControlException       For unsupported AuthMethod.
-     */
-    private AuthMethod getAuthMethod()
-    {
-        final Subject subject = getCurrentSubject();
-        final Set<X509CertificateChain> x509CertificateChains =
-                subject.getPublicCredentials(X509CertificateChain.class);
-        final Set<SSOCookieCredential> cookieCredentials =
-                subject.getPublicCredentials(SSOCookieCredential.class);
-
-        // Prefer X509 Certificate.
-        if (x509CertificateChains.isEmpty() && cookieCredentials.isEmpty())
-        {
-            throw new AccessControlException(
-                    "Authentication required for user data.");
-        }
-        else if (x509CertificateChains.isEmpty())
-        {
-            return AuthMethod.COOKIE;
-        }
-        else
-        {
-            return AuthMethod.CERT;
-        }
-    }
-
-
-    /**
      * Used for tests to override.
      *
      * @param url               The URL to download from.
@@ -513,9 +473,9 @@ public class UserClient
      */
     public User whoAmI() throws IOException, UserNotFoundException
     {
+        AuthMethod am = getAuthMethod();
         final URL whoAmIURL = getRegistryClient()
-                .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01,
-                               getAuthMethod());
+                .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01, am);
         if (whoAmIURL == null)
         {
             throw new IllegalArgumentException("No service endpoint for uri "
@@ -563,4 +523,14 @@ public class UserClient
         }
         throw new IllegalStateException(message);
     }
+    
+    private AuthMethod getAuthMethod() throws AccessControlException {
+        Subject subject = AuthenticationUtil.getCurrentSubject();
+        AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
+        if (am == null || am.equals(AuthMethod.ANON)) {
+            throw new AccessControlException("Anonymous access not supported.");
+        }
+        return am;
+    }
+    
 }
