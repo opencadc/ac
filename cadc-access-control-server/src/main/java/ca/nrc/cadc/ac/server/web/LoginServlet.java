@@ -78,6 +78,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
+import java.util.Set;
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -185,6 +186,15 @@ public class LoginServlet extends HttpServlet
             {
                 String token = null;
                 HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
+
+                // Get set of all principals that apply to the user.
+                // Cookie will have all principals added to it.
+                AuthenticatorImpl ai = new AuthenticatorImpl();
+                Subject userSubject = new Subject();
+                userSubject.getPrincipals().add(p);
+                ai.augmentSubject(userSubject);
+                Set<Principal> userPrincipals = userSubject.getPrincipals();
+
                 if (scope != null)
                 {
                     // This cookie will be scope to a certain URI,
@@ -201,13 +211,14 @@ public class LoginServlet extends HttpServlet
 
                     final Calendar expiryDate = new GregorianCalendar(DateUtil.UTC);
                     expiryDate.add(Calendar.HOUR, SSOCookieManager.SSO_COOKIE_LIFETIME_HOURS);
-                    DelegationToken dt = new DelegationToken(p, uri, expiryDate.getTime());
+                    DelegationToken dt = new DelegationToken(userPrincipals, uri, expiryDate.getTime());
                     token = DelegationToken.format(dt);
                 }
                 else
                 {
-                    token = new SSOCookieManager().generate(p);
+                    token = new SSOCookieManager().generate(userPrincipals);
                 }
+
         	    response.setContentType(CONTENT_TYPE);
         	    response.setContentLength(token.length());
         	    response.getWriter().write(token);
