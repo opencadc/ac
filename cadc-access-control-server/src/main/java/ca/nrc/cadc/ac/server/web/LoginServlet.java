@@ -195,6 +195,9 @@ public class LoginServlet extends HttpServlet
                 ai.augmentSubject(userSubject);
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
 
+                // domains have to be harvested here somehow.
+                // what is the default domain
+
                 if (scope != null)
                 {
                     // This cookie will be scope to a certain URI,
@@ -209,14 +212,12 @@ public class LoginServlet extends HttpServlet
                         throw new IllegalArgumentException("Invalid scope: " + scope);
                     }
 
-                    final Calendar expiryDate = new GregorianCalendar(DateUtil.UTC);
-                    expiryDate.add(Calendar.HOUR, SSOCookieManager.SSO_COOKIE_LIFETIME_HOURS);
-                    DelegationToken dt = new DelegationToken(userPrincipals, uri, expiryDate.getTime());
-                    token = DelegationToken.format(dt);
+                    token = new SSOCookieManager().generate(userPrincipals, uri);
                 }
                 else
                 {
-                    token = new SSOCookieManager().generate(userPrincipals);
+                    // Create token with default scope and expiry date
+                    token = new SSOCookieManager().generate(userPrincipals, null);
                 }
 
         	    response.setContentType(CONTENT_TYPE);
