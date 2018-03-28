@@ -307,7 +307,6 @@ public class ResetPasswordServlet extends HttpServlet
                                 int duration = 24; // hours
                                 Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                                 expiry.add(Calendar.HOUR, duration);
-                                // Should this go through the SSOCookieManager?
                                 // Domain list is null for this case
                                 DelegationToken dt = new DelegationToken(userID, scopeURI, expiry.getTime(), null);
                                 return DelegationToken.format(dt);
