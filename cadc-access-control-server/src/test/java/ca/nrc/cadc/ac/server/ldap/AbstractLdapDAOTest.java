@@ -132,7 +132,7 @@ public class AbstractLdapDAOTest
         throws Exception
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        Log4jInit.setLevel("ca.nrc.cadc.util", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.util", Level.INFO);
 
         //System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
 
