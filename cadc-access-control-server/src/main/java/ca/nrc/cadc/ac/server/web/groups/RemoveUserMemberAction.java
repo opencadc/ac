@@ -100,7 +100,7 @@ public class RemoveUserMemberAction extends AbstractGroupAction
 
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
 
-        User user = getUserPersistence().getAugmentedUser(userPrincipal);
+        User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
 
         if (!group.getUserMembers().remove(user))
         {

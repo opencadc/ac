@@ -136,7 +136,7 @@ public class AuthenticatorImpl implements Authenticator
             Profiler profiler = new Profiler(AuthenticatorImpl.class);
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
-            User user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next());
+            User user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next(), true);
             if (user.getIdentities() != null)
             {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");
@@ -146,6 +146,7 @@ public class AuthenticatorImpl implements Authenticator
                 log.debug("Null identities after augment");
             }
             subject.getPrincipals().addAll(user.getIdentities());
+            
             if (user.appData != null)
             {
                 log.debug("found: " + user.appData.getClass().getName());
@@ -163,6 +164,8 @@ public class AuthenticatorImpl implements Authenticator
                     throw new RuntimeException("BUG: found User.appData but could not store in Subject as GroupMemberships cache", bug);
 
                 }
+            } else {
+                throw new RuntimeException("BUG: expected getAugmentedUser to return GroupMembership cache");
             }
             user.appData = null; // avoid loop that prevents GC???
             profiler.checkpoint("augmentSubject");

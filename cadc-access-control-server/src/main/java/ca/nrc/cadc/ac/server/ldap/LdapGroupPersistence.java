@@ -182,7 +182,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         try
         {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
-            User owner = userDAO.getAugmentedUser(userID);
+            User owner = userDAO.getAugmentedUser(userID, false);
             ObjectUtil.setField(group, owner, "owner");
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             groupDAO.addGroup(group);
