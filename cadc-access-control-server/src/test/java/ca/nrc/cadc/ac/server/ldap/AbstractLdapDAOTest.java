@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -132,107 +132,113 @@ public class AbstractLdapDAOTest
         throws Exception
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.util", Level.DEBUG);
 
-        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+        //System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
 
-        // get the configuration of the development server from and config files...
-        try
-        {
-            config = getLdapConfig();
+        try {
+            // get the configuration of the development server from and config files...
+            try
+            {
+                config = getLdapConfig();
+            }
+            catch (NoSuchElementException e)
+            {
+                log.warn("Skipping integration test: no entry in ~/.dbrc file");
+                org.junit.Assume.assumeTrue(false);
+                return;
+            }
+            catch (RuntimeException e)
+            {
+                log.warn("Skipping integration test", e);
+                org.junit.Assume.assumeTrue(false);
+                return;
+            }
+            cadcDaoTest1_HttpPrincipal = new HttpPrincipal(cadcDaoTest1_CN);
+            cadcDaoTest2_HttpPrincipal = new HttpPrincipal(cadcDaoTest2_CN);
+            cadcDaoTest3_HttpPrincipal = new HttpPrincipal(cadcDaoTest3_CN);
+
+            cadcDaoTest1_X500Principal = new X500Principal(cadcDaoTest1_X500DN);
+            cadcDaoTest2_X500Principal = new X500Principal(cadcDaoTest2_X500DN);
+            cadcDaoTest3_X500Principal = new X500Principal(cadcDaoTest3_X500DN);
+
+            try
+            {
+                cadcDaoTest1_User = getUserDAO().getUser(cadcDaoTest1_HttpPrincipal);
+            }
+            catch (UserNotFoundException e)
+            {
+                User user = new User();
+                user.getIdentities().add(cadcDaoTest1_HttpPrincipal);
+                user.getIdentities().add(cadcDaoTest1_X500Principal);
+                user.personalDetails = new PersonalDetails("CADC", "DAOTest1");
+                user.personalDetails.email = cadcDaoTest1_CN + "@canada.ca";
+                UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+                getUserDAO().addUserRequest(userRequest);
+                getUserDAO().approveUserRequest(cadcDaoTest1_HttpPrincipal);
+                cadcDaoTest1_User = getUserDAO().getUser(cadcDaoTest1_HttpPrincipal);
+            }
+
+            try
+            {
+                cadcDaoTest2_User = getUserDAO().getUser(cadcDaoTest2_HttpPrincipal);
+            }
+            catch (UserNotFoundException e)
+            {
+                User user = new User();
+                user.getIdentities().add(cadcDaoTest2_HttpPrincipal);
+                user.getIdentities().add(cadcDaoTest2_X500Principal);
+                user.personalDetails = new PersonalDetails("CADC", "DAOTest2");
+                user.personalDetails.email = cadcDaoTest2_CN + "@canada.ca";
+                UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+                getUserDAO().addUserRequest(userRequest);
+                getUserDAO().approveUserRequest(cadcDaoTest2_HttpPrincipal);
+                cadcDaoTest2_User = getUserDAO().getUser(cadcDaoTest2_HttpPrincipal);
+            }
+
+            try
+            {
+                cadcDaoTest3_User = getUserDAO().getUser(cadcDaoTest3_HttpPrincipal);
+            }
+            catch (UserNotFoundException e)
+            {
+                User user = new User();
+                user.getIdentities().add(cadcDaoTest3_HttpPrincipal);
+                user.getIdentities().add(cadcDaoTest3_X500Principal);
+                user.personalDetails = new PersonalDetails("CADC", "DAOTest3");
+                user.personalDetails.email = cadcDaoTest3_CN + "@canada.ca";
+                UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+                getUserDAO().addUserRequest(userRequest);
+                getUserDAO().approveUserRequest(cadcDaoTest3_HttpPrincipal);
+                cadcDaoTest3_User = getUserDAO().getUser(cadcDaoTest3_HttpPrincipal);
+            }
+
+            // cadcDaoTest1 User and Subject with all Principals
+            cadcDaoTest1_AugmentedUser = getUserDAO().getAugmentedUser(cadcDaoTest1_HttpPrincipal, true);
+            cadcDaoTest1_Subject = new Subject();
+            cadcDaoTest1_Subject.getPrincipals().addAll(cadcDaoTest1_AugmentedUser.getIdentities());
+
+            // cadcDaoTest2 User and Subject with all Principals
+            cadcDaoTest2_AugmentedUser = getUserDAO().getAugmentedUser(cadcDaoTest2_HttpPrincipal, true);
+            cadcDaoTest2_Subject = new Subject();
+            cadcDaoTest2_Subject.getPrincipals().addAll(cadcDaoTest2_AugmentedUser.getIdentities());
+
+            // member returned by getMember contains only the fields required by the GMS
+            testMember = new User();
+            testMember.personalDetails = new PersonalDetails("test", "member");
+            testMember.getIdentities().add(cadcDaoTest1_X500Principal);
+            testMember.getIdentities().add(cadcDaoTest1_HttpPrincipal);
+
+            // entryDN
+            cadcDaoTest1_DN = "uid=cadcdaotest1," + config.getUsersDN();
+            cadcDaoTest2_DN = "uid=cadcdaotest2," + config.getUsersDN();
+
+            cadcDaoTest1_DNPrincipal = new DNPrincipal(cadcDaoTest1_DN);
+            cadcDaoTest2_DNPrincipal = new DNPrincipal(cadcDaoTest2_DN);
+        } catch (Exception oops) {
+            log.error("setup failed", oops);
+            throw oops;
         }
-        catch (NoSuchElementException e)
-        {
-            log.warn("Skipping integration test: no entry in ~/.dbrc file");
-            org.junit.Assume.assumeTrue(false);
-            return;
-        }
-        catch (RuntimeException e)
-        {
-            log.warn("Skipping integration test: no ~/.dbrc file");
-            org.junit.Assume.assumeTrue(false);
-            return;
-        }
-        cadcDaoTest1_HttpPrincipal = new HttpPrincipal(cadcDaoTest1_CN);
-        cadcDaoTest2_HttpPrincipal = new HttpPrincipal(cadcDaoTest2_CN);
-        cadcDaoTest3_HttpPrincipal = new HttpPrincipal(cadcDaoTest3_CN);
-
-        cadcDaoTest1_X500Principal = new X500Principal(cadcDaoTest1_X500DN);
-        cadcDaoTest2_X500Principal = new X500Principal(cadcDaoTest2_X500DN);
-        cadcDaoTest3_X500Principal = new X500Principal(cadcDaoTest3_X500DN);
-
-        try
-        {
-            cadcDaoTest1_User = getUserDAO().getUser(cadcDaoTest1_HttpPrincipal);
-        }
-        catch (UserNotFoundException e)
-        {
-            User user = new User();
-            user.getIdentities().add(cadcDaoTest1_HttpPrincipal);
-            user.getIdentities().add(cadcDaoTest1_X500Principal);
-            user.personalDetails = new PersonalDetails("CADC", "DAOTest1");
-            user.personalDetails.email = cadcDaoTest1_CN + "@canada.ca";
-            UserRequest userRequest = new UserRequest(user, "password".toCharArray());
-            getUserDAO().addUserRequest(userRequest);
-            getUserDAO().approveUserRequest(cadcDaoTest1_HttpPrincipal);
-            cadcDaoTest1_User = getUserDAO().getUser(cadcDaoTest1_HttpPrincipal);
-        }
-
-        try
-        {
-            cadcDaoTest2_User = getUserDAO().getUser(cadcDaoTest2_HttpPrincipal);
-        }
-        catch (UserNotFoundException e)
-        {
-            User user = new User();
-            user.getIdentities().add(cadcDaoTest2_HttpPrincipal);
-            user.getIdentities().add(cadcDaoTest2_X500Principal);
-            user.personalDetails = new PersonalDetails("CADC", "DAOTest2");
-            user.personalDetails.email = cadcDaoTest2_CN + "@canada.ca";
-            UserRequest userRequest = new UserRequest(user, "password".toCharArray());
-            getUserDAO().addUserRequest(userRequest);
-            getUserDAO().approveUserRequest(cadcDaoTest2_HttpPrincipal);
-            cadcDaoTest2_User = getUserDAO().getUser(cadcDaoTest2_HttpPrincipal);
-        }
-
-        try
-        {
-            cadcDaoTest3_User = getUserDAO().getUser(cadcDaoTest3_HttpPrincipal);
-        }
-        catch (UserNotFoundException e)
-        {
-            User user = new User();
-            user.getIdentities().add(cadcDaoTest3_HttpPrincipal);
-            user.getIdentities().add(cadcDaoTest3_X500Principal);
-            user.personalDetails = new PersonalDetails("CADC", "DAOTest3");
-            user.personalDetails.email = cadcDaoTest3_CN + "@canada.ca";
-            UserRequest userRequest = new UserRequest(user, "password".toCharArray());
-            getUserDAO().addUserRequest(userRequest);
-            getUserDAO().approveUserRequest(cadcDaoTest3_HttpPrincipal);
-            cadcDaoTest3_User = getUserDAO().getUser(cadcDaoTest3_HttpPrincipal);
-        }
-
-        // cadcDaoTest1 User and Subject with all Principals
-        cadcDaoTest1_AugmentedUser = getUserDAO().getAugmentedUser(cadcDaoTest1_HttpPrincipal);
-        cadcDaoTest1_Subject = new Subject();
-        cadcDaoTest1_Subject.getPrincipals().addAll(cadcDaoTest1_AugmentedUser.getIdentities());
-
-        // cadcDaoTest2 User and Subject with all Principals
-        cadcDaoTest2_AugmentedUser = getUserDAO().getAugmentedUser(cadcDaoTest2_HttpPrincipal);
-        cadcDaoTest2_Subject = new Subject();
-        cadcDaoTest2_Subject.getPrincipals().addAll(cadcDaoTest2_AugmentedUser.getIdentities());
-
-        // member returned by getMember contains only the fields required by the GMS
-        testMember = new User();
-        testMember.personalDetails = new PersonalDetails("test", "member");
-        testMember.getIdentities().add(cadcDaoTest1_X500Principal);
-        testMember.getIdentities().add(cadcDaoTest1_HttpPrincipal);
-
-        // entryDN
-        cadcDaoTest1_DN = "uid=cadcdaotest1," + config.getUsersDN();
-        cadcDaoTest2_DN = "uid=cadcdaotest2," + config.getUsersDN();
-
-        cadcDaoTest1_DNPrincipal = new DNPrincipal(cadcDaoTest1_DN);
-        cadcDaoTest2_DNPrincipal = new DNPrincipal(cadcDaoTest2_DN);
     }
 
     static LdapUserDAO getUserDAO() throws Exception

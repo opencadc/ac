@@ -116,7 +116,7 @@ public class GetUserAction extends AbstractUserAction
         if (isPrivilegedUser())
         {
             log.debug("getting augmented user " + principal.getName());
-            user = userPersistence.getAugmentedUser(principal);
+            user = userPersistence.getAugmentedUser(principal, false);
             profiler.checkpoint("getAugmentedUser");
         }
 

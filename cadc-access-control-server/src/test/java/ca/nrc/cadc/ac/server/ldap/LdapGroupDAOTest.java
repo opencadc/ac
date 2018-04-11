@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,23 +67,6 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
@@ -91,6 +74,19 @@ import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
+import javax.security.auth.Subject;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
 {
@@ -131,14 +127,16 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    Group expectGroup = new Group(new GroupURI("ivo://example.org/gms?" + getGroupID()));
+                    // authority as specified in src/test/resources/LocalAuthority
+                    Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
                     setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(expectGroup);
                     Group actualGroup = getGroupDAO().getGroup(expectGroup.getID().getName(), true);
                     log.info("addGroup: " + expectGroup.getID());
                     assertGroupsEqual(expectGroup, actualGroup);
-
-                    Group otherGroup = new Group(new GroupURI("ivo://example.org/gms?" + getGroupID()));
+                    
+                    Thread.sleep(3L);
+                    Group otherGroup = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
                     setField(otherGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(otherGroup);
                     otherGroup = getGroupDAO().getGroup(otherGroup.getID().getName(), true);
@@ -198,7 +196,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     assertGroupsEqual(expectGroup, actualGroup);
 
                     // groupAdmins
-                    Group adminGroup = new Group(new GroupURI("ivo://example.org/gms?" + getGroupID()));
+                    Group adminGroup = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
                     setField(adminGroup, cadcDaoTest1_AugmentedUser, "owner");
                     getGroupDAO().addGroup(adminGroup);
                     adminGroup = getGroupDAO().getGroup(adminGroup.getID().getName(), true);
@@ -244,7 +242,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
                     // create another group and make expected group
                     // member of that group. Delete expected group after
-                    Group expectGroup2 = new Group(new GroupURI("ivo://example.org/gms?" + getGroupID()));
+                    // authority as specified in src/test/resources/LocalAuthority
+                    Group expectGroup2 = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
                     setField(expectGroup2, cadcDaoTest1_AugmentedUser, "owner");
                     expectGroup2.getGroupAdmins().add(actualGroup);
                     expectGroup2.getGroupMembers().add(actualGroup);
@@ -287,12 +286,13 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    Group testGroup1 = new Group(new GroupURI("ivo://example.org/gms?" + testGroup1ID));
+                    // authority as specified in src/test/resources/LocalAuthority
+                    Group testGroup1 = new Group(new GroupURI("ivo://example.net/gms?" + testGroup1ID));
                     getGroupDAO().addGroup(testGroup1);
                     testGroup1 = getGroupDAO().getGroup(testGroup1.getID().getName(), true);
                     log.debug("add group: " + testGroup1ID);
 
-                    Group testGroup2 = new Group(new GroupURI("ivo://example.org/gms?" + testGroup2ID));
+                    Group testGroup2 = new Group(new GroupURI("ivo://example.net/gms?" + testGroup2ID));
                     getGroupDAO().addGroup(testGroup2);
                     testGroup2 = getGroupDAO().getGroup(testGroup2.getID().getName(), true);
                     log.debug("add group: " + testGroup2ID);
@@ -392,7 +392,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 }
                 catch (GroupNotFoundException ignore) {}
 
-                getGroupDAO().addGroup(new Group(new GroupURI("ivo://example.org/gms?" + groupID)));
+                // authority as specified in src/test/resources/LocalAuthority
+                getGroupDAO().addGroup(new Group(new GroupURI("ivo://example.net/gms?" + groupID)));
                 return null;
             }
         });
@@ -410,7 +411,8 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                 //getGroupDAO().addGroup(new Group(groupID, cadcDaoTest1_User));
                 try
                 {
-                    getGroupDAO().modifyGroup(new Group(new GroupURI("ivo://example.org/gms?" + "fooBOGUSASFgomsi")));
+                    // authority as specified in src/test/resources/LocalAuthority
+                    getGroupDAO().modifyGroup(new Group(new GroupURI("ivo://example.net/gms?" + "fooBOGUSASFgomsi")));
                     fail("modifyGroup with unknown user should throw " +
                          "GroupNotFoundException");
                 }
