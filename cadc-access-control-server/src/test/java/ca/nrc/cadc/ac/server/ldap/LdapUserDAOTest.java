@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server.ldap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -91,10 +92,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -109,13 +112,13 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     public static void setUpClass()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
+        //System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
     public static void teardownClass()
     {
-        System.clearProperty(PropertiesReader.class.getName() + ".dir");
+        //System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     private static final Logger log = Logger.getLogger(LdapUserDAOTest.class);
@@ -338,11 +341,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
     }
 
-    /**
-     * Test of getAugmentedUser method, of class LdapUserDAO.
-     */
     @Test
-    public void getGetAugmentedUser() throws Exception
+    public void getGetUser() throws Exception
     {
         Subject subject = new Subject();
         subject.getPrincipals().add(cadcDaoTest1_HttpPrincipal);
@@ -364,6 +364,43 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 }
                 catch (Exception e)
                 {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+    }
+    
+    @Test
+    public void getGetAugmentedUser() throws Exception {
+        Subject subject = new Subject();
+        subject.getPrincipals().add(cadcDaoTest1_HttpPrincipal);
+        subject.getPrincipals().add(cadcDaoTest1_DNPrincipal);
+
+        // do everything as owner
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run()
+                throws Exception {
+                try {
+                    final LdapUserDAO userDAO = getUserDAO();
+                    final User actual = userDAO.getAugmentedUser(cadcDaoTest1_HttpPrincipal, false);
+                    assertEquals(cadcDaoTest1_User.getHttpPrincipal(), actual.getHttpPrincipal());
+                    assertNull(actual.appData); // no cache
+                    return null;
+                } catch (Exception e) {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+        
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run()  throws Exception {
+                try {
+                    final LdapUserDAO userDAO = getUserDAO();
+                    final User actual = userDAO.getAugmentedUser(cadcDaoTest1_HttpPrincipal, true);
+                    assertEquals(cadcDaoTest1_User.getHttpPrincipal(), actual.getHttpPrincipal());
+                    assertNotNull(actual.appData);
+                    return null;
+                } catch (Exception e) {
                     throw new Exception("Problems", e);
                 }
             }

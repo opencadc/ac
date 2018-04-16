@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -182,7 +182,7 @@ public class LdapUserDAO extends LdapDAO
     private String[] identityAttribs = new String[]
     {
         LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_ENTRYDN,
-        LDAP_USER_NAME, LDAP_MEMBEROF // for group cache
+        LDAP_USER_NAME
     };
 
     public LdapUserDAO(LdapConnections connections)
@@ -679,7 +679,7 @@ public class LdapUserDAO extends LdapDAO
         return user;
     }
 
-    public User getAugmentedUser(final Principal userID)
+    public User getAugmentedUser(final Principal userID, final boolean primeGroupCache)
         throws UserNotFoundException, TransientException
     {
         Profiler profiler = new Profiler(LdapUserDAO.class);
@@ -709,8 +709,17 @@ public class LdapUserDAO extends LdapDAO
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("getAugmentedUser: search filter = " + filter);
 
+            String[] attrs = identityAttribs;
+            if (primeGroupCache) {
+                attrs = new String[identityAttribs.length + 1];
+                for (int i=0; i < identityAttribs.length; i++) {
+                    attrs[i] = identityAttribs[i];
+                }
+                attrs[identityAttribs.length] = LDAP_MEMBEROF;
+                
+            }
             SearchRequest searchRequest = new SearchRequest(
-                config.getUsersDN(), SearchScope.ONE, filter, identityAttribs);
+                config.getUsersDN(), SearchScope.ONE, filter, attrs);
 
             LDAPConnection con = getReadOnlyConnection();
             profiler.checkpoint("getAugmentedUser.getReadOnlyConnection");
@@ -750,25 +759,27 @@ public class LdapUserDAO extends LdapDAO
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
 
-            GroupMemberships gms = new GroupMemberships(gmsServiceURI.toString(), userID);
-            user.appData = gms; // add even if empty
-            String[] mems = searchResult.getAttributeValues(LDAP_MEMBEROF);
-            if (mems != null && mems.length > 0)
-            {
-                DN adminDN = new DN(config.getAdminGroupsDN());
-                DN groupsDN = new DN(config.getGroupsDN());
-                List<Group> memberOf = new ArrayList<Group>();
-                List<Group> adminOf = new ArrayList<Group>();
-                for (String m : mems)
+            if (primeGroupCache) {
+                GroupMemberships gms = new GroupMemberships(gmsServiceURI.toString(), userID);
+                user.appData = gms; // add even if empty
+                String[] mems = searchResult.getAttributeValues(LDAP_MEMBEROF);
+                if (mems != null && mems.length > 0)
                 {
-                    DN groupDN = new DN(m);
-                    if (groupDN.isDescendantOf(groupsDN, false))
-                        memberOf.add(createGroupFromDN(groupDN));
-                    else if (groupDN.isDescendantOf(adminDN, false))
-                        adminOf.add(createGroupFromDN(groupDN));
+                    DN adminDN = new DN(config.getAdminGroupsDN());
+                    DN groupsDN = new DN(config.getGroupsDN());
+                    List<Group> memberOf = new ArrayList<Group>();
+                    List<Group> adminOf = new ArrayList<Group>();
+                    for (String m : mems)
+                    {
+                        DN groupDN = new DN(m);
+                        if (groupDN.isDescendantOf(groupsDN, false))
+                            memberOf.add(createGroupFromDN(groupDN));
+                        else if (groupDN.isDescendantOf(adminDN, false))
+                            adminOf.add(createGroupFromDN(groupDN));
+                    }
+                    gms.add(adminOf, Role.ADMIN);
+                    gms.add(memberOf, Role.MEMBER);
                 }
-                gms.add(adminOf, Role.ADMIN);
-                gms.add(memberOf, Role.MEMBER);
             }
             profiler.checkpoint("getAugmentedUser.mapIdentities");
             logger.debug("getAugmentedUser: returning user " + userID.getName());

@@ -145,7 +145,7 @@ public class RemoveUserMemberActionTest
             EasyMock.expect(mockGroupPersistence.getGroup("group")).andReturn(group);
 
             final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(mockUserPersistence.getAugmentedUser(x500Principal)).andReturn(user);
+            EasyMock.expect(mockUserPersistence.getAugmentedUser(x500Principal, false)).andReturn(user);
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 
@@ -199,7 +199,7 @@ public class RemoveUserMemberActionTest
             EasyMock.expectLastCall();
 
             final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);
-            EasyMock.expect(mockUserPersistence.getAugmentedUser(userPrincipal)).andReturn(user);
+            EasyMock.expect(mockUserPersistence.getAugmentedUser(userPrincipal, false)).andReturn(user);
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 

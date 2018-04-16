@@ -298,7 +298,7 @@ public class GetUserActionTest
         final Writer writer = new StringWriter();
         final PrintWriter printWriter = new PrintWriter(writer);
 
-        expect(mockUserPersistence.getAugmentedUser(userID)).andReturn(expected).once();
+        expect(mockUserPersistence.getAugmentedUser(userID, false)).andReturn(expected).once();
         mockResponse.setHeader("Content-Type", "text/xml");
         expectLastCall().once();
         expect(mockResponse.getWriter()).andReturn(printWriter).once();

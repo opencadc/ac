@@ -254,7 +254,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User getAugmentedUser(Principal userID)
+    public User getAugmentedUser(Principal userID, final boolean primeGroupCache)
         throws UserNotFoundException, TransientException
     {
         // internal call to return user identities: no permission check
@@ -265,7 +265,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             Profiler profiler = new Profiler(LdapUserPersistence.class);
             userDAO = new LdapUserDAO(conns);
             profiler.checkpoint("Create LdapUserDAO");
-            User user = userDAO.getAugmentedUser(userID);
+            User user = userDAO.getAugmentedUser(userID, primeGroupCache);
             profiler.checkpoint("getAugmentedUser");
             return user;
         }
