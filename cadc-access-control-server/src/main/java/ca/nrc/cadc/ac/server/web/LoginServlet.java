@@ -78,6 +78,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
+import java.util.Set;
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -185,6 +186,18 @@ public class LoginServlet extends HttpServlet
             {
                 String token = null;
                 HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
+
+                // Get set of all principals that apply to the user.
+                // Cookie will have all principals added to it.
+                AuthenticatorImpl ai = new AuthenticatorImpl();
+                Subject userSubject = new Subject();
+                userSubject.getPrincipals().add(p);
+                ai.augmentSubject(userSubject);
+                Set<Principal> userPrincipals = userSubject.getPrincipals();
+
+                // domains have to be harvested here somehow.
+                // what is the default domain
+
                 if (scope != null)
                 {
                     // This cookie will be scope to a certain URI,
@@ -199,15 +212,14 @@ public class LoginServlet extends HttpServlet
                         throw new IllegalArgumentException("Invalid scope: " + scope);
                     }
 
-                    final Calendar expiryDate = new GregorianCalendar(DateUtil.UTC);
-                    expiryDate.add(Calendar.HOUR, SSOCookieManager.SSO_COOKIE_LIFETIME_HOURS);
-                    DelegationToken dt = new DelegationToken(p, uri, expiryDate.getTime());
-                    token = DelegationToken.format(dt);
+                    token = new SSOCookieManager().generate(userPrincipals, uri);
                 }
                 else
                 {
-                    token = new SSOCookieManager().generate(p);
+                    // Create token with default scope and expiry date
+                    token = new SSOCookieManager().generate(userPrincipals, null);
                 }
+
         	    response.setContentType(CONTENT_TYPE);
         	    response.setContentLength(token.length());
         	    response.getWriter().write(token);
