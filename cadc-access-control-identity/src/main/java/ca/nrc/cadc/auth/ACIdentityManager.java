@@ -77,6 +77,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Types;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -247,6 +248,19 @@ public class ACIdentityManager implements IdentityManager {
     }
 
     public void augmentSubject(final Subject subject) {
+        // If the principal list is in the subject has  Numeric Principal
+        // AND the list is greater than 1, then LDAP doesn't need to be
+        // called here
+        Set<Principal> principalSet = subject.getPrincipals();
+        if (principalSet.size() > 1 ) {
+            for (Iterator<Principal> ip = principalSet.iterator(); ip.hasNext(); ) {
+                Principal prin = ip.next();
+                if (prin.getClass() == NumericPrincipal.class) {
+                    return;
+                }
+            }
+        }
+
         try {
             PrivilegedExceptionAction<Object> action = new PrivilegedExceptionAction<Object>() {
                 public Object run() throws Exception {
