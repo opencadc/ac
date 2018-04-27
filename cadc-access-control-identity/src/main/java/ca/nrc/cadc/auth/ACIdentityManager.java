@@ -258,7 +258,7 @@ public class ACIdentityManager implements IdentityManager {
         // called here (subject has already been augmented)
         Set<Principal> principalSet = subject.getPrincipals();
         Set<NumericPrincipal> nPrincipalSet = subject.getPrincipals(NumericPrincipal.class);
-        if (principalSet.size() > 1 && !nPrincipalSet.isEmpty() ) {
+        if (principalSet.size() > 1 && !nPrincipalSet.isEmpty()) {
             return;
         }
 
