@@ -134,7 +134,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     Group actualGroup = getGroupDAO().getGroup(expectGroup.getID().getName(), true);
                     log.info("addGroup: " + expectGroup.getID());
                     assertGroupsEqual(expectGroup, actualGroup);
-                    
+
                     Thread.sleep(3L);
                     Group otherGroup = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
                     setField(otherGroup, cadcDaoTest1_AugmentedUser, "owner");

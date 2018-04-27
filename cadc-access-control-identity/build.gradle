@@ -13,12 +13,12 @@ repositories {
 sourceCompatibility = 1.7
 group = 'org.opencadc'
 
-version = '1.0.5'
+version = '1.0.6'
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
 
-    compile 'org.opencadc:cadc-util:1.+'
+    compile 'org.opencadc:cadc-util:[1.1,)'
     compile 'org.opencadc:cadc-registry:1.+'
     compile 'org.opencadc:cadc-vosi:1.+'
     compile 'org.opencadc:cadc-cdp:[1.1.3,)'

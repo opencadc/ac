@@ -6,12 +6,15 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import ca.nrc.cadc.auth.NumericPrincipal;
 import java.security.AccessControlException;
 import java.util.Collection;
 import java.util.HashSet;
 
+import java.util.UUID;
 import javax.security.auth.Subject;
 
+import javax.security.auth.x500.X500Principal;
 import org.easymock.EasyMock;
 import org.junit.Test;
 

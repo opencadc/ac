@@ -77,6 +77,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Types;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -247,6 +248,20 @@ public class ACIdentityManager implements IdentityManager {
     }
 
     public void augmentSubject(final Subject subject) {
+
+        if (subject == null ) {
+            return;
+        }
+
+        // If the principal list is in the subject has aNumeric Principal
+        // AND the list is greater than 1, then LDAP doesn't need to be
+        // called here (subject has already been augmented)
+        Set<Principal> principalSet = subject.getPrincipals();
+        Set<NumericPrincipal> nPrincipalSet = subject.getPrincipals(NumericPrincipal.class);
+        if (principalSet.size() > 1 && !nPrincipalSet.isEmpty()) {
+            return;
+        }
+
         try {
             PrivilegedExceptionAction<Object> action = new PrivilegedExceptionAction<Object>() {
                 public Object run() throws Exception {
@@ -259,8 +274,6 @@ public class ACIdentityManager implements IdentityManager {
                 }
             };
 
-            //log.debug("privileged user cert: " + privilegedPemFile.getAbsolutePath());
-            //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
             Subject servopsSubject = CredUtil.createOpsSubject();
             Subject.doAs(servopsSubject, action);
         } catch (PrivilegedActionException e) {
