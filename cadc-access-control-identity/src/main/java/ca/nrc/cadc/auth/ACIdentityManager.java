@@ -248,17 +248,18 @@ public class ACIdentityManager implements IdentityManager {
     }
 
     public void augmentSubject(final Subject subject) {
+
+        if (subject == null ) {
+            return;
+        }
+
         // If the principal list is in the subject has  Numeric Principal
         // AND the list is greater than 1, then LDAP doesn't need to be
         // called here
         Set<Principal> principalSet = subject.getPrincipals();
-        if (principalSet.size() > 1 ) {
-            for (Iterator<Principal> ip = principalSet.iterator(); ip.hasNext(); ) {
-                Principal prin = ip.next();
-                if (prin.getClass() == NumericPrincipal.class) {
-                    return;
-                }
-            }
+        Set<NumericPrincipal> nPrincipalSet = subject.getPrincipals(NumericPrincipal.class);
+        if (principalSet != null && principalSet.size() > 1 && nPrincipalSet != null ) {
+            return;
         }
 
         try {

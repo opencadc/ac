@@ -369,7 +369,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
-    
+
     @Test
     public void getGetAugmentedUser() throws Exception {
         Subject subject = new Subject();
@@ -391,7 +391,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 }
             }
         });
-        
+
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             public Object run()  throws Exception {
                 try {

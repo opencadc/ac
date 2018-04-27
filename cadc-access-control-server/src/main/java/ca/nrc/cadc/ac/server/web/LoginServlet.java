@@ -195,9 +195,6 @@ public class LoginServlet extends HttpServlet
                 ai.augmentSubject(userSubject);
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
 
-                // domains have to be harvested here somehow.
-                // what is the default domain
-
                 if (scope != null)
                 {
                     // This cookie will be scope to a certain URI,
