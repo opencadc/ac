@@ -253,12 +253,12 @@ public class ACIdentityManager implements IdentityManager {
             return;
         }
 
-        // If the principal list is in the subject has  Numeric Principal
+        // If the principal list is in the subject has aNumeric Principal
         // AND the list is greater than 1, then LDAP doesn't need to be
-        // called here
+        // called here (subject has already been augmented)
         Set<Principal> principalSet = subject.getPrincipals();
         Set<NumericPrincipal> nPrincipalSet = subject.getPrincipals(NumericPrincipal.class);
-        if (principalSet != null && principalSet.size() > 1 && nPrincipalSet != null ) {
+        if (principalSet.size() > 1 && !nPrincipalSet.isEmpty() ) {
             return;
         }
 
@@ -274,8 +274,6 @@ public class ACIdentityManager implements IdentityManager {
                 }
             };
 
-            //log.debug("privileged user cert: " + privilegedPemFile.getAbsolutePath());
-            //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
             Subject servopsSubject = CredUtil.createOpsSubject();
             Subject.doAs(servopsSubject, action);
         } catch (PrivilegedActionException e) {
