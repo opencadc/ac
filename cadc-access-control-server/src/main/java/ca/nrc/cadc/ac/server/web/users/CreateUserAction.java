@@ -102,6 +102,7 @@ public class CreateUserAction extends AbstractUserAction
         {
             X500Principal x500Principal = x500Principals.iterator().next();
             logUserInfo(x500Principal.getName());
+            this.logInfo.setMessage("User created: " + x500Principal.getName());
         }
     }
 
