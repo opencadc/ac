@@ -315,7 +315,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
     }
 
-//    @Test
+    @Test
     public void testGetUserWithX500Principal() throws Exception
     {
         Subject subject = new Subject();
@@ -1000,7 +1000,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
 
 
-////    @Test
+//    @Test
     public void testSetPassword() throws Exception
     {
 //        LDAPConnection connection =
