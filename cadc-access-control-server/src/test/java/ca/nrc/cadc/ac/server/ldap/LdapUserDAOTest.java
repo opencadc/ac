@@ -899,7 +899,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                     }
 
                     // Check to see if there are multiple users already existing.
-                    List<User> userList = userDAO.getUserList(userID, config.getUsersDN());
+                    List<User> userList = userDAO.getAllUsers(userID, config.getUsersDN());
 
                     if (userList.size() < 6) {
                         log.debug("Creating multiple users (5 more)");
@@ -914,7 +914,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                         }
 
                         // Retrieve new list
-                        userList = userDAO.getUserList(userID, config.getUsersDN());
+                        userList = userDAO.getAllUsers(userID, config.getUsersDN());
                     }
 
                     User retrievedUser = userDAO.getUser(userID);
@@ -958,7 +958,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
             final X500Principal userID = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
 
-            List<User> userList = userDAO.getUserList(userID, config.getUsersDN());
+            List<User> userList = userDAO.getAllUsers(userID, config.getUsersDN());
 
             if (userList.size() < 2) {
 

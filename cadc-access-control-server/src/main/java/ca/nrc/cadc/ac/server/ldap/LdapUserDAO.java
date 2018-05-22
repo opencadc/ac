@@ -630,7 +630,7 @@ public class LdapUserDAO extends LdapDAO
         return foundUser;
     }
 
-    public List<User> getUserList(final Principal userID, final String usersDN)
+    public List<User> getAllUsers(final Principal userID, final String usersDN)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
