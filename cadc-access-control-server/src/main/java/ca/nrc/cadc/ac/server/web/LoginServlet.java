@@ -123,6 +123,8 @@ public class LoginServlet extends HttpServlet
 
     UserPersistence userPersistence;
     GroupPersistence groupPersistence;
+    
+    boolean addPrincipalsToCookie = false;
 
     @Override
     public void init(final ServletConfig config) throws ServletException
@@ -135,6 +137,12 @@ public class LoginServlet extends HttpServlet
             log.debug("proxyGroup: " + proxyGroup);
             this.nonImpersonGroup = config.getInitParameter(LoginServlet.class.getName() + ".nonImpersonGroup");
             log.debug("nonImpersonGroup: " + nonImpersonGroup);
+            
+            String principalsFlag = config.getInitParameter("addPrincipalsToCookie");
+            if (principalsFlag != null && Boolean.TRUE.toString().equalsIgnoreCase(principalsFlag)) {
+                addPrincipalsToCookie = true;
+            }
+            log.debug("Add principals to cookie optimization on: " + addPrincipalsToCookie);
 
             PluginFactory pluginFactory = new PluginFactory();
             userPersistence = pluginFactory.createUserPersistence();
@@ -187,12 +195,14 @@ public class LoginServlet extends HttpServlet
                 String token = null;
                 HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
 
-                // Get set of all principals that apply to the user.
-                // Cookie will have all principals added to it.
-                AuthenticatorImpl ai = new AuthenticatorImpl();
                 Subject userSubject = new Subject();
                 userSubject.getPrincipals().add(p);
-                ai.augmentSubject(userSubject);
+                if (addPrincipalsToCookie) {
+                    // Get set of all principals that apply to the user.
+                    // Cookie will have all principals added to it.
+                    AuthenticatorImpl ai = new AuthenticatorImpl();
+                    ai.augmentSubject(userSubject);
+                }
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
 
                 if (scope != null)
