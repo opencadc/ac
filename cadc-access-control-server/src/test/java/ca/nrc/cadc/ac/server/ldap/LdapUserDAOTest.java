@@ -987,7 +987,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             User foundUser = userDAO.getUser(userID);
 
         } catch (RuntimeException re){
-            log.debug("expected Runtime exception");
+            log.debug("expected Runtime exception: " + re.getMessage());
 
         } catch (Exception e) {
             log.debug("unexpected exception", e);

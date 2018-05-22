@@ -528,8 +528,10 @@ public class LdapUserDAO extends LdapDAO
             // multiple entries with EXTERNAL_USER_CN found,
             // with no 'real' user. throw an error
             // todo: get something to identify the user so it can be found in ldap manually
+            SearchResultEntry sre = multiSearchResult.getSearchEntries().get(0);
+            String x500str = sre.getAttributeValue(userLdapAttrib.get(X500Principal.class));
 
-            throw new RuntimeException("Multiple $EXTERNAL-CN users found for ");
+            throw new RuntimeException("Multiple $EXTERNAL-CN users found for userid " + x500str);
         }
         return ret;
     }
