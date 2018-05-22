@@ -170,6 +170,8 @@ public class LdapUserDAO extends LdapDAO
     protected static final String LDAP_UID = "uid";
     protected static final String USER_ID = "id";
 
+    public static final String SUPPRESS_CHECKUSER_KEY = "cadc.skip.checkuser";
+
     private String[] userAttribs = new String[]
     {
             LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
@@ -351,6 +353,14 @@ public class LdapUserDAO extends LdapDAO
     private void checkUsers(final Principal userID, final String email, final String usersDN)
         throws TransientException, UserAlreadyExistsException
     {
+        // Internal system property set during LdapUserDAOTest.testAddMultipleUser
+        // so that this check can be overridden
+        if (System.getProperty(SUPPRESS_CHECKUSER_KEY) != null && System.getProperty(SUPPRESS_CHECKUSER_KEY).equals("true"))
+        {
+            logger.debug("Internal system property set, skipping checkUsers.");
+            return;
+        }
+
         // check current users
         try
         {
@@ -485,28 +495,153 @@ public class LdapUserDAO extends LdapDAO
         return getUser(userID, config.getUserRequestsDN());
     }
 
+
     /**
-     * Get the user specified by userID.
+     * Return search result entry from Search Result supplied. If there's only one entry,
+     * it is returned. If there are more than one, the first one that does NOT have $EXTERNAL-CN
+     * as it's LDAP_USER_NAME is returned. Otherwise an error is thrown.
      *
-     * @param userID  The userID.
-     * @param usersDN The LDAP tree to search.
-     * @return User instance.
-     * @throws UserNotFoundException  when the user is not found.
-     * @throws TransientException     If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * @param multiSearchResult
+     * @return SearchResultEntry
      */
+    private SearchResultEntry getFirstUserEntry(SearchResult multiSearchResult) {
+        SearchResultEntry ret = null;
+
+        if (multiSearchResult.getSearchEntries().size() == 1) {
+            // Only one entry returned, send it back
+            return multiSearchResult.getSearchEntries().get(0);
+        }
+
+        for (SearchResultEntry next : multiSearchResult.getSearchEntries()) {
+            // Need to determine which is the 'right' user
+            final String username = next.getAttributeValue(LDAP_USER_NAME);
+
+            // 'Real' user will have an LDAP_USER_NAME that is NOT EXTERNAL_USER_CN
+            if (EXTERNAL_USER_CN.equals(username)) {
+                continue;
+            }
+            ret = next;
+            break;
+        }
+
+        if (ret == null) {
+            // multiple entries with EXTERNAL_USER_CN found,
+            // with no 'real' user. throw an error
+            // todo: get something to identify the user so it can be found in ldap manually
+
+            throw new RuntimeException("Multiple $EXTERNAL-CN users found for ");
+        }
+        return ret;
+    }
+
+    private User makeUserFromResult(SearchResultEntry userEntry) {
+        User newUser = new User();
+        String username = userEntry.getAttributeValue(LDAP_USER_NAME);
+        String firstName = userEntry.getAttributeValue(LDAP_FIRST_NAME);
+        String lastName = userEntry.getAttributeValue(LDAP_LAST_NAME);
+
+        if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName)) {
+            newUser.personalDetails = new PersonalDetails(firstName, lastName);
+            newUser.personalDetails.address = userEntry.getAttributeValue(LDAP_ADDRESS);
+            newUser.personalDetails.city = userEntry.getAttributeValue(LDAP_CITY);
+            newUser.personalDetails.country = userEntry.getAttributeValue(LDAP_COUNTRY);
+            newUser.personalDetails.email = userEntry.getAttributeValue(LDAP_EMAIL);
+            newUser.personalDetails.institute = userEntry.getAttributeValue(LDAP_INSTITUTE);
+        }
+
+        logger.debug("getUserFromResultList: username = " + username);
+        if (username != null) {
+            newUser.getIdentities().add(new HttpPrincipal(username));
+        }
+
+        String uid = userEntry.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
+        logger.debug("getUserFromResultList: uid = " + uid);
+        if (uid == null) {
+            // If the numeric ID does not return it means the user
+            // does not have permission
+            throw new AccessControlException("Permission denied");
+        }
+
+        InternalID internalID = getInternalID(uid);
+        ObjectUtil.setField(newUser, internalID, USER_ID);
+        newUser.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
+
+        String x500str = userEntry.getAttributeValue(userLdapAttrib.get(X500Principal.class));
+        logger.debug("getUserFromResultList: x500principal = " + x500str);
+        if (x500str != null) {
+            newUser.getIdentities().add(new X500Principal(x500str));
+        }
+
+        return newUser;
+    }
+
+    private User getUserFromResultList(SearchResult multiSearchResult)
+    {
+        SearchResultEntry userEntry = getFirstUserEntry(multiSearchResult);
+        return makeUserFromResult(userEntry);
+    }
+
+    // Replacement getUser that handles a list returned from ldap
     private User getUser(final Principal userID, final String usersDN)
         throws UserNotFoundException, TransientException,
-               AccessControlException
+        AccessControlException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
+        User foundUser = new User();
         if (searchField == null)
         {
             throw new IllegalArgumentException(
-                    "Unsupported principal type " + userID.getClass());
+                "Unsupported principal type " + userID.getClass());
         }
 
-        SearchResultEntry searchResult = null;
+        try {
+            String name;
+            if (userID instanceof NumericPrincipal) {
+                name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
+            } else {
+                name = userID.getName();
+            }
+            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+            Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
+            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            logger.debug("getUser: search filter = " + filter);
+
+            SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
+
+            // Get all instances of the user from ldap.
+            SearchResult multiSearchResult = getReadOnlyConnection().search(searchRequest);
+
+            if (multiSearchResult == null || multiSearchResult.getSearchEntries().size() == 0) {
+                String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;
+                logger.debug(msg);
+                throw new UserNotFoundException(msg);
+            }
+
+            // Determine which is the 'real' user (not automatically generated
+            // by vospace interaction, for example,) and return that.
+            foundUser =  getUserFromResultList(multiSearchResult);
+            logger.debug("getUser: found " + userID.getName() + " in " + usersDN);
+
+        } catch (LDAPException e)
+        {
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+
+        return foundUser;
+    }
+
+    public List<User> getUserList(final Principal userID, final String usersDN)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        String searchField = userLdapAttrib.get(userID.getClass());
+        List<User> userList = new ArrayList<>();
+        if (searchField == null)
+        {
+            throw new IllegalArgumentException(
+                "Unsupported principal type " + userID.getClass());
+        }
+
         try
         {
             String name;
@@ -525,61 +660,30 @@ public class LdapUserDAO extends LdapDAO
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
-            searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
-            if (searchResult == null)
+            // Get the search, then loop through the entries & build users
+            // for the list that will return.
+            SearchResult multiSearchResult = getReadOnlyConnection().search(searchRequest);
+
+            if (multiSearchResult == null)
             {
                 String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
             }
+
+            for (SearchResultEntry next : multiSearchResult.getSearchEntries())
+            {
+                userList.add(makeUserFromResult(next));
+            }
+
         }
         catch (LDAPException e)
         {
             LdapDAO.checkLdapResult(e.getResultCode());
         }
 
-        User user = new User();
-        String username = searchResult.getAttributeValue(userLdapAttrib.get(HttpPrincipal.class));
-        logger.debug("getUser: username = " + username);
-        if (username != null)
-        {
-            user.getIdentities().add(new HttpPrincipal(username));
-        }
-
-        String uid = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
-        logger.debug("getUser: uid = " + uid);
-        if (uid == null)
-        {
-            // If the numeric ID does not return it means the user
-            // does not have permission
-            throw new AccessControlException("Permission denied");
-        }
-
-        InternalID internalID = getInternalID(uid);
-        ObjectUtil.setField(user, internalID, USER_ID);
-        user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
-
-        String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
-        logger.debug("getUser: x500principal = " + x500str);
-        if (x500str != null)
-        {
-            user.getIdentities().add(new X500Principal(x500str));
-        }
-
-        String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
-        String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
-        if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName))
-        {
-            user.personalDetails = new PersonalDetails(firstName, lastName);
-            user.personalDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
-            user.personalDetails.city = searchResult.getAttributeValue(LDAP_CITY);
-            user.personalDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
-            user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
-            user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
-        }
-
-        logger.debug("getUser: found " + userID.getName() + " in " + usersDN);
-        return user;
+        logger.debug("getUserList returning " + userList.size() + " entries for " + userID.toString());
+        return userList;
     }
 
     /**
@@ -718,42 +822,45 @@ public class LdapUserDAO extends LdapDAO
                 attrs[identityAttribs.length] = LDAP_MEMBEROF;
                 
             }
+            String usersDN = config.getUsersDN();
             SearchRequest searchRequest = new SearchRequest(
-                config.getUsersDN(), SearchScope.ONE, filter, attrs);
+                usersDN, SearchScope.ONE, filter, attrs);
 
-            LDAPConnection con = getReadOnlyConnection();
             profiler.checkpoint("getAugmentedUser.getReadOnlyConnection");
-            SearchResultEntry searchResult = con.searchForEntry(searchRequest);
-            profiler.checkpoint("getAugmentedUser.searchForEntry");
+            SearchResult multiSearchResult = getReadOnlyConnection().search(searchRequest);
+            profiler.checkpoint("getAugmentedUser.search");
 
-            if (searchResult == null)
-            {
-                String msg = "getAugmentedUser: user " + name + " not found";
+            if (multiSearchResult == null || multiSearchResult.getSearchEntries().size() == 0) {
+                String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
             }
 
+            // Get entry from possible list of user instances from ldap
+            SearchResultEntry userFromSearch =  getFirstUserEntry(multiSearchResult);
+            logger.debug("getUser: found " + userID.getName() + " in " + usersDN);
+
             User user = new User();
-            String username = searchResult.getAttributeValue(LDAP_USER_NAME);
+            String username = userFromSearch.getAttributeValue(LDAP_USER_NAME);
             logger.debug("getAugmentedUser: username = " + username);
             // don't add http identities for those with external dns
             if (!EXTERNAL_USER_CN.equals(username)) {
                 user.getIdentities().add(new HttpPrincipal(username));
             }
 
-            String numericID = searchResult.getAttributeValue(LDAP_UID);
+            String numericID = userFromSearch.getAttributeValue(LDAP_UID);
             logger.debug("getAugmentedUser: numericID = " + numericID);
 
             InternalID internalID = getInternalID(numericID);
             ObjectUtil.setField(user, internalID, USER_ID);
             user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
-            String dn = searchResult.getAttributeValue(LDAP_DISTINGUISHED_NAME);
+            String dn = userFromSearch.getAttributeValue(LDAP_DISTINGUISHED_NAME);
             if (dn != null)
             {
                 user.getIdentities().add(new X500Principal(dn));
             }
-            user.getIdentities().add(new DNPrincipal(searchResult.getAttributeValue(LDAP_ENTRYDN)));
+            user.getIdentities().add(new DNPrincipal(userFromSearch.getAttributeValue(LDAP_ENTRYDN)));
 
             // cache memberOf values in the user
             LocalAuthority localAuthority = new LocalAuthority();
@@ -762,7 +869,7 @@ public class LdapUserDAO extends LdapDAO
             if (primeGroupCache) {
                 GroupMemberships gms = new GroupMemberships(gmsServiceURI.toString(), userID);
                 user.appData = gms; // add even if empty
-                String[] mems = searchResult.getAttributeValues(LDAP_MEMBEROF);
+                String[] mems = userFromSearch.getAttributeValues(LDAP_MEMBEROF);
                 if (mems != null && mems.length > 0)
                 {
                     DN adminDN = new DN(config.getAdminGroupsDN());
@@ -837,7 +944,7 @@ public class LdapUserDAO extends LdapDAO
         return getUsers(config.getUserRequestsDN());
     }
 
-    private Collection<User> getUsers(final String usersDN)
+    public Collection<User> getUsers(final String usersDN)
         throws AccessControlException, TransientException
     {
         final Collection<User> users = new ArrayList<User>();
