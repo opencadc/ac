@@ -350,17 +350,9 @@ public class LdapUserDAO extends LdapDAO
         return user.personalDetails.email;
     }
 
-    private void checkUsers(final Principal userID, final String email, final String usersDN)
+    protected void checkUsers(final Principal userID, final String email, final String usersDN)
         throws TransientException, UserAlreadyExistsException
     {
-        // Internal system property set during LdapUserDAOTest.testAddMultipleUser
-        // so that this check can be overridden
-        if (System.getProperty(SUPPRESS_CHECKUSER_KEY) != null && System.getProperty(SUPPRESS_CHECKUSER_KEY).equals("true"))
-        {
-            logger.debug("Internal system property set, skipping checkUsers.");
-            return;
-        }
-
         // check current users
         try
         {

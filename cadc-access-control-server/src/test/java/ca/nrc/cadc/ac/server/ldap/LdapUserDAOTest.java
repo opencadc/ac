@@ -857,92 +857,77 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
     @Test
     public void testGetMultipleUser() throws Exception
     {
-        // add user using X500Principal
-        // was MultiAccount*, Multi*
-        final String username = "DuplicateCadcUser2";
+        final String username = "DuplicateCadcUser4";
         log.info(username);
 
-        try {
-            // This allows multiple users with same DN to be created. This test requires
-            // that scenario, in order to test that getUser works correctly under what
-            // is generally an abnormal condition.
+        final X500Principal userID = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
+        final HttpPrincipal testHttpPrincipal = new HttpPrincipal(username);
 
-            // This test is to test a hack in the system to prevent issues where multiples
-            // of users are created. (s2255)
-            System.setProperty(LdapUserDAO.SUPPRESS_CHECKUSER_KEY, "true");
+        log.info("user DN: " + config.getUsersDN());
+        final DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
+        Subject subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
 
-            final X500Principal userID = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
-            final HttpPrincipal testHttpPrincipal = new HttpPrincipal(username);
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                LdapConnections connections = new LdapConnections(config);
+                final LdapUserDAOTestImpl userDAO = new LdapUserDAOTestImpl(connections);
 
-            log.info("user DN: " + config.getUsersDN());
-            final DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
-            Subject subject = new Subject();
-            subject.getPrincipals().add(dnPrincipal);
+                User testUser = new User();
 
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    final LdapUserDAO userDAO = getUserDAO();
-                    User testUser = new User();
-
-                    // Test to see if user already exsits.
-                    try {
-                        testUser = userDAO.getUser(userID);
-                    } catch (UserNotFoundException unfe) {
-                        testUser.getIdentities().add(userID);
-                        testUser.getIdentities().add(testHttpPrincipal);
-                        testUser.personalDetails = new PersonalDetails("Multi", "MultiAccountCadcUser");
-                        testUser.personalDetails.email = username + "@canada.ca";
-                        log.debug("Test user " + username + " not found, creating...");
-                        UserRequest userRequest = new UserRequest(testUser, "password".toCharArray());
-                        userDAO.addUserRequest(userRequest);
-                        userDAO.approveUserRequest(testHttpPrincipal);
-                    }
-
-                    // Check to see if there are multiple users already existing.
-                    List<User> userList = userDAO.getAllUsers(userID, config.getUsersDN());
-
-                    if (userList.size() < 6) {
-                        log.debug("Creating multiple users (5 more)");
-
-                        // Run this 5x to create multiple users
-                        for (int i = 0; i < 5; i++) {
-                            try {
-                                userDAO.addUser(testUser);
-                            } catch (Exception e) {
-                                throw new Exception("Problems", e);
-                            }
-                        }
-
-                        // Retrieve new list
-                        userList = userDAO.getAllUsers(userID, config.getUsersDN());
-                    }
-
-                    User retrievedUser = userDAO.getUser(userID);
-
-                    // Test content of testUser name
-                    // Test number of users with same name found
-                    Assert.assertEquals("Test user not found", testUser, retrievedUser);
-                    Assert.assertTrue("Error creating multiple users for test.", userList.size() > 5);
-
-                    // Verify getAugmentedUser works in this case as well
-                    final User actualAugmented = userDAO.getAugmentedUser(testHttpPrincipal, false);
-
-                    Assert.assertEquals(testHttpPrincipal,actualAugmented.getHttpPrincipal());
-
-                    return null;
+                // Test to see if user already exsits.
+                try {
+                    testUser = userDAO.getUser(userID);
+                } catch (UserNotFoundException unfe) {
+                    testUser.getIdentities().add(userID);
+                    testUser.getIdentities().add(testHttpPrincipal);
+                    testUser.personalDetails = new PersonalDetails("Multi", "MultiAccountCadcUser");
+                    testUser.personalDetails.email = username + "@canada.ca";
+                    log.debug("Test user " + username + " not found, creating...");
+                    UserRequest userRequest = new UserRequest(testUser, "password".toCharArray());
+                    userDAO.addUserRequest(userRequest);
+                    userDAO.approveUserRequest(testHttpPrincipal);
                 }
-            });
-        } finally {
-            System.clearProperty(LdapUserDAO.SUPPRESS_CHECKUSER_KEY);
-        }
 
-        // TODO should test passing in both Http and X500 Principals
+                // Check to see if there are multiple users already existing.
+                List<User> userList = userDAO.getAllUsers(userID, config.getUsersDN());
+
+                if (userList.size() < 6) {
+                    log.debug("Creating multiple users (5 more)");
+
+                    // Run this 5x to create multiple users
+                    for (int i = 0; i < 5; i++) {
+                        try {
+                            userDAO.addUser(testUser);
+                        } catch (Exception e) {
+                            throw new Exception("Problems", e);
+                        }
+                    }
+
+                    // Retrieve new list
+                    userList = userDAO.getAllUsers(userID, config.getUsersDN());
+                }
+
+                User retrievedUser = userDAO.getUser(userID);
+
+                // Test content of testUser name
+                // Test number of users with same name found
+                Assert.assertEquals("Test user not found", testUser, retrievedUser);
+                Assert.assertTrue("Error creating multiple users for test.", userList.size() > 5);
+
+                // Verify getAugmentedUser works in this case as well
+                final User actualAugmented = userDAO.getAugmentedUser(testHttpPrincipal, false);
+
+                Assert.assertEquals(testHttpPrincipal,actualAugmented.getHttpPrincipal());
+
+                return null;
+            }
+        });
     }
 
 
     @Test
     public void testGetMultipleUserFail() throws Exception {
-
         // check to see if user exists
         // if not, make 3 using internal method so that all users have $EXTERNAL-CN
         // as ldap name. If there are > 1 of these AND no other users, there should be a
@@ -952,9 +937,8 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         log.info(username);
 
         try {
-            System.setProperty(LdapUserDAO.SUPPRESS_CHECKUSER_KEY, "true");
-
-            final LdapUserDAO userDAO = getUserDAO();
+            LdapConnections connections = new LdapConnections(config);
+            final LdapUserDAOTestImpl userDAO = new LdapUserDAOTestImpl(connections);
 
             final X500Principal userID = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
 
@@ -992,9 +976,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         } catch (Exception e) {
             log.debug("unexpected exception", e);
             Assert.fail();
-        }
-        finally {
-            System.clearProperty(LdapUserDAO.SUPPRESS_CHECKUSER_KEY);
         }
     }
 
