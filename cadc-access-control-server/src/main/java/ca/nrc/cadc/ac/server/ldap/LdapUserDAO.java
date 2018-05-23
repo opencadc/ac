@@ -507,6 +507,10 @@ public class LdapUserDAO extends LdapDAO
     private SearchResultEntry getFirstUserEntry(SearchResult multiSearchResult) {
         SearchResultEntry ret = null;
 
+        if (multiSearchResult == null) {
+            return null;
+        }
+
         if (multiSearchResult.getSearchEntries().size() == 1) {
             // Only one entry returned, send it back
             return multiSearchResult.getSearchEntries().get(0);
@@ -531,14 +535,18 @@ public class LdapUserDAO extends LdapDAO
             SearchResultEntry sre = multiSearchResult.getSearchEntries().get(0);
             String x500str = sre.getAttributeValue(userLdapAttrib.get(X500Principal.class));
 
-            throw new RuntimeException("Multiple $EXTERNAL-CN users found for userid " + x500str);
+            throw new RuntimeException("multiple $EXTERNAL-CN users found for userid " + x500str);
         }
         return ret;
     }
 
     private User makeUserFromResult(SearchResultEntry userEntry) {
         User newUser = new User();
-        String username = userEntry.getAttributeValue(LDAP_USER_NAME);
+
+        if (userEntry == null) {
+            return null;
+        }
+
         String firstName = userEntry.getAttributeValue(LDAP_FIRST_NAME);
         String lastName = userEntry.getAttributeValue(LDAP_LAST_NAME);
 
@@ -551,13 +559,14 @@ public class LdapUserDAO extends LdapDAO
             newUser.personalDetails.institute = userEntry.getAttributeValue(LDAP_INSTITUTE);
         }
 
-        logger.debug("getUserFromResultList: username = " + username);
+        String username = userEntry.getAttributeValue(LDAP_USER_NAME);
+        logger.debug("makeUserFromResult: username = " + username);
         if (username != null) {
             newUser.getIdentities().add(new HttpPrincipal(username));
         }
 
         String uid = userEntry.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
-        logger.debug("getUserFromResultList: uid = " + uid);
+        logger.debug("makeUserFromResult: uid = " + uid);
         if (uid == null) {
             // If the numeric ID does not return it means the user
             // does not have permission
@@ -569,7 +578,7 @@ public class LdapUserDAO extends LdapDAO
         newUser.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
 
         String x500str = userEntry.getAttributeValue(userLdapAttrib.get(X500Principal.class));
-        logger.debug("getUserFromResultList: x500principal = " + x500str);
+        logger.debug("makeUserFromResult: x500principal = " + x500str);
         if (x500str != null) {
             newUser.getIdentities().add(new X500Principal(x500str));
         }
@@ -589,9 +598,8 @@ public class LdapUserDAO extends LdapDAO
         AccessControlException
     {
         String searchField = userLdapAttrib.get(userID.getClass());
-        User foundUser = new User();
-        if (searchField == null)
-        {
+
+        if (searchField == null) {
             throw new IllegalArgumentException(
                 "Unsupported principal type " + userID.getClass());
         }
@@ -617,19 +625,26 @@ public class LdapUserDAO extends LdapDAO
                 String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
+            } else if (multiSearchResult.getSearchEntries().size() > 1) {
+                logger.info("getUser: multiple LDAP entries found for " + userID.toString());
             }
 
             // Determine which is the 'real' user (not automatically generated
             // by vospace interaction, for example,) and return that.
+            User foundUser = new User();
             foundUser =  getUserFromResultList(multiSearchResult);
+            if (foundUser == null) {
+                throw new RuntimeException(
+                    "BUG: user not found (" + userID.getName() + ")");
+            }
             logger.debug("getUser: found " + userID.getName() + " in " + usersDN);
+            return foundUser;
 
-        } catch (LDAPException e)
-        {
+        } catch (LDAPException e) {
             LdapDAO.checkLdapResult(e.getResultCode());
         }
 
-        return foundUser;
+        throw new RuntimeException("BUG: user not found (" + userID.getName() + ")");
     }
 
     public List<User> getAllUsers(final Principal userID, final String usersDN)
@@ -658,7 +673,7 @@ public class LdapUserDAO extends LdapDAO
             Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
             Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
-            logger.debug("getUser: search filter = " + filter);
+            logger.debug("getAllUsers: search filter = " + filter);
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
@@ -666,11 +681,13 @@ public class LdapUserDAO extends LdapDAO
             // for the list that will return.
             SearchResult multiSearchResult = getReadOnlyConnection().search(searchRequest);
 
-            if (multiSearchResult == null)
+            if (multiSearchResult == null || multiSearchResult.getSearchEntries().size() == 0)
             {
-                String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;
+                String msg = "getAllUsers: user " + userID.toString() + " not found in " + usersDN;
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
+            } else if (multiSearchResult.getSearchEntries().size() > 1) {
+                logger.info("getAllUsers: ,multiple LDAP entries found for " + userID.toString());
             }
 
             for (SearchResultEntry next : multiSearchResult.getSearchEntries())
@@ -684,7 +701,7 @@ public class LdapUserDAO extends LdapDAO
             LdapDAO.checkLdapResult(e.getResultCode());
         }
 
-        logger.debug("getUserList returning " + userList.size() + " entries for " + userID.toString());
+        logger.debug("getAllUsers returning " + userList.size() + " entries for " + userID.toString());
         return userList;
     }
 
@@ -836,11 +853,18 @@ public class LdapUserDAO extends LdapDAO
                 String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;
                 logger.debug(msg);
                 throw new UserNotFoundException(msg);
+            } else if (multiSearchResult.getSearchEntries().size() > 1) {
+                logger.info("getAugmentedUser: multiple LDAP entries found for " + userID.toString());
             }
 
             // Get entry from possible list of user instances from ldap
             SearchResultEntry userFromSearch =  getFirstUserEntry(multiSearchResult);
-            logger.debug("getUser: found " + userID.getName() + " in " + usersDN);
+
+            if (userFromSearch == null) {
+                throw new RuntimeException(
+                    "BUG: augmented user not found (" + userID.getName() + ")");
+            }
+            logger.debug("getAugmentedUser: found " + userID.getName() + " in " + usersDN);
 
             User user = new User();
             String username = userFromSearch.getAttributeValue(LDAP_USER_NAME);
