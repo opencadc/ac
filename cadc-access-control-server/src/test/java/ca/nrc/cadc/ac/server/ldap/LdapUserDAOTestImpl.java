@@ -1,9 +1,9 @@
-/*
+/**
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,48 +62,28 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
- *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
 
-import javax.security.auth.x500.X500Principal;
-import java.io.InputStream;
-import java.security.AccessControlException;
-import java.util.Set;
+package ca.nrc.cadc.ac.server.ldap;
 
-public class CreateUserAction extends AbstractUserAction
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.net.TransientException;
+import java.security.Principal;
+
+
+public class LdapUserDAOTestImpl extends LdapUserDAO
 {
-    private final InputStream inputStream;
-
-    CreateUserAction(final InputStream inputStream)
+    public LdapUserDAOTestImpl(LdapConnections connections) throws TransientException
     {
-        super();
-        this.inputStream = inputStream;
+        super(connections);
     }
 
-
-    public void doAction() throws Exception
+    @Override
+    protected void checkUsers(final Principal userID, final String email, final String usersDN)
+        throws TransientException, UserAlreadyExistsException
     {
-        if (!isPrivilegedSubject)
-        {
-            throw new AccessControlException("non-privileged user cannot create a user");
-        }
-
-        final User user = readUser(this.inputStream);
-        userPersistence.addUser(user);
-
-        syncOut.setCode(201);
-        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-        if (!x500Principals.isEmpty())
-        {
-            X500Principal x500Principal = x500Principals.iterator().next();
-            logUserInfo(x500Principal.getName());
-            this.logInfo.setMessage("User created: " + x500Principal.getName());
-        }
+        return;
     }
-
 }

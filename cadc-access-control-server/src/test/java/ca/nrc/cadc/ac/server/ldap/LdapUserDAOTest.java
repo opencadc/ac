@@ -75,6 +75,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import ca.nrc.cadc.auth.Authenticator;
 import java.io.File;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -82,12 +83,14 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
+import java.util.List;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -849,7 +852,136 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         });
     }
 
-////    @Test
+
+
+    @Test
+    public void testGetMultipleUser() throws Exception
+    {
+        final String username = "DuplicateCadcUser4";
+        log.info(username);
+
+        final X500Principal userID = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
+        final HttpPrincipal testHttpPrincipal = new HttpPrincipal(username);
+
+        log.info("user DN: " + config.getUsersDN());
+        final DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
+        Subject subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
+
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                LdapConnections connections = new LdapConnections(config);
+                final LdapUserDAOTestImpl userDAO = new LdapUserDAOTestImpl(connections);
+
+                User testUser = new User();
+
+                // Test to see if user already exsits.
+                try {
+                    testUser = userDAO.getUser(userID);
+                } catch (UserNotFoundException unfe) {
+                    testUser.getIdentities().add(userID);
+                    testUser.getIdentities().add(testHttpPrincipal);
+                    testUser.personalDetails = new PersonalDetails("Multi", "MultiAccountCadcUser");
+                    testUser.personalDetails.email = username + "@canada.ca";
+                    log.debug("Test user " + username + " not found, creating...");
+                    UserRequest userRequest = new UserRequest(testUser, "password".toCharArray());
+                    userDAO.addUserRequest(userRequest);
+                    userDAO.approveUserRequest(testHttpPrincipal);
+                }
+
+                // Check to see if there are multiple users already existing.
+                List<User> userList = userDAO.getAllUsers(userID, config.getUsersDN());
+
+                if (userList.size() < 6) {
+                    log.debug("Creating multiple users (5 more)");
+
+                    // Run this 5x to create multiple users
+                    for (int i = 0; i < 5; i++) {
+                        try {
+                            userDAO.addUser(testUser);
+                        } catch (Exception e) {
+                            throw new Exception("Problems", e);
+                        }
+                    }
+
+                    // Retrieve new list
+                    userList = userDAO.getAllUsers(userID, config.getUsersDN());
+                }
+
+                User retrievedUser = userDAO.getUser(userID);
+
+                // Test content of testUser name
+                // Test number of users with same name found
+                Assert.assertEquals("Test user not found", testUser, retrievedUser);
+                Assert.assertTrue("Error creating multiple users for test.", userList.size() > 5);
+
+                // Verify getAugmentedUser works in this case as well
+                final User actualAugmented = userDAO.getAugmentedUser(testHttpPrincipal, false);
+
+                Assert.assertEquals(testHttpPrincipal,actualAugmented.getHttpPrincipal());
+
+                return null;
+            }
+        });
+    }
+
+
+    @Test
+    public void testGetMultipleUserFail() throws Exception {
+        // check to see if user exists
+        // if not, make 3 using internal method so that all users have $EXTERNAL-CN
+        // as ldap name. If there are > 1 of these AND no other users, there should be a
+        // Runtime error thrown.
+
+        final String username = "DuplicateCadcUser3";
+        log.info(username);
+
+        try {
+            LdapConnections connections = new LdapConnections(config);
+            final LdapUserDAOTestImpl userDAO = new LdapUserDAOTestImpl(connections);
+
+            final X500Principal userID = new X500Principal("cn=" + username + ",ou=cadc,o=hia,c=ca");
+
+            List<User> userList = userDAO.getAllUsers(userID, config.getUsersDN());
+
+            if (userList.size() < 2) {
+
+                final User testUser = new User();
+                testUser.getIdentities().add(userID);
+
+                DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUsersDN());
+                Subject subject = new Subject();
+                subject.getPrincipals().add(dnPrincipal);
+
+                Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+                    public Object run() throws Exception {
+                        try {
+                            final LdapUserDAO userDAO = getUserDAO();
+                            userDAO.addUser(testUser);
+                            userDAO.addUser(testUser);
+                        } catch (Exception e) {
+                            throw new Exception("Problems", e);
+                        }
+                        return null;
+                    };
+                });
+            }
+
+            // This should throw an exception
+            User foundUser = userDAO.getUser(userID);
+
+        } catch (RuntimeException re){
+            log.debug("expected Runtime exception: " + re.getMessage());
+
+        } catch (Exception e) {
+            log.debug("unexpected exception", e);
+            Assert.fail();
+        }
+    }
+
+
+
+//    @Test
     public void testSetPassword() throws Exception
     {
 //        LDAPConnection connection =
@@ -1131,6 +1263,5 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
-
 
 }
