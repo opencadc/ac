@@ -200,15 +200,12 @@ public class ACSearchRunner implements JobRunner
             }
             catch(GroupNotFoundException ignore)
             {
+                log.debug("no memberships found");
                 groups = new ArrayList<Group>();
             }
             syncOut.setResponseCode(HttpServletResponse.SC_OK);
             GroupListWriter groupListWriter = new GroupListWriter();
             groupListWriter.write(groups, syncOut.getOutputStream());
-
-            // Mark the Job as completed.
-//            jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                ExecutionPhase.COMPLETED, new Date());
         }
         catch (TransientException t)
         {
@@ -228,19 +225,6 @@ public class ACSearchRunner implements JobRunner
             {
                 log.warn("Could not write response to output stream", e);
             }
-
-//            ErrorSummary errorSummary =
-//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-//            try
-//            {
-//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                    ExecutionPhase.ERROR, errorSummary,
-//                                    new Date());
-//            }
-//            catch(Throwable oops)
-//            {
-//                log.debug("failed to set final error status after " + t, oops);
-//            }
         }
         catch (UserNotFoundException t)
         {
@@ -258,52 +242,7 @@ public class ACSearchRunner implements JobRunner
             {
                 log.warn("Could not write response to output stream", e);
             }
-
-//            ErrorSummary errorSummary =
-//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-//            try
-//            {
-//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                    ExecutionPhase.ERROR, errorSummary,
-//                                    new Date());
-//            }
-//            catch(Throwable oops)
-//            {
-//                log.debug("failed to set final error status after " + t, oops);
-//            }
         }
-        /*
-        catch (GroupNotFoundException t)
-        {
-            logInfo.setSuccess(true);
-            logInfo.setMessage(t.getMessage());
-            log.debug("FAIL", t);
-
-            syncOut.setResponseCode(404);
-            syncOut.setHeader("Content-Type", "text/plain");
-            try
-            {
-                syncOut.getOutputStream().write(t.getMessage().getBytes());
-            }
-            catch (IOException e)
-            {
-                log.warn("Could not write response to output stream", e);
-            }
-
-//            ErrorSummary errorSummary =
-//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-//            try
-//            {
-//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                    ExecutionPhase.ERROR, errorSummary,
-//                                    new Date());
-//            }
-//            catch(Throwable oops)
-//            {
-//                log.debug("failed to set final error status after " + t, oops);
-//            }
-        }
-        */
         catch(IllegalArgumentException ex)
         {
             logInfo.setSuccess(true);
@@ -337,19 +276,6 @@ public class ACSearchRunner implements JobRunner
             {
                 log.warn("Could not write response to output stream", e);
             }
-
-//            ErrorSummary errorSummary =
-//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-//            try
-//            {
-//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                    ExecutionPhase.ERROR, errorSummary,
-//                                    new Date());
-//            }
-//            catch(Throwable oops)
-//            {
-//                log.debug("failed to set final error status after " + t, oops);
-//            }
         }
         catch (Throwable t)
         {
@@ -358,19 +284,6 @@ public class ACSearchRunner implements JobRunner
             log.error("FAIL", t);
 
             writeError(syncOut, 500, t);
-
-//            ErrorSummary errorSummary =
-//                new ErrorSummary(t.getMessage(), ErrorType.FATAL);
-//            try
-//            {
-//                jobUpdater.setPhase(job.getID(), ExecutionPhase.EXECUTING,
-//                                    ExecutionPhase.ERROR, errorSummary,
-//                                    new Date());
-//            }
-//            catch(Throwable oops)
-//            {
-//                log.debug("failed to set final error status after " + t, oops);
-//            }
         }
     }
 
