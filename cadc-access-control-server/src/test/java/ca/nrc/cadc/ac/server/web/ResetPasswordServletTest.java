@@ -76,6 +76,7 @@ import static org.easymock.EasyMock.verify;
 
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.security.auth.Subject;
@@ -133,6 +134,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
+        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (!StringUtil.hasText(emailAddress))
         {
@@ -213,6 +215,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
+        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (privSubjects != null && !privSubjects.isEmpty())
         {
