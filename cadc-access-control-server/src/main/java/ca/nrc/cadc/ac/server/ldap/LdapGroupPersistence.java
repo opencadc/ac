@@ -94,6 +94,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.ObjectUtil;
 
 public class LdapGroupPersistence extends LdapPersistence implements GroupPersistence
@@ -271,11 +272,14 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
             LdapGroupDAO  groupDAO = new LdapGroupDAO(conns, userDAO);
+            
+            Profiler profiler = new Profiler(LdapGroupPersistence.class);
 
             if ( Role.OWNER.equals(role))
             {
                 DNPrincipal p = getInternalID(caller);
                 Collection<Group> ret = groupDAO.getOwnerGroups(p, groupID);
+                profiler.checkpoint("get owner groups");
                 return ret;
             }
             else
@@ -307,6 +311,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                             ret.add(g);
                     }
                 }
+                profiler.checkpoint("get membership groups");
                 return ret;
             }
         }

@@ -189,14 +189,14 @@ public class LdapConnectionPool
 //                profiler.checkpoint("pool.initConnection");
             }
             logger.debug(poolName + " pool statistics after borrow:\n" + pool.getConnectionPoolStatistics());
-            profiler.checkpoint("get " + poolName + " only connection");
+            profiler.checkpoint("get " + poolName + " connection");
             conn.setConnectionOptions(connectionOptions);
 
             return conn;
         }
         catch (LDAPException e)
         {
-            throw new TransientException("Failed to get read only connection", e);
+            throw new TransientException("Failed to get connection", e);
         }
     }
 
