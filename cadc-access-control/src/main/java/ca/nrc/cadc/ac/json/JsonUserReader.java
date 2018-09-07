@@ -107,8 +107,6 @@ public class JsonUserReader extends UserReader
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
-            jsonInputter.getListElementMap().put(IDENTITIES, IDENTITY);
-
             Document document = jsonInputter.input(json);
             return getUser(document.getRootElement());
         }
