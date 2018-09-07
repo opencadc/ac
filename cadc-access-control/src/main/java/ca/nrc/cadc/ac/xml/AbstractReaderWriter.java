@@ -196,7 +196,29 @@ public abstract class AbstractReaderWriter
             List<Element> identityElements = identitiesElement.getChildren(IDENTITY);
             for (Element identityElement : identityElements)
             {
-                user.getIdentities().add(getPrincipal(identityElement));
+                List<Element> children =  identityElement.getChildren();
+                if (children.isEmpty())
+                {
+                    // xml document
+                    user.getIdentities().add(getPrincipal(identityElement));
+                }
+                else
+                {
+                    for (Element child : children)
+                    {
+                        if (IDENTITY.equals(child.getName()))
+                        {
+                            // json document
+                            user.getIdentities().add(getPrincipal(child));
+                        }
+                        else
+                        {
+                            // xml document
+                            user.getIdentities().add(getPrincipal(identityElement));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -526,7 +548,29 @@ public abstract class AbstractReaderWriter
             List<Element> propertyElements = propertiesElement.getChildren(PROPERTY);
             for (Element propertyElement : propertyElements)
             {
-                group.getProperties().add(getGroupProperty(propertyElement));
+                List<Element> children =  propertyElement.getChildren();
+                if (children.isEmpty())
+                {
+                    // xml document
+                    group.getProperties().add(getGroupProperty(propertyElement));
+                }
+                else
+                {
+                    for (Element child : children)
+                    {
+                        if (PROPERTY.equals(child.getName()))
+                        {
+                            // json document
+                            group.getProperties().add(getGroupProperty(child));
+                        }
+                        else
+                        {
+                            // xml document
+                            group.getProperties().add(getGroupProperty(propertyElement));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -537,7 +581,29 @@ public abstract class AbstractReaderWriter
             List<Element> groupElements = groupMembersElement.getChildren(GROUP);
             for (Element groupMember : groupElements)
             {
-                group.getGroupMembers().add(getGroup(groupMember));
+                List<Element> children =  groupMember.getChildren();
+                if (children.isEmpty())
+                {
+                    // xml document
+                    group.getGroupMembers().add(getGroup(groupMember));
+                }
+                else
+                {
+                    for (Element child : children)
+                    {
+                        if (GROUP.equals(child.getName()))
+                        {
+                            // json document
+                            group.getGroupMembers().add(getGroup(child));
+                        }
+                        else
+                        {
+                            // xml document
+                            group.getGroupMembers().add(getGroup(groupMember));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -548,7 +614,29 @@ public abstract class AbstractReaderWriter
             List<Element> userElements = userMembersElement.getChildren(USER);
             for (Element userMember : userElements)
             {
-                group.getUserMembers().add(getUser(userMember));
+                List<Element> children =  userMember.getChildren();
+                if (children.isEmpty())
+                {
+                    // xml document
+                    group.getUserMembers().add(getUser(userMember));
+                }
+                else
+                {
+                    for (Element child : children)
+                    {
+                        if (USER.equals(child.getName()))
+                        {
+                            // json document
+                            group.getUserMembers().add(getUser(child));
+                        }
+                        else
+                        {
+                            // xml document
+                            group.getUserMembers().add(getUser(userMember));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -559,7 +647,29 @@ public abstract class AbstractReaderWriter
             List<Element> groupElements = groupAdminsElement.getChildren(GROUP);
             for (Element groupMember : groupElements)
             {
-                group.getGroupAdmins().add(getGroup(groupMember));
+                List<Element> children =  groupMember.getChildren();
+                if (children.isEmpty())
+                {
+                    // xml document
+                    group.getGroupAdmins().add(getGroup(groupMember));
+                }
+                else
+                {
+                    for (Element child : children)
+                    {
+                        if (GROUP.equals(child.getName()))
+                        {
+                            // json document
+                            group.getGroupAdmins().add(getGroup(child));
+                        }
+                        else
+                        {
+                            // xml document
+                            group.getGroupAdmins().add(getGroup(groupMember));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -570,7 +680,29 @@ public abstract class AbstractReaderWriter
             List<Element> userElements = userAdminsElement.getChildren(USER);
             for (Element userMember : userElements)
             {
-                group.getUserAdmins().add(getUser(userMember));
+                List<Element> children =  userMember.getChildren();
+                if (children.isEmpty())
+                {
+                    // xml document
+                    group.getUserAdmins().add(getUser(userMember));
+                }
+                else
+                {
+                    for (Element child : children)
+                    {
+                        if (USER.equals(child.getName()))
+                        {
+                            // json document
+                            group.getUserAdmins().add(getUser(child));
+                        }
+                        else
+                        {
+                            // xml document
+                            group.getUserAdmins().add(getUser(userMember));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
