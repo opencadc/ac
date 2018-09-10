@@ -81,7 +81,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.security.Principal;
 
 /**
  * Class to read a XML representation of a UserRequest to a UserRequest object.
@@ -159,7 +158,7 @@ public class UserRequestReader extends AbstractReaderWriter
             String error = "XML failed validation: " + jde.getMessage();
             throw new ReaderException(error, jde);
         }
-
+        
         // Root element and namespace of the Document
         Element root = document.getRootElement();
 

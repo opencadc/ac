@@ -192,26 +192,7 @@ public class UserListReader extends AbstractReaderWriter
         List<Element> userElements = element.getChildren(USER);
         for (Element userElement : userElements)
         {
-            List<Element> children = userElement.getChildren();
-            if (children.isEmpty())
-            {
-                users.add(getUser(userElement));
-            }
-            else
-            {
-                for (Element child : userElement.getChildren())
-                {
-                    if (USER.equals(child.getName()))
-                    {
-                        users.add(getUser(child));
-                    }
-                    else
-                    {
-                        users.add(getUser(userElement));
-                        break;
-                    }
-                }
-            }
+            users.add(getUser(userElement));
         }
 
         return users;
