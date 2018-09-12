@@ -107,8 +107,6 @@ public class JsonUserRequestReader extends UserRequestReader
         try
         {
             JsonInputter jsonInputter = new JsonInputter();
-            jsonInputter.getListElementMap().put(IDENTITIES, IDENTITY);
-
             Document document = jsonInputter.input(json);
             return getUserRequest(document.getRootElement());
         }
