@@ -589,8 +589,10 @@ public class LdapUserDAO extends LdapDAO
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
+        Profiler profiler = new Profiler(LdapUserDAO.class);
+        
         String searchField = userLdapAttrib.get(userID.getClass());
-
+        
         if (searchField == null) {
             throw new IllegalArgumentException(
                 "Unsupported principal type " + userID.getClass());
@@ -611,7 +613,11 @@ public class LdapUserDAO extends LdapDAO
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
             // Get all instances of the user from ldap.
-            SearchResult multiSearchResult = getReadOnlyConnection().search(searchRequest);
+            LDAPConnection ldapConn = getReadOnlyConnection();
+            profiler.checkpoint("getUser.getReadOnlyConnection");
+            
+            SearchResult multiSearchResult = ldapConn.search(searchRequest);
+            profiler.checkpoint("getUser.search");
 
             if (multiSearchResult == null || multiSearchResult.getSearchEntries().size() == 0) {
                 String msg = "getUser: user " + userID.toString() + " not found in " + usersDN;

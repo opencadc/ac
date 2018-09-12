@@ -453,6 +453,8 @@ public class LdapGroupDAO extends LdapDAO
             // member or admin group: same name, internal tree
             loggableGroupID = groupDN.toString();
         }
+        
+        Profiler profiler = new Profiler(LdapGroupDAO.class);
 
         try
         {
@@ -466,6 +468,8 @@ public class LdapGroupDAO extends LdapDAO
 
             SearchResultEntry searchEntry = getReadOnlyConnection()
                     .searchForEntry(searchRequest);
+            
+            profiler.checkpoint("getGroup.getReadOnlyConnection");
 
             if (searchEntry == null)
             {
@@ -475,6 +479,8 @@ public class LdapGroupDAO extends LdapDAO
             }
 
             Group ldapGroup = createGroupFromSearchResult(searchEntry, attributes);
+            
+            profiler.checkpoint("getGroup.createGroupFromSearchResult");
 
             if (searchEntry.getAttributeValues(LDAP_UNIQUE_MEMBER) != null)
             {
@@ -516,6 +522,8 @@ public class LdapGroupDAO extends LdapDAO
                     }
                 }
             }
+            
+            profiler.checkpoint("getGroup.addMembers");
 
             return ldapGroup;
         }
