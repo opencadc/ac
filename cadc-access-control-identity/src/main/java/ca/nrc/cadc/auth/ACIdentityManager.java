@@ -210,11 +210,20 @@ public class ACIdentityManager implements IdentityManager {
      */
     @Override
     public Subject toSubject(Object o) {
+        if (o == null) {
+            return null;
+        }
         try {
-            if (o == null || !(o instanceof Integer)) {
-                return null;
+            Integer i = null;
+            if (o instanceof String) {
+                i = Integer.valueOf((String) o);
+            } else if (o instanceof Integer) {
+                i = (Integer) o;
+            } else {
+                throw new IllegalStateException("cannot reconstruct Subject from a "
+                        + o.getClass().getName());
             }
-            Integer i = (Integer) o;
+            
             if (i <= 0) {
                 // identities <= 0 are internal
                 return new Subject();
