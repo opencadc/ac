@@ -66,27 +66,24 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.uws.server.SyncOutput;
-
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collection;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
 
 /**
  *
