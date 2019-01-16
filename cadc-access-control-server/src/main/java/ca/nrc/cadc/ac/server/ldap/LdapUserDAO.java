@@ -271,12 +271,14 @@ public class LdapUserDAO extends LdapDAO
     /**
      * Add the specified user to the active user tree.
      *
-     * @param user                 The user to add.
+     * @param user                        The user to add.
+     * @return User instance.
+     * @throws UserNotFoundException      when the user is not found in the main tree.
      * @throws TransientException         If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException If the user already exists.
      */
-    public void addUser(final User user)
-        throws TransientException, UserAlreadyExistsException
+    public User addUser(final User user)
+        throws UserNotFoundException, TransientException, UserAlreadyExistsException
     {
         Set<Principal> principals = user.getIdentities();
         if (principals.isEmpty())
@@ -320,11 +322,14 @@ public class LdapUserDAO extends LdapDAO
                 addAttribute(attributes, LDAP_DISTINGUISHED_NAME, p.getName());
             }
 
+            // use the same ldapConnection to add the user and subsequently get the same user
             DN userDN = getUserDN(numericID, config.getUsersDN());
             AddRequest addRequest = new AddRequest(userDN, attributes);
             logger.debug("addUser: adding " + idForLogging.getName() + " to " + config.getUsersDN());
-            LDAPResult result = getReadWriteConnection().add(addRequest);
+            LDAPConnection ldapConnection = getReadWriteConnection();
+            LDAPResult result = ldapConnection.add(addRequest);
             LdapDAO.checkLdapResult(result.getResultCode());
+            return getUser((Principal) principals.toArray()[0], ldapConnection);
         }
         catch (LDAPException e)
         {
@@ -471,6 +476,23 @@ public class LdapUserDAO extends LdapDAO
     }
 
     /**
+     * Get the user specified by the userID using the specified LDAPConnection.
+     *
+     * @param userID The userID.
+     * @param ldapConn The LDAPConnection instance to use.
+     * @return User instance.
+     * @throws UserNotFoundException  when the user is not found in the main tree.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User getUser(final Principal userID, final LDAPConnection ldapConn)
+        throws UserNotFoundException, TransientException,
+               AccessControlException
+    {
+        return getUser(userID, config.getUsersDN(), ldapConn);
+    }
+
+    /**
      * Obtain a user who is awaiting approval.
      *
      * @param userID        The user ID of the pending user.
@@ -589,6 +611,14 @@ public class LdapUserDAO extends LdapDAO
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
+        return getUser(userID, usersDN, getReadOnlyConnection());
+    }
+    
+    // Replacement getUser that handles a list returned from ldap
+    private User getUser(final Principal userID, final String usersDN, final LDAPConnection ldapConn)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
         Profiler profiler = new Profiler(LdapUserDAO.class);
         
         String searchField = userLdapAttrib.get(userID.getClass());
@@ -613,9 +643,6 @@ public class LdapUserDAO extends LdapDAO
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
             // Get all instances of the user from ldap.
-            LDAPConnection ldapConn = getReadOnlyConnection();
-            profiler.checkpoint("getUser.getReadOnlyConnection");
-            
             SearchResult multiSearchResult = ldapConn.search(searchRequest);
             profiler.checkpoint("getUser.search");
 

@@ -178,10 +178,10 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    userDAO.addUser(testUser);
+                    final User addedUser = userDAO.addUser(testUser);
 
                     final User actual = userDAO.getUser(userID);
-                    check(testUser, actual);
+                    check(addedUser, actual);
 
                     return null;
                 }
@@ -968,7 +968,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
 
             // This should throw an exception
-            User foundUser = userDAO.getUser(userID);
+            userDAO.getUser(userID);
 
         } catch (RuntimeException re){
             log.debug("expected Runtime exception: " + re.getMessage());

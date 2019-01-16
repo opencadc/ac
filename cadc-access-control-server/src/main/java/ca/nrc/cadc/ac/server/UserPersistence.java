@@ -91,13 +91,15 @@ public interface UserPersistence
      * Add the user to the users tree.
      *
      * @param user      The user request to put into the users tree.
+     * @return User instance.
      *
+     * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addUser(User user)
-        throws TransientException, AccessControlException,
+    User addUser(User user)
+        throws UserNotFoundException, TransientException, AccessControlException,
         UserAlreadyExistsException;
 
     /**

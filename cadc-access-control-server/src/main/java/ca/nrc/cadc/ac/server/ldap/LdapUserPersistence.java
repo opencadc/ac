@@ -109,20 +109,22 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * Add the user to the users tree.
      *
      * @param user      The user request to put into the user tree.
+     * @return User instance.
      *
+     * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    public void addUser(User user)
-        throws TransientException, AccessControlException, UserAlreadyExistsException
+    public User addUser(User user)
+        throws UserNotFoundException, TransientException, AccessControlException, UserAlreadyExistsException
     {
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
         {
             userDAO = new LdapUserDAO(conns);
-            userDAO.addUser(user);
+            return userDAO.addUser(user);
         }
         finally
         {

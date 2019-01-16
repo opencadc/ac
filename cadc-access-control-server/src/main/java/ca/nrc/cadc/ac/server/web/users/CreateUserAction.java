@@ -94,9 +94,10 @@ public class CreateUserAction extends AbstractUserAction
         }
 
         final User user = readUser(this.inputStream);
-        userPersistence.addUser(user);
+        final User returnUser = userPersistence.addUser(user);
 
         syncOut.setCode(201);
+        writeUser(returnUser);
         Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
         if (!x500Principals.isEmpty())
         {
