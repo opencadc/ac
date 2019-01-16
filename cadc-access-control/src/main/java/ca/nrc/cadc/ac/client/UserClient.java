@@ -87,7 +87,6 @@ import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.*;
 import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -277,16 +276,8 @@ public class UserClient
 
         if (responseCode == 200 || responseCode == 201)
         {
-            try
-            {
-                return getUser(principal);
-            }
-            catch (UserNotFoundException e)
-            {
-                log.error("user created but not found", e);
-                // should not happen
-                throw new IllegalStateException("user created but not found", e);
-            }
+            UserReader userReader = new UserReader();
+            return userReader.read(put.getResponseBody());
         }
 
         String message = "";
