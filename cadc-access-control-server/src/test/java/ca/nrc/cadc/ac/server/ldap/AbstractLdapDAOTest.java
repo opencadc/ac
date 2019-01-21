@@ -84,7 +84,6 @@ import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  * Created by jburke on 2014-11-03.
@@ -93,7 +92,7 @@ public class AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(AbstractLdapDAOTest.class);
 
-    static final String CONFIG = LdapConfig.class.getSimpleName() + ".test.properties";
+    static final String CONFIG = "ldap-config.test.properties";
 
     protected static final String SERVOPS_PEM = System.getProperty("user.home") + "/.pub/proxy.pem";
     static final String cadcDaoTest1_CN = "CadcDaoTest1";

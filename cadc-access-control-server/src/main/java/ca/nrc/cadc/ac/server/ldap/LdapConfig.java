@@ -91,7 +91,7 @@ public class LdapConfig
 {
     private static final Logger logger = Logger.getLogger(LdapConfig.class);
 
-    public static final String CONFIG = LdapConfig.class.getSimpleName() + ".properties";
+    public static final String CONFIG = "ldap-config.properties";
 
     public static final String READONLY_PREFIX = "readOnly.";
     public static final String READWRITE_PREFIX = "readWrite.";
