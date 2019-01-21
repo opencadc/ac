@@ -72,6 +72,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ServiceConfigurationError;
 
 import org.apache.log4j.Logger;
 
@@ -115,7 +116,8 @@ public class LdapConfig
     public enum PoolPolicy
     {
         roundRobin,
-        fewestConnections
+        fewestConnections,
+        firstResponse
     }
 
     public enum SystemState
@@ -289,6 +291,11 @@ public class LdapConfig
         pool.initSize = Integer.valueOf(getProperty(pr, prefix + POOL_INIT_SIZE));
         pool.maxSize = Integer.valueOf(getProperty(pr, prefix + POOL_MAX_SIZE));
         pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
+        if (pool.policy == PoolPolicy.firstResponse && !prefix.equals(READONLY_PREFIX)) {
+            throw new ServiceConfigurationError(PoolPolicy.firstResponse.toString() + 
+                " pool policy cannot be applied to " + 
+                prefix.substring(0, prefix.length() - 1) + " pool servers.");
+        }
         pool.maxWait = Long.valueOf(getProperty(pr, prefix + MAX_WAIT));
         pool.createIfNeeded = Boolean.valueOf(getProperty(pr, prefix + CREATE_IF_NEEDED));
     }

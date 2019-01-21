@@ -77,6 +77,7 @@ import ca.nrc.cadc.ac.server.ldap.LdapConfig.SystemState;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
+import com.unboundid.ldap.sdk.FastestConnectServerSet;
 import com.unboundid.ldap.sdk.FewestConnectionsServerSet;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPConnectionOptions;
@@ -259,6 +260,10 @@ public class LdapConnectionPool
             else if (poolConfig.getPolicy().equals(PoolPolicy.fewestConnections))
             {
                 serverSet = new FewestConnectionsServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
+            }
+            else if (poolConfig.getPolicy().equals(PoolPolicy.firstResponse))
+            {
+                serverSet = new FastestConnectServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
             }
             else
             {
