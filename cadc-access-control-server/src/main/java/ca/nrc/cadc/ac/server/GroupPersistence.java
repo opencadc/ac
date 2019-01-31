@@ -146,12 +146,14 @@ public interface GroupPersistence
      *
      * @param group The group to update.
      *
+     * @return A Group instance
+     *
      * @throws GroupNotFoundException If the group was not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws UserNotFoundException If owner or group members not valid users.
      */
-    void modifyGroup(Group group)
+    Group modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException;
 

@@ -158,7 +158,7 @@ public class AddGroupMemberActionTest
 
             expect(groupPersistence.getGroup("group")).andReturn(group);
             expect(groupPersistence.getGroup("member")).andReturn(member);
-            groupPersistence.modifyGroup(group);
+            expect(groupPersistence.modifyGroup(group)).andReturn(group);
             EasyMock.expectLastCall();
 
             replay(groupPersistence);

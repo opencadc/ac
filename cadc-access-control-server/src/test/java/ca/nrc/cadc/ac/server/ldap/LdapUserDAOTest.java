@@ -572,9 +572,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    userDAO.addUserRequest(userRequest);
+                    User addedUser = userDAO.addUserRequest(userRequest);
                     userDAO.approveUserRequest(userID);
-                    return userDAO.getUser(userID);
+                    return addedUser;
                 }
                 catch (Exception e)
                 {

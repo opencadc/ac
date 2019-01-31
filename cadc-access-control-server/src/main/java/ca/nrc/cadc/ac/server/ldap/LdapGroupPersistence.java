@@ -219,7 +219,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         }
     }
 
-    public void modifyGroup(Group group)
+    public Group modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException
     {
@@ -241,7 +241,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             }
             if (allowed)
                 // TODO: pass g into the modify so it doesn't have to do another get
-                groupDAO.modifyGroup(group);
+                return groupDAO.modifyGroup(group);
             else
                 throw new AccessControlException("permission denied");
         }

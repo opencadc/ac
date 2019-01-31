@@ -195,7 +195,7 @@ public class RemoveUserMemberActionTest
 
             final GroupPersistence mockGroupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(mockGroupPersistence.getGroup("group")).andReturn(group);
-            mockGroupPersistence.modifyGroup(group);
+            EasyMock.expect(mockGroupPersistence.modifyGroup(group)).andReturn(group);
             EasyMock.expectLastCall();
 
             final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);

@@ -156,7 +156,7 @@ public class AddUserMemberActionTest
 
             final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            groupPersistence.modifyGroup(group);
+            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(group);
             EasyMock.expectLastCall();
             EasyMock.replay(groupPersistence);
 

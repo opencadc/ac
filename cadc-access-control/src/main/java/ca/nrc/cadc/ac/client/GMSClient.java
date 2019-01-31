@@ -77,6 +77,7 @@ import java.io.InputStreamReader;
 import java.io.FileNotFoundException;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.AccessControlContext;
 import java.security.AccessControlException;
@@ -108,6 +109,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
@@ -383,10 +385,12 @@ public class GMSClient implements TransferListener
      * @throws UserNotFoundException If a member was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
+     * @throws URISyntaxException 
+     * @throws ReaderException 
      */
     public Group updateGroup(Group group)
         throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
-               AccessControlException, WriterException, IOException
+               AccessControlException, WriterException, IOException, ReaderException, URISyntaxException
     {
         URL groupsURL = lookupServiceURL(Standards.GMS_GROUPS_01);
         URL updateGroupURL = new URL(groupsURL.toExternalForm() + "/" + group.getID().getName());
@@ -431,7 +435,7 @@ public class GMSClient implements TransferListener
             throw new IOException(error);
         }
 
-        return getGroup(group.getID().getName());
+        return (new GroupReader()).read(transfer.getResponseBody());
     }
 
     /**
