@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -92,7 +92,7 @@ public class AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(AbstractLdapDAOTest.class);
 
-    static final String CONFIG = "ldap-config.test.properties";
+    static final String CONFIG = "ac-ldap-config.test.properties";
 
     protected static final String SERVOPS_PEM = System.getProperty("user.home") + "/.pub/proxy.pem";
     static final String cadcDaoTest1_CN = "CadcDaoTest1";

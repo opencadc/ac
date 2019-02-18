@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -91,7 +91,9 @@ public class LdapConfig
 {
     private static final Logger logger = Logger.getLogger(LdapConfig.class);
 
-    public static final String CONFIG = "ldap-config.properties";
+    // A temporary hack to set the LDAP config file name.
+    // Refer to https://github.com/opencadc/ac/issues/60 
+    public static final String CONFIG = "ac-ldap-config.properties";
 
     public static final String READONLY_PREFIX = "readOnly.";
     public static final String READWRITE_PREFIX = "readWrite.";
@@ -117,7 +119,7 @@ public class LdapConfig
     {
         roundRobin,
         fewestConnections,
-        firstResponse
+        fastestConnect
     }
 
     public enum SystemState
@@ -291,8 +293,8 @@ public class LdapConfig
         pool.initSize = Integer.valueOf(getProperty(pr, prefix + POOL_INIT_SIZE));
         pool.maxSize = Integer.valueOf(getProperty(pr, prefix + POOL_MAX_SIZE));
         pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
-        if (pool.policy == PoolPolicy.firstResponse && !prefix.equals(READONLY_PREFIX)) {
-            throw new ServiceConfigurationError(PoolPolicy.firstResponse.toString() + 
+        if (pool.policy == PoolPolicy.fastestConnect && !prefix.equals(READONLY_PREFIX)) {
+            throw new ServiceConfigurationError(PoolPolicy.fastestConnect.toString() + 
                 " pool policy cannot be applied to " + 
                 prefix.substring(0, prefix.length() - 1) + " pool servers.");
         }
