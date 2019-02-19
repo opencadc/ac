@@ -170,7 +170,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         }
     }
 
-    public void addGroup(Group group)
+    public Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
                AccessControlException, UserNotFoundException,
                GroupNotFoundException
@@ -186,7 +186,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             User owner = userDAO.getAugmentedUser(userID, false);
             ObjectUtil.setField(group, owner, "owner");
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
-            groupDAO.addGroup(group);
+            return groupDAO.addGroup(group);
         }
         finally
         {

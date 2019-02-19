@@ -115,6 +115,8 @@ public interface GroupPersistence
      *
      * @param group The group to create
      *
+     * @return A Group instance
+     *
      * @throws GroupAlreadyExistsException If a group with the same ID already
      *                                     exists.
      * @throws TransientException If an temporary, unexpected problem occurred.
@@ -123,7 +125,7 @@ public interface GroupPersistence
      * @throws GroupNotFoundException if one of the groups in group members or
      * group admins does not exist in the server.
      */
-    void addGroup(Group group)
+    Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
                AccessControlException, UserNotFoundException,
                GroupNotFoundException;
