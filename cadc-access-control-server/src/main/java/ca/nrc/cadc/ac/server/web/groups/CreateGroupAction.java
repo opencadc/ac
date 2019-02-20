@@ -92,10 +92,10 @@ public class CreateGroupAction extends AbstractGroupAction
     {
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
-        groupPersistence.addGroup(group);
+        Group returnGroup = groupPersistence.addGroup(group);
         syncOut.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(group, syncOut.getWriter());
+        groupWriter.write(returnGroup, syncOut.getWriter());
 
         List<String> addedMembers = null;
         if ((group.getUserMembers().size() > 0) ||

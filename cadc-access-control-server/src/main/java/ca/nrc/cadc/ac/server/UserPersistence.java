@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -91,26 +91,30 @@ public interface UserPersistence
      * Add the user to the users tree.
      *
      * @param user      The user request to put into the users tree.
+     * @return User instance.
      *
+     * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addUser(User user)
-        throws TransientException, AccessControlException,
+    User addUser(User user)
+        throws UserNotFoundException, TransientException, AccessControlException,
         UserAlreadyExistsException;
 
     /**
      * Add the user to the pending users tree.
+     * @return User instance.
      *
      * @param user      The user request to put into the pending users tree.
      *
+     * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    void addUserRequest(UserRequest user)
-        throws TransientException, AccessControlException,
+    User addUserRequest(UserRequest user)
+        throws UserNotFoundException, TransientException, AccessControlException,
         UserAlreadyExistsException;
 
     /**

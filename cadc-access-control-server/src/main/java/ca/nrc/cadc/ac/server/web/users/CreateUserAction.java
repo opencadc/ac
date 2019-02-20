@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -94,9 +94,10 @@ public class CreateUserAction extends AbstractUserAction
         }
 
         final User user = readUser(this.inputStream);
-        userPersistence.addUser(user);
+        final User returnUser = userPersistence.addUser(user);
 
         syncOut.setCode(201);
+        writeUser(returnUser);
         Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
         if (!x500Principals.isEmpty())
         {

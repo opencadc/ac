@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -77,6 +77,7 @@ import ca.nrc.cadc.ac.server.ldap.LdapConfig.SystemState;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 
+import com.unboundid.ldap.sdk.FastestConnectServerSet;
 import com.unboundid.ldap.sdk.FewestConnectionsServerSet;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPConnectionOptions;
@@ -259,6 +260,10 @@ public class LdapConnectionPool
             else if (poolConfig.getPolicy().equals(PoolPolicy.fewestConnections))
             {
                 serverSet = new FewestConnectionsServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
+            }
+            else if (poolConfig.getPolicy().equals(PoolPolicy.fastestConnect))
+            {
+                serverSet = new FastestConnectServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
             }
             else
             {

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -75,6 +75,7 @@ import java.util.List;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.profiler.Profiler;
 
 public class ModifyGroupAction extends AbstractGroupAction
@@ -99,7 +100,7 @@ public class ModifyGroupAction extends AbstractGroupAction
         Group oldGroup = groupPersistence.getGroup(this.groupName);
         profiler.checkpoint("get Group");
 
-        groupPersistence.modifyGroup(group);
+        Group modifiedGroup = groupPersistence.modifyGroup(group);
         profiler.checkpoint("modify Group");
 
         List<String> addedMembers = new ArrayList<String>();
@@ -120,8 +121,9 @@ public class ModifyGroupAction extends AbstractGroupAction
         if (addedMembers.isEmpty())
         {
             addedMembers = null;
-        }
-        List<String> deletedMembers = new ArrayList<String>();
+        } 
+
+        List<String>deletedMembers = new ArrayList<String>();
         for (User member : oldGroup.getUserMembers())
         {
             deletedMembers.add(getUseridForLogging(member));
@@ -133,12 +135,15 @@ public class ModifyGroupAction extends AbstractGroupAction
         if (deletedMembers.isEmpty())
         {
             deletedMembers = null;
-        }
+        } 
+
         logGroupInfo(group.getID().getName(), deletedMembers, addedMembers);
         profiler.checkpoint("log GroupInfo");
 
         syncOut.setHeader("Location", request);
-        syncOut.setCode(303);
+        syncOut.setHeader("Content-Type", "application/xml");
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(modifiedGroup, syncOut.getWriter());
     }
 
 }

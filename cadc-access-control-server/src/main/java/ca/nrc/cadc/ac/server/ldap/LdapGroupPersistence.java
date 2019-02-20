@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -170,7 +170,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         }
     }
 
-    public void addGroup(Group group)
+    public Group addGroup(Group group)
         throws GroupAlreadyExistsException, TransientException,
                AccessControlException, UserNotFoundException,
                GroupNotFoundException
@@ -186,7 +186,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             User owner = userDAO.getAugmentedUser(userID, false);
             ObjectUtil.setField(group, owner, "owner");
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
-            groupDAO.addGroup(group);
+            return groupDAO.addGroup(group);
         }
         finally
         {
@@ -219,7 +219,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         }
     }
 
-    public void modifyGroup(Group group)
+    public Group modifyGroup(Group group)
         throws GroupNotFoundException, TransientException,
                AccessControlException, UserNotFoundException
     {
@@ -241,7 +241,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             }
             if (allowed)
                 // TODO: pass g into the modify so it doesn't have to do another get
-                groupDAO.modifyGroup(group);
+                return groupDAO.modifyGroup(group);
             else
                 throw new AccessControlException("permission denied");
         }
