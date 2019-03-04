@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -195,7 +195,7 @@ public class RemoveUserMemberActionTest
 
             final GroupPersistence mockGroupPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(mockGroupPersistence.getGroup("group")).andReturn(group);
-            mockGroupPersistence.modifyGroup(group);
+            EasyMock.expect(mockGroupPersistence.modifyGroup(group)).andReturn(group);
             EasyMock.expectLastCall();
 
             final UserPersistence mockUserPersistence = EasyMock.createMock(UserPersistence.class);

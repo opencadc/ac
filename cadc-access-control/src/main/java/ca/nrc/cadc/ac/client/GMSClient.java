@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,11 +66,13 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.client;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
@@ -100,6 +102,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.AccessControlContext;
@@ -111,7 +114,6 @@ import java.util.List;
 import java.util.Set;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
-
 
 /**
  * Client class for performing group searching and group actions
@@ -368,10 +370,12 @@ public class GMSClient implements TransferListener
      * @throws UserNotFoundException If a member was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
      * @throws java.io.IOException
+     * @throws URISyntaxException 
+     * @throws ReaderException 
      */
     public Group updateGroup(Group group)
         throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
-               AccessControlException, WriterException, IOException
+               AccessControlException, WriterException, IOException, ReaderException, URISyntaxException
     {
         URL groupsURL = lookupServiceURL(Standards.GMS_GROUPS_01);
         URL updateGroupURL = new URL(groupsURL.toExternalForm() + "/" + group.getID().getName());
@@ -414,7 +418,7 @@ public class GMSClient implements TransferListener
             throw new IOException(error);
         }
 
-        return getGroup(group.getID().getName());
+        return (new GroupReader()).read(transfer.getResponseBody());
     }
 
     /**

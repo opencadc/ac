@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -178,10 +178,10 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    userDAO.addUser(testUser);
+                    final User addedUser = userDAO.addUser(testUser);
 
                     final User actual = userDAO.getUser(userID);
-                    check(testUser, actual);
+                    check(addedUser, actual);
 
                     return null;
                 }
@@ -572,9 +572,9 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    userDAO.addUserRequest(userRequest);
+                    User addedUser = userDAO.addUserRequest(userRequest);
                     userDAO.approveUserRequest(userID);
-                    return userDAO.getUser(userID);
+                    return addedUser;
                 }
                 catch (Exception e)
                 {
@@ -968,7 +968,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
 
             // This should throw an exception
-            User foundUser = userDAO.getUser(userID);
+            userDAO.getUser(userID);
 
         } catch (RuntimeException re){
             log.debug("expected Runtime exception: " + re.getMessage());
