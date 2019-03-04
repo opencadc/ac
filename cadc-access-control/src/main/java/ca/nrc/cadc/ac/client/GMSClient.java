@@ -68,43 +68,6 @@
  */
 package ca.nrc.cadc.ac.client;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.FileNotFoundException;
-
-import java.net.URI;
-import java.net.URL;
-import java.security.AccessControlContext;
-import java.security.AccessControlException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.net.ssl.SSLSocketFactory;
-import javax.security.auth.Subject;
-
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.SSOCookieCredential;
-import ca.nrc.cadc.auth.X509CertificateChain;
-import ca.nrc.cadc.auth.SSLUtil;
-
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
-import ca.nrc.cadc.net.HttpTransfer;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.HttpDelete;
-import ca.nrc.cadc.net.NetUtil;
-import ca.nrc.cadc.net.InputStreamWrapper;
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -114,10 +77,40 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupListReader;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.FileContent;
+import ca.nrc.cadc.net.HttpDelete;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpTransfer;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.security.AccessControlContext;
+import java.security.AccessControlException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -127,10 +120,6 @@ import ca.nrc.cadc.reg.client.RegistryClient;
 public class GMSClient implements TransferListener
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
-
-    // socket factory to use when connecting
-    private SSLSocketFactory sslSocketFactory;
-    private SSLSocketFactory mySocketFactory;
 
     private URI serviceID;
 
@@ -200,7 +189,6 @@ public class GMSClient implements TransferListener
         ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 
         HttpUpload transfer = new HttpUpload(in, createGroupURL);
-        transfer.setSSLSocketFactory(getSSLSocketFactory());
 
         transfer.run();
 
@@ -262,7 +250,6 @@ public class GMSClient implements TransferListener
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HttpDownload transfer = new HttpDownload(getGroupURL, out);
-        transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
 
         Throwable error = transfer.getThrowable();
@@ -341,8 +328,6 @@ public class GMSClient implements TransferListener
 
         // Disable retries.
         httpDownload.setRetry(0, 0, HttpTransfer.RetryReason.NONE);
-
-        httpDownload.setSSLSocketFactory(getSSLSocketFactory());
         httpDownload.run();
 
         final Throwable error = httpDownload.getThrowable();
@@ -400,9 +385,7 @@ public class GMSClient implements TransferListener
         groupWriter.write(group, groupXML);
         log.debug("updateGroup: " + groupXML);
 
-        HttpPost transfer = new HttpPost(updateGroupURL, groupXML.toString(),
-                                         "application/xml", false);
-        transfer.setSSLSocketFactory(getSSLSocketFactory());
+        HttpPost transfer = new HttpPost(updateGroupURL, new FileContent(groupXML.toString(), "application/xml", Charset.forName("UTF-8")), false);
         transfer.setTransferListener(this);
         transfer.run();
 
@@ -453,7 +436,6 @@ public class GMSClient implements TransferListener
         clearCache();
 
         HttpDelete delete = new HttpDelete(deleteGroupURL, true);
-        delete.setSSLSocketFactory(getSSLSocketFactory());
         delete.run();
 
         Throwable error = delete.getThrowable();
@@ -502,8 +484,6 @@ public class GMSClient implements TransferListener
 
         final InputStream is = new ByteArrayInputStream(new byte[0]);
         final HttpUpload httpUpload = new HttpUpload(is, addGroupMemberURL);
-
-        httpUpload.setSSLSocketFactory(getSSLSocketFactory());
         httpUpload.run();
 
         final Throwable error = httpUpload.getThrowable();
@@ -563,8 +543,6 @@ public class GMSClient implements TransferListener
 
         final InputStream is = new ByteArrayInputStream(new byte[0]);
         final HttpUpload httpUpload = new HttpUpload(is, addUserMemberURL);
-
-        httpUpload.setSSLSocketFactory(getSSLSocketFactory());
         httpUpload.run();
 
         final Throwable error = httpUpload.getThrowable();
@@ -618,7 +596,6 @@ public class GMSClient implements TransferListener
         clearCache();
 
         HttpDelete delete = new HttpDelete(removeGroupMemberURL, true);
-        delete.setSSLSocketFactory(getSSLSocketFactory());
         delete.run();
 
         Throwable error = delete.getThrowable();
@@ -668,7 +645,6 @@ public class GMSClient implements TransferListener
         clearCache();
 
         HttpDelete delete = new HttpDelete(removeUserMemberURL, true);
-        delete.setSSLSocketFactory(getSSLSocketFactory());
         delete.run();
 
         Throwable error = delete.getThrowable();
@@ -752,8 +728,6 @@ public class GMSClient implements TransferListener
         log.debug("getMemberships request to " + getMembershipsURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HttpDownload transfer = new HttpDownload(getMembershipsURL, out);
-
-        transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
 
         Throwable error = transfer.getThrowable();
@@ -856,7 +830,6 @@ public class GMSClient implements TransferListener
         log.debug("getMembership request to " + getMembershipURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HttpDownload transfer = new HttpDownload(getMembershipURL, out);
-        transfer.setSSLSocketFactory(getSSLSocketFactory());
         transfer.run();
 
         Throwable error = transfer.getThrowable();
@@ -942,48 +915,6 @@ public class GMSClient implements TransferListener
     {
         Group group = getMembership(groupName, role);
         return group != null;
-    }
-
-    /**
-     * @param sslSocketFactory the sslSocketFactory to set
-     */
-    public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory)
-    {
-        if (mySocketFactory != null)
-            throw new IllegalStateException("Illegal use of GMSClient: "
-                    + "cannot set SSLSocketFactory after using one created from Subject");
-        this.sslSocketFactory = sslSocketFactory;
-        clearCache();
-    }
-
-    private int subjectHashCode = 0;
-    private SSLSocketFactory getSSLSocketFactory()
-    {
-        AccessControlContext ac = AccessController.getContext();
-        Subject s = Subject.getSubject(ac);
-
-        // no real Subject: can only use the one from setSSLSocketFactory
-        if (s == null || s.getPrincipals().isEmpty())
-        {
-            return sslSocketFactory;
-        }
-
-        // lazy init
-        if (this.mySocketFactory == null)
-        {
-            log.debug("getSSLSocketFactory: " + s);
-            this.mySocketFactory = SSLUtil.getSocketFactory(s);
-            this.subjectHashCode = s.hashCode();
-        }
-        else
-        {
-            int c = s.hashCode();
-            if (c != subjectHashCode)
-                throw new IllegalStateException("Illegal use of "
-                        + this.getClass().getSimpleName()
-                        + ": subject change not supported for internal SSLSocketFactory");
-        }
-        return this.mySocketFactory;
     }
 
     protected void clearCache()
