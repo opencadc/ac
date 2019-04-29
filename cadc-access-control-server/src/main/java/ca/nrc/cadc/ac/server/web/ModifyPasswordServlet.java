@@ -87,6 +87,7 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
@@ -192,7 +193,7 @@ public class ModifyPasswordServlet extends HttpServlet
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             }
-            catch (AccessControlException e)
+            catch (AccessControlException | NotAuthenticatedException e)
             {
                 log.debug(e.getMessage(), e);
                 response.setContentType("text/plain");

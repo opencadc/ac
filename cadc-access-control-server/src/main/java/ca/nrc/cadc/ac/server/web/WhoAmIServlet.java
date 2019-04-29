@@ -85,6 +85,7 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.reg.Standards;
@@ -144,6 +145,13 @@ public class WhoAmIServlet extends HttpServlet
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
+        catch (NotAuthenticatedException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.getWriter().write(e.getMessage());
+            response.setStatus(401);
         }
         catch (Throwable t)
         {
