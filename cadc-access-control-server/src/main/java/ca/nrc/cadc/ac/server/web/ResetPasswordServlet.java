@@ -100,6 +100,7 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
@@ -374,7 +375,7 @@ public class ResetPasswordServlet extends HttpServlet
                 response.getWriter().write("Transient Error: " + message);
                 response.setStatus(503);
             }
-            catch (AccessControlException e)
+            catch (AccessControlException | NotAuthenticatedException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
