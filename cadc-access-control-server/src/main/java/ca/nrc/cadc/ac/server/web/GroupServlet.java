@@ -87,6 +87,7 @@ import ca.nrc.cadc.ac.server.web.groups.AbstractGroupAction;
 import ca.nrc.cadc.ac.server.web.groups.GroupLogInfo;
 import ca.nrc.cadc.ac.server.web.groups.GroupsActionFactory;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 
 /**
  * Servlet for handling all requests to /groups
@@ -177,6 +178,13 @@ public class GroupServlet extends HttpServlet
             logInfo.setMessage(e.getMessage());
             response.getWriter().write(e.getMessage());
             response.setStatus(400);
+        }
+        catch (NotAuthenticatedException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.getWriter().write(e.getMessage());
+            response.setStatus(401);
         }
         catch (Throwable t)
         {

@@ -95,6 +95,7 @@ import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
@@ -283,9 +284,15 @@ public class UserRequestServlet extends HttpServlet
         {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            logInfo.setSuccess(false);
             response.getWriter().write(e.getMessage());
             response.setStatus(400);
+        }
+        catch (NotAuthenticatedException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.getWriter().write(e.getMessage());
+            response.setStatus(401);
         }
         catch (Throwable t)
         {
