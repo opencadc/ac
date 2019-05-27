@@ -65,12 +65,13 @@
 *  $Revision: 5 $
 *
 ************************************************************************
-*/
+ */
 
 package ca.nrc.cadc.tomcat;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.Principal;
 import java.util.Collections;
@@ -80,7 +81,6 @@ import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
 
 /**
  * Custom class for Tomcat realm authentication.
@@ -92,64 +92,60 @@ import org.apache.log4j.Logger;
  *
  * @author majorb
  */
-public class CadcBasicAuthenticator extends RealmBase
-{
+public class CadcBasicAuthenticator extends RealmBase {
 
     private static Logger log = Logger.getLogger(CadcBasicAuthenticator.class);
 
-    private String loginURL;
+    private URL loginURL;
 
-
-    static
-    {
+    static {
         RealmUtil.initLogging();
         Logger.getLogger("ca.nrc.cadc.tomcat").setLevel(Level.INFO);
     }
 
     /**
-     * Set the login URL for the current host.  Used by the realm configuration.
+     * Set the login URL for the current host. Used by the realm configuration.
      *
-     * @param loginURL      The String login URL.
+     * @param configuredLoginURL The String login URL.
      */
-    public void setLoginURL(final String loginURL)
-    {
-        this.loginURL = loginURL;
+    public void setLoginURL(final String configuredLoginURL) {
+        try {
+            this.loginURL = new URL(configuredLoginURL);
+            if (!"https".equals(loginURL.getProtocol())) {
+                log.warn("INSECURE: detected insecure protocol '" + loginURL.getProtocol() + " in loginURL: " + loginURL.toExternalForm());
+            }
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("CONFIG: invalid loginURL: " + configuredLoginURL);
+        }
     }
 
-
     @Override
-    protected String getName()
-    {
+    protected String getName() {
         // not used
         return this.getClass().getSimpleName();
     }
 
     @Override
-    protected String getPassword(final String username)
-    {
+    protected String getPassword(final String username) {
         // not used
         return null;
     }
 
     @Override
-    protected Principal getPrincipal(final String username)
-    {
+    protected Principal getPrincipal(final String username) {
         // not used
         return null;
     }
 
     @Override
-    public Principal authenticate(String username, String credentials)
-    {
+    public Principal authenticate(String username, String credentials) {
         long start = System.currentTimeMillis();
         boolean success = true;
 
-        try
-        {
+        try {
             boolean valid = login(username, credentials);
 
-            if (valid)
-            {
+            if (valid) {
                 // authentication ok, add public role
                 List<String> roles = Collections.singletonList("public");
 
@@ -159,43 +155,33 @@ public class CadcBasicAuthenticator extends RealmBase
             }
 
             return null;
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             success = false;
             String message = "Could not do http basic authentication: "
-                             + t.getMessage();
+                    + t.getMessage();
             log.error(message, t);
             throw new IllegalStateException(message, t);
-        }
-        finally
-        {
+        } finally {
             long duration = System.currentTimeMillis() - start;
 
             // Converted from StringBuilder as it was unnecessary.
             // jenkinsd 2016.08.09
-            String json = "{" +
-                          "\"method\":\"AUTH\"," +
-                          "\"user\":\"" + username + "\"," +
-                          "\"success\":" + success + "," +
-                          "\"time\":" + duration +
-                          "}";
+            String json = "{"
+                    + "\"method\":\"AUTH\","
+                    + "\"user\":\"" + username + "\","
+                    + "\"success\":" + success + ","
+                    + "\"time\":" + duration
+                    + "}";
 
             log.info(json);
         }
     }
 
     boolean login(String username, String credentials)
-            throws IOException
-    {
-        AuthenticationLookup registryClient = new AuthenticationLookup();
-        URL authServiceURL =
-                registryClient.configureAuthenticationServiceURL(
-                        new URL(loginURL));
+            throws IOException {
         String post = "username=" + username + "&password=" + credentials;
 
-        HttpURLConnection conn =
-                (HttpURLConnection) authServiceURL.openConnection();
+        HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
 
@@ -204,18 +190,14 @@ public class CadcBasicAuthenticator extends RealmBase
 
         int responseCode = conn.getResponseCode();
 
-        log.debug("Http POST to /ac/login returned " +
-                  responseCode + " for user " + username);
+        log.debug("Http POST to /ac/login returned " + responseCode + " for user " + username);
 
-        if (responseCode != 200)
-        {
+        if (responseCode != 200) {
             // authentication not ok
-            if (responseCode != 401)
-            {
+            if (responseCode != 401) {
                 // not an unauthorized, so log the
                 // possible server side error
-                String errorMessage = "Error calling /ac/login, error code: "
-                                      + responseCode;
+                String errorMessage = "Error calling loginURL: " + loginURL + "  error code: " + responseCode;
                 throw new IllegalStateException(errorMessage);
             }
 
@@ -225,6 +207,5 @@ public class CadcBasicAuthenticator extends RealmBase
 
         return true;
     }
-
 
 }
