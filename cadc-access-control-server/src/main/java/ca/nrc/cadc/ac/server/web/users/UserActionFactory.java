@@ -108,7 +108,9 @@ public abstract class UserActionFactory
 
                 if (segments.length == 0)
                 {
-                    action = new GetUserListAction();
+                    // s2484: GetUserListAction disabled to align with GDPR
+//                    action = new GetUserListAction();
+                    throw new UnsupportedOperationException();
                 }
                 else if (segments.length == 1)
                 {
