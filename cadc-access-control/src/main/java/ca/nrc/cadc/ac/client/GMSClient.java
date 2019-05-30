@@ -169,8 +169,8 @@ public class GMSClient implements TransferListener
      * @throws GroupAlreadyExistsException If a group with the same name already
      *                                     exists.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws UserNotFoundException
-     * @throws IOException
+     * @throws UserNotFoundException If User not found
+     * @throws IOException If underlying service call fails
      */
     public Group createGroup(Group group)
         throws GroupAlreadyExistsException, AccessControlException,
