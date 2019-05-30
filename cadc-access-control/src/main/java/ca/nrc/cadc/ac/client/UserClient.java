@@ -189,49 +189,8 @@ public class UserClient
      */
     public List<User> getDisplayUsers() throws UnsupportedOperationException
     {
-        // This has become an unsupported operation in the /ac service.
-        // This function will also return an 'UnsupportedOperationException'
-        // for now, until all uses of it have been cleaned up.
+        // s2484: Changed to UnsupportedOperation to align with GDPR
         throw new UnsupportedOperationException();
-//
-//        AuthMethod am = getAuthMethod();
-//        URL usersURL = getRegistryClient()
-//                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
-//        final List<User> webUsers = new ArrayList<User>();
-//        HttpDownload httpDownload =
-//                new HttpDownload(usersURL,
-//                                 new JsonUserListInputStreamWrapper(webUsers));
-//        httpDownload.setRequestProperty("Accept", "application/json");
-//        httpDownload.run();
-//
-//        final Throwable error = httpDownload.getThrowable();
-//
-//        if (error != null)
-//        {
-//            final String errMessage = error.getMessage();
-//            final int responseCode = httpDownload.getResponseCode();
-//            log.debug("getDisplayUsers response " + responseCode + ": "
-//                      + errMessage);
-//            if ((responseCode == 401) || (responseCode == 403)
-//                || (responseCode == -1))
-//            {
-//                throw new AccessControlException(errMessage);
-//            }
-//            else if (responseCode == 400)
-//            {
-//                throw new IllegalArgumentException(errMessage);
-//            }
-//            else
-//            {
-//                throw new IOException("HttpResponse (" + responseCode + ") - "
-//                                      + errMessage);
-//            }
-//        }
-//
-//        log.debug("Content-Length: " + httpDownload.getContentLength());
-//        log.debug("Content-Type: " + httpDownload.getContentType());
-//
-//        return webUsers;
     }
 
     /**
