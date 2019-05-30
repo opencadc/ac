@@ -182,18 +182,6 @@ public class UserClient
     }
 
     /**
-     * Obtain all of the users as userID - name in JSON format.
-     *
-     * @return List of HTTP Principal users.
-     * @throws IOException Any errors in reading.
-     */
-    public List<User> getDisplayUsers() throws UnsupportedOperationException
-    {
-        // s2484: Changed to UnsupportedOperation to align with GDPR
-        throw new UnsupportedOperationException();
-    }
-
-    /**
      * Create an auto-approved user directly in the user tree (not
      * the userRequest tree) from the principal.
      *
