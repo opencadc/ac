@@ -332,6 +332,13 @@ public class UserServlet extends HttpServlet
             response.getWriter().write(e.getMessage());
             response.setStatus(401);
         }
+        catch (UnsupportedOperationException e)
+        {
+            log.debug(e.getMessage(), e);
+            logInfo.setMessage(e.getMessage());
+            response.getWriter().write(e.getMessage());
+            response.setStatus(501);
+        }
         catch (Throwable t)
         {
             String message = "Internal Server Error: " + t.getMessage();

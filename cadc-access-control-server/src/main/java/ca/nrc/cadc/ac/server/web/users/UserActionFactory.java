@@ -109,7 +109,7 @@ public abstract class UserActionFactory
                 if (segments.length == 0)
                 {
                     // s2484: GetUserListAction disabled to align with GDPR
-                    throw new UnsupportedOperationException();
+                    throw new UnsupportedOperationException("Operation not supported.");
                 }
                 else if (segments.length == 1)
                 {
