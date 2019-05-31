@@ -169,8 +169,8 @@ public class GMSClient implements TransferListener
      * @throws GroupAlreadyExistsException If a group with the same name already
      *                                     exists.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws UserNotFoundException
-     * @throws IOException
+     * @throws UserNotFoundException If User not found
+     * @throws IOException If underlying service call fails
      */
     public Group createGroup(Group group)
         throws GroupAlreadyExistsException, AccessControlException,
@@ -241,7 +241,7 @@ public class GMSClient implements TransferListener
      * @return The group.
      * @throws GroupNotFoundException If the group was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      */
     public Group getGroup(String groupName)
         throws GroupNotFoundException, AccessControlException, IOException
@@ -295,7 +295,7 @@ public class GMSClient implements TransferListener
      *
      * @return The list of names.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs
      */
     public List<String> getGroupNames()
         throws AccessControlException, IOException
@@ -369,9 +369,9 @@ public class GMSClient implements TransferListener
      * @throws GroupNotFoundException If the group was not found.
      * @throws UserNotFoundException If a member was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws java.io.IOException
-     * @throws URISyntaxException 
-     * @throws ReaderException 
+     * @throws java.io.IOException If any other error occurs.
+     * @throws URISyntaxException If URI is incorrect.
+     * @throws ReaderException If reader can't be instantiated.
      */
     public Group updateGroup(Group group)
         throws IllegalArgumentException, GroupNotFoundException, UserNotFoundException,
@@ -427,7 +427,7 @@ public class GMSClient implements TransferListener
      * @param groupName Identifies the group to delete.
      * @throws GroupNotFoundException If the group was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      */
     public void deleteGroup(String groupName)
         throws GroupNotFoundException, AccessControlException, IOException
@@ -471,7 +471,7 @@ public class GMSClient implements TransferListener
      * @throws IllegalArgumentException If cyclical membership is detected.
      * @throws GroupNotFoundException If the group was not found.
      * @throws AccessControlException If unauthorized to perform this operation.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      */
     public void addGroupMember(String targetGroupName, String groupMemberName)
         throws IllegalArgumentException, GroupNotFoundException,
@@ -521,7 +521,7 @@ public class GMSClient implements TransferListener
      * @param userID The user to add.
      * @throws GroupNotFoundException If the group was not found.
      * @throws UserNotFoundException If the member was not found.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void addUserMember(String targetGroupName, Principal userID)
@@ -582,7 +582,7 @@ public class GMSClient implements TransferListener
      * @param targetGroupName The group from which to remove the group member.
      * @param groupMemberName The group member to remove.
      * @throws GroupNotFoundException If the group was not found.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void removeGroupMember(String targetGroupName,
@@ -630,7 +630,7 @@ public class GMSClient implements TransferListener
      * @param userID The user to remove.
      * @throws GroupNotFoundException If the group was not found.
      * @throws UserNotFoundException If the member was not found.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      * @throws AccessControlException If unauthorized to perform this operation.
      */
     public void removeUserMember(String targetGroupName, Principal userID)
@@ -694,9 +694,9 @@ public class GMSClient implements TransferListener
      *
      * @param role
      * @return A list of groups for which the current user has the role.
-     * @throws AccessControlException
+     * @throws AccessControlException If user is not authenticated.
      * @throws ca.nrc.cadc.ac.UserNotFoundException
-     * @throws java.io.IOException
+     * @throws java.io.IOException If any other error occurs.
      */
     public List<Group> getMemberships(Role role)
         throws UserNotFoundException, AccessControlException, IOException
@@ -889,9 +889,9 @@ public class GMSClient implements TransferListener
      *
      * @param groupName
      * @return true if the current Subject is a member of the group, false otherwise
-     * @throws UserNotFoundException
-     * @throws AccessControlException
-     * @throws IOException
+     * @throws UserNotFoundException If user does not exist in the system.
+     * @throws AccessControlException If user is not authenticated.
+     * @throws IOException If an unknown error occured.
      */
     public boolean isMember(String groupName)
         throws UserNotFoundException, AccessControlException, IOException
@@ -904,9 +904,9 @@ public class GMSClient implements TransferListener
      * @param groupName
      * @param role
      * @return true if the current Subject is a member of the group with the specified role, false otherwise
-     * @throws UserNotFoundException
-     * @throws AccessControlException
-     * @throws IOException
+     * @throws UserNotFoundException If user does not exist in the system.
+     * @throws AccessControlException If user is not authenticated.
+     * @throws IOException If an unknown error occured.
      */
     public boolean isMember(String groupName, Role role)
         throws UserNotFoundException, AccessControlException, IOException

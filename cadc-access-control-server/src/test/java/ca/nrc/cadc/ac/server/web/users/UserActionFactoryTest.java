@@ -174,12 +174,14 @@ public class UserActionFactoryTest
             EasyMock.replay(request);
             AbstractUserAction action = UserActionFactory.httpGetFactory().createAction(request);
             EasyMock.verify(request);
-            Assert.assertTrue("Wrong action", action instanceof GetUserListAction);
+            Assert.fail("Should have received an UnsupportedOperationException.");
         }
         catch (Throwable t)
         {
-            log.error(t.getMessage(), t);
-            Assert.fail("unexpected error: " + t.getMessage());
+            if (!(t instanceof UnsupportedOperationException)) {
+                log.error(t.getMessage(), t);
+                Assert.fail("unexpected error: " + t.getMessage());
+            }
         }
     }
 

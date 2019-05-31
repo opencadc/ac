@@ -108,7 +108,7 @@ public abstract class UserActionFactory
 
                 if (segments.length == 0)
                 {
-                    action = new GetUserListAction();
+                    throw new UnsupportedOperationException("Operation not supported.");
                 }
                 else if (segments.length == 1)
                 {
