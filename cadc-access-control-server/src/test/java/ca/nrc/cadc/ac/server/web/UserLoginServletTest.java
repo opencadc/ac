@@ -7,6 +7,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.gms.GroupURI;
+
 import java.security.AccessControlException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -19,7 +21,6 @@ import org.easymock.EasyMock;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
