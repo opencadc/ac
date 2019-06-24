@@ -66,169 +66,34 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.gms.GroupURI;
+package ca.nrc.cadc.gms;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Arrays;
+import java.util.List;
 
-import org.apache.log4j.Logger;
+/**
+ * 
+ * This is the default implementation of GroupClient that performs no group membership
+ * operations.  It allows libraries to use the GroupClient without requiring a
+ * Groups or a GMS implementation.
+ * 
+ * This client will be created by GroupClient.getGroupClient() when another implementation
+ * is not discovered in the classpath.
+ * 
+ * @author majorb
+ *
+ */
+public class NoOpGMSClient implements GroupClient {
 
-public class Group
-{
-    private final static Logger log = Logger.getLogger(Group.class);
-
-    private GroupURI groupID;
-
-    private User owner;
-
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
-
-    // group's user members
-    private UserSet userMembers = new UserSet();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-
-    // group's user admins
-    private UserSet userAdmins = new UserSet();
-
-    // group's group admins
-    private Set<Group> groupAdmins = new HashSet<Group>();
-
-    public String description;
-    public Date lastModified;
-
-    public Group()
-    {
-    }
-
-    /**
-     * Group Constructor.
-     *
-     * @param groupID The URI identifying the group.
-     */
-    public Group(GroupURI groupID)
-    {
-        if (groupID == null)
-        {
-            throw new IllegalArgumentException("null groupID");
-        }
-
-        this.groupID = groupID;
-    }
-
-    /**
-     * Obtain this Group's unique id.
-     *
-     * @return String group ID.
-     */
-    public GroupURI getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     *
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     *
-     * @return individual user members of this group
-     */
-    public UserSet getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     *
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /**
-     *
-     * @return individual user admins of this group
-     */
-    public UserSet getUserAdmins()
-    {
-        return userAdmins;
-    }
-
-    /**
-     *
-     * @return group admins of this group
-     */
-    public Set<Group> getGroupAdmins()
-    {
-        return groupAdmins;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    /*
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        if (groupID != null)
-        {
-            return 31 + groupID.getURI().toString().toLowerCase().hashCode();
-        }
-        return 0;
+    public boolean isMember(GroupURI group) {
+        return false;
     }
 
     @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
+    public List<GroupURI> getMemberships() {
+        return Arrays.asList();
     }
-
+    
 }

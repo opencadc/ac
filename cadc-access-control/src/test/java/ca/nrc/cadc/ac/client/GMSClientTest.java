@@ -81,9 +81,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.util.Log4jInit;
 
 

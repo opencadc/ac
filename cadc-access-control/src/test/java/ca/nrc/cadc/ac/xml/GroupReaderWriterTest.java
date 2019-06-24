@@ -92,7 +92,6 @@ import org.junit.Test;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
@@ -100,6 +99,7 @@ import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**

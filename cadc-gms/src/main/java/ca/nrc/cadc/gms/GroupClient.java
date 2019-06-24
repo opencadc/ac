@@ -66,169 +66,90 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.gms.GroupURI;
+package ca.nrc.cadc.gms;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.lang.reflect.Constructor;
+import java.net.URI;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
-public class Group
-{
-    private final static Logger log = Logger.getLogger(Group.class);
-
-    private GroupURI groupID;
-
-    private User owner;
-
-    // group's properties
-    protected Set<GroupProperty> properties = new HashSet<GroupProperty>();
-
-    // group's user members
-    private UserSet userMembers = new UserSet();
-
-    // group's group members
-    private Set<Group> groupMembers = new HashSet<Group>();
-
-    // group's user admins
-    private UserSet userAdmins = new UserSet();
-
-    // group's group admins
-    private Set<Group> groupAdmins = new HashSet<Group>();
-
-    public String description;
-    public Date lastModified;
-
-    public Group()
-    {
-    }
-
+/**
+ * 
+ * This interface defines the methods available in a Group Membership
+ * Service.
+ * 
+ * It also provides a static method for creating a GMSClient implementation
+ * based on the current configuration.
+ * 
+ * @author majorb
+ *
+ */
+public interface GroupClient {
+    
     /**
-     * Group Constructor.
-     *
-     * @param groupID The URI identifying the group.
+     * Return true if the calling user is a member of
+     * the group.
+     * 
+     * @param group The group membership to check
+     * @return true if the user is a member.
      */
-    public Group(GroupURI groupID)
-    {
-        if (groupID == null)
-        {
-            throw new IllegalArgumentException("null groupID");
+    public boolean isMember(GroupURI group);
+    
+    /**
+     * Return the list of groups in which the calling user
+     * is a member.
+     * 
+     * @return The group memberships for the user.
+     */
+    public List<GroupURI> getMemberships();
+    
+    
+    /**
+     * Construct a GMS Client from the classpath or fallback to
+     * the default, no-op implementation if a GMS Client has not
+     * been configured.  Classpath loaded implementations
+     * must provide a contructor that takes the service URI as
+     * an argument.
+     * 
+     * @param serviceID GMS Service ID.  If null, the default no-op
+     * implementation of GMS Client is returned.
+     * 
+     * @return A GMSClient instance.
+     */
+    public static GroupClient getGroupClient(URI serviceID) {
+        
+        Logger log = Logger.getLogger(GroupClient.class);
+        
+        String defaultImplClass = GroupClient.class.getName() + "Impl";
+        String cname = System.getProperty(GroupClient.class.getName());
+        Class c = null;
+        if (cname == null) {
+            cname = defaultImplClass;
         }
-
-        this.groupID = groupID;
-    }
-
-    /**
-     * Obtain this Group's unique id.
-     *
-     * @return String group ID.
-     */
-    public GroupURI getID()
-    {
-        return groupID;
-    }
-
-    /**
-     * Obtain this group's owner
-     * @return owner of the group
-     */
-    public User getOwner()
-    {
-        return owner;
-    }
-
-    /**
-     *
-     * @return a set of properties associated with a group
-     */
-    public Set<GroupProperty> getProperties()
-    {
-        return properties;
-    }
-
-    /**
-     *
-     * @return individual user members of this group
-     */
-    public UserSet getUserMembers()
-    {
-        return userMembers;
-    }
-
-    /**
-     *
-     * @return group members of this group
-     */
-    public Set<Group> getGroupMembers()
-    {
-        return groupMembers;
-    }
-
-    /**
-     *
-     * @return individual user admins of this group
-     */
-    public UserSet getUserAdmins()
-    {
-        return userAdmins;
-    }
-
-    /**
-     *
-     * @return group admins of this group
-     */
-    public Set<Group> getGroupAdmins()
-    {
-        return groupAdmins;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
-            return true;
+        
+        if (serviceID != null) {
+            try {
+                c = Class.forName(cname);
+                Constructor con = c.getConstructor(URI.class);
+                Object o = con.newInstance(serviceID);
+                GroupClient ret = (GroupClient) o;
+                log.debug("GMSClient: " + cname);
+                return ret;
+            } catch (Throwable t) {
+                if (!defaultImplClass.equals(cname) || c != null) {
+                    log.error("failed to load configured GMSClient: " + cname, t);
+                }
+                log.debug("failed to load default GMSClient: " + cname, t);
+            }
+        } else {
+            log.debug("null serviceID, using default NoOpGMSClient");
         }
-        if (obj == null)
-        {
-            return false;
-        }
-        if (!(obj instanceof Group))
-        {
-            return false;
-        }
-        Group other = (Group) obj;
-
-        if (!groupID.equals(other.groupID))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    /*
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode()
-    {
-        if (groupID != null)
-        {
-            return 31 + groupID.getURI().toString().toLowerCase().hashCode();
-        }
-        return 0;
-    }
-
-    @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + groupID + "]";
+        
+        log.debug("GMSClient: " + NoOpGMSClient.class.getName());
+        return new NoOpGMSClient();
+        
     }
 
 }

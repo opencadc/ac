@@ -78,6 +78,7 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.gms.GroupURI;
 
 public class GroupTest
 {
