@@ -69,11 +69,8 @@
 
 package ca.nrc.cadc.gms;
 
-import java.lang.reflect.Constructor;
-import java.net.URI;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 
 /**
  * 
@@ -104,52 +101,6 @@ public interface GroupClient {
      * @return The group memberships for the user.
      */
     public List<GroupURI> getMemberships();
-    
-    
-    /**
-     * Construct a GMS Client from the classpath or fallback to
-     * the default, no-op implementation if a GMS Client has not
-     * been configured.  Classpath loaded implementations
-     * must provide a contructor that takes the service URI as
-     * an argument.
-     * 
-     * @param serviceID GMS Service ID.  If null, the default no-op
-     * implementation of GMS Client is returned.
-     * 
-     * @return A GMSClient instance.
-     */
-    public static GroupClient getGroupClient(URI serviceID) {
-        
-        Logger log = Logger.getLogger(GroupClient.class);
-        
-        String defaultImplClass = GroupClient.class.getName() + "Impl";
-        String cname = System.getProperty(GroupClient.class.getName());
-        Class c = null;
-        if (cname == null) {
-            cname = defaultImplClass;
-        }
-        
-        if (serviceID != null) {
-            try {
-                c = Class.forName(cname);
-                Constructor con = c.getConstructor(URI.class);
-                Object o = con.newInstance(serviceID);
-                GroupClient ret = (GroupClient) o;
-                log.debug("GMSClient: " + cname);
-                return ret;
-            } catch (Throwable t) {
-                if (!defaultImplClass.equals(cname) || c != null) {
-                    log.error("failed to load configured GMSClient: " + cname, t);
-                }
-                log.debug("failed to load default GMSClient: " + cname, t);
-            }
-        } else {
-            log.debug("null serviceID, using default NoOpGMSClient");
-        }
-        
-        log.debug("GMSClient: " + NoOpGMSClient.class.getName());
-        return new NoOpGMSClient();
-        
-    }
+
 
 }

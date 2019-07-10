@@ -90,12 +90,12 @@ public class GroupClientTest {
     public void testDefaultImpl() {
         try {
             // null resource id
-            GroupClient client = GroupClient.getGroupClient(null);
+            GroupClient client = GroupUtil.getGroupClient(null);
             Assert.assertNotNull(client);
             assertDefaultImpl(client);
             
             // resource id but no client in classpath
-            client = GroupClient.getGroupClient(new URI("test"));
+            client = GroupUtil.getGroupClient(new URI("test"));
             Assert.assertNotNull(client);
             assertDefaultImpl(client);
             
@@ -106,7 +106,7 @@ public class GroupClientTest {
     }
     
     private void assertDefaultImpl(GroupClient client) {
-        Assert.assertTrue(client instanceof NoOpGMSClient);
+        Assert.assertTrue(client instanceof NoOpGroupClient);
         Assert.assertFalse(client.isMember(new GroupURI("ivo://cadc.nrc.ca/test?group")));
         Assert.assertNotNull(client.getMemberships());
         Assert.assertTrue(client.getMemberships().size() == 0);

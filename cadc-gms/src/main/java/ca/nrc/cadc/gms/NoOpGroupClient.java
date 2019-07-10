@@ -84,7 +84,7 @@ import java.util.List;
  * @author majorb
  *
  */
-public class NoOpGMSClient implements GroupClient {
+public class NoOpGroupClient implements GroupClient {
 
     @Override
     public boolean isMember(GroupURI group) {
