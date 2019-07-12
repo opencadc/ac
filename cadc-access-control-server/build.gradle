@@ -21,7 +21,7 @@ dependencies {
     compile 'org.json:json:20160212'
     compile 'xerces:xercesImpl:2.+'
     compile 'com.unboundid:unboundid-ldapsdk:2.3.+'
-    compile 'javax.servlet:javax.servlet-api:[3.1.0,4.0)'
+    compile 'javax.servlet:javax.servlet-api:[3.1.0,4.0['
 
     compile 'org.opencadc:cadc-access-control:[1.1.17,)'
     compile 'org.opencadc:cadc-util:[1.1.1,)'
