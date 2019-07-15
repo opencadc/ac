@@ -21,7 +21,3 @@ dependencies {
     compile 'org.opencadc:cadc-util:[1.1,)'
     testCompile 'junit:junit:4.+'
 }
-
-configurations {
-  runtime.exclude group: 'org.springframework'
-}
