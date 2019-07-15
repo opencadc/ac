@@ -91,35 +91,12 @@ import ca.nrc.cadc.cred.client.CredUtil;
  * @author majorb
  *
  */
-public class GroupClientImpl implements GroupClient {
+public class GroupClientImpl extends GMSClient {
     
     Logger log = Logger.getLogger(GroupClientImpl.class);
     
-    private GMSClient gmsClient;
-    
     public GroupClientImpl(URI serviceID) {
-        this.gmsClient = new GMSClient(serviceID);
-    }
-
-    @Override
-    public List<GroupURI> getMemberships() {
-        checkCredentials();
-        return gmsClient.getMemberships();
-    }
-
-    @Override
-    public boolean isMember(GroupURI groupURI) {
-        checkCredentials();
-        return gmsClient.isMember(groupURI);
-    }
-    
-    private void checkCredentials() {
-        try {
-            CredUtil.checkCredentials();
-        } catch (Exception e) {
-            log.error("Failed to check credentials for group call", e);
-            throw new AccessControlException(e.getMessage());
-        }
+        super(serviceID);
     }
 
 }
