@@ -83,6 +83,7 @@ import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.InternalID;
@@ -93,7 +94,6 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.PropertiesReader;

@@ -68,13 +68,12 @@
  */
 package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.gms.GroupURI;
-
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 public class Group
 {

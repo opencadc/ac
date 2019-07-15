@@ -72,9 +72,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.opencadc.gms.GroupURI;
+
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.reg.Standards;
 
 public class AddGroupMemberAction extends AbstractGroupAction

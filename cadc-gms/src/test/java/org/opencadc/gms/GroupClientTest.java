@@ -67,40 +67,53 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.gms;
+package org.opencadc.gms;
 
-import java.util.List;
+import java.net.URI;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
+import org.opencadc.gms.NoOpGroupClient;
 
-/**
- * 
- * This interface defines the methods available in a Group Membership
- * Service.
- * 
- * It also provides a static method for creating a GMSClient implementation
- * based on the current configuration.
- * 
- * @author majorb
- *
- */
-public interface GroupClient {
+import ca.nrc.cadc.util.Log4jInit;
+
+public class GroupClientTest {
     
-    /**
-     * Return true if the calling user is a member of
-     * the group.
-     * 
-     * @param group The group membership to check
-     * @return true if the user is a member.
-     */
-    public boolean isMember(GroupURI group);
+    Logger log = Logger.getLogger(GroupClientTest.class);
     
-    /**
-     * Return the list of groups in which the calling user
-     * is a member.
-     * 
-     * @return The group memberships for the user.
-     */
-    public List<GroupURI> getMemberships();
-
-
+    public GroupClientTest() {
+        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.INFO);
+    }
+    
+    @Test
+    public void testDefaultImpl() {
+        try {
+            // null resource id
+            GroupClient client = GroupUtil.getGroupClient(null);
+            Assert.assertNotNull(client);
+            assertDefaultImpl(client);
+            
+            // resource id but no client in classpath
+            client = GroupUtil.getGroupClient(new URI("test"));
+            Assert.assertNotNull(client);
+            assertDefaultImpl(client);
+            
+        } catch (Throwable t) {
+            log.info("Unexpected failure: " + t.getMessage(), t);
+            Assert.fail("Unexpected failure: " + t.getMessage());
+        }
+    }
+    
+    private void assertDefaultImpl(GroupClient client) {
+        Assert.assertTrue(client instanceof NoOpGroupClient);
+        Assert.assertFalse(client.isMember(new GroupURI("ivo://cadc.nrc.ca/test?group")));
+        Assert.assertNotNull(client.getMemberships());
+        Assert.assertTrue(client.getMemberships().size() == 0);
+    }
+    
 }

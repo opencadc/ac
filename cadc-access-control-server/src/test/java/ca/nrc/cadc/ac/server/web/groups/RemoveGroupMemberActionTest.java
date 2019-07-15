@@ -78,11 +78,11 @@ import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.util.Log4jInit;
 
 /**

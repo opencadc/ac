@@ -76,9 +76,9 @@ import java.net.URISyntaxException;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.gms.GroupURI;
 
 public class GroupTest
 {

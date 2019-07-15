@@ -67,65 +67,59 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.gms;
+package org.opencadc.gms;
 
-import java.lang.reflect.Constructor;
 import java.net.URI;
+import java.security.AccessControlException;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.client.GMSClient;
+import ca.nrc.cadc.cred.client.CredUtil;
+
 /**
- * Group Utilities
+ * This class is acting as a bridge between the GroupClient in cadc-gms
+ * and the cadc-access-control implementation named GMSClient.
+ * 
+ * In cadc-gms, GroupUtil, the group client is loaded by trying to load
+ * a class with the name ca.nrc.cadc.gms.GroupClientImpl.
+ * 
+ * This class will be removed when GMSClient is renamed to be the name
+ * of this class.
  * 
  * @author majorb
  *
  */
-public class GroupUtil {
+public class GroupClientImpl implements GroupClient {
     
-    /**
-     * Construct a GMS Client from the classpath or fallback to
-     * the default, no-op implementation if a GMS Client has not
-     * been configured.  Classpath loaded implementations
-     * must provide a contructor that takes the service URI as
-     * an argument.
-     * 
-     * @param serviceID GMS Service ID.  If null, the default no-op
-     * implementation of GMS Client is returned.
-     * 
-     * @return A GMSClient instance.
-     */
-    public static GroupClient getGroupClient(URI serviceID) {
-        
-        Logger log = Logger.getLogger(GroupClient.class);
-        
-        String defaultImplClass = GroupClient.class.getName() + "Impl";
-        String cname = System.getProperty(GroupClient.class.getName());
-        Class c = null;
-        if (cname == null) {
-            cname = defaultImplClass;
+    Logger log = Logger.getLogger(GroupClientImpl.class);
+    
+    private GMSClient gmsClient;
+    
+    public GroupClientImpl(URI serviceID) {
+        this.gmsClient = new GMSClient(serviceID);
+    }
+
+    @Override
+    public List<GroupURI> getMemberships() {
+        checkCredentials();
+        return gmsClient.getMemberships();
+    }
+
+    @Override
+    public boolean isMember(GroupURI groupURI) {
+        checkCredentials();
+        return gmsClient.isMember(groupURI);
+    }
+    
+    private void checkCredentials() {
+        try {
+            CredUtil.checkCredentials();
+        } catch (Exception e) {
+            log.error("Failed to check credentials for group call", e);
+            throw new AccessControlException(e.getMessage());
         }
-        
-        if (serviceID != null) {
-            try {
-                c = Class.forName(cname);
-                Constructor con = c.getConstructor(URI.class);
-                Object o = con.newInstance(serviceID);
-                GroupClient ret = (GroupClient) o;
-                log.debug("GMSClient: " + cname);
-                return ret;
-            } catch (Throwable t) {
-                if (!defaultImplClass.equals(cname) || c != null) {
-                    log.error("failed to load configured GMSClient: " + cname, t);
-                }
-                log.debug("failed to load default GMSClient: " + cname, t);
-            }
-        } else {
-            log.debug("null serviceID, using default NoOpGMSClient");
-        }
-        
-        log.debug("GMSClient: " + NoOpGroupClient.class.getName());
-        return new NoOpGroupClient();
-        
     }
 
 }

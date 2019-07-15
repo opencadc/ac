@@ -1,4 +1,4 @@
-package ca.nrc.cadc.gms;
+package org.opencadc.gms;
 
 import java.net.URISyntaxException;
 
@@ -6,8 +6,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.util.Log4jInit;
 
 public class GroupURITest

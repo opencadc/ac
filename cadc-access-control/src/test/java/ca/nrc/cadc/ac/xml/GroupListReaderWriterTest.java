@@ -83,10 +83,10 @@ import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.gms.GroupURI;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**

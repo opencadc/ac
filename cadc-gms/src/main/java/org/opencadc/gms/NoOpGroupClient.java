@@ -67,49 +67,33 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.gms;
+package org.opencadc.gms;
 
-import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+/**
+ * 
+ * This is the default implementation of GroupClient that performs no group membership
+ * operations.  It allows libraries to use the GroupClient without requiring a
+ * Groups or a GMS implementation.
+ * 
+ * This client will be created by GroupClient.getGroupClient() when another implementation
+ * is not discovered in the classpath.
+ * 
+ * @author majorb
+ *
+ */
+public class NoOpGroupClient implements GroupClient {
 
-import ca.nrc.cadc.util.Log4jInit;
-
-public class GroupClientTest {
-    
-    Logger log = Logger.getLogger(GroupClientTest.class);
-    
-    public GroupClientTest() {
-        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.INFO);
+    @Override
+    public boolean isMember(GroupURI group) {
+        return false;
     }
-    
-    @Test
-    public void testDefaultImpl() {
-        try {
-            // null resource id
-            GroupClient client = GroupUtil.getGroupClient(null);
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-            
-            // resource id but no client in classpath
-            client = GroupUtil.getGroupClient(new URI("test"));
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-            
-        } catch (Throwable t) {
-            log.info("Unexpected failure: " + t.getMessage(), t);
-            Assert.fail("Unexpected failure: " + t.getMessage());
-        }
-    }
-    
-    private void assertDefaultImpl(GroupClient client) {
-        Assert.assertTrue(client instanceof NoOpGroupClient);
-        Assert.assertFalse(client.isMember(new GroupURI("ivo://cadc.nrc.ca/test?group")));
-        Assert.assertNotNull(client.getMemberships());
-        Assert.assertTrue(client.getMemberships().size() == 0);
+
+    @Override
+    public List<GroupURI> getMemberships() {
+        return Arrays.asList();
     }
     
 }

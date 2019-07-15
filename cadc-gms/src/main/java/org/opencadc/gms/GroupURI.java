@@ -67,7 +67,7 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.gms;
+package org.opencadc.gms;
 
 import java.net.URI;
 import java.net.URISyntaxException;

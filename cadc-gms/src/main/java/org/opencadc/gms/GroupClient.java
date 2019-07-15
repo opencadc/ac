@@ -67,33 +67,40 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.gms;
+package org.opencadc.gms;
 
-import java.util.Arrays;
 import java.util.List;
+
 
 /**
  * 
- * This is the default implementation of GroupClient that performs no group membership
- * operations.  It allows libraries to use the GroupClient without requiring a
- * Groups or a GMS implementation.
+ * This interface defines the methods available in a Group Membership
+ * Service.
  * 
- * This client will be created by GroupClient.getGroupClient() when another implementation
- * is not discovered in the classpath.
+ * It also provides a static method for creating a GMSClient implementation
+ * based on the current configuration.
  * 
  * @author majorb
  *
  */
-public class NoOpGroupClient implements GroupClient {
-
-    @Override
-    public boolean isMember(GroupURI group) {
-        return false;
-    }
-
-    @Override
-    public List<GroupURI> getMemberships() {
-        return Arrays.asList();
-    }
+public interface GroupClient {
     
+    /**
+     * Return true if the calling user is a member of
+     * the group.
+     * 
+     * @param group The group membership to check
+     * @return true if the user is a member.
+     */
+    public boolean isMember(GroupURI group);
+    
+    /**
+     * Return the list of groups in which the calling user
+     * is a member.
+     * 
+     * @return The group memberships for the user.
+     */
+    public List<GroupURI> getMemberships();
+
+
 }
