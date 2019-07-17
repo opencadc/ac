@@ -66,124 +66,66 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.fail;
+package org.opencadc.gms;
 
+import java.lang.reflect.Constructor;
 import java.net.URI;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
 
 /**
+ * Group Utilities
+ * 
+ * @author majorb
  *
- * @author jburke
  */
-public class AddGroupMemberActionTest
-{
-    private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
-
-    @BeforeClass
-    public static void setUpClass()
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-    }
-
-    @Test
-    public void testExceptions()
-    {
-        try
-        {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
-
-            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
-            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
-            group.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            //expect(groupPersistence.getGroup("member")).andReturn(member);
-            replay(groupPersistence);
-
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-            {
-                @Override
-                public URI getServiceURI(URI standard)
-                {
-                    return URI.create("ivo://example.org/gms");
+public class GroupUtil {
+    
+    /**
+     * Construct a GMS Client from the classpath or fallback to
+     * the default, no-op implementation if a GMS Client has not
+     * been configured.  Classpath loaded implementations
+     * must provide a contructor that takes the service URI as
+     * an argument.
+     * 
+     * @param serviceID GMS Service ID.  If null, the default no-op
+     * implementation of GMS Client is returned.
+     * 
+     * @return A GMSClient instance.
+     */
+    public static GroupClient getGroupClient(URI serviceID) {
+        
+        Logger log = Logger.getLogger(GroupClient.class);
+        
+        String defaultImplClass = GroupClient.class.getName() + "Impl";
+        String cname = System.getProperty(GroupClient.class.getName());
+        Class c = null;
+        if (cname == null) {
+            cname = defaultImplClass;
+        }
+        
+        if (serviceID != null) {
+            try {
+                c = Class.forName(cname);
+                Constructor con = c.getConstructor(URI.class);
+                Object o = con.newInstance(serviceID);
+                GroupClient ret = (GroupClient) o;
+                log.debug("GMSClient: " + cname);
+                return ret;
+            } catch (Throwable t) {
+                if (!defaultImplClass.equals(cname) || c != null) {
+                    log.error("failed to load configured GMSClient: " + cname, t);
                 }
-            };
-            action.groupPersistence = groupPersistence;
-
-            try
-            {
-                action.doAction();
-                fail("duplicate group member should throw GroupAlreadyExistsException");
+                log.debug("failed to load default GMSClient: " + cname, t);
             }
-            catch (GroupAlreadyExistsException ignore) {}
+        } else {
+            log.debug("null serviceID, using default NoOpGMSClient");
         }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
-    }
-
-    @Test
-    public void testRun() throws Exception
-    {
-        try
-        {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
-
-            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
-            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
-            Group modified = new Group(new GroupURI(gmsServiceURI + "?group"));
-            modified.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence =
-                    createMock(GroupPersistence.class);
-
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            expect(groupPersistence.modifyGroup(group)).andReturn(group);
-            EasyMock.expectLastCall();
-
-            replay(groupPersistence);
-
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-                {
-                    @Override
-                    public URI getServiceURI(URI standard)
-                    {
-                        return URI.create("ivo://example.org/gms");
-                    }
-                };
-            action.groupPersistence = groupPersistence;
-
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-
-            action.doAction();
-
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        
+        log.debug("GMSClient: " + NoOpGroupClient.class.getName());
+        return new NoOpGroupClient();
+        
     }
 
 }

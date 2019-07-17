@@ -114,12 +114,14 @@ import java.util.List;
 import java.util.Set;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
 
 /**
  * Client class for performing group searching and group actions
  * with the access control web service.
  */
-public class GMSClient implements TransferListener
+public class GMSClient implements TransferListener, GroupClient
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
 
@@ -149,6 +151,50 @@ public class GMSClient implements TransferListener
     {
         return null; // no custom eventID header
     }
+    
+
+    
+    /**
+     * GMSClient Interface compliance.
+     * 
+     * Default 'role' within a group is 'membership'
+     * 
+     * Ensure serviceIDs match.
+     */
+    @Override
+    public boolean isMember(GroupURI group) {
+        if (group == null) {
+            throw new IllegalArgumentException("Null group");
+        }
+        if (!group.getServiceID().equals(serviceID)) {
+            throw new UnsupportedOperationException("Group is not in the target GMS service.");
+        }
+        try {
+            return this.isMember(group.getName(), Role.MEMBER);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    /**
+     * GMSClient Interface compliance.
+     *  
+     * Default 'role' within a group is 'membership'
+     */
+    @Override
+    public List<GroupURI> getMemberships() {
+        try {
+            List<Group> groups = this.getMemberships(Role.MEMBER);
+            ArrayList<GroupURI> ret = new ArrayList<GroupURI>(groups.size());
+            for (Group next : groups) {
+                ret.add(next.getID());
+            }
+            return ret;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
 
 
     /**

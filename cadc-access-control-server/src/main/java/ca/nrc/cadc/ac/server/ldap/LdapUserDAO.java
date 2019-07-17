@@ -69,7 +69,6 @@
 package ca.nrc.cadc.ac.server.ldap;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.Role;
@@ -129,6 +128,7 @@ import java.util.UUID;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 
 /**

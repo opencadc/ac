@@ -73,10 +73,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.GroupURI;
 import ca.nrc.cadc.reg.Standards;
 
 public class RemoveGroupMemberAction extends AbstractGroupAction

@@ -66,124 +66,37 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.fail;
+package org.opencadc.gms;
 
 import java.net.URI;
+import java.security.AccessControlException;
+import java.util.List;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.ac.client.GMSClient;
+import ca.nrc.cadc.cred.client.CredUtil;
 
 /**
+ * This class is acting as a bridge between the GroupClient in cadc-gms
+ * and the cadc-access-control implementation named GMSClient.
+ * 
+ * In cadc-gms, GroupUtil, the group client is loaded by trying to load
+ * a class with the name ca.nrc.cadc.gms.GroupClientImpl.
+ * 
+ * This class will be removed when GMSClient is renamed to be the name
+ * of this class.
+ * 
+ * @author majorb
  *
- * @author jburke
  */
-public class AddGroupMemberActionTest
-{
-    private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
-
-    @BeforeClass
-    public static void setUpClass()
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-    }
-
-    @Test
-    public void testExceptions()
-    {
-        try
-        {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
-
-            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
-            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
-            group.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            //expect(groupPersistence.getGroup("member")).andReturn(member);
-            replay(groupPersistence);
-
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-            {
-                @Override
-                public URI getServiceURI(URI standard)
-                {
-                    return URI.create("ivo://example.org/gms");
-                }
-            };
-            action.groupPersistence = groupPersistence;
-
-            try
-            {
-                action.doAction();
-                fail("duplicate group member should throw GroupAlreadyExistsException");
-            }
-            catch (GroupAlreadyExistsException ignore) {}
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
-    }
-
-    @Test
-    public void testRun() throws Exception
-    {
-        try
-        {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
-
-            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
-            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
-            Group modified = new Group(new GroupURI(gmsServiceURI + "?group"));
-            modified.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence =
-                    createMock(GroupPersistence.class);
-
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            expect(groupPersistence.modifyGroup(group)).andReturn(group);
-            EasyMock.expectLastCall();
-
-            replay(groupPersistence);
-
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-                {
-                    @Override
-                    public URI getServiceURI(URI standard)
-                    {
-                        return URI.create("ivo://example.org/gms");
-                    }
-                };
-            action.groupPersistence = groupPersistence;
-
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-
-            action.doAction();
-
-        }
-        catch (Throwable t)
-        {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+public class GroupClientImpl extends GMSClient {
+    
+    Logger log = Logger.getLogger(GroupClientImpl.class);
+    
+    public GroupClientImpl(URI serviceID) {
+        super(serviceID);
     }
 
 }
