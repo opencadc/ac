@@ -120,16 +120,12 @@ public class LdapGroupDAO extends LdapDAO
     private static final Logger logger = Logger.getLogger(LdapGroupDAO.class);
 
     // LDAP Group attributes
-    protected static final String LDAP_CN = "cn";
     protected static final String LDAP_DESCRIPTION = "description";
-    protected static final String LDAP_ENTRYDN = "entrydn";
     protected static final String LDAP_GROUP_OF_UNIQUE_NAMES = "groupofuniquenames";
-    protected static final String LDAP_INET_USER = "inetuser";
     protected static final String LDAP_MODIFY_TIMESTAMP = "modifytimestamp";
-    protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
-    protected static final String LDAP_OBJECT_CLASS = "objectClass";
     protected static final String LDAP_OWNER = "owner";
     protected static final String LDAP_UNIQUE_MEMBER = "uniquemember";
+    protected static final String LDAP_POSIX_GROUP = "posixgroup";
 
     private static final String[] PUB_GROUP_ATTRS = new String[]
             {
@@ -163,6 +159,29 @@ public class LdapGroupDAO extends LdapDAO
     }
 
     /**
+     * Persists a group with the specified gidNumber assigned to the posixGroup.
+     *
+     * @param group The group to create
+     * @param gidNumber gidNumber to be assigned to the posixGroup
+     * @return A Group instance
+     * @throws GroupAlreadyExistsException If a group with the same ID already
+     *                                     exists.
+     * @throws TransientException          If an temporary, unexpected problem occurred.
+     * @throws UserNotFoundException       If owner or a member not valid user.
+     * @throws GroupNotFoundException
+     */
+    public Group addUserAssociatedGroup(Group group, long gidNumber)
+            throws GroupAlreadyExistsException, TransientException,
+                   UserNotFoundException, AccessControlException 
+    {
+        try {
+            return addGroup(group, gidNumber);
+        } catch(GroupNotFoundException ex) {
+            throw new IllegalStateException("BUG: GroupMembers in group should be empty");
+        }
+    }
+    
+    /**
      * Persists a group.
      *
      * @param group The group to create
@@ -174,6 +193,14 @@ public class LdapGroupDAO extends LdapDAO
      * @throws GroupNotFoundException
      */
     public Group addGroup(final Group group)
+            throws GroupAlreadyExistsException, TransientException,
+                   UserNotFoundException, AccessControlException,
+                   GroupNotFoundException
+    {
+        return addGroup(group, null);
+    }
+
+    private Group addGroup(final Group group, Long gidNumber)
             throws GroupAlreadyExistsException, TransientException,
                    UserNotFoundException, AccessControlException,
                    GroupNotFoundException
@@ -203,6 +230,7 @@ public class LdapGroupDAO extends LdapDAO
                                              group.description,
                                              group.getUserMembers(),
                                              group.getGroupMembers(),
+                                             gidNumber,
                                              ldapRWConnection);
                 LdapDAO.checkLdapResult(result.getResultCode());
 
@@ -212,6 +240,7 @@ public class LdapGroupDAO extends LdapDAO
                                   group.description,
                                   group.getUserAdmins(),
                                   group.getGroupAdmins(),
+                                  gidNumber,
                                   ldapRWConnection);
                 LdapDAO.checkLdapResult(result.getResultCode());
             }
@@ -230,6 +259,7 @@ public class LdapGroupDAO extends LdapDAO
                                 final DN ownerDN, final String description,
                                 final Set<User> users,
                                 final Set<Group> groups,
+                                Long gidNumber,
                                 LDAPConnection ldapRWConnection)
             throws UserNotFoundException, LDAPException, TransientException,
                    AccessControlException, GroupNotFoundException
@@ -240,7 +270,14 @@ public class LdapGroupDAO extends LdapDAO
         attributes.add(ownerAttribute);
         attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_GROUP_OF_UNIQUE_NAMES));
         attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_INET_USER));
+        attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_POSIX_GROUP));
         attributes.add(new Attribute(LDAP_CN, groupID));
+        if (gidNumber == null) {
+            attributes.add(new Attribute(LDAP_GID_NUMBER, String.valueOf(this.genNextNumericId())));
+        } else {
+            attributes.add(new Attribute(LDAP_GID_NUMBER, String.valueOf(gidNumber)));
+            attributes.add(new Attribute(LDAP_NSACCOUNTLOCK, "true"));
+        }
 
         if (StringUtil.hasText(description))
         {
@@ -276,8 +313,7 @@ public class LdapGroupDAO extends LdapDAO
         logger.debug("addGroup: " + groupDN);
         return ldapRWConnection.add(addRequest);
     }
-
-
+   
     /**
      * Checks whether group name available for the user or already in use.
      *
@@ -289,7 +325,7 @@ public class LdapGroupDAO extends LdapDAO
      * @throws TransientException
      * @throws GroupAlreadyExistsException
      */
-    private boolean reactivateGroup(final Group group)
+    public boolean reactivateGroup(final Group group)
             throws AccessControlException, UserNotFoundException,
                    TransientException, GroupAlreadyExistsException
     {

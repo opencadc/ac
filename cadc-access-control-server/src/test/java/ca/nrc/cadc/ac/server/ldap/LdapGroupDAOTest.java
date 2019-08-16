@@ -75,6 +75,8 @@ import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
+import java.util.Random;
+
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -115,6 +117,42 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     String getGroupID()
     {
         return "CadcDaoTestGroup-" + System.currentTimeMillis();
+    }
+    
+    protected int genNextNumericId()
+    {
+        Random rand = new Random();
+        return rand.nextInt(Integer.MAX_VALUE - 20000) + 20000;
+    }
+    
+    @Test
+    public void testAddUserAssociatedGroup() throws Exception
+    {
+        final int numericID = genNextNumericId();
+
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
+                    setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
+                    getGroupDAO().addUserAssociatedGroup(expectGroup, numericID);
+                    
+                    Group actualGroup = getGroupDAO().getGroup(expectGroup.getID().getName(), true);
+                    log.info("addGroup: " + expectGroup.getID());
+                    assertGroupsEqual(expectGroup, actualGroup);
+                  
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    log.error("unexpected exception", e);
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
     }
 
     @Test

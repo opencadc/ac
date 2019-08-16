@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
@@ -75,7 +76,10 @@ import java.util.Collection;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -86,6 +90,8 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 
 public class LdapUserPersistence extends LdapPersistence implements UserPersistence
 {
@@ -148,14 +154,38 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     {
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
-            userDAO = new LdapUserDAO(conns);
-            return userDAO.addUserRequest(userRequest);
-        }
-        finally
-        {
-            conns.releaseConnections();
+        int retryCount = 0;
+        User user = null;
+        while (true) {
+            try
+            {
+                userDAO = new LdapUserDAO(conns);
+                user = userDAO.addUserRequest(userRequest);
+                
+                LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+                LocalAuthority localAuthority = new LocalAuthority();
+                URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+                GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + user.getHttpPrincipal().getName());
+                Group group = new Group(groupID);
+                group.getUserMembers().add(user);
+                group.getUserAdmins().add(user);
+                groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
+                return user;
+            } catch (GroupAlreadyExistsException ex) {
+                // retry a maximum of 10 times, then propagate the exception if it persists
+                if (retryCount < 10) {
+                    retryCount++;
+                    if (user != null) {
+                        deleteUserRequest(user.getHttpPrincipal());
+                    }
+                } else {
+                    throw new IllegalStateException("Group already exists after exhausting retries.", ex);
+                }
+            }
+            finally
+            {
+                conns.releaseConnections();
+            }
         }
     }
 
@@ -356,8 +386,23 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            userDAO = new LdapUserDAO(conns);
-            return userDAO.approveUserRequest(userID);
+            User userRequest = getUserRequest(userID);            
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+            String userName = userRequest.getHttpPrincipal().getName();
+            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userName);
+            try {
+                boolean activated = groupDAO.reactivateGroup(new Group(groupID));
+                if (activated) {
+                    userDAO = new LdapUserDAO(conns);
+                    return userDAO.approveUserRequest(userID);
+                } else {
+                    throw new IllegalStateException("BUG: Missing group for user " + userName);
+                }
+            } catch (GroupAlreadyExistsException ex) {
+                throw new IllegalStateException("BUG: Group for user " + userName + " has already been activated.");
+            }
         }
         finally
         {

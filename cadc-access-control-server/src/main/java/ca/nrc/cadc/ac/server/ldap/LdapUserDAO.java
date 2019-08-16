@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -150,13 +151,10 @@ public class LdapUserDAO extends LdapDAO
     protected static final String EXTERNAL_USER_SN = "$EXTERNAL-SN";
 
     // LDAP User attributes
-    protected static final String LDAP_OBJECT_CLASS = "objectClass";
-    protected static final String LDAP_INET_USER = "inetuser";
     protected static final String LDAP_INET_ORG_PERSON = "inetOrgPerson";
     protected static final String LDAP_CADC_ACCOUNT = "cadcaccount";
-    protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
+    protected static final String LDAP_POSIX_ACCOUNT = "posixaccount";
     protected static final String LDAP_MEMBEROF = "memberOf";
-    protected static final String LDAP_ENTRYDN = "entrydn";
     protected static final String LDAP_USER_NAME = "cn";
     protected static final String LDAP_DISTINGUISHED_NAME = "distinguishedName";
     protected static final String LADP_USER_PASSWORD = "userPassword";
@@ -168,14 +166,18 @@ public class LdapUserDAO extends LdapDAO
     protected static final String LDAP_EMAIL = "email";
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
+    protected static final String LDAP_UID_NUMBER = "uidNumber";
     protected static final String USER_ID = "id";
+    protected static final String LDAP_HOME_DIRECTORY = "homeDirectory";
+    protected static final String LDAP_LOGIN_SHELL = "loginShell";
 
     public static final String SUPPRESS_CHECKUSER_KEY = "cadc.skip.checkuser";
 
     private String[] userAttribs = new String[]
     {
             LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_ADDRESS, LDAP_CITY,
-            LDAP_COUNTRY, LDAP_EMAIL, LDAP_INSTITUTE
+            LDAP_COUNTRY, LDAP_EMAIL, LDAP_INSTITUTE, LDAP_HOME_DIRECTORY, 
+            LDAP_LOGIN_SHELL
     };
     private String[] firstLastAttribs = new String[]
     {
@@ -183,8 +185,8 @@ public class LdapUserDAO extends LdapDAO
     };
     private String[] identityAttribs = new String[]
     {
-        LDAP_UID, LDAP_DISTINGUISHED_NAME, LDAP_ENTRYDN,
-        LDAP_USER_NAME
+        LDAP_UID, LDAP_UID_NUMBER, LDAP_GID_NUMBER, 
+        LDAP_DISTINGUISHED_NAME, LDAP_ENTRYDN, LDAP_USER_NAME
     };
 
     public LdapUserDAO(LdapConnections connections)
@@ -286,11 +288,6 @@ public class LdapUserDAO extends LdapDAO
             throw new IllegalArgumentException("addUser: No user identities");
         }
 
-        if (user.posixDetails != null)
-        {
-            throw new UnsupportedOperationException("addUser: Support for users PosixDetails not available");
-        }
-
         Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
         if (x500Principals.isEmpty())
         {
@@ -304,38 +301,60 @@ public class LdapUserDAO extends LdapDAO
             checkUsers(p, null, config.getUsersDN());
         }
 
-        try
-        {
-            long numericID = genNextNumericId();
-            String password = UUID.randomUUID().toString();
-
-            List<Attribute> attributes = new ArrayList<Attribute>();
-            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
-            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
-            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
-            addAttribute(attributes, LDAP_UID, String.valueOf(numericID));
-            addAttribute(attributes, LDAP_USER_NAME,  EXTERNAL_USER_CN);
-            addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
-            addAttribute(attributes, LADP_USER_PASSWORD, password);
-            for (X500Principal p : x500Principals)
-            {
-                addAttribute(attributes, LDAP_DISTINGUISHED_NAME, p.getName());
+        int retryCount = 0;
+        while (true) {
+            try {
+                try
+                {
+                    long numericID = this.genNextNumericId();
+                    String password = UUID.randomUUID().toString();
+                    
+                    String homeDirectory = "/home" + String.valueOf(numericID);
+                    PosixDetails posixDetails = new PosixDetails(EXTERNAL_USER_CN, numericID, numericID, homeDirectory);
+                    posixDetails.loginShell = "/bin/nologin";
+                    user.posixDetails = posixDetails;
+        
+                    List<Attribute> attributes = new ArrayList<Attribute>();
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_POSIX_ACCOUNT);
+                    addAttribute(attributes, LDAP_UID, String.valueOf(numericID));
+                    addAttribute(attributes, LDAP_UID_NUMBER, String.valueOf(numericID));
+                    addAttribute(attributes, LDAP_GID_NUMBER, String.valueOf(numericID));
+                    addAttribute(attributes, LDAP_USER_NAME,  EXTERNAL_USER_CN);
+                    addAttribute(attributes, LDAP_LAST_NAME, EXTERNAL_USER_SN);
+                    addAttribute(attributes, LADP_USER_PASSWORD, password);
+                    addAttribute(attributes, LDAP_HOME_DIRECTORY, user.posixDetails.getHomeDirectory());
+                    addAttribute(attributes, LDAP_LOGIN_SHELL, user.posixDetails.loginShell);
+                    for (X500Principal p : x500Principals)
+                    {
+                        addAttribute(attributes, LDAP_DISTINGUISHED_NAME, p.getName());
+                    }
+        
+                    // use the same ldapConnection to add the user and subsequently get the same user
+                    DN userDN = getUserDN(numericID, config.getUsersDN());
+                    AddRequest addRequest = new AddRequest(userDN, attributes);
+                    logger.debug("addUser: adding " + idForLogging.getName() + " to " + config.getUsersDN());
+                    LDAPConnection ldapRWConn = getReadWriteConnection();
+                    LDAPResult result = ldapRWConn.add(addRequest);
+                    LdapDAO.checkLdapResult(result.getResultCode());
+                    return getUser((Principal) principals.toArray()[0], ldapRWConn);
+                }
+                catch (LDAPException e)
+                {
+                    logger.error("addUser Exception: " + e, e);
+                    LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+                    throw new RuntimeException("Unexpected LDAP exception", e);
+                }
+            } catch (UserAlreadyExistsException ex) {
+                // retry a maximum of 10 times, then propagate the exception if it persists
+                if (retryCount < 10) {
+                    retryCount++;
+                } else {
+                    throw new IllegalStateException("User already exists after exhausting retries.", ex);
+                }
             }
-
-            // use the same ldapConnection to add the user and subsequently get the same user
-            DN userDN = getUserDN(numericID, config.getUsersDN());
-            AddRequest addRequest = new AddRequest(userDN, attributes);
-            logger.debug("addUser: adding " + idForLogging.getName() + " to " + config.getUsersDN());
-            LDAPConnection ldapRWConn = getReadWriteConnection();
-            LDAPResult result = ldapRWConn.add(addRequest);
-            LdapDAO.checkLdapResult(result.getResultCode());
-            return getUser((Principal) principals.toArray()[0], ldapRWConn);
-        }
-        catch (LDAPException e)
-        {
-            logger.error("addUser Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
-            throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
 
@@ -406,11 +425,6 @@ public class LdapUserDAO extends LdapDAO
             throw new IllegalArgumentException(error);
         }
 
-        if (user.posixDetails != null)
-        {
-            throw new UnsupportedOperationException("Support for users PosixDetails not available");
-        }
-
         // email is required
         String email = getEmailAddress(user);
 
@@ -420,47 +434,69 @@ public class LdapUserDAO extends LdapDAO
         // check user requests
         checkUsers(userID, email, config.getUserRequestsDN());
 
-        try
-        {
-            long numericID = genNextNumericId();
-
-            List<Attribute> attributes = new ArrayList<Attribute>();
-            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
-            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
-            addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
-            addAttribute(attributes, LDAP_UID, String.valueOf(numericID));
-            addAttribute(attributes, LDAP_USER_NAME,  userID.getName());
-            addAttribute(attributes, LDAP_LAST_NAME, user.personalDetails.getLastName());
-            addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
-            addAttribute(attributes, LDAP_FIRST_NAME, user.personalDetails.getFirstName());
-            addAttribute(attributes, LDAP_ADDRESS, user.personalDetails.address);
-            addAttribute(attributes, LDAP_CITY, user.personalDetails.city);
-            addAttribute(attributes, LDAP_COUNTRY, user.personalDetails.country);
-            addAttribute(attributes, LDAP_EMAIL, email);
-            addAttribute(attributes, LDAP_INSTITUTE, user.personalDetails.institute);
-
-            Set<Principal> principals = user.getIdentities();
-            for (Principal princ : principals)
-            {
-                if (princ instanceof X500Principal)
+        int retryCount = 0;
+        while (true) {
+            try {
+                try
                 {
-                    addAttribute(attributes, LDAP_DISTINGUISHED_NAME, princ.getName());
+                    long numericID = this.genNextNumericId();
+                    
+                    String homeDirectory = "/home/" + String.valueOf(numericID);
+                    PosixDetails posixDetails = new PosixDetails(userID.getName(), numericID, numericID, homeDirectory);
+                    posixDetails.loginShell = "/bin/nologin";
+                    user.posixDetails = posixDetails;
+        
+                    List<Attribute> attributes = new ArrayList<Attribute>();
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_ORG_PERSON);
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_INET_USER);
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_CADC_ACCOUNT);
+                    addAttribute(attributes, LDAP_OBJECT_CLASS, LDAP_POSIX_ACCOUNT);
+                    addAttribute(attributes, LDAP_UID, String.valueOf(numericID));
+                    addAttribute(attributes, LDAP_UID_NUMBER, String.valueOf(numericID));
+                    addAttribute(attributes, LDAP_GID_NUMBER, String.valueOf(numericID));
+                    addAttribute(attributes, LDAP_USER_NAME,  userID.getName());
+                    addAttribute(attributes, LDAP_LAST_NAME, user.personalDetails.getLastName());
+                    addAttribute(attributes, LADP_USER_PASSWORD, new String(userRequest.getPassword()));
+                    addAttribute(attributes, LDAP_FIRST_NAME, user.personalDetails.getFirstName());
+                    addAttribute(attributes, LDAP_ADDRESS, user.personalDetails.address);
+                    addAttribute(attributes, LDAP_CITY, user.personalDetails.city);
+                    addAttribute(attributes, LDAP_COUNTRY, user.personalDetails.country);
+                    addAttribute(attributes, LDAP_EMAIL, email);
+                    addAttribute(attributes, LDAP_INSTITUTE, user.personalDetails.institute);
+                    addAttribute(attributes, LDAP_HOME_DIRECTORY, user.posixDetails.getHomeDirectory());
+                    addAttribute(attributes, LDAP_LOGIN_SHELL, user.posixDetails.loginShell);
+        
+                    Set<Principal> principals = user.getIdentities();
+                    for (Principal princ : principals)
+                    {
+                        if (princ instanceof X500Principal)
+                        {
+                            addAttribute(attributes, LDAP_DISTINGUISHED_NAME, princ.getName());
+                        }
+                    }
+        
+                    DN userDN = getUserDN(numericID, config.getUserRequestsDN());
+                    AddRequest addRequest = new AddRequest(userDN, attributes);
+                    logger.debug("addUserRequest: adding " + userID.getName() + " to " + config.getUserRequestsDN());
+                    LDAPConnection ldapRWConn = getReadWriteConnection();
+                    LDAPResult result = ldapRWConn.add(addRequest);
+                    LdapDAO.checkLdapResult(result.getResultCode());
+                    return getUserRequest((Principal) principals.toArray()[0], ldapRWConn);
+                }
+                catch (LDAPException e)
+                {
+                    logger.error("addUserRequest Exception: " + e, e);
+                    LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+                    throw new RuntimeException("Unexpected LDAP exception", e);
+                }
+            } catch (UserAlreadyExistsException ex) {
+                // retry a maximum of 10 times, then propagate the exception if it persists
+                if (retryCount < 10) {
+                    retryCount++;
+                } else {
+                    throw new IllegalStateException("UserRequest already exists after exhausting retries.", ex);
                 }
             }
-
-            DN userDN = getUserDN(numericID, config.getUserRequestsDN());
-            AddRequest addRequest = new AddRequest(userDN, attributes);
-            logger.debug("addUserRequest: adding " + userID.getName() + " to " + config.getUserRequestsDN());
-            LDAPConnection ldapRWConn = getReadWriteConnection();
-            LDAPResult result = ldapRWConn.add(addRequest);
-            LdapDAO.checkLdapResult(result.getResultCode());
-            return getUserRequest((Principal) principals.toArray()[0], ldapRWConn);
-        }
-        catch (LDAPException e)
-        {
-            logger.error("addUserRequest Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
-            throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
 
@@ -595,18 +631,25 @@ public class LdapUserDAO extends LdapDAO
             newUser.personalDetails.institute = userEntry.getAttributeValue(LDAP_INSTITUTE);
         }
 
-        String username = userEntry.getAttributeValue(LDAP_USER_NAME);
-        logger.debug("makeUserFromResult: username = " + username);
-        if (username != null) {
-            newUser.getIdentities().add(new HttpPrincipal(username));
-        }
-
         String uid = userEntry.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
         logger.debug("makeUserFromResult: uid = " + uid);
         if (uid == null) {
             // If the numeric ID does not return it means the user
             // does not have permission
             throw new AccessControlException("Permission denied");
+        }
+
+        String username = userEntry.getAttributeValue(LDAP_USER_NAME);
+        logger.debug("makeUserFromResult: username = " + username);
+        if (username != null) {
+            newUser.getIdentities().add(new HttpPrincipal(username));
+            String homeDir = userEntry.getAttributeValue(LDAP_HOME_DIRECTORY);
+            if (homeDir != null) {
+                // uid, uidNumber and gidNumber hold the same value
+                long gidNumber = Long.valueOf(uid);
+                newUser.posixDetails = new PosixDetails(username, gidNumber, gidNumber, homeDir);
+                newUser.posixDetails.loginShell = userEntry.getAttributeValue(LDAP_LOGIN_SHELL);
+            }
         }
 
         InternalID internalID = getInternalID(uid);
@@ -844,6 +887,14 @@ public class LdapUserDAO extends LdapDAO
             user.personalDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
             user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
             user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
+            
+            // numericID, uidNumber and gidNumber hold the same value
+            long gidNumber = Long.valueOf(numericID);
+            String homeDir = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
+            if (homeDir != null) {
+                user.posixDetails = new PosixDetails(userIDString, gidNumber, gidNumber, homeDir);
+                user.posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
+            }
         }
 
         return user;
@@ -1056,6 +1107,13 @@ public class LdapUserDAO extends LdapDAO
                         StringUtil.hasLength(lastName))
                     {
                         user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
+                        String homeDir = next.getAttributeValue(LDAP_HOME_DIRECTORY);
+                        if (homeDir != null) {
+                            // uid, uidNumber and gidNumber hold the same value
+                            long gidNumber = Long.valueOf(next.getAttributeValue(LDAP_UID));
+                            user.posixDetails = new PosixDetails(username, gidNumber, gidNumber, homeDir);
+                            user.posixDetails.loginShell = next.getAttributeValue(LDAP_LOGIN_SHELL);
+                        }
                     }
 
                     users.add(user);
@@ -1151,8 +1209,11 @@ public class LdapUserDAO extends LdapDAO
 
         if (user.posixDetails != null)
         {
-            throw new UnsupportedOperationException(
-                "Support for users PosixDetails not available");
+            addModification(mods, LDAP_USER_NAME, user.posixDetails.getUsername());
+            addModification(mods, LDAP_UID_NUMBER, Long.toString(user.posixDetails.getUid()));
+            addModification(mods, LDAP_GID_NUMBER, Long.toString(user.posixDetails.getGid()));
+            addModification(mods, LDAP_HOME_DIRECTORY, user.posixDetails.getHomeDirectory());
+            addModification(mods, LDAP_LOGIN_SHELL, user.posixDetails.loginShell);
         }
 
         // set the x500 DNs if there
@@ -1424,6 +1485,12 @@ public class LdapUserDAO extends LdapDAO
         return new DN(LDAP_UID + "=" + numericID + "," + usersDN);
     }
 
+    protected DN getGroupDN(String userName, String groupDN)
+            throws LDAPException, TransientException
+    {
+        return new DN(LDAP_CN + "=" + userName + "," + groupDN);
+    }
+
     private void addAttribute(List<Attribute> attributes, final String name, final String value)
     {
         if (value != null && !value.isEmpty())
@@ -1464,19 +1531,6 @@ public class LdapUserDAO extends LdapDAO
         {
             LdapDAO.checkLdapResult(code);
         }
-    }
-
-    /**
-     * Method to return a randomly generated user numeric ID. The default
-     * implementation returns a value between 10000 and Integer.MAX_VALUE.
-     * Services that support a different mechanism for generating numeric
-     * IDs override this method.
-     * @return
-     */
-    protected int genNextNumericId()
-    {
-        Random rand = new Random();
-        return rand.nextInt(Integer.MAX_VALUE - 10000) + 10000;
     }
 
     protected long uuid2long(UUID uuid)

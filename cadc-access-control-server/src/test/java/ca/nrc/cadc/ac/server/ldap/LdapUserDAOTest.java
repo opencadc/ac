@@ -94,7 +94,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -215,7 +217,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
         // Adding a new user is done anonymously
         final LdapUserDAO userDAO = getUserDAO();
-        userDAO.addUserRequest(userRequest);
+        User returnedUser = userDAO.addUserRequest(userRequest);
 
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUserRequestsDN());
         Subject subject = new Subject();
@@ -231,7 +233,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 {
                     final User actualUser = userDAO.getUserRequest(userID);
                     check(expectedUser, actualUser);
-
                     return null;
                 }
                 catch (Exception e)
@@ -458,7 +459,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         try
         {
             final LdapUserDAO httpUserDAO = getUserDAO();
-            httpUserDAO.addUserRequest(userRequest);
+            User newUserRequest = httpUserDAO.addUserRequest(userRequest);
         }
         catch (UserAlreadyExistsException expected) {}
 
@@ -1161,6 +1162,20 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             assertEquals(pd1.country, pd2.country);
             assertEquals(pd1.email, pd2.email);
             assertEquals(pd1.institute, pd2.institute);
+        }
+        
+        assertEquals(expected.posixDetails, actual.posixDetails);
+        PosixDetails posixd1 = expected.posixDetails;
+        PosixDetails posixd2 = actual.posixDetails;
+        assertEquals(posixd1, posixd2);
+
+        if (posixd1 != null && posixd2 != null)
+        {
+            assertEquals(posixd1.getUsername(), posixd2.getUsername());
+            assertEquals(posixd1.getUid(), posixd2.getUid());
+            assertEquals(posixd1.getGid(), posixd2.getGid());
+            assertEquals(posixd1.getHomeDirectory(), posixd2.getHomeDirectory());
+            assertEquals(posixd1.loginShell, posixd2.loginShell);
         }
     }
 
