@@ -177,7 +177,7 @@ public class LdapGroupDAO extends LdapDAO
         try {
             return addGroup(group, gidNumber);
         } catch(GroupNotFoundException ex) {
-            throw new IllegalStateException("BUG: GroupMembers in group should be empty");
+            throw new IllegalStateException("Failed to add user associated group.");
         }
     }
     
