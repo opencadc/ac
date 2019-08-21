@@ -309,7 +309,7 @@ public class LdapUserDAO extends LdapDAO
                     long numericID = this.genNextNumericId();
                     String password = UUID.randomUUID().toString();
                     
-                    String homeDirectory = "/home" + String.valueOf(numericID);
+                    String homeDirectory = "/home/" + String.valueOf(numericID);
                     PosixDetails posixDetails = new PosixDetails(EXTERNAL_USER_CN, numericID, numericID, homeDirectory);
                     posixDetails.loginShell = "/bin/nologin";
                     user.posixDetails = posixDetails;

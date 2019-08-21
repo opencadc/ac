@@ -84,6 +84,8 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
 import java.util.List;
+import java.util.UUID;
+
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
@@ -217,7 +219,7 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
 
         // Adding a new user is done anonymously
         final LdapUserDAO userDAO = getUserDAO();
-        User returnedUser = userDAO.addUserRequest(userRequest);
+        userDAO.addUserRequest(userRequest);
 
         DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUserRequestsDN());
         Subject subject = new Subject();
@@ -459,9 +461,17 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
         try
         {
             final LdapUserDAO httpUserDAO = getUserDAO();
-            User newUserRequest = httpUserDAO.addUserRequest(userRequest);
+            httpUserDAO.addUserRequest(userRequest);
         }
-        catch (UserAlreadyExistsException expected) {}
+        catch (UserAlreadyExistsException expected) {
+            final LdapUserDAO httpUserDAO = getUserDAO();
+            httpUserDAO.deleteUserRequest(httpPrincipal);
+            try {
+                httpUserDAO.addUserRequest(userRequest);
+            } catch (UserAlreadyExistsException ex) {
+                fail("Failed to delete userRequest.");
+            }
+        }
 
         final Subject subject = new Subject();
         subject.getPrincipals().add(httpPrincipal);
@@ -1278,5 +1288,4 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
-
 }
