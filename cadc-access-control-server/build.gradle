@@ -39,4 +39,6 @@ dependencies {
     testCompile 'org.easymock:easymock:3.+'
     testCompile 'xerces:xercesImpl:2.+'
     testCompile 'org.skyscreamer:jsonassert:1.+'
+
+    testCompile 'org.opencadc:cadc-access-control-admin:[1.0.2,)'
 }

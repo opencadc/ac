@@ -71,32 +71,45 @@ package ca.nrc.cadc.ac.server.ldap;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
 import javax.security.auth.Subject;
+import javax.servlet.GenericServlet;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
 
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.UserRequestServlet;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthenticatorImpl;
+import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.util.ObjectUtil;
 
 public class LdapUserPersistence extends LdapPersistence implements UserPersistence
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
 
+    private static final String POSIX_OWNER = "posixOwner";
+    
     public LdapUserPersistence()
     {
         super();
@@ -149,7 +162,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    public User addUserRequest(UserRequest userRequest)
+    public User addUserRequest(UserRequest userRequest, final Subject posixGroupOwner)
         throws UserNotFoundException, TransientException, AccessControlException, UserAlreadyExistsException
     {
         LdapUserDAO userDAO = null;
@@ -159,21 +172,46 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         while (true) {
             try
             {
+                // add the userRequest
                 userDAO = new LdapUserDAO(conns);
-                user = userDAO.addUserRequest(userRequest);
                 
+                // create the group to be associated with this userRequest
                 LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
                 LocalAuthority localAuthority = new LocalAuthority();
                 URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-                GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + user.getHttpPrincipal().getName());
+                GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userRequest.getUser().getHttpPrincipal().getName());
                 Group group = new Group(groupID);
+                
+                try {
+                    // get all identities and detailed info on the group owner
+                    User owner = (User) Subject.doAs(posixGroupOwner, new PrivilegedExceptionAction<Object>() {
+                        public Object run() throws Exception {
+                            Principal ownerPrincipal = (Principal) posixGroupOwner.getPrincipals().toArray()[0];
+                            return getUser(ownerPrincipal);
+                        }
+                    });
+                    (new AuthenticatorImpl()).augmentSubject(posixGroupOwner);
+                    owner.getIdentities().addAll(posixGroupOwner.getPrincipals());
+                    ObjectUtil.setField(group, owner, "owner");
+                } catch (PrivilegedActionException ex) {
+                    throw new AccessControlException(ex.getMessage());
+                }
+                
+                // ensure that there is no existing group with the same user name
+                checkIfGroupExists(group, groupDAO);
+
+                // group does not exist, add the userRequest
+                user = userDAO.addUserRequest(userRequest);
                 group.getUserMembers().add(user);
                 group.getUserAdmins().add(user);
+                
+                // add the group associated with the userRequest
                 groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
                 return user;
             } catch (GroupAlreadyExistsException ex) {
-                // retry a maximum of 10 times, then propagate the exception if it persists
-                if (retryCount < 10) {
+                // in case the same group was added within a small window, very low probability
+                // clean up, retry a maximum of 5 times, then propagate the exception if it persists
+                if (retryCount < 5) {
                     retryCount++;
                     if (user != null) {
                         deleteUserRequest(user.getHttpPrincipal());
@@ -371,7 +409,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      *
      * @param userID      The user instance to move.
      *
-     * @return User instance.
+     * @return User instance or null if approval failed.
      *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
@@ -386,17 +424,29 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         try
         {
-            User userRequest = getUserRequest(userID);            
+            // get the userRequest
+            User userRequest = getUserRequest(userID); 
+            
+            // get the group associated with the userRequest
+            userDAO = new LdapUserDAO(conns);
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
             String userName = userRequest.getHttpPrincipal().getName();
             GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userName);
             try {
-                boolean activated = groupDAO.reactivateGroup(new Group(groupID));
+                // activate the group
+                Group associatedGroup = new Group(groupID);
+                boolean activated = groupDAO.reactivateGroup(associatedGroup);
                 if (activated) {
-                    userDAO = new LdapUserDAO(conns);
-                    return userDAO.approveUserRequest(userID);
+                    try {
+                        // approve the userRequest
+                        return userDAO.approveUserRequest(userID);
+                    } catch (Exception ex) {
+                        // approval failed, deactivate the group
+                        groupDAO.deactivateGroup(associatedGroup);
+                        return null;
+                    }
                 } else {
                     throw new IllegalStateException("BUG: Missing group for user " + userName);
                 }
@@ -520,6 +570,19 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try
         {
             userDAO = new LdapUserDAO(conns);
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+            
+            // delete the pending group associated with the user
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());            
+            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userID.getName());
+            try {
+                // delete the group and then the userRequest
+                groupDAO.deleteUserAssociatedGroup(groupID.getName());
+            } catch (GroupNotFoundException ex) {
+                // no associated group, just delete the userRequest
+            }     
+            
             userDAO.deleteUserRequest(userID);
         }
         finally
@@ -623,7 +686,37 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             conns.releaseConnections();
         }
     }
-
+    
+    private void checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
+        boolean retry = true;
+        int retryCount = 0;
+        while (retry) {
+            try {
+                groupDAO.getGroup(group.getID().getName(), false);
+                throw new RuntimeException("Group already exists for " + group.getID().getName());
+            } catch (GroupNotFoundException ex) {
+                try {
+                    groupDAO.getUserAssociatedGroup(group.getID().getName(), false);
+                    throw new RuntimeException("Group already exists for " + group.getID().getName());
+                } catch (GroupNotFoundException ex1) {
+                    // do nothing
+                } catch (TransientException tex) {
+                    if (retryCount < 5) {
+                        retryCount++;
+                    } else {
+                        retry = false;
+                    }
+                }
+            } catch (TransientException tex) {
+                if (retryCount < 5) {
+                    retryCount++;
+                } else {
+                    retry = false;
+                }
+            }
+        }
+    }
+    
     private boolean isMatch(Subject caller, User user)
     {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))

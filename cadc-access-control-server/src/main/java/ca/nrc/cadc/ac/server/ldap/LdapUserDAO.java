@@ -348,8 +348,8 @@ public class LdapUserDAO extends LdapDAO
                     throw new RuntimeException("Unexpected LDAP exception", e);
                 }
             } catch (UserAlreadyExistsException ex) {
-                // retry a maximum of 10 times, then propagate the exception if it persists
-                if (retryCount < 10) {
+                // retry a maximum of 5 times, then propagate the exception if it persists
+                if (retryCount < 5) {
                     retryCount++;
                 } else {
                     throw new IllegalStateException("User already exists after exhausting retries.", ex);
@@ -490,8 +490,8 @@ public class LdapUserDAO extends LdapDAO
                     throw new RuntimeException("Unexpected LDAP exception", e);
                 }
             } catch (UserAlreadyExistsException ex) {
-                // retry a maximum of 10 times, then propagate the exception if it persists
-                if (retryCount < 10) {
+                // retry a maximum of 5 times, then propagate the exception if it persists
+                if (retryCount < 5) {
                     retryCount++;
                 } else {
                     throw new IllegalStateException("UserRequest already exists after exhausting retries.", ex);
@@ -1232,7 +1232,7 @@ public class LdapUserDAO extends LdapDAO
         LDAPConnection ldapRWConn = getReadWriteConnection();
         try
         {
-            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(user, ldapRWConn), mods);
+            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(user, ldapRWConn, false), mods);
             //modifyRequest.addControl(
             //    new ProxiedAuthorizationV2RequestControl(
             //        "dn:" + getSubjectDN().toNormalizedString()));
@@ -1265,7 +1265,7 @@ public class LdapUserDAO extends LdapDAO
             LDAPConnection ldapRWConn = this.getReadWriteConnection();
             User user = new User();
             user.getIdentities().add(userID);
-            DN userDN = getUserDN(user, ldapRWConn);
+            DN userDN = getUserDN(user, ldapRWConn, false);
 
             //BindRequest bindRequest = new SimpleBindRequest(
             //        getUserDN(username, config.getUsersDN()), oldPassword);
@@ -1425,7 +1425,7 @@ public class LdapUserDAO extends LdapDAO
         return ret;
     }
 
-    DN getUserDN(User user, final LDAPConnection ldapConn)
+    DN getUserDN(User user, final LDAPConnection ldapConn, boolean isPending)
         throws UserNotFoundException, TransientException, LDAPException
     {
         Principal p = getPreferredPrincipal(user);
@@ -1434,9 +1434,16 @@ public class LdapUserDAO extends LdapDAO
             throw new UserNotFoundException("No identities");
         }
 
+        String configUserDN = null;
+        if (isPending) {
+            configUserDN = config.getUserRequestsDN();
+        } else {
+            configUserDN = config.getUsersDN();
+        }
+        
         // DN can be formulated if it is the numeric id
         if (p instanceof NumericPrincipal)
-            return this.getUserDN(uuid2long(UUID.fromString(p.getName())), config.getUsersDN());
+            return this.getUserDN(uuid2long(UUID.fromString(p.getName())), configUserDN);
 
         // Otherwise we need to search for the numeric id
         String searchField = userLdapAttrib.get(p.getClass());
@@ -1461,9 +1468,9 @@ public class LdapUserDAO extends LdapDAO
         try
         {
             SearchRequest searchRequest = new SearchRequest(
-                config.getUsersDN(), SearchScope.ONE, filter, LDAP_ENTRYDN);
+                configUserDN, SearchScope.ONE, filter, LDAP_ENTRYDN);
             searchResult = ldapConn.searchForEntry(searchRequest);
-            logger.debug("getUserDN: got " + p.getName() + " from " + config.getUsersDN());
+            logger.debug("getUserDN: got " + p.getName() + " from " + configUserDN);
         }
         catch (LDAPException e)
         {
@@ -1472,7 +1479,7 @@ public class LdapUserDAO extends LdapDAO
 
         if (searchResult == null)
         {
-            String msg = "User not found " + p.getName() + " in " + config.getUsersDN();
+            String msg = "User not found " + p.getName() + " in " + configUserDN;
             logger.debug(msg);
             throw new UserNotFoundException(msg);
         }

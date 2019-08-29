@@ -75,7 +75,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import ca.nrc.cadc.auth.Authenticator;
 import java.io.File;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -84,7 +83,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
 import java.util.List;
-import java.util.UUID;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -96,21 +94,17 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
-import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
 
 public class LdapUserDAOTest extends AbstractLdapDAOTest
 {

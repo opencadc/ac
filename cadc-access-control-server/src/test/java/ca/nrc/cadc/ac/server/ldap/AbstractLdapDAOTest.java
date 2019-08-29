@@ -263,6 +263,12 @@ public class AbstractLdapDAOTest
         return new LdapUserDAO(connections);
     }
 
+    LdapGroupDAO getGroupDAO() throws Exception
+    {
+        return new LdapGroupDAO(connections,
+                new LdapUserDAO(connections));
+    }
+
     static protected LdapConfig getLdapConfig() throws Exception
     {
         return LdapConfig.loadLdapConfig(CONFIG);

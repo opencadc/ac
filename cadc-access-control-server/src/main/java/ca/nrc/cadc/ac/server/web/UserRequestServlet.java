@@ -110,6 +110,8 @@ public class UserRequestServlet extends HttpServlet
     private List<Subject> privilegedSubjects;
 
     private UserPersistence userPersistence;
+    
+    private Subject posixGroupOwnerSubject;
 
     /**
      * Servlet initialization method.
@@ -150,6 +152,12 @@ public class UserRequestServlet extends HttpServlet
 
             String httpUsers = config.getInitParameter(UserRequestServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("PrivilegedHttpUsers: " + httpUsers);
+
+            String posixGroupOwner = config.getInitParameter("posixGroupOwner");
+            posixGroupOwnerSubject = new Subject();
+            posixGroupOwnerSubject.getPrincipals().add(new HttpPrincipal(posixGroupOwner));
+            
+            log.debug("Posix group owner: " + posixGroupOwner);
 
             List<String> x500List = new ArrayList<String>();
             List<String> httpList = new ArrayList<String>();
@@ -234,6 +242,7 @@ public class UserRequestServlet extends HttpServlet
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
+                action.setPosixGroupOwnerSubject(posixGroupOwnerSubject);
                 logInfo.setSubject(privilegedSubject);
                 profiler.checkpoint("set privileged user");
             }
