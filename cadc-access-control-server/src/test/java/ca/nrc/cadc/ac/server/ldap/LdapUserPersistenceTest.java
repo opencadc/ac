@@ -74,9 +74,9 @@ import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.admin.ContextFactoryImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.db.StandaloneContextFactory;
 import ca.nrc.cadc.util.Log4jInit;
 
 import java.security.Principal;
@@ -86,13 +86,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.naming.Context;
-import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -104,8 +104,6 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
 {
     private static final Logger log = Logger.getLogger(LdapUserPersistenceTest.class);
     
-    private Context ctx;
-
     @BeforeClass
     public static void setUpClass()
     {
@@ -118,18 +116,17 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
     {
         //System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
-
+    
     String createUsername()
     {
         return "CadcDaoTestUser-" + System.currentTimeMillis();
     }
-
+    
     private void initJNDI() throws NamingException
     {
-        String bindName = ConnectionPools.class.getName();
-        System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
-        ctx = new InitialContext();
-
+        StandaloneContextFactory.initJNDI();
+        Context ctx = (new StandaloneContextFactory()).getInitialContext(null);
+        
         Map<String,LdapConnectionPool> poolMap = new HashMap<String,LdapConnectionPool>(3);
         poolMap.put(LdapPersistence.POOL_READONLY, new LdapConnectionPool(
                 config, config.getReadOnlyPool(), LdapPersistence.POOL_READONLY, true, true));
@@ -140,21 +137,23 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
 
         ConnectionPools pools = new ConnectionPools(poolMap, config);
 
+        String bindName = ConnectionPools.class.getName();
         ctx.bind(bindName, pools);
         log.debug("Bound connection pools with config " + config);
     }
 
     private void teardownJNDI() throws NamingException
     {
+        Context ctx = (new StandaloneContextFactory()).getInitialContext(null);
         if (ctx != null)
             ctx.unbind(ConnectionPools.class.getName());
     }
 
     @Test
-    public void testAddUesRequestWithExistingGroup() throws Exception
+    public void testAddUserRequestWithExistingGroup() throws Exception
     {
         try {
-            this.initJNDI();
+            initJNDI();
             
             // prepare a userRequest
             final String username = createUsername();
@@ -162,7 +161,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
     
             Subject subject = new Subject();
             subject.getPrincipals().add(userID);
-
+    
             final User expectedUser = new User();
             final LdapUserPersistence userPersistence = new LdapUserPersistence();
             
@@ -203,15 +202,15 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
                 }
             }
         } finally {
-            this.teardownJNDI();
+            teardownJNDI();
         }
     }
     
-    //@Test
+    @Test
     public void testAddAndApproveUserRequest() throws Exception
     {
         try {
-            this.initJNDI();
+            initJNDI();
             
             // add user using HttpPrincipal
             final String username = createUsername();
@@ -219,7 +218,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
     
             Subject subject = new Subject();
             subject.getPrincipals().add(userID);
-
+    
             final User expectedUser = new User();
             final LdapUserPersistence userPersistence = new LdapUserPersistence();
             
@@ -285,15 +284,15 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
                 }
             }
         } finally {
-            this.teardownJNDI();
+            teardownJNDI();
         }
     }
     
-    //@Test
+    @Test
     public void testAddAndDeleteUserRequest() throws Exception
     {
         try {
-            this.initJNDI();
+            initJNDI();
             
             // add user using HttpPrincipal
             final String username = createUsername();
@@ -346,7 +345,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
                 }
             }
         } finally {
-            this.teardownJNDI();
+            teardownJNDI();
         }
     }
 
