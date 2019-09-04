@@ -101,7 +101,7 @@ import org.junit.Test;
 import org.opencadc.gms.GroupURI;
 
 public class LdapUserPersistenceTest extends AbstractLdapDAOTest
-{
+{	
     private static final Logger log = Logger.getLogger(LdapUserPersistenceTest.class);
     
     @BeforeClass
@@ -124,6 +124,9 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
     
     private void initJNDI() throws NamingException
     {
+    	// disable checking the pool so that the non-test configuration won't be loaded
+    	LdapPersistence.POOL_CHECK_INTERVAL_MILLESCONDS = -1;
+    	
         StandaloneContextFactory.initJNDI();
         Context ctx = (new StandaloneContextFactory()).getInitialContext(null);
         
