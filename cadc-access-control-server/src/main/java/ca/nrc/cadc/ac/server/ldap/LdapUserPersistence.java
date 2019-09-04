@@ -109,6 +109,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
 
     private static final String POSIX_OWNER = "posixOwner";
+    private static final int MAX_RETRY_COUNT = 5;
     
     public LdapUserPersistence()
     {
@@ -169,7 +170,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapConnections conns = new LdapConnections(this);
         int retryCount = 0;
         User user = null;
-        while (true) {
+        while (retryCount < MAX_RETRY_COUNT) {
             try
             {
                 // add the userRequest
@@ -198,8 +199,11 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
                 }
                 
                 // ensure that there is no existing group with the same user name
-                checkIfGroupExists(group, groupDAO);
-
+                boolean groupExists = checkIfGroupExists(group, groupDAO);
+                if (groupExists) {
+	                throw new GroupAlreadyExistsException("Group " + group.getID().getName() + " already exists ");
+                }
+                
                 // group does not exist, add the userRequest
                 user = userDAO.addUserRequest(userRequest);
                 group.getUserMembers().add(user);
@@ -207,24 +211,25 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
                 
                 // add the group associated with the userRequest
                 groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
-                return user;
             } catch (GroupAlreadyExistsException ex) {
                 // in case the same group was added within a small window, very low probability
                 // clean up, retry a maximum of 5 times, then propagate the exception if it persists
-                if (retryCount < 5) {
-                    retryCount++;
-                    if (user != null) {
-                        deleteUserRequest(user.getHttpPrincipal());
-                    }
-                } else {
+                if (user != null) {
+                    deleteUserRequest(user.getHttpPrincipal());
+                }
+                
+                if (retryCount == MAX_RETRY_COUNT) {
                     throw new IllegalStateException("Group already exists after exhausting retries.", ex);
                 }
             }
             finally
             {
+            	retryCount++;
                 conns.releaseConnections();
             }
         }
+        
+        return user;
     }
 
     /**
@@ -687,34 +692,30 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         }
     }
     
-    private void checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
-        boolean retry = true;
+    private boolean checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
+    	boolean groupExists = false;
         int retryCount = 0;
-        while (retry) {
+        while (retryCount < MAX_RETRY_COUNT) {
             try {
                 groupDAO.getGroup(group.getID().getName(), false);
-                throw new RuntimeException("Group already exists for " + group.getID().getName());
+                groupExists = true;
             } catch (GroupNotFoundException ex) {
                 try {
                     groupDAO.getUserAssociatedGroup(group.getID().getName(), false);
-                    throw new RuntimeException("Group already exists for " + group.getID().getName());
+                    groupExists = true;
                 } catch (GroupNotFoundException ex1) {
                     // do nothing
                 } catch (TransientException tex) {
-                    if (retryCount < 5) {
-                        retryCount++;
-                    } else {
-                        retry = false;
-                    }
+                    // do nothing
                 }
             } catch (TransientException tex) {
-                if (retryCount < 5) {
-                    retryCount++;
-                } else {
-                    retry = false;
-                }
+                // do nothing
+            } finally {
+            	retryCount++;
             }
         }
+        
+        return groupExists;
     }
     
     private boolean isMatch(Subject caller, User user)

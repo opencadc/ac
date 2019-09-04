@@ -87,7 +87,6 @@ public class LdapConnectionsTest
     public LdapConnectionsTest()
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        Log4jInit.setLevel("ca.nrc.cadc.profiler", Level.INFO);
     }
 
     @Test
