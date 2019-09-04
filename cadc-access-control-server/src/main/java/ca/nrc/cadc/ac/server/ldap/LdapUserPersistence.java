@@ -169,8 +169,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         int retryCount = 0;
+        boolean retry = true;
         User user = null;
-        while (retryCount < MAX_RETRY_COUNT) {
+        while (retry && retryCount < MAX_RETRY_COUNT) {
             try
             {
                 // add the userRequest
@@ -203,6 +204,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
                 if (groupExists) {
 	                throw new GroupAlreadyExistsException("Group " + group.getID().getName() + " already exists ");
                 }
+                
+                // group does not exist
+                retry = false;
                 
                 // group does not exist, add the userRequest
                 user = userDAO.addUserRequest(userRequest);
@@ -694,25 +698,22 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     
     private boolean checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
     	boolean groupExists = false;
-        int retryCount = 0;
-        while (retryCount < MAX_RETRY_COUNT) {
-            try {
-                groupDAO.getGroup(group.getID().getName(), false);
+        try {
+            Group tempGroup = groupDAO.getGroup(group.getID().getName(), false);
+            if (tempGroup != null) {
                 groupExists = true;
-            } catch (GroupNotFoundException ex) {
-                try {
-                    groupDAO.getUserAssociatedGroup(group.getID().getName(), false);
-                    groupExists = true;
-                } catch (GroupNotFoundException ex1) {
-                    // do nothing
-                } catch (TransientException tex) {
-                    // do nothing
-                }
+            }
+        } catch (GroupNotFoundException ex) {
+            try {
+                groupDAO.getUserAssociatedGroup(group.getID().getName(), false);
+                groupExists = true;
+            } catch (GroupNotFoundException ex1) {
+                // do nothing
             } catch (TransientException tex) {
                 // do nothing
-            } finally {
-            	retryCount++;
             }
+        } catch (TransientException tex) {
+            // do nothing
         }
         
         return groupExists;
