@@ -76,10 +76,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
 import javax.security.auth.Subject;
-import javax.servlet.GenericServlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
@@ -92,11 +88,9 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.web.UserRequestServlet;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.AuthenticatorImpl;
-import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
@@ -107,9 +101,6 @@ import ca.nrc.cadc.util.ObjectUtil;
 public class LdapUserPersistence extends LdapPersistence implements UserPersistence
 {
     private static final Logger logger = Logger.getLogger(LdapUserPersistence.class);
-
-    private static final String POSIX_OWNER = "posixOwner";
-    private static final int MAX_RETRY_COUNT = 5;
     
     public LdapUserPersistence()
     {
@@ -168,69 +159,56 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     {
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
-        int retryCount = 0;
-        boolean retry = true;
         User user = null;
-        while (retry && retryCount < MAX_RETRY_COUNT) {
-            try
-            {
-                // add the userRequest
-                userDAO = new LdapUserDAO(conns);
-                
-                // create the group to be associated with this userRequest
-                LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
-                LocalAuthority localAuthority = new LocalAuthority();
-                URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-                GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userRequest.getUser().getHttpPrincipal().getName());
-                Group group = new Group(groupID);
-                
-                try {
-                    // get all identities and detailed info on the group owner
-                    User owner = (User) Subject.doAs(posixGroupOwner, new PrivilegedExceptionAction<Object>() {
-                        public Object run() throws Exception {
-                            Principal ownerPrincipal = (Principal) posixGroupOwner.getPrincipals().toArray()[0];
-                            return getUser(ownerPrincipal);
-                        }
-                    });
-                    (new AuthenticatorImpl()).augmentSubject(posixGroupOwner);
-                    owner.getIdentities().addAll(posixGroupOwner.getPrincipals());
-                    ObjectUtil.setField(group, owner, "owner");
-                } catch (PrivilegedActionException ex) {
-                    throw new AccessControlException(ex.getMessage());
-                }
-                
-                // ensure that there is no existing group with the same user name
-                boolean groupExists = checkIfGroupExists(group, groupDAO);
-                if (groupExists) {
-	                throw new GroupAlreadyExistsException("Group " + group.getID().getName() + " already exists ");
-                }
-                
-                // group does not exist
-                retry = false;
-                
-                // group does not exist, add the userRequest
-                user = userDAO.addUserRequest(userRequest);
-                group.getUserMembers().add(user);
-                group.getUserAdmins().add(user);
-                
-                // add the group associated with the userRequest
-                groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
-            } catch (GroupAlreadyExistsException ex) {
-                // in case the same group was added within a small window, very low probability
-                // clean up, retry a maximum of 5 times, then propagate the exception if it persists
-                if (user != null) {
-                    deleteUserRequest(user.getHttpPrincipal());
-                }
-                
-                if (retryCount == MAX_RETRY_COUNT) {
-                    throw new IllegalStateException("Group already exists after exhausting retries.", ex);
-                }
+        try
+        {
+            // add the userRequest
+            userDAO = new LdapUserDAO(conns);
+            
+            // create the group to be associated with this userRequest
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userRequest.getUser().getHttpPrincipal().getName());
+            Group group = new Group(groupID);
+            
+            try {
+                // get all identities and detailed info on the group owner
+                User owner = (User) Subject.doAs(posixGroupOwner, new PrivilegedExceptionAction<Object>() {
+                    public Object run() throws Exception {
+                        Principal ownerPrincipal = (Principal) posixGroupOwner.getPrincipals().toArray()[0];
+                        return getUser(ownerPrincipal);
+                    }
+                });
+                (new AuthenticatorImpl()).augmentSubject(posixGroupOwner);
+                owner.getIdentities().addAll(posixGroupOwner.getPrincipals());
+                ObjectUtil.setField(group, owner, "owner");
+            } catch (PrivilegedActionException ex) {
+                throw new AccessControlException(ex.getMessage());
             }
-            finally
-            {
-            	retryCount++;
-                conns.releaseConnections();
+            // ensure that there is no existing group with the same user name
+            boolean groupExists = checkIfGroupExists(group, groupDAO);
+            if (groupExists) {
+                throw new GroupAlreadyExistsException("Group " + group.getID().getName() + " already exists ");
             }
+            
+            // group does not exist, add the userRequest
+            user = userDAO.addUserRequest(userRequest);
+            group.getUserMembers().add(user);
+            group.getUserAdmins().add(user);
+            
+            // add the group associated with the userRequest
+            groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
+        } catch (GroupAlreadyExistsException ex) {
+            // in case the same group was added within a small window, very low probability
+            // clean up, retry a maximum of 5 times, then propagate the exception if it persists
+            if (user != null) {
+                deleteUserRequest(user.getHttpPrincipal());
+            }
+        }
+        finally
+        {
+            conns.releaseConnections();
         }
         
         return user;
