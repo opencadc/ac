@@ -13,7 +13,7 @@ repositories {
 sourceCompatibility = 1.7
 group = 'org.opencadc'
 
-version = '1.1.19'
+version = '1.1.20'
 
 configurations.all {
     resolutionStrategy {
@@ -28,7 +28,7 @@ dependencies {
     compile 'xerces:xercesImpl:2.+'
     compile 'com.unboundid:unboundid-ldapsdk:2.3.+'
 
-    compile 'org.opencadc:cadc-access-control:[1.1.17,)'
+    compile 'org.opencadc:cadc-access-control:[1.1.17,2.0)'
     compile 'org.opencadc:cadc-util:[1.1.1,)'
     compile 'org.opencadc:cadc-log:[1.0.6,)'
     compile 'org.opencadc:cadc-registry:1.+'
