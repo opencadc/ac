@@ -95,7 +95,9 @@ public abstract class LdapPersistence
 
     private static final Logger logger = Logger.getLogger(LdapPersistence.class);
     private static final String LDAP_POOL_JNDI_NAME = ConnectionPools.class.getName();
-    private static final int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
+    
+    // set to -1 to disable checking the pool, used for testing purpose
+    public static int POOL_CHECK_INTERVAL_MILLESCONDS = 10000; // 10 seconds
 
     // static monitor is required for when multiple LdapPersistence objects
     // are created.
@@ -339,7 +341,11 @@ public abstract class LdapPersistence
 
     private boolean timeToCheckPools(ConnectionPools pools)
     {
-        return (System.currentTimeMillis() - pools.getLastPoolCheck()) > POOL_CHECK_INTERVAL_MILLESCONDS;
+    	if (POOL_CHECK_INTERVAL_MILLESCONDS == -1) {
+    		return false;
+    	} else {
+	        return (System.currentTimeMillis() - pools.getLastPoolCheck()) > POOL_CHECK_INTERVAL_MILLESCONDS;
+    	}
     }
 
 }
