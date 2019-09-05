@@ -162,10 +162,8 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         User user = null;
         try
         {
-            // add the userRequest
-            userDAO = new LdapUserDAO(conns);
-            
             // create the group to be associated with this userRequest
+            userDAO = new LdapUserDAO(conns);
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
