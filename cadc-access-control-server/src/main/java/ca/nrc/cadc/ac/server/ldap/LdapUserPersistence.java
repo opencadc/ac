@@ -200,8 +200,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             // add the group associated with the userRequest
             groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
         } catch (GroupAlreadyExistsException ex) {
-            // in case the same group was added within a small window, very low probability
-            // clean up, retry a maximum of 5 times, then propagate the exception if it persists
+            // clean up
             if (user != null) {
                 deleteUserRequest(user.getHttpPrincipal());
             }
