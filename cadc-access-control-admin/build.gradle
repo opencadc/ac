@@ -15,7 +15,7 @@ sourceCompatibility = 1.7
 
 group = 'org.opencadc'
 
-version = '1.0.2'
+version = '1.0.3'
 
 mainClassName = 'ca.nrc.cadc.ac.admin.Main'
 
@@ -28,8 +28,8 @@ dependencies {
 
     compile 'org.opencadc:cadc-util:1.+'
     compile 'org.opencadc:cadc-registry:1.+'
-    compile 'org.opencadc:cadc-access-control:1.+'
-    compile 'org.opencadc:cadc-access-control-server:1.+'
+    compile 'org.opencadc:cadc-access-control:[1.0,2.0)'
+    compile 'org.opencadc:cadc-access-control-server:[1.0,2.0)'
 
     testCompile 'junit:junit:4.+'
 }
