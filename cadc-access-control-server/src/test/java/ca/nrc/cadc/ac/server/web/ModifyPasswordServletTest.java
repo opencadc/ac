@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -75,7 +75,6 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import java.security.PrivilegedExceptionAction;
-import java.util.Collections;
 
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
@@ -140,7 +139,6 @@ public class ModifyPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (!StringUtil.hasText(oldPassword) || !StringUtil.hasText(newPassword))
         {
@@ -247,7 +245,6 @@ public class ModifyPasswordServletTest
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
         expect(mockRequest.getParameter("old_password")).andReturn(oldPassword).once();
         expect(mockRequest.getParameter("new_password")).andReturn(newPassword).once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (hasInternalServerError)
         {
