@@ -81,6 +81,7 @@ import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
@@ -960,6 +961,12 @@ public class LdapUserDAO extends LdapDAO
                 user.getIdentities().add(new X500Principal(dn));
             }
             user.getIdentities().add(new DNPrincipal(userFromSearch.getAttributeValue(LDAP_ENTRYDN)));
+            
+            String uidNumberString = userFromSearch.getAttributeValue(LDAP_UID_NUMBER);
+            if (uidNumberString != null)
+            {
+                user.getIdentities().add(new PosixPrincipal(Integer.valueOf(uidNumberString)));
+            }         
 
             // cache memberOf values in the user
             LocalAuthority localAuthority = new LocalAuthority();
