@@ -84,9 +84,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
-
-import javax.security.auth.Subject;
 
 public abstract class AbstractUserRequestAction implements PrivilegedExceptionAction<Object>
 {
@@ -99,7 +98,7 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
     protected UserPersistence userPersistence;
-    protected Subject posixGroupOwnerSubject;
+    protected Principal groupOwnerHttpPrincipal;
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
@@ -233,9 +232,9 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
         this.logInfo.userName = userName;
     }
 
-    public void setPosixGroupOwnerSubject(final Subject posixGroupOwnerSubject)
+    public void setPosixGroupOwnerHttpPrincipal(final Principal groupOwnerHttpPrincipal)
     {
-        this.posixGroupOwnerSubject = posixGroupOwnerSubject;
+        this.groupOwnerHttpPrincipal = groupOwnerHttpPrincipal;
     }
 
     public void setAcceptedContentType(final String acceptedContentType)

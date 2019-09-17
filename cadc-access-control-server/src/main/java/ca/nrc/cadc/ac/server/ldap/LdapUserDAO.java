@@ -167,9 +167,11 @@ public class LdapUserDAO extends LdapDAO
     protected static final String LDAP_INSTITUTE = "institute";
     protected static final String LDAP_UID = "uid";
     protected static final String LDAP_UID_NUMBER = "uidNumber";
-    protected static final String USER_ID = "id";
     protected static final String LDAP_HOME_DIRECTORY = "homeDirectory";
     protected static final String LDAP_LOGIN_SHELL = "loginShell";
+    
+    protected static final String USER_ID = "id";
+    protected static final String NO_LOGIN = "/bin/nologin";
 
     public static final String SUPPRESS_CHECKUSER_KEY = "cadc.skip.checkuser";
 
@@ -308,7 +310,7 @@ public class LdapUserDAO extends LdapDAO
             
             String homeDirectory = "/home/" + String.valueOf(numericID);
             PosixDetails posixDetails = new PosixDetails(EXTERNAL_USER_CN, numericID, numericID, homeDirectory);
-            posixDetails.loginShell = "/bin/nologin";
+            posixDetails.loginShell = NO_LOGIN;
             user.posixDetails = posixDetails;
 
             List<Attribute> attributes = new ArrayList<Attribute>();
@@ -428,7 +430,7 @@ public class LdapUserDAO extends LdapDAO
             
             String homeDirectory = "/home/" + String.valueOf(numericID);
             PosixDetails posixDetails = new PosixDetails(userID.getName(), numericID, numericID, homeDirectory);
-            posixDetails.loginShell = "/bin/nologin";
+            posixDetails.loginShell = NO_LOGIN;
             user.posixDetails = posixDetails;
 
             List<Attribute> attributes = new ArrayList<Attribute>();

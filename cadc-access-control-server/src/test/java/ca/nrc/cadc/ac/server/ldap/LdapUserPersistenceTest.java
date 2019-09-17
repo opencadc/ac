@@ -174,8 +174,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
             expectedUser.personalDetails.email = username + "@canada.ca";
                 
             UserRequest userRequest = new UserRequest(expectedUser, "123456".toCharArray());
-            Subject posixGroupOwnerSubject = new Subject();
-            posixGroupOwnerSubject.getPrincipals().add(new HttpPrincipal("cadcops"));
+            Principal posixGroupOwnerHttpPrincipal = new HttpPrincipal("cadcops");
     
             // add a group with the same username
             LdapGroupDAO groupDAO = getGroupDAO();
@@ -185,7 +184,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
             
             try {
                 // Adding a new user is done anonymously
-                userPersistence.addUserRequest(userRequest, posixGroupOwnerSubject);
+                userPersistence.addUserRequest(userRequest, posixGroupOwnerHttpPrincipal);
             } catch (RuntimeException rex) {
                 if (rex.getMessage().contains("Group already exists")) {
                     // success
@@ -231,11 +230,10 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
             expectedUser.personalDetails.email = username + "@canada.ca";
                 
             UserRequest userRequest = new UserRequest(expectedUser, "123456".toCharArray());
-            Subject posixGroupOwnerSubject = new Subject();
-            posixGroupOwnerSubject.getPrincipals().add(new HttpPrincipal("cadcops"));
+            Principal posixGroupOwnerHttpPrincipal = new HttpPrincipal("cadcops");
     
             // Adding a new user is done anonymously
-            userPersistence.addUserRequest(userRequest, posixGroupOwnerSubject);
+            userPersistence.addUserRequest(userRequest, posixGroupOwnerHttpPrincipal);
             boolean approved = false;
             try {
                 Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
@@ -313,11 +311,10 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
             expectedUser.personalDetails.email = username + "@canada.ca";
     
             UserRequest userRequest = new UserRequest(expectedUser, "123456".toCharArray());
-            Subject posixGroupOwnerSubject = new Subject();
-            posixGroupOwnerSubject.getPrincipals().add(new HttpPrincipal("cadcops"));
+            Principal posixGroupOwnerHttpPrincipal = new HttpPrincipal("cadcops");
     
             // Adding a new user is done anonymously
-            userPersistence.addUserRequest(userRequest, posixGroupOwnerSubject);
+            userPersistence.addUserRequest(userRequest, posixGroupOwnerHttpPrincipal);
             boolean deleted = false;
             try {
                 Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {

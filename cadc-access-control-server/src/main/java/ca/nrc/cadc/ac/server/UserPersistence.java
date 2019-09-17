@@ -72,8 +72,6 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
 
-import javax.security.auth.Subject;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -109,14 +107,14 @@ public interface UserPersistence
      * @return User instance.
      *
      * @param user      The user request to put into the pending users tree.
-     * @param posixGroupOwnerSubject      The subject to be used as the posix group owner.
+     * @param ownerHttpPrincipal      The posix group owner.
      *
      * @throws UserNotFoundException when the user is not found.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
      */
-    User addUserRequest(UserRequest user, Subject posixGroupOwnerSubject)
+    User addUserRequest(UserRequest user, Principal ownerHttpPrincipal)
         throws UserNotFoundException, TransientException, AccessControlException,
         UserAlreadyExistsException;
 

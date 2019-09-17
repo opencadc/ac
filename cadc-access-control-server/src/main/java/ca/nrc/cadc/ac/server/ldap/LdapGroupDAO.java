@@ -234,26 +234,39 @@ public class LdapGroupDAO extends LdapDAO
                                              ldapRWConnection);
                 LdapDAO.checkLdapResult(result.getResultCode());
 
-                // add group to admin groups tree
-                result = addGroup(getAdminGroupDN(group.getID().getName()),
-                                  group.getID().getName(), ownerDN,
-                                  group.description,
-                                  group.getUserAdmins(),
-                                  group.getGroupAdmins(),
-                                  gidNumber,
-                                  ldapRWConnection);
-                LdapDAO.checkLdapResult(result.getResultCode());
+                if (gidNumber == null) {
+                    // admin group not associated with a userRequest
+                    // add group to admin groups tree
+                    result = addGroup(getAdminGroupDN(group.getID().getName()),
+                                      group.getID().getName(), ownerDN,
+                                      group.description,
+                                      group.getUserAdmins(),
+                                      group.getGroupAdmins(),
+                                      gidNumber,
+                                      ldapRWConnection);
+                    LdapDAO.checkLdapResult(result.getResultCode());
+                } else {
+                    // no Posix object in admin group associated with a userRequest
+                    // add group to admin groups tree
+                    result = addUserAssociatedAdminGroup(getAdminGroupDN(group.getID().getName()),
+                                      group.getID().getName(), ownerDN,
+                                      group.description,
+                                      group.getUserAdmins(),
+                                      group.getGroupAdmins(),
+                                      ldapRWConnection);
+                    LdapDAO.checkLdapResult(result.getResultCode());
+                }
             }
             
             // gidNumber is not null when we add a group associated with a userRequest
             // A group associated with a userRequest has NSACCOUNTLOCK set to "true"
-            boolean isPending = true;
+            boolean isLocked = true;
             if (gidNumber == null) {
                 // adding a group not associated with a user
-                isPending = false;
+                isLocked = false;
             }
             
-            return getGroup(group.getID().getName(), true, ldapRWConnection, isPending);
+            return getGroup(group.getID().getName(), true, ldapRWConnection, isLocked);
         }
         catch (LDAPException e)
         {
@@ -327,7 +340,59 @@ public class LdapGroupDAO extends LdapDAO
         logger.debug("addGroup: " + groupDN);
         return ldapRWConnection.add(addRequest);
     }
-    
+
+    private LDAPResult addUserAssociatedAdminGroup(final DN groupDN, final String groupID,
+                                final DN ownerDN, final String description,
+                                final Set<User> users,
+                                final Set<Group> groups,
+                                LDAPConnection ldapRWConnection)
+            throws UserNotFoundException, LDAPException, TransientException,
+                   AccessControlException, GroupNotFoundException
+    {
+        // add new group
+        List<Attribute> attributes = new ArrayList<Attribute>();
+        Attribute ownerAttribute = new Attribute(LDAP_OWNER, ownerDN.toNormalizedString());
+        attributes.add(ownerAttribute);
+        attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_GROUP_OF_UNIQUE_NAMES));
+        attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_INET_USER));
+        attributes.add(new Attribute(LDAP_CN, groupID));
+        attributes.add(new Attribute(LDAP_NSACCOUNTLOCK, "true"));
+
+        if (StringUtil.hasText(description))
+        {
+            attributes.add(new Attribute(LDAP_DESCRIPTION, description));
+        }
+
+        // access the same server within this method
+        List<String> members = new ArrayList<String>();
+        for (User userMember : users)
+        {
+            DN memberDN = this.userDAO.getUserDN(userMember, ldapRWConnection, true);
+            members.add(memberDN.toNormalizedString());
+        }
+        for (Group groupMember : groups)
+        {
+            final String groupMemberID = groupMember.getID().getName();
+            if (!checkGroupExists(groupMemberID, ldapRWConnection))
+            {
+                throw new GroupNotFoundException(groupMemberID);
+            }
+            DN memberDN = getGroupDN(groupMemberID);
+            members.add(memberDN.toNormalizedString());
+        }
+        if (!members.isEmpty())
+        {
+            attributes.add(
+                new Attribute(LDAP_UNIQUE_MEMBER,
+                              (String[]) members.toArray(new String[members.size()])));
+        }
+
+        AddRequest addRequest = new AddRequest(groupDN, attributes);
+
+        logger.debug("addGroup: " + groupDN);
+        return ldapRWConnection.add(addRequest);
+    }
+
     private SearchResultEntry searchForGroup(final Group group) 
             throws TransientException, LDAPSearchException 
     {

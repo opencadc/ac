@@ -87,7 +87,7 @@ public class CreateUserRequestAction extends AbstractUserRequestAction
     public void doAction() throws Exception
     {
         final UserRequest userRequest = readUserRequest(this.inputStream);
-        userPersistence.addUserRequest(userRequest, this.posixGroupOwnerSubject);
+        userPersistence.addUserRequest(userRequest, this.groupOwnerHttpPrincipal);
 
         syncOut.setCode(201);
         logUserInfo(userRequest.getUser().getHttpPrincipal().getName());
