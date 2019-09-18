@@ -437,7 +437,7 @@ public class LdapGroupDAO extends LdapDAO
             // activate group
             try
             {
-                modifyGroup(group, true);
+                modifyGroup(group, true, true);
                 return true;
             }
             catch (GroupNotFoundException e)
@@ -489,7 +489,7 @@ public class LdapGroupDAO extends LdapDAO
                 // either LDAP_NSACCOUNTLOCK is not set or it is set to false, deactivate group
                 try
                 {
-                    modifyGroup(group, false);
+                    modifyGroup(group, true, false);
                     return true;
                 }
                 catch (GroupNotFoundException e)
@@ -635,6 +635,16 @@ public class LdapGroupDAO extends LdapDAO
         return group;
     }
     
+    private boolean includesLock(String[] attributes) {
+        for (String attribute : attributes) {
+            if (attribute.contentEquals(LDAP_NSACCOUNTLOCK)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     // groupID is here so exceptions and logging have plain groupID instead of DN
     private Group getGroup(final DN groupDN, final String xgroupID, String[] attributes, 
             final LDAPConnection ldapConn, boolean isPending)
@@ -655,7 +665,7 @@ public class LdapGroupDAO extends LdapDAO
         {
             Filter equalsFilter = Filter.createEqualityFilter(LDAP_ENTRYDN, groupDN.toNormalizedString());
             Filter filter = equalsFilter;
-            if (!isPending) {
+            if (!isPending && includesLock(attributes)) {
                 Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
                 filter = Filter.createANDFilter(notFilter, equalsFilter);
             }
@@ -767,10 +777,10 @@ public class LdapGroupDAO extends LdapDAO
         //group must exists first
         // ensure that we use the same LDAP server
         getGroup(getGroupDN(groupID), groupID, PUB_GROUP_ATTRS, getReadWriteConnection(), false);
-        return modifyGroup(group, false);
+        return modifyGroup(group, false, false);
     }
 
-    private Group modifyGroup(final Group group, boolean activate)
+    private Group modifyGroup(final Group group, boolean changeLock, boolean activate)
             throws UserNotFoundException, TransientException,
                    AccessControlException, GroupNotFoundException
     {
@@ -782,17 +792,19 @@ public class LdapGroupDAO extends LdapDAO
 
         List<Modification> mods = new ArrayList<Modification>();
         List<Modification> adminMods = new ArrayList<Modification>();
-        if (activate)
-        {
-            // activate, delete the NSACCOUNTLOCK attribute
-            mods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
-            adminMods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
-        }
-        else 
-        {
-            // deactivate, add NSACCOUNTLOCK = true attribute
-            mods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
-            adminMods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
+        if (changeLock) {
+            if (activate)
+            {
+                // activate, delete the NSACCOUNTLOCK attribute
+                mods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
+                adminMods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
+            }
+            else 
+            {
+                // deactivate, add NSACCOUNTLOCK = true attribute
+                mods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
+                adminMods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
+            }
         }
 
         if (StringUtil.hasText(group.description))
