@@ -104,6 +104,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.date.DateUtil;
 
 /**
@@ -300,6 +301,10 @@ public abstract class AbstractReaderWriter
         else if (type.equals(IdentityType.ENTRY_DN.getValue()))
         {
             principal = new DNPrincipal(identity);
+        }
+        else if (type.equals(IdentityType.POSIX.getValue()))
+        {
+            principal = new PosixPrincipal(Integer.parseInt(identity));
         }
         else
         {
@@ -778,6 +783,10 @@ public abstract class AbstractReaderWriter
         else if ((identity instanceof DNPrincipal))
         {
             identityElement.setAttribute(TYPE, IdentityType.ENTRY_DN.getValue());
+        }
+        else if ((identity instanceof PosixPrincipal))
+        {
+            identityElement.setAttribute(TYPE, IdentityType.POSIX.getValue());
         }
         else
         {
