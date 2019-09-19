@@ -211,17 +211,21 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
 
     private void sendError(int responseCode, String message)
     {
-        syncOut.setCode(responseCode);
-        syncOut.setHeader("Content-Type", "text/plain");
-        if (message != null)
-        {
-            try
+        if (syncOut.isOpen()) {
+            log.warn("SynceOutput is open.");
+        } else {
+            syncOut.setCode(responseCode);
+            syncOut.setHeader("Content-Type", "text/plain");
+            if (message != null)
             {
-                syncOut.getWriter().write(message);
-            }
-            catch (IOException e)
-            {
-                log.warn("Could not write error message to output stream");
+                try
+                {
+                    syncOut.getWriter().write(message);
+                }
+                catch (IOException e)
+                {
+                    log.warn("Could not write error message to output stream");
+                }
             }
         }
         profiler.checkpoint("sendError");
