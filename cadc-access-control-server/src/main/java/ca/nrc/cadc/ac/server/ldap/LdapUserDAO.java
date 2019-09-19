@@ -391,9 +391,10 @@ public class LdapUserDAO extends LdapDAO
 
     /**
      *Add the specified user to the pending user tree.
-     * @return User instance.
      *
      * @param userRequest                   The user to add.
+     * @return User instance.
+     * 
      * @throws UserNotFoundException      when the user is not found in the main tree.
      * @throws TransientException           If an temporary, unexpected problem occurred.
      * @throws UserAlreadyExistsException   If the user already exists.
