@@ -196,6 +196,7 @@ public class LdapUserDAO extends LdapDAO
         super(connections);
         this.userLdapAttrib.put(HttpPrincipal.class, LDAP_USER_NAME);
         this.userLdapAttrib.put(X500Principal.class, LDAP_DISTINGUISHED_NAME);
+        this.userLdapAttrib.put(PosixPrincipal.class, LDAP_UID_NUMBER);
         this.userLdapAttrib.put(NumericPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(DNPrincipal.class, LDAP_ENTRYDN);
 
@@ -639,6 +640,12 @@ public class LdapUserDAO extends LdapDAO
         logger.debug("makeUserFromResult: x500principal = " + x500str);
         if (x500str != null) {
             newUser.getIdentities().add(new X500Principal(x500str));
+        }
+        
+        String posixId = userEntry.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
+        logger.debug("makeUserFromResult: posixPrincipal = " + posixId);
+        if (posixId != null) {
+            newUser.getIdentities().add(new PosixPrincipal(Integer.parseInt(posixId)));
         }
 
         return newUser;
