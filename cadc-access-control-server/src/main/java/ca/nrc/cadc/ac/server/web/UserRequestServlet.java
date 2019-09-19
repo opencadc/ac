@@ -229,6 +229,8 @@ public class UserRequestServlet extends HttpServlet
             AbstractUserRequestAction action = factory.createAction(request);
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
+            action.setPosixGroupOwnerHttpPrincipal(groupOwnerHttpPrincipal);
+            log.debug("Posix group owner: " + groupOwnerHttpPrincipal);
             profiler.checkpoint("created action");
 
             // Special case: if the calling subject has a privileged X500Principal,
@@ -241,7 +243,6 @@ public class UserRequestServlet extends HttpServlet
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
-                action.setPosixGroupOwnerHttpPrincipal(groupOwnerHttpPrincipal);
                 logInfo.setSubject(privilegedSubject);
                 profiler.checkpoint("set privileged user");
             }
