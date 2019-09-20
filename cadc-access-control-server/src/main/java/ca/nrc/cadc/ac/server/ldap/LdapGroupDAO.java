@@ -846,7 +846,7 @@ public class LdapGroupDAO extends LdapDAO
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
         
-        modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn, activate);
+        modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn);
         try
         {
             if (activate)
@@ -866,7 +866,7 @@ public class LdapGroupDAO extends LdapDAO
     }
 
     private void modifyGroup(final Group group, List<Modification> mods, List<Modification> adminMods, 
-            Set<String> newMembers, Set<String> newAdmins, final LDAPConnection ldapRWConn, final boolean activate) 
+            Set<String> newMembers, Set<String> newAdmins, final LDAPConnection ldapRWConn) 
                     throws TransientException, UserNotFoundException, GroupNotFoundException {
         if (StringUtil.hasText(group.description))
         {
@@ -976,7 +976,7 @@ public class LdapGroupDAO extends LdapDAO
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
 
-        modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn, false);
+        modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn);
         try
         {
             return getGroup(group.getID().getName(), true, ldapRWConn, false);
