@@ -437,7 +437,7 @@ public class LdapGroupDAO extends LdapDAO
             // activate group
             try
             {
-                modifyGroup(group, true, true);
+                activateReactivateGroup(group, true);
                 return true;
             }
             catch (GroupNotFoundException e)
@@ -489,7 +489,7 @@ public class LdapGroupDAO extends LdapDAO
                 // either LDAP_NSACCOUNTLOCK is not set or it is set to false, deactivate group
                 try
                 {
-                    modifyGroup(group, true, false);
+                    activateReactivateGroup(group, false);
                     return true;
                 }
                 catch (GroupNotFoundException e)
@@ -798,28 +798,7 @@ public class LdapGroupDAO extends LdapDAO
         }
     }
 
-    /**
-     * Modify the given group.
-     *
-     * @param group The group to update. It must be an existing group
-     * @return The newly updated group.
-     * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException     If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     * @throws UserNotFoundException  If owner or group members not valid users.
-     */
-    public Group modifyGroup(final Group group)
-            throws GroupNotFoundException, TransientException,
-                   AccessControlException, UserNotFoundException
-    {
-        String groupID = group.getID().getName();
-        //group must exists first
-        // ensure that we use the same LDAP server
-        getGroup(getGroupDN(groupID), groupID, PUB_GROUP_ATTRS, getReadWriteConnection(), false);
-        return modifyGroup(group, false, false);
-    }
-
-    private Group modifyGroup(final Group group, boolean changeLock, boolean activate)
+    private Group activateReactivateGroup(final Group group, boolean activate)
             throws UserNotFoundException, TransientException,
                    AccessControlException, GroupNotFoundException
     {
@@ -831,21 +810,64 @@ public class LdapGroupDAO extends LdapDAO
 
         List<Modification> mods = new ArrayList<Modification>();
         List<Modification> adminMods = new ArrayList<Modification>();
-        if (changeLock) {
-            if (activate)
-            {
-                // activate, delete the NSACCOUNTLOCK attribute
-                mods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
-                adminMods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
-            }
-            else 
-            {
-                // deactivate, add NSACCOUNTLOCK = true attribute
-                mods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
-                adminMods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
-            }
+        if (activate)
+        {
+            // activate, delete the NSACCOUNTLOCK attribute
+            mods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
+            adminMods.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
+        }
+        else 
+        {
+            // deactivate, add NSACCOUNTLOCK = true attribute
+            mods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
+            adminMods.add(new Modification(ModificationType.ADD, LDAP_NSACCOUNTLOCK, "true"));
         }
 
+        Set<String> newMembers = new HashSet<String>();
+        Set<String> newAdmins = new HashSet<String>();
+        LDAPConnection ldapRWConn = getReadWriteConnection();
+        try
+        {
+            for (User member : group.getUserMembers())
+            {
+                DN memberDN = userDAO.getUserDN(member, ldapRWConn, !activate);
+                newMembers.add(memberDN.toNormalizedString());
+            }
+
+            for (User member : group.getUserAdmins())
+            {
+                DN memberDN = userDAO.getUserDN(member, ldapRWConn, !activate);
+                newAdmins.add(memberDN.toNormalizedString());
+            }
+        }
+        catch (LDAPException e1)
+        {
+            logger.debug("Modify Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
+        }
+        
+        modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn, activate);
+        try
+        {
+            if (activate)
+            {
+                return new ActivatedGroup(getGroup(group.getID().getName(), true, ldapRWConn, false));
+            }
+            else
+            {
+                return getGroup(group.getID().getName(), true, ldapRWConn, true);
+            }
+        }
+        catch (GroupNotFoundException e)
+        {
+            throw new RuntimeException("BUG: modified group not found (" +
+                                        group.getID() + ")");
+        }
+    }
+
+    private void modifyGroup(final Group group, List<Modification> mods, List<Modification> adminMods, 
+            Set<String> newMembers, Set<String> newAdmins, final LDAPConnection ldapRWConn, final boolean activate) 
+                    throws TransientException, UserNotFoundException, GroupNotFoundException {
         if (StringUtil.hasText(group.description))
         {
             mods.add(new Modification(ModificationType.REPLACE, LDAP_DESCRIPTION,
@@ -856,15 +878,8 @@ public class LdapGroupDAO extends LdapDAO
             mods.add(new Modification(ModificationType.REPLACE, LDAP_DESCRIPTION));
         }
 
-        LDAPConnection ldapRWConn = getReadWriteConnection();
         try
         {
-            Set<String> newMembers = new HashSet<String>();
-            for (User member : group.getUserMembers())
-            {
-                DN memberDN = userDAO.getUserDN(member, ldapRWConn, !activate);
-                newMembers.add(memberDN.toNormalizedString());
-            }
             for (Group gr : group.getGroupMembers())
             {
                 if (!checkGroupExists(gr.getID().getName(), ldapRWConn))
@@ -875,12 +890,6 @@ public class LdapGroupDAO extends LdapDAO
                 newMembers.add(grDN.toNormalizedString());
             }
 
-            Set<String> newAdmins = new HashSet<String>();
-            for (User member : group.getUserAdmins())
-            {
-                DN memberDN = userDAO.getUserDN(member, ldapRWConn, !activate);
-                newAdmins.add(memberDN.toNormalizedString());
-            }
             for (Group gr : group.getGroupAdmins())
             {
                 if (!checkGroupExists(gr.getID().getName(), ldapRWConn))
@@ -916,16 +925,61 @@ public class LdapGroupDAO extends LdapDAO
             logger.debug("Modify Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
         }
+    }
+    
+    /**
+     * Modify the given group.
+     *
+     * @param group The group to update. It must be an existing group
+     * @return The newly updated group.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     * @throws UserNotFoundException  If owner or group members not valid users.
+     */
+    public Group modifyGroup(final Group group)
+            throws GroupNotFoundException, TransientException,
+                   AccessControlException, UserNotFoundException
+    {
+        String groupID = group.getID().getName();
+        //group must exists first
+        // ensure that we use the same LDAP server
+        getGroup(getGroupDN(groupID), groupID, PUB_GROUP_ATTRS, getReadWriteConnection(), false);
+        if (!group.getProperties().isEmpty())
+        {
+            throw new UnsupportedOperationException(
+                    "Support for groups properties not available");
+        }
+
+        List<Modification> mods = new ArrayList<Modification>();
+        List<Modification> adminMods = new ArrayList<Modification>();
+        Set<String> newMembers = new HashSet<String>();
+        Set<String> newAdmins = new HashSet<String>();
+        LDAPConnection ldapRWConn = getReadWriteConnection();
         try
         {
-            if (activate)
+            for (User member : group.getUserMembers())
             {
-                return new ActivatedGroup(getGroup(group.getID().getName(), true, ldapRWConn, false));
+                DN memberDN = userDAO.getUserDN(member, ldapRWConn, false);
+                newMembers.add(memberDN.toNormalizedString());
             }
-            else
+
+            for (User member : group.getUserAdmins())
             {
-                return getGroup(group.getID().getName(), true, ldapRWConn, true);
+                DN memberDN = userDAO.getUserDN(member, ldapRWConn, false);
+                newAdmins.add(memberDN.toNormalizedString());
             }
+        }
+        catch (LDAPException e1)
+        {
+            logger.debug("Modify Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
+        }
+
+        modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn, false);
+        try
+        {
+            return getGroup(group.getID().getName(), true, ldapRWConn, false);
         }
         catch (GroupNotFoundException e)
         {
