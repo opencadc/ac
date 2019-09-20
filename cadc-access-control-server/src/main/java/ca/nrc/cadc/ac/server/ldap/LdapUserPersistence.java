@@ -659,17 +659,10 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     private boolean checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
     	boolean groupExists = false;
         try {
-            Group tempGroup = groupDAO.getGroup(group.getID().getName(), false);
+            groupDAO.getAnyGroup(group.getID().getName());
             groupExists = true;
         } catch (GroupNotFoundException ex) {
-            try {
-                groupDAO.getUserAssociatedGroup(group.getID().getName(), false);
-                groupExists = true;
-            } catch (GroupNotFoundException ex1) {
                 // do nothing
-            } catch (TransientException tex) {
-                // do nothing
-            }
         } catch (TransientException tex) {
             // do nothing
         }
