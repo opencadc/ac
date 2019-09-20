@@ -279,7 +279,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         }
     }
     
-    //@Test
+    @Test
     public void testOneGroup() throws Exception
     {
         // do everything as owner
