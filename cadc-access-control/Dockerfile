@@ -1,13 +1,8 @@
-FROM gradle:4.10-jdk11-slim
-
-USER root
+FROM alpine
 
 ENV APP_HOME=/usr/local
 
-RUN apt-get update \
-    && apt-get install -y git unzip
-
-RUN rm -rf /var/lib/apt/lists/*
+RUN apk --no-cache add git gradle unzip openjdk11-jdk
 
 RUN mkdir -p /usr/local/src \
     && cd /usr/local/src \
@@ -20,5 +15,7 @@ RUN cd /usr/local/src/ac/cadc-access-control/build/distributions \
     && unzip ${DIST_FILE_PREFIX}.zip \
     && cp ${DIST_FILE_PREFIX}/lib/* /usr/local/lib/ \
     && cp ${DIST_FILE_PREFIX}/bin/* /usr/local/bin/
+
+RUN apk --no-cache del git gradle openjdk8*
 
 CMD [ "/usr/local/bin/cadc-access-control" ]
