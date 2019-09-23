@@ -86,8 +86,8 @@ public class PosixDetailsTest
         PosixDetails pd1 = new PosixDetails("username", 1l, 2l, "/dev/null");
 
         assertEquals("username", pd1.getUsername());
-        assertEquals(1l, pd1.getUid());
-        assertEquals(2l, pd1.getGid());
+        assertEquals(1l, pd1.getUidNumber());
+        assertEquals(2l, pd1.getGidNumber());
         assertEquals("/dev/null", pd1.getHomeDirectory());
         
         PosixDetails pd2 = pd1;

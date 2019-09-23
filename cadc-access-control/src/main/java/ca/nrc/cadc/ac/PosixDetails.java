@@ -74,8 +74,8 @@ package ca.nrc.cadc.ac;
 public class PosixDetails
 {
     private String username;
-    private long uid;
-    private long gid;
+    private long uidNumber;
+    private long gidNumber;
     private String homeDirectory;
     
     /**
@@ -101,8 +101,8 @@ public class PosixDetails
         }
 
         this.username = username;
-        this.uid = uid;
-        this.gid = gid;
+        this.uidNumber = uid;
+        this.gidNumber = gid;
         this.homeDirectory = homeDirectory;
     }
 
@@ -115,19 +115,19 @@ public class PosixDetails
     }
 
     /**
-     * @return the uid
+     * @return the uidNumber
      */
-    public long getUid()
+    public long getUidNumber()
     {
-        return uid;
+        return uidNumber;
     }
 
     /**
-     * @return the gid
+     * @return the gidNumber
      */
-    public long getGid()
+    public long getGidNumber()
     {
-        return gid;
+        return gidNumber;
     }
 
     /**
@@ -149,8 +149,8 @@ public class PosixDetails
         int prime = 31;
         int result = 1;
         result = prime * result + username.hashCode();
-        result = prime * result + (int) (uid ^ uid >>> 32);
-        result = prime * result + (int) (gid ^ gid >>> 32);
+        result = prime * result + (int) (uidNumber ^ uidNumber >>> 32);
+        result = prime * result + (int) (gidNumber ^ gidNumber >>> 32);
         result = prime * result + homeDirectory.hashCode();
         return result;
     }
@@ -180,11 +180,11 @@ public class PosixDetails
         {
             return false;
         }
-        if (uid != other.uid)
+        if (uidNumber != other.uidNumber)
         {
             return false;
         }
-        if (gid != other.gid)
+        if (gidNumber != other.gidNumber)
         {
             return false;
         }
@@ -199,8 +199,8 @@ public class PosixDetails
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[" + username + "," + uid + ", " +
-               gid + ", " + homeDirectory + "]";
+        return getClass().getSimpleName() + "[" + username + "," + uidNumber + ", " +
+               gidNumber + ", " + homeDirectory + "]";
     }
 
 }
