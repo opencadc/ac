@@ -1202,8 +1202,8 @@ public class LdapUserDAO extends LdapDAO
         if (user.posixDetails != null)
         {
             addModification(mods, LDAP_USER_NAME, user.posixDetails.getUsername());
-            addModification(mods, LDAP_UID_NUMBER, Long.toString(user.posixDetails.getUid()));
-            addModification(mods, LDAP_GID_NUMBER, Long.toString(user.posixDetails.getGid()));
+            addModification(mods, LDAP_UID_NUMBER, Long.toString(user.posixDetails.getUidNumber()));
+            addModification(mods, LDAP_GID_NUMBER, Long.toString(user.posixDetails.getGidNumber()));
             addModification(mods, LDAP_HOME_DIRECTORY, user.posixDetails.getHomeDirectory());
             addModification(mods, LDAP_LOGIN_SHELL, user.posixDetails.loginShell);
         }
