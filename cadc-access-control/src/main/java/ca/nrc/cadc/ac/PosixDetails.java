@@ -74,8 +74,8 @@ package ca.nrc.cadc.ac;
 public class PosixDetails
 {
     private String username;
-    private long uidNumber;
-    private long gidNumber;
+    private int uid;
+    private int gid;
     private String homeDirectory;
     
     /**
@@ -89,7 +89,7 @@ public class PosixDetails
      * @param gid posix gid
      * @param homeDirectory home directory
      */
-    public PosixDetails(String username, long uid, long gid, String homeDirectory)
+    public PosixDetails(String username, int uid, int gid, String homeDirectory)
     {
         if (username == null)
         {
@@ -101,8 +101,8 @@ public class PosixDetails
         }
 
         this.username = username;
-        this.uidNumber = uid;
-        this.gidNumber = gid;
+        this.uid = uid;
+        this.gid = gid;
         this.homeDirectory = homeDirectory;
     }
 
@@ -115,19 +115,19 @@ public class PosixDetails
     }
 
     /**
-     * @return the uidNumber
+     * @return the uid
      */
-    public long getUidNumber()
+    public int getUid()
     {
-        return uidNumber;
+        return uid;
     }
 
     /**
-     * @return the gidNumber
+     * @return the gid
      */
-    public long getGidNumber()
+    public int getGid()
     {
-        return gidNumber;
+        return gid;
     }
 
     /**
@@ -149,8 +149,8 @@ public class PosixDetails
         int prime = 31;
         int result = 1;
         result = prime * result + username.hashCode();
-        result = prime * result + (int) (uidNumber ^ uidNumber >>> 32);
-        result = prime * result + (int) (gidNumber ^ gidNumber >>> 32);
+        result = prime * result + (int) (uid ^ uid >>> 32);
+        result = prime * result + (int) (gid ^ gid >>> 32);
         result = prime * result + homeDirectory.hashCode();
         return result;
     }
@@ -180,11 +180,11 @@ public class PosixDetails
         {
             return false;
         }
-        if (uidNumber != other.uidNumber)
+        if (uid != other.uid)
         {
             return false;
         }
-        if (gidNumber != other.gidNumber)
+        if (gid != other.gid)
         {
             return false;
         }
@@ -199,8 +199,8 @@ public class PosixDetails
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[" + username + "," + uidNumber + ", " +
-               gidNumber + ", " + homeDirectory + "]";
+        return getClass().getSimpleName() + "[" + username + "," + uid + ", " +
+               gid + ", " + homeDirectory + "]";
     }
 
 }

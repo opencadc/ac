@@ -181,7 +181,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    final long numericID = uuid2long(newUser.getID().getUUID());
+                    final int numericID = (int) uuid2long(newUser.getID().getUUID());
                     getGroupDAO().addUserAssociatedGroup(expectGroup, numericID);
                     
                     Group actualGroup = getGroupDAO().getUserAssociatedGroup(expectGroup.getID().getName(), true);

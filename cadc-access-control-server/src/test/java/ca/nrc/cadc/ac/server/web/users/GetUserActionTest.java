@@ -196,7 +196,7 @@ public class GetUserActionTest
                 expected.personalDetails = new PersonalDetails("cadc", "test");
                 expected.personalDetails.city = "city";
 
-                expected.posixDetails= new PosixDetails("username", 123L, 456L, "/dev/null");
+                expected.posixDetails= new PosixDetails("username", 123, 456, "/dev/null");
 
                 final Writer writer = new StringWriter();
                 final PrintWriter printWriter = new PrintWriter(writer);
@@ -244,7 +244,7 @@ public class GetUserActionTest
         expected.getIdentities().add(userID);
         expected.getIdentities().add(new NumericPrincipal(UUID.randomUUID()));
         expected.getIdentities().add(new X500Principal("cn=foo,o=bar"));
-        expected.posixDetails = new PosixDetails("username", 123L, 456L, "/dev/null");
+        expected.posixDetails = new PosixDetails("username", 123, 456, "/dev/null");
 
         final Writer writer = new StringWriter();
         final PrintWriter printWriter = new PrintWriter(writer);

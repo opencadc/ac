@@ -170,7 +170,7 @@ public class JsonUserReaderWriterTest
 
         expected.getIdentities().add(new NumericPrincipal(uuid));
         expected.personalDetails = new PersonalDetails("firstname", "lastname");
-        expected.posixDetails = new PosixDetails("foo", 123l, 456l, "/dev/null");
+        expected.posixDetails = new PosixDetails("foo", 123, 456, "/dev/null");
 
         StringBuilder json = new StringBuilder();
         JsonUserWriter writer = new JsonUserWriter();

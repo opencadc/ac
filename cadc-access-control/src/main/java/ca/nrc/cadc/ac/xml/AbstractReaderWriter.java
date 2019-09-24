@@ -120,7 +120,6 @@ public abstract class AbstractReaderWriter
     public static final String DESCRIPTION = "description";
     public static final String FIRST_NAME = "firstName";
     public static final String GID = "gid";
-    public static final String GID_NUMBER = "gidNumber";
     public static final String GROUP = "group";
     public static final String GROUPS = "groups";
     public static final String GROUP_ADMINS = "groupAdmins";
@@ -145,7 +144,6 @@ public abstract class AbstractReaderWriter
     public static final String STRING = "String";
     public static final String TYPE = "type";
     public static final String UID = "uid";
-    public static final String UID_NUMBER = "uidNumber";
     public static final String URI = "uri";
     public static final String USER = "user";
     public static final String USERNAME = "username";
@@ -343,16 +341,16 @@ public abstract class AbstractReaderWriter
         String username = userNameElement.getText();
 
         // uid
-        Element uidNumberElement = element.getChild(UID_NUMBER);
-        if (uidNumberElement == null)
+        Element uidElement = element.getChild(UID);
+        if (uidElement == null)
         {
-            String error = "posixDetails missing required element uidNumber";
+            String error = "posixDetails missing required element uid";
             throw new ReaderException(error);
         }
-        long uidNumber;
+        int uid;
         try
         {
-            uidNumber = Long.valueOf(uidNumberElement.getText());
+            uid = Integer.parseInt(uidElement.getText());
         }
         catch (NumberFormatException e)
         {
@@ -361,16 +359,16 @@ public abstract class AbstractReaderWriter
         }
 
         // gid
-        Element gidNumberElement = element.getChild(GID_NUMBER);
-        if (gidNumberElement == null)
+        Element gidElement = element.getChild(GID);
+        if (gidElement == null)
         {
             String error = "posixDetails missing required element gid";
             throw new ReaderException(error);
         }
-        long gidNumber;
+        int gid;
         try
         {
-            gidNumber = Long.valueOf(gidNumberElement.getText());
+            gid = Integer.parseInt(gidElement.getText());
         }
         catch (NumberFormatException e)
         {
@@ -387,7 +385,7 @@ public abstract class AbstractReaderWriter
         }
         String homeDirectory = homeDirElement.getText();
 
-        return new PosixDetails(username, uidNumber, gidNumber, homeDirectory);
+        return new PosixDetails(username, uid, gid, homeDirectory);
     }
 
     /**
@@ -822,13 +820,13 @@ public abstract class AbstractReaderWriter
         usernameElement.setText(details.getUsername());
         detailsElement.addContent(usernameElement);
 
-        Element uidNumberElement = new Element(UID_NUMBER);
-        uidNumberElement.setText(String.valueOf(details.getUidNumber()));
-        detailsElement.addContent(uidNumberElement);
+        Element uidElement = new Element(UID);
+        uidElement.setText(String.valueOf(details.getUid()));
+        detailsElement.addContent(uidElement);
 
-        Element gidNumberElement = new Element(GID_NUMBER);
-        gidNumberElement.setText(String.valueOf(details.getGidNumber()));
-        detailsElement.addContent(gidNumberElement);
+        Element gidElement = new Element(GID);
+        gidElement.setText(String.valueOf(details.getGid()));
+        detailsElement.addContent(gidElement);
 
         Element homeDirElement = new Element(HOME_DIRECTORY);
         homeDirElement.setText(details.getHomeDirectory());

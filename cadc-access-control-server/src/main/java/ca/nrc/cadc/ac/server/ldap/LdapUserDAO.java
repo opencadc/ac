@@ -306,7 +306,7 @@ public class LdapUserDAO extends LdapDAO
 
         try
         {
-            long numericID = this.genNextNumericId();
+            int numericID = this.genNextNumericId();
             String password = UUID.randomUUID().toString();
             
             String homeDirectory = "/home/" + String.valueOf(numericID);
@@ -428,7 +428,7 @@ public class LdapUserDAO extends LdapDAO
 
         try
         {
-            long numericID = this.genNextNumericId();
+            int numericID = this.genNextNumericId();
             
             String homeDirectory = "/home/" + String.valueOf(numericID);
             PosixDetails posixDetails = new PosixDetails(userID.getName(), numericID, numericID, homeDirectory);
@@ -621,13 +621,15 @@ public class LdapUserDAO extends LdapDAO
 
         String username = userEntry.getAttributeValue(LDAP_USER_NAME);
         logger.debug("makeUserFromResult: username = " + username);
+        String uidNumberString = null;
         if (username != null) {
             newUser.getIdentities().add(new HttpPrincipal(username));
             String homeDir = userEntry.getAttributeValue(LDAP_HOME_DIRECTORY);
             if (homeDir != null) {
                 // uid, uidNumber and gidNumber hold the same value
-                long gidNumber = Long.valueOf(uid);
-                newUser.posixDetails = new PosixDetails(username, gidNumber, gidNumber, homeDir);
+                uidNumberString = userEntry.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
+                int uidNumber = Integer.parseInt(uidNumberString);
+                newUser.posixDetails = new PosixDetails(username, uidNumber, uidNumber, homeDir);
                 newUser.posixDetails.loginShell = userEntry.getAttributeValue(LDAP_LOGIN_SHELL);
             }
         }
@@ -642,10 +644,9 @@ public class LdapUserDAO extends LdapDAO
             newUser.getIdentities().add(new X500Principal(x500str));
         }
         
-        String posixId = userEntry.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
-        logger.debug("makeUserFromResult: posixPrincipal = " + posixId);
-        if (posixId != null) {
-            newUser.getIdentities().add(new PosixPrincipal(Integer.parseInt(posixId)));
+        logger.debug("makeUserFromResult: posixPrincipal = " + uidNumberString);
+        if (uidNumberString != null) {
+            newUser.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberString)));
         }
 
         return newUser;
@@ -859,9 +860,13 @@ public class LdapUserDAO extends LdapDAO
 
         String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
         logger.debug("getUserByEmailAddress: x500principal = " + x500str);
-
         if (x500str != null)
             user.getIdentities().add(new X500Principal(x500str));
+
+        String uidNumberStr = searchResult.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
+        logger.debug("getUserByEmailAddress: posixprincipal = " + uidNumberStr);
+        if (uidNumberStr != null)
+            user.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberStr)));
 
         String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
         String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
@@ -874,11 +879,11 @@ public class LdapUserDAO extends LdapDAO
             user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
             user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
             
-            // numericID, uidNumber and gidNumber hold the same value
-            long gidNumber = Long.valueOf(numericID);
             String homeDir = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
             if (homeDir != null) {
-                user.posixDetails = new PosixDetails(userIDString, gidNumber, gidNumber, homeDir);
+                // numericID, uidNumber and gidNumber hold the same value
+                int uidNumber = Integer.parseInt(uidNumberStr);
+                user.posixDetails = new PosixDetails(userIDString, uidNumber, uidNumber, homeDir);
                 user.posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
             }
         }
@@ -1102,8 +1107,8 @@ public class LdapUserDAO extends LdapDAO
                         String homeDir = next.getAttributeValue(LDAP_HOME_DIRECTORY);
                         if (homeDir != null) {
                             // uid, uidNumber and gidNumber hold the same value
-                            long gidNumber = Long.valueOf(next.getAttributeValue(LDAP_UID));
-                            user.posixDetails = new PosixDetails(username, gidNumber, gidNumber, homeDir);
+                            int uidNumber = Integer.parseInt(next.getAttributeValue(LDAP_UID_NUMBER));
+                            user.posixDetails = new PosixDetails(username, uidNumber, uidNumber, homeDir);
                             user.posixDetails.loginShell = next.getAttributeValue(LDAP_LOGIN_SHELL);
                         }
                     }
@@ -1202,8 +1207,8 @@ public class LdapUserDAO extends LdapDAO
         if (user.posixDetails != null)
         {
             addModification(mods, LDAP_USER_NAME, user.posixDetails.getUsername());
-            addModification(mods, LDAP_UID_NUMBER, Long.toString(user.posixDetails.getUidNumber()));
-            addModification(mods, LDAP_GID_NUMBER, Long.toString(user.posixDetails.getGidNumber()));
+            addModification(mods, LDAP_UID_NUMBER, Integer.toString(user.posixDetails.getUid()));
+            addModification(mods, LDAP_GID_NUMBER, Integer.toString(user.posixDetails.getGid()));
             addModification(mods, LDAP_HOME_DIRECTORY, user.posixDetails.getHomeDirectory());
             addModification(mods, LDAP_LOGIN_SHELL, user.posixDetails.loginShell);
         }

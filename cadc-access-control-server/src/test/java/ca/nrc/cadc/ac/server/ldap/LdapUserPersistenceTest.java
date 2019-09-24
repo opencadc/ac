@@ -408,8 +408,8 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
         if (posixd1 != null && posixd2 != null)
         {
             assertEquals(posixd1.getUsername(), posixd2.getUsername());
-            assertEquals(posixd1.getUidNumber(), posixd2.getUidNumber());
-            assertEquals(posixd1.getGidNumber(), posixd2.getGidNumber());
+            assertEquals(posixd1.getUid(), posixd2.getUid());
+            assertEquals(posixd1.getGid(), posixd2.getGid());
             assertEquals(posixd1.getHomeDirectory(), posixd2.getHomeDirectory());
             assertEquals(posixd1.loginShell, posixd2.loginShell);
         }

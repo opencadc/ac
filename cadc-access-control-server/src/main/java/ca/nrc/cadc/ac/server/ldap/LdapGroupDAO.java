@@ -170,7 +170,7 @@ public class LdapGroupDAO extends LdapDAO
      * @throws TransientException          If an temporary, unexpected problem occurred.
      * @throws UserNotFoundException       If owner or a member not valid user.
      */
-    public Group addUserAssociatedGroup(Group group, long gidNumber)
+    public Group addUserAssociatedGroup(Group group, int gidNumber)
             throws GroupAlreadyExistsException, TransientException,
                    UserNotFoundException, AccessControlException 
     {
@@ -200,7 +200,7 @@ public class LdapGroupDAO extends LdapDAO
         return addGroup(group, null);
     }
 
-    private Group addGroup(final Group group, Long gidNumber)
+    private Group addGroup(final Group group, Integer gidNumber)
             throws GroupAlreadyExistsException, TransientException,
                    UserNotFoundException, AccessControlException,
                    GroupNotFoundException
@@ -278,7 +278,7 @@ public class LdapGroupDAO extends LdapDAO
                                 final DN ownerDN, final String description,
                                 final Set<User> users,
                                 final Set<Group> groups,
-                                Long gidNumber,
+                                Integer gidNumber,
                                 LDAPConnection ldapRWConnection)
             throws UserNotFoundException, LDAPException, TransientException,
                    AccessControlException, GroupNotFoundException

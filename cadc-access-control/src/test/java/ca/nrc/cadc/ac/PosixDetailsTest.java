@@ -83,11 +83,11 @@ public class PosixDetailsTest
     @Test
     public void simplePosixDetailsTest() throws Exception
     {
-        PosixDetails pd1 = new PosixDetails("username", 1l, 2l, "/dev/null");
+        PosixDetails pd1 = new PosixDetails("username", 1, 2, "/dev/null");
 
         assertEquals("username", pd1.getUsername());
-        assertEquals(1l, pd1.getUidNumber());
-        assertEquals(2l, pd1.getGidNumber());
+        assertEquals(1l, pd1.getUid());
+        assertEquals(2l, pd1.getGid());
         assertEquals("/dev/null", pd1.getHomeDirectory());
         
         PosixDetails pd2 = pd1;
@@ -105,7 +105,7 @@ public class PosixDetailsTest
         boolean thrown = false;
         try
         {
-            new PosixDetails(null, 1l, 2l, "/dev/null");
+            new PosixDetails(null, 1, 2, "/dev/null");
         }
         catch(IllegalArgumentException e)
         {
@@ -115,7 +115,7 @@ public class PosixDetailsTest
 
         try
         {
-            new PosixDetails("", 1l, 2l, "/dev/null");
+            new PosixDetails("", 1, 2, "/dev/null");
         }
         catch(IllegalArgumentException e)
         {
@@ -125,7 +125,7 @@ public class PosixDetailsTest
 
         try
         {
-            new PosixDetails("username", 1l, 2l, null);
+            new PosixDetails("username", 1, 2, null);
         }
         catch(IllegalArgumentException e)
         {
@@ -135,7 +135,7 @@ public class PosixDetailsTest
 
         try
         {
-            new PosixDetails(null, 1l, 2l, "");
+            new PosixDetails(null, 1, 2, "");
         }
         catch(IllegalArgumentException e)
         {
