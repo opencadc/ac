@@ -179,7 +179,6 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             // group does not exist, add the userRequest
             user = userDAO.addUserRequest(userRequest);
             group.getUserMembers().add(user);
-            group.getUserAdmins().add(user);
             
             // add the group associated with the userRequest
             groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
