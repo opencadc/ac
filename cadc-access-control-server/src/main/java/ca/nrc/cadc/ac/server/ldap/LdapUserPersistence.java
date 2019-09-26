@@ -405,7 +405,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userName);
             try {
                 // activate the group
-                Group associatedGroup = new Group(groupID);
+                Group associatedGroup = groupDAO.getUserAssociatedGroup(groupID.getName(), true);
                 boolean activated = groupDAO.reactivateGroup(associatedGroup);
                 if (activated) {
                     try {
@@ -417,8 +417,10 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
                         throw new IllegalStateException("Failed to approve userRequest for user " + userName, ex);
                     }
                 } else {
-                    throw new IllegalStateException("BUG: Missing group for user " + userName);
+                    throw new IllegalStateException("BUG: Failed to activate group for user " + userName);
                 }
+            } catch (GroupNotFoundException ex) {
+                throw new IllegalStateException("BUG: Missing group for user " + userName);
             } catch (GroupAlreadyExistsException ex) {
                 throw new IllegalStateException("BUG: Group for user " + userName + " has already been activated.");
             }

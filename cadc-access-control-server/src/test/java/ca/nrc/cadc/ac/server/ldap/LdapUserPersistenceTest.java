@@ -74,16 +74,22 @@ import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.ac.UserSet;
+import ca.nrc.cadc.auth.AuthenticatorImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.db.StandaloneContextFactory;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 
+import java.net.URI;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.naming.Context;
 import javax.naming.NamingException;
@@ -92,6 +98,7 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
+import org.junit.Assert;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -249,6 +256,21 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest
                     }
                 });
                 check(expectedUser, actualUser);
+                
+                // check the group membership
+                LocalAuthority localAuthority = new LocalAuthority();
+                URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+                GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userRequest.getUser().getHttpPrincipal().getName());
+                LdapGroupDAO groupDAO = getGroupDAO();
+                Group approvedGroup = groupDAO.getGroup(groupID.getName(), true);
+                Set<Group> groupAdmins = approvedGroup.getGroupAdmins();
+                Set<Group> groupMembers = approvedGroup.getGroupMembers();
+                UserSet userAdmins = approvedGroup.getUserAdmins();
+                UserSet userMembers = approvedGroup.getUserMembers();
+                Assert.assertTrue("groupAdmins is not empty", groupAdmins.isEmpty());
+                Assert.assertTrue("groupMembers is not empty", groupMembers.isEmpty());
+                Assert.assertTrue("userAdmins is not empty", userAdmins.isEmpty());
+                Assert.assertTrue("userMembers is not empty", userMembers.size() == 1);
             } finally {
                 if (approved) {
                     userPersistence.deleteUser(userID);
