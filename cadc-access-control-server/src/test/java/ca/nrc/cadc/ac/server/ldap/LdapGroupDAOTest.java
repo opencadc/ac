@@ -211,7 +211,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + newUser.getHttpPrincipal().getName()));
         setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
         expectGroup.getUserMembers().add(newUser);
-        expectGroup.getUserAdmins().add(newUser);
         Group group = addUserAssociatedGroup(newUser, expectGroup);
         
         // test group reactivation
@@ -246,7 +245,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + newUser.getHttpPrincipal().getName()));
         setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
         expectGroup.getUserMembers().add(newUser);
-        expectGroup.getUserAdmins().add(newUser);
         addUserAssociatedGroup(newUser, expectGroup);
     }
 
@@ -260,7 +258,6 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + newUser.getHttpPrincipal().getName()));
         setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
         expectGroup.getUserMembers().add(newUser);
-        expectGroup.getUserAdmins().add(newUser);
         addUserAssociatedGroup(newUser, expectGroup);
 
         // delete the user associated group

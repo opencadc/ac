@@ -108,6 +108,7 @@ import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserSet;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.net.TransientException;
@@ -234,6 +235,7 @@ public class LdapGroupDAO extends LdapDAO
                                              ldapRWConnection);
                 LdapDAO.checkLdapResult(result.getResultCode());
 
+                // do not add admin group to a user associated group
                 if (gidNumber == null) {
                     // admin group not associated with a userRequest
                     // add group to admin groups tree
@@ -243,16 +245,6 @@ public class LdapGroupDAO extends LdapDAO
                                       group.getUserAdmins(),
                                       group.getGroupAdmins(),
                                       gidNumber,
-                                      ldapRWConnection);
-                    LdapDAO.checkLdapResult(result.getResultCode());
-                } else {
-                    // no Posix object in admin group associated with a userRequest
-                    // add group to admin groups tree
-                    result = addUserAssociatedAdminGroup(getAdminGroupDN(group.getID().getName()),
-                                      group.getID().getName(), ownerDN,
-                                      group.description,
-                                      group.getUserAdmins(),
-                                      group.getGroupAdmins(),
                                       ldapRWConnection);
                     LdapDAO.checkLdapResult(result.getResultCode());
                 }
@@ -314,58 +306,6 @@ public class LdapGroupDAO extends LdapDAO
                 memberDN = this.userDAO.getUserDN(userMember, ldapRWConnection, true);
             }
 
-            members.add(memberDN.toNormalizedString());
-        }
-        for (Group groupMember : groups)
-        {
-            final String groupMemberID = groupMember.getID().getName();
-            if (!checkGroupExists(groupMemberID, ldapRWConnection))
-            {
-                throw new GroupNotFoundException(groupMemberID);
-            }
-            DN memberDN = getGroupDN(groupMemberID);
-            members.add(memberDN.toNormalizedString());
-        }
-        if (!members.isEmpty())
-        {
-            attributes.add(
-                new Attribute(LDAP_UNIQUE_MEMBER,
-                              (String[]) members.toArray(new String[members.size()])));
-        }
-
-        AddRequest addRequest = new AddRequest(groupDN, attributes);
-
-        logger.debug("addGroup: " + groupDN);
-        return ldapRWConnection.add(addRequest);
-    }
-
-    private LDAPResult addUserAssociatedAdminGroup(final DN groupDN, final String groupID,
-                                final DN ownerDN, final String description,
-                                final Set<User> users,
-                                final Set<Group> groups,
-                                LDAPConnection ldapRWConnection)
-            throws UserNotFoundException, LDAPException, TransientException,
-                   AccessControlException, GroupNotFoundException
-    {
-        // add new group
-        List<Attribute> attributes = new ArrayList<Attribute>();
-        Attribute ownerAttribute = new Attribute(LDAP_OWNER, ownerDN.toNormalizedString());
-        attributes.add(ownerAttribute);
-        attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_GROUP_OF_UNIQUE_NAMES));
-        attributes.add(new Attribute(LDAP_OBJECT_CLASS, LDAP_INET_USER));
-        attributes.add(new Attribute(LDAP_CN, groupID));
-        attributes.add(new Attribute(LDAP_NSACCOUNTLOCK, "true"));
-
-        if (StringUtil.hasText(description))
-        {
-            attributes.add(new Attribute(LDAP_DESCRIPTION, description));
-        }
-
-        // access the same server within this method
-        List<String> members = new ArrayList<String>();
-        for (User userMember : users)
-        {
-            DN memberDN = this.userDAO.getUserDN(userMember, ldapRWConnection, true);
             members.add(memberDN.toNormalizedString());
         }
         for (Group groupMember : groups)
@@ -726,14 +666,6 @@ public class LdapGroupDAO extends LdapDAO
             attrs = GROUP_AND_MEMBER_ATTRS;
 
         Group group = getUserAssociatedGroup(getGroupDN(groupID), groupID, attrs, ldapConn);
-
-        if (complete)
-        {
-            Group adminGroup = getUserAssociatedGroup(getAdminGroupDN(groupID), null, GROUP_AND_MEMBER_ATTRS, ldapConn);
-            group.getGroupAdmins().addAll(adminGroup.getGroupMembers());
-            group.getUserAdmins().addAll(adminGroup.getUserMembers());
-        }
-
         return group;
     }
     
@@ -848,7 +780,7 @@ public class LdapGroupDAO extends LdapDAO
 
         Group group = getGroup(getGroupDN(groupID), groupID, attrs, ldapConn);
 
-        if (complete)
+        if (complete && !isUserAssociatedGroup(group))
         {
             Group adminGroup = getGroup(getAdminGroupDN(groupID), null, GROUP_AND_MEMBER_ATTRS, ldapConn);
             group.getGroupAdmins().addAll(adminGroup.getGroupMembers());
@@ -904,7 +836,25 @@ public class LdapGroupDAO extends LdapDAO
         }
     }
 
-    private Group activateReactivateGroup(final Group group, boolean activate)
+    private boolean isUserAssociatedGroup(Group group) {
+        boolean isAssociatedGroup = false;
+        UserSet userMembers = group.getUserMembers();
+        // there is only one user who is a member of a user associated group
+        if (userMembers.size() == 1) {
+            User userMember = userMembers.iterator().next();
+            if (userMember.posixDetails != null) {
+                String username = userMember.posixDetails.getUsername();
+                String groupName = group.getID().getURI().getQuery();
+                if (username.equals(groupName)) {
+                    isAssociatedGroup = true;
+                }
+            }
+        } 
+        
+        return isAssociatedGroup;
+    }
+    
+    private void activateReactivateGroup(final Group group, boolean activate)
             throws UserNotFoundException, TransientException,
                    AccessControlException, GroupNotFoundException
     {
@@ -953,22 +903,6 @@ public class LdapGroupDAO extends LdapDAO
         }
         
         modifyGroup(group, mods, adminMods, newMembers, newAdmins, ldapRWConn);
-        try
-        {
-            if (activate)
-            {
-                return new ActivatedGroup(getGroup(group.getID().getName(), true, ldapRWConn));
-            }
-            else
-            {
-                return getUserAssociatedGroup(group.getID().getName(), true, ldapRWConn);
-            }
-        }
-        catch (GroupNotFoundException e)
-        {
-            throw new RuntimeException("BUG: modified group not found (" +
-                                        group.getID() + ")");
-        }
     }
 
     private void modifyGroup(final Group group, List<Modification> mods, List<Modification> adminMods, 
@@ -1006,15 +940,18 @@ public class LdapGroupDAO extends LdapDAO
                 newAdmins.add(grDN.toNormalizedString());
             }
 
-            // modify the admin group
-            adminMods.add(
-                new Modification(ModificationType.REPLACE, LDAP_UNIQUE_MEMBER,
-                                 (String[]) newAdmins.toArray(new String[newAdmins.size()])));
-
-            ModifyRequest adminModify =
-                    new ModifyRequest(getAdminGroupDN(group.getID().getName()), adminMods);
-
-            LdapDAO.checkLdapResult(ldapRWConn.modify(adminModify).getResultCode());
+            // there is no admin group for a user associated group
+            if (!isUserAssociatedGroup(group)) {
+                // modify the admin group
+                adminMods.add(
+                    new Modification(ModificationType.REPLACE, LDAP_UNIQUE_MEMBER,
+                                     (String[]) newAdmins.toArray(new String[newAdmins.size()])));
+    
+                ModifyRequest adminModify =
+                        new ModifyRequest(getAdminGroupDN(group.getID().getName()), adminMods);
+    
+                LdapDAO.checkLdapResult(ldapRWConn.modify(adminModify).getResultCode());
+            }
 
             // modify the group itself
             mods.add(
