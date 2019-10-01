@@ -79,11 +79,20 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import java.security.AccessControlException;
 import java.security.GeneralSecurityException;
+import java.util.Random;
 
 
 public abstract class LdapDAO
 {
 	private static final Logger logger = Logger.getLogger(LdapDAO.class);
+
+    // LDAP attributes common to LdapUser and LdapGroup
+    protected static final String LDAP_OBJECT_CLASS = "objectClass";
+    protected static final String LDAP_GID_NUMBER = "gidNumber";
+    protected static final String LDAP_CN = "cn";
+    protected static final String LDAP_ENTRYDN = "entrydn";
+    protected static final String LDAP_INET_USER = "inetuser";
+    protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
 
     private LdapConnections connections;
     protected LdapConfig config;
@@ -115,6 +124,19 @@ public abstract class LdapDAO
     public void close()
     {
         connections.releaseConnections();
+    }
+
+    /**
+     * Method to return a randomly generated user numeric ID. The default
+     * implementation returns a value between 20000 and Integer.MAX_VALUE.
+     * Services that support a different mechanism for generating numeric
+     * IDs override this method.
+     * @return
+     */
+    protected int genNextNumericId()
+    {
+        Random rand = new Random();
+        return rand.nextInt(Integer.MAX_VALUE - 20000) + 20000;
     }
 
     /**

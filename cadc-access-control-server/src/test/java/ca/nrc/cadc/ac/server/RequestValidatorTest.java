@@ -70,7 +70,6 @@ package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
-import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
 

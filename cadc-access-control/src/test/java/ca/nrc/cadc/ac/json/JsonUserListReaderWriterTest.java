@@ -179,7 +179,7 @@ public class JsonUserListReaderWriterTest
         expected.personalDetails.country = "country";
         expected.personalDetails.email = "foo@bar.com";
         expected.personalDetails.institute = "institute";
-        expected.posixDetails = new PosixDetails("bar", 123l, 456l, "/dev/null");
+        expected.posixDetails = new PosixDetails("bar", 123, 456, "/dev/null");
 
         StringBuilder json = new StringBuilder();
         JsonUserWriter writer = new JsonUserWriter();

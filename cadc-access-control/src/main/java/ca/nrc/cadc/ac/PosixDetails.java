@@ -74,8 +74,8 @@ package ca.nrc.cadc.ac;
 public class PosixDetails
 {
     private String username;
-    private long uid;
-    private long gid;
+    private int uid;
+    private int gid;
     private String homeDirectory;
     
     /**
@@ -89,7 +89,7 @@ public class PosixDetails
      * @param gid posix gid
      * @param homeDirectory home directory
      */
-    public PosixDetails(String username, long uid, long gid, String homeDirectory)
+    public PosixDetails(String username, int uid, int gid, String homeDirectory)
     {
         if (username == null)
         {
@@ -117,7 +117,7 @@ public class PosixDetails
     /**
      * @return the uid
      */
-    public long getUid()
+    public int getUid()
     {
         return uid;
     }
@@ -125,7 +125,7 @@ public class PosixDetails
     /**
      * @return the gid
      */
-    public long getGid()
+    public int getGid()
     {
         return gid;
     }

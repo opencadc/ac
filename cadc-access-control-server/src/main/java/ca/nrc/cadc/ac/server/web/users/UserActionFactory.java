@@ -83,6 +83,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.NetUtil;
 
 
@@ -108,7 +109,7 @@ public abstract class UserActionFactory
 
                 if (segments.length == 0)
                 {
-                    throw new UnsupportedOperationException("Operation not supported.");
+                    action = new GetUserListAction();
                 }
                 else if (segments.length == 1)
                 {
@@ -262,9 +263,18 @@ public abstract class UserActionFactory
         {
             return new CookiePrincipal(userName);
         }
+        else if (idType.equalsIgnoreCase(IdentityType.POSIX.getValue()))
+        {
+            try {
+                int value = Integer.parseInt(userName);
+                return new PosixPrincipal(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Bad value for posix id type");
+            }
+        }
         else
         {
-            throw new IllegalArgumentException("Unrecognized userid");
+            throw new IllegalArgumentException("Unrecognized idType");
         }
     }
 

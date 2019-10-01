@@ -231,17 +231,21 @@ public abstract class AbstractUserAction implements PrivilegedExceptionAction<Ob
     private void sendError(int responseCode, String message)
     {
         Profiler profiler = new Profiler(AbstractUserAction.class);
-        syncOut.setCode(responseCode);
-        syncOut.setHeader("Content-Type", "text/plain");
-        if (message != null)
-        {
-            try
+        if (syncOut.isOpen()) {
+            log.warn("SyncOutput is already open");
+        } else {
+            syncOut.setCode(responseCode);
+            syncOut.setHeader("Content-Type", "text/plain");
+            if (message != null)
             {
-                syncOut.getWriter().write(message);
-            }
-            catch (IOException e)
-            {
-                log.warn("Could not write error message to output stream");
+                try
+                {
+                    syncOut.getWriter().write(message);
+                }
+                catch (IOException e)
+                {
+                    log.warn("Could not write error message to output stream");
+                }
             }
         }
         profiler.checkpoint("sendError");

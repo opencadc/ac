@@ -66,31 +66,26 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.userrequests;
 
-import ca.nrc.cadc.ac.UserRequest;
-
-import java.io.InputStream;
+package ca.nrc.cadc.ac.server.web.users;
 
 
-public class CreateUserRequestAction extends AbstractUserRequestAction
+import org.apache.log4j.Logger;
+
+import ca.nrc.cadc.ac.server.UserPersistence;
+
+
+public class GetUserListAction extends AbstractUserAction
 {
-    private final InputStream inputStream;
 
-    CreateUserRequestAction(final InputStream inputStream)
+    private static final Logger log = Logger.getLogger(GetUserListAction.class);
+
+    GetUserListAction()
     {
-        super();
-        this.inputStream = inputStream;
     }
-
 
     public void doAction() throws Exception
     {
-        final UserRequest userRequest = readUserRequest(this.inputStream);
-        userPersistence.addUserRequest(userRequest, this.groupOwnerHttpPrincipal);
-
-        syncOut.setCode(201);
-        logUserInfo(userRequest.getUser().getHttpPrincipal().getName());
+        writeUsers(userPersistence.getUsers());
     }
-
 }
