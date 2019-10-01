@@ -134,7 +134,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
+//        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (!StringUtil.hasText(emailAddress))
         {
@@ -215,7 +215,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
+//        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (privSubjects != null && !privSubjects.isEmpty())
         {

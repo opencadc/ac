@@ -176,7 +176,7 @@ public class WhoAmIServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
+//        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         String redirect = "/ac/users/" + restUserid + "?idType=" + restType;
         log.debug("expected redirect: " + redirect);
