@@ -69,7 +69,6 @@
 package ca.nrc.cadc.ac.server.web;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.security.PrivilegedActionException;
 
 import javax.security.auth.Subject;

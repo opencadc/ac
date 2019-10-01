@@ -68,7 +68,6 @@
  */package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 
 public class GetGroupAction extends AbstractGroupAction

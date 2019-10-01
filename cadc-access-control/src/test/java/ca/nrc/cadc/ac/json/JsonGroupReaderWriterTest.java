@@ -218,7 +218,7 @@ public class JsonGroupReaderWriterTest
         personalDetails.city = "city";
         personalDetails.country = "country";
         owner.personalDetails = personalDetails;
-        PosixDetails posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
+        PosixDetails posixDetails = new PosixDetails("foo", 123, 456, "/dev/null");
         owner.posixDetails = posixDetails;
 
         Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));

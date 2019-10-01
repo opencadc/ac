@@ -182,6 +182,55 @@ public class UserClient
     }
 
     /**
+     * Obtain all of the users as userID - name in JSON format.
+     *
+     * @return List of HTTP Principal users.
+     * @throws IOException Any errors in reading.
+     */
+    public List<User> getDisplayUsers() throws IOException
+    {
+        
+        AuthMethod am = getAuthMethod();
+        URL usersURL = getRegistryClient()
+                .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
+        final List<User> webUsers = new ArrayList<User>();
+        HttpDownload httpDownload =
+                new HttpDownload(usersURL,
+                                 new JsonUserListInputStreamWrapper(webUsers));
+        httpDownload.setRequestProperty("Accept", "application/json");
+        httpDownload.run();
+
+        final Throwable error = httpDownload.getThrowable();
+
+        if (error != null)
+        {
+            final String errMessage = error.getMessage();
+            final int responseCode = httpDownload.getResponseCode();
+            log.debug("getDisplayUsers response " + responseCode + ": "
+                      + errMessage);
+            if ((responseCode == 401) || (responseCode == 403)
+                || (responseCode == -1))
+            {
+                throw new AccessControlException(errMessage);
+            }
+            else if (responseCode == 400)
+            {
+                throw new IllegalArgumentException(errMessage);
+            }
+            else
+            {
+                throw new IOException("HttpResponse (" + responseCode + ") - "
+                                      + errMessage);
+            }
+        }
+
+        log.debug("Content-Length: " + httpDownload.getContentLength());
+        log.debug("Content-Type: " + httpDownload.getContentType());
+
+        return webUsers;
+    }
+
+    /**
      * Create an auto-approved user directly in the user tree (not
      * the userRequest tree) from the principal.
      *

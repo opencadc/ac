@@ -189,7 +189,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
     public void testReadWritePosixDetails()
         throws Exception
     {
-        PosixDetails expected = new PosixDetails("username", 123l, 456, "/dev/null");
+        PosixDetails expected = new PosixDetails("username", 123, 456, "/dev/null");
         Element element = getElement(expected);
         assertNotNull(element);
 

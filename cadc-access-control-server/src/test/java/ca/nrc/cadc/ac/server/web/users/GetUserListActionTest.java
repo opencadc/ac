@@ -66,45 +66,48 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.json;
+package ca.nrc.cadc.ac.server.web.users;
 
+
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.UUID;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
-import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.PosixDetails;
-import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
-import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.ac.xml.UserListWriter;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**
  *
- * @author jburke
+ * @author adriand
  */
-public class JsonUserReaderWriterTest
+public class GetUserListActionTest
 {
-    private static Logger log = Logger.getLogger(JsonUserReaderWriterTest.class);
-
     @BeforeClass
-    public static void setupClass()
+    public static void setUpClass()
     {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
@@ -115,72 +118,94 @@ public class JsonUserReaderWriterTest
     }
 
     @Test
-    public void testReaderExceptions()
-        throws Exception
+    @SuppressWarnings("unchecked")
+    public void testWriteUsersJSON() throws Exception
     {
-        try
-        {
-            String s = null;
-            JsonUserReader reader = new JsonUserReader();
-            User u = reader.read(s);
-            fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
+        final UserPersistence mockUserPersistence =
+                createMock(UserPersistence.class);
+        List<User> expectedUsers = new ArrayList<User>();
 
-        try
+        for (int i = 1; i <= 5; i++)
         {
-            InputStream in = null;
-            JsonUserReader reader = new JsonUserReader();
-            User u = reader.read(in);
-            fail("null InputStream should throw IOException");
+            User user = new User();
+            user.getIdentities().add(new HttpPrincipal("USER_" + i));
+            PersonalDetails pd = new PersonalDetails("USER", Integer.toString(i));
+            user.personalDetails = pd;
+            expectedUsers.add(user);
         }
-        catch (IOException e) {}
 
-        try
-        {
-            Reader r = null;
-            JsonUserReader reader = new JsonUserReader();
-            User u = reader.read(r);
-            fail("null Reader should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e) {}
+        final GetUserListAction testSubject = new GetUserListAction();
+        testSubject.userPersistence = mockUserPersistence;
+
+        testSubject.setAcceptedContentType(AbstractUserAction.JSON_CONTENT_TYPE);
+
+        final Writer actualWriter = new StringWriter();
+        final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
+
+        expect(mockUserPersistence.getUsers()).andReturn(expectedUsers).once();
+        expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
+        mockSyncOut.setHeader("Content-Type", "application/json");
+        expectLastCall().once();
+
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
+
+        final Writer expectedWriter = new StringWriter();
+        final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
+        JsonUserListWriter userListWriter = new JsonUserListWriter();
+        userListWriter.write(expectedUsers, expectedPrintWriter);
+        JSONAssert.assertEquals(expectedWriter.toString(), actualWriter.toString(), false);
+
+        verify(mockSyncOut, mockUserPersistence);
     }
 
     @Test
-    public void testWriterExceptions()
-        throws Exception
+    @SuppressWarnings("unchecked")
+    public void testWriteUsersXML() throws Exception
     {
-        try
+        final SyncOutput mockSyncOut =
+                createMock(SyncOutput.class);
+        final UserPersistence mockUserPersistence =
+                createMock(UserPersistence.class);
+        List<User> expectedUsers = new ArrayList<User>();
+
+        for (int i = 1; i <= 5; i++)
         {
-            JsonUserWriter writer = new JsonUserWriter();
-            writer.write(null, new StringBuilder());
-            fail("null User should throw WriterException");
+            User user = new User();
+            user.getIdentities().add(new HttpPrincipal("USER_" + i));
+            PersonalDetails pd = new PersonalDetails("USER", Integer.toString(i));
+            user.personalDetails = pd;
+            expectedUsers.add(user);
         }
-        catch (WriterException e) {}
+
+        final GetUserListAction testSubject = new GetUserListAction();
+        testSubject.userPersistence = mockUserPersistence;
+
+        final Writer actualWriter = new StringWriter();
+        final PrintWriter actualPrintWriter = new PrintWriter(actualWriter);
+
+        expect(mockUserPersistence.getUsers()).andReturn(expectedUsers).once();
+        expect(mockSyncOut.getWriter()).andReturn(actualPrintWriter).once();
+        mockSyncOut.setHeader("Content-Type", "text/xml");
+        expectLastCall().once();
+
+        replay(mockSyncOut, mockUserPersistence);
+        testSubject.setSyncOut(mockSyncOut);
+        UserLogInfo logInfo = createMock(UserLogInfo.class);
+        testSubject.setLogInfo(logInfo);
+        testSubject.doAction();
+
+        final Writer expectedWriter = new StringWriter();
+        final PrintWriter expectedPrintWriter = new PrintWriter(expectedWriter);
+        UserListWriter userListWriter = new UserListWriter();
+        userListWriter.write(expectedUsers, expectedPrintWriter);
+        assertEquals("Wrong XML", expectedWriter.toString(), actualWriter.toString());
+
+        verify(mockSyncOut, mockUserPersistence);
     }
-
-    @Test
-    public void testReadWrite()
-        throws Exception
-    {
-        User expected = new User();
-        UUID uuid = UUID.randomUUID();
-        URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
-        TestUtil.setField(expected, new InternalID(uri), AbstractReaderWriter.ID);
-
-        expected.getIdentities().add(new NumericPrincipal(uuid));
-        expected.personalDetails = new PersonalDetails("firstname", "lastname");
-        expected.posixDetails = new PosixDetails("foo", 123, 456, "/dev/null");
-
-        StringBuilder json = new StringBuilder();
-        JsonUserWriter writer = new JsonUserWriter();
-        writer.write(expected, json);
-        assertFalse(json.toString().isEmpty());
-
-        JsonUserReader reader = new JsonUserReader();
-        User actual = reader.read(json.toString());
-        assertNotNull(actual);
-        assertEquals(expected, actual);
-    }
-
 }

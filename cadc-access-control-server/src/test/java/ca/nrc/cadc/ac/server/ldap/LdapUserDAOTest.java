@@ -75,7 +75,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import ca.nrc.cadc.auth.Authenticator;
 import java.io.File;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -84,6 +83,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 
 import java.util.List;
+
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
@@ -95,18 +95,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
 
 public class LdapUserDAOTest extends AbstractLdapDAOTest
 {
@@ -231,7 +229,6 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 {
                     final User actualUser = userDAO.getUserRequest(userID);
                     check(expectedUser, actualUser);
-
                     return null;
                 }
                 catch (Exception e)
@@ -460,7 +457,15 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             final LdapUserDAO httpUserDAO = getUserDAO();
             httpUserDAO.addUserRequest(userRequest);
         }
-        catch (UserAlreadyExistsException expected) {}
+        catch (UserAlreadyExistsException expected) {
+            final LdapUserDAO httpUserDAO = getUserDAO();
+            httpUserDAO.deleteUserRequest(httpPrincipal);
+            try {
+                httpUserDAO.addUserRequest(userRequest);
+            } catch (UserAlreadyExistsException ex) {
+                fail("Failed to delete userRequest.");
+            }
+        }
 
         final Subject subject = new Subject();
         subject.getPrincipals().add(httpPrincipal);
@@ -1162,6 +1167,20 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             assertEquals(pd1.email, pd2.email);
             assertEquals(pd1.institute, pd2.institute);
         }
+        
+        assertEquals(expected.posixDetails, actual.posixDetails);
+        PosixDetails posixd1 = expected.posixDetails;
+        PosixDetails posixd2 = actual.posixDetails;
+        assertEquals(posixd1, posixd2);
+
+        if (posixd1 != null && posixd2 != null)
+        {
+            assertEquals(posixd1.getUsername(), posixd2.getUsername());
+            assertEquals(posixd1.getUid(), posixd2.getUid());
+            assertEquals(posixd1.getGid(), posixd2.getGid());
+            assertEquals(posixd1.getHomeDirectory(), posixd2.getHomeDirectory());
+            assertEquals(posixd1.loginShell, posixd2.loginShell);
+        }
     }
 
     private UserRequest createUserRequest(final HttpPrincipal userID, final String email)
@@ -1263,5 +1282,4 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
             }
         });
     }
-
 }

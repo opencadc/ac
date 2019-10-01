@@ -71,6 +71,7 @@ import ca.nrc.cadc.ac.server.web.users.AbstractUserAction;
 import ca.nrc.cadc.ac.server.web.users.CreateUserAction;
 import ca.nrc.cadc.ac.server.web.users.DeleteUserAction;
 import ca.nrc.cadc.ac.server.web.users.GetUserAction;
+import ca.nrc.cadc.ac.server.web.users.GetUserListAction;
 import ca.nrc.cadc.ac.server.web.users.ModifyUserAction;
 import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
 import ca.nrc.cadc.util.Log4jInit;

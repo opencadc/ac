@@ -70,12 +70,23 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserRequest;
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+
+import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
+import java.util.UUID;
+
 import javax.security.auth.Subject;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
@@ -105,18 +116,166 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
-    LdapGroupDAO getGroupDAO() throws Exception
-    {
-        LdapConnections connections = new LdapConnections(config);
-        return new LdapGroupDAO(connections,
-                new LdapUserDAO(connections));
-    }
-
     String getGroupID()
     {
         return "CadcDaoTestGroup-" + System.currentTimeMillis();
     }
 
+    String createUsername()
+    {
+        return "CadcDaoTestUser-" + System.currentTimeMillis();
+    }
+
+    protected long uuid2long(UUID uuid)
+    {
+        return uuid.getLeastSignificantBits();
+    }
+
+    private User addUserRequest() throws Exception 
+    {
+        // add user using HttpPrincipal
+        final String username = createUsername();
+        final HttpPrincipal userID = new HttpPrincipal(username);
+
+        final User expectedUser = new User();
+        expectedUser.getIdentities().add(userID);
+
+        expectedUser.personalDetails = new PersonalDetails("associated", "user");
+        expectedUser.personalDetails.email = username + "@canada.ca";
+
+        UserRequest userRequest = new UserRequest(expectedUser, "123456".toCharArray());
+
+        // Adding a new user is done anonymously
+        final LdapUserDAO userDAO = getUserDAO();
+        userDAO.addUserRequest(userRequest);
+
+        final DNPrincipal dnPrincipal = new DNPrincipal("uid=" + username + "," + config.getUserRequestsDN());
+        Subject subject = new Subject();
+        subject.getPrincipals().add(dnPrincipal);
+
+        // do everything as owner
+        final User newUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run()
+                throws Exception
+            {
+                try
+                {
+                    return userDAO.getUserRequest(userID);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+
+        return newUser;
+    }
+
+    private Group addUserAssociatedGroup(final User newUser, final Group expectGroup) throws Exception
+    {
+        Group newGroup = (Group) Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
+        {
+            public Object run() throws Exception
+            {
+                try
+                {
+                    final int numericID = (int) uuid2long(newUser.getID().getUUID());
+                    getGroupDAO().addUserAssociatedGroup(expectGroup, numericID);
+                    
+                    Group actualGroup = getGroupDAO().getUserAssociatedGroup(expectGroup.getID().getName(), true);
+                    log.info("addGroup: " + expectGroup.getID());
+                    assertGroupsEqual(expectGroup, actualGroup);
+                  
+                    return actualGroup;
+                }
+                catch (Exception e)
+                {
+                    log.error("unexpected exception", e);
+                    throw new Exception("Problems", e);
+                }
+            }
+        });
+
+        return newGroup;
+    }
+    
+    @Test 
+    public void testDeactivationReactivation() throws Exception
+    {
+        // create the test group
+        User newUser = addUserRequest();
+
+        // add group associated with the above user
+        Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + newUser.getHttpPrincipal().getName()));
+        setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
+        expectGroup.getUserMembers().add(newUser);
+        Group group = addUserAssociatedGroup(newUser, expectGroup);
+        
+        // test group reactivation
+        LdapGroupDAO groupDAO = getGroupDAO();
+        boolean activated = groupDAO.reactivateGroup(group);
+        Assert.assertTrue("failed to activate group", activated);
+        
+        // test group deactivation
+        boolean deactivated = groupDAO.deactivateGroup(group);
+        Assert.assertTrue("failed to deactivate group", deactivated);
+        
+        String groupName = group.getID().getName();
+        groupDAO.deleteUserAssociatedGroup(groupName);
+        try {
+            groupDAO.getGroup(groupName, false);
+            fail("Failed to delete user associated group.");
+        } catch (GroupNotFoundException expectedException) {
+            // success
+        } finally {
+            // clean up, delete the userRequest
+            getUserDAO().deleteUserRequest(newUser.getHttpPrincipal());
+        }
+    }
+    
+    @Test
+    public void testAddUserAssociatedGroup() throws Exception
+    {
+        // add user using HttpPrincipal
+        User newUser = addUserRequest();
+
+        // add group associated with the above user
+        Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + newUser.getHttpPrincipal().getName()));
+        setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
+        expectGroup.getUserMembers().add(newUser);
+        addUserAssociatedGroup(newUser, expectGroup);
+    }
+
+    @Test
+    public void testDeleteUserAssociatedGroup() throws Exception
+    {
+        // add user using HttpPrincipal
+        User newUser = addUserRequest();
+
+        // add group associated with the above user
+        Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + newUser.getHttpPrincipal().getName()));
+        setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
+        expectGroup.getUserMembers().add(newUser);
+        addUserAssociatedGroup(newUser, expectGroup);
+
+        // delete the user associated group
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());            
+        GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + newUser.getHttpPrincipal().getName());
+        getGroupDAO().deleteUserAssociatedGroup(groupID.getName());
+        try {
+            getGroupDAO().getGroup(groupID.getName(), false);
+            fail("Failed to delete user associated group.");
+        } catch (GroupNotFoundException expectedException) {
+            // success
+        } finally {
+            // clean up, delete the userRequest
+            getUserDAO().deleteUserRequest(newUser.getHttpPrincipal());
+        }
+    }
+    
     @Test
     public void testOneGroup() throws Exception
     {
