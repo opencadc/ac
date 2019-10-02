@@ -110,6 +110,8 @@ public class UserRequestServlet extends HttpServlet
     private List<Subject> privilegedSubjects;
 
     private UserPersistence userPersistence;
+    
+    private Principal groupOwnerHttpPrincipal;
 
     /**
      * Servlet initialization method.
@@ -150,6 +152,11 @@ public class UserRequestServlet extends HttpServlet
 
             String httpUsers = config.getInitParameter(UserRequestServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("PrivilegedHttpUsers: " + httpUsers);
+
+            String posixGroupOwner = config.getInitParameter("posixGroupOwner");
+            groupOwnerHttpPrincipal = new HttpPrincipal(posixGroupOwner);
+            
+            log.debug("Posix group owner: " + posixGroupOwner);
 
             List<String> x500List = new ArrayList<String>();
             List<String> httpList = new ArrayList<String>();
@@ -222,6 +229,8 @@ public class UserRequestServlet extends HttpServlet
             AbstractUserRequestAction action = factory.createAction(request);
             action.setAcceptedContentType(getAcceptedContentType(request));
             log.debug("content-type: " + getAcceptedContentType(request));
+            action.setPosixGroupOwnerHttpPrincipal(groupOwnerHttpPrincipal);
+            log.debug("Posix group owner: " + groupOwnerHttpPrincipal);
             profiler.checkpoint("created action");
 
             // Special case: if the calling subject has a privileged X500Principal,

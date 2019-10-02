@@ -69,33 +69,23 @@
 package ca.nrc.cadc.ac.server.web.userrequests;
 
 import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.json.JsonUserListWriter;
-import ca.nrc.cadc.ac.json.JsonUserReader;
 import ca.nrc.cadc.ac.json.JsonUserRequestReader;
-import ca.nrc.cadc.ac.json.JsonUserWriter;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
-import ca.nrc.cadc.ac.xml.UserListWriter;
-import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.ac.xml.UserRequestReader;
-import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
 
 public abstract class AbstractUserRequestAction implements PrivilegedExceptionAction<Object>
 {
@@ -108,6 +98,7 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
     protected UserLogInfo logInfo;
     protected SyncOutput syncOut;
     protected UserPersistence userPersistence;
+    protected Principal groupOwnerHttpPrincipal;
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
@@ -220,17 +211,21 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
 
     private void sendError(int responseCode, String message)
     {
-        syncOut.setCode(responseCode);
-        syncOut.setHeader("Content-Type", "text/plain");
-        if (message != null)
-        {
-            try
+        if (syncOut.isOpen()) {
+            log.warn("SynceOutput is open.");
+        } else {
+            syncOut.setCode(responseCode);
+            syncOut.setHeader("Content-Type", "text/plain");
+            if (message != null)
             {
-                syncOut.getWriter().write(message);
-            }
-            catch (IOException e)
-            {
-                log.warn("Could not write error message to output stream");
+                try
+                {
+                    syncOut.getWriter().write(message);
+                }
+                catch (IOException e)
+                {
+                    log.warn("Could not write error message to output stream");
+                }
             }
         }
         profiler.checkpoint("sendError");
@@ -239,6 +234,11 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
     protected void logUserInfo(String userName)
     {
         this.logInfo.userName = userName;
+    }
+
+    public void setPosixGroupOwnerHttpPrincipal(final Principal groupOwnerHttpPrincipal)
+    {
+        this.groupOwnerHttpPrincipal = groupOwnerHttpPrincipal;
     }
 
     public void setAcceptedContentType(final String acceptedContentType)

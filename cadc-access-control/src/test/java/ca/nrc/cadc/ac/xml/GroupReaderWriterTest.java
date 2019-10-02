@@ -199,7 +199,7 @@ public class GroupReaderWriterTest
         owner.personalDetails.institute = "institute";
         owner.personalDetails.city = "city";
         owner.personalDetails.country = "country";
-        owner.posixDetails = new PosixDetails("foo", 123L, 456L, "/dev/null");
+        owner.posixDetails = new PosixDetails("foo", 123, 456, "/dev/null");
 
         Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));
         setGroupOwner(expected, owner);

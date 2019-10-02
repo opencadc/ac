@@ -126,6 +126,8 @@ public class AbstractLdapDAOTest
 
     static LdapConfig config;
 
+    static LdapConnections connections;
+
     @BeforeClass
     public static void setUpBeforeClass()
         throws Exception
@@ -140,6 +142,7 @@ public class AbstractLdapDAOTest
             try
             {
                 config = getLdapConfig();
+                connections = new LdapConnections(config);
             }
             catch (NoSuchElementException e)
             {
@@ -167,13 +170,18 @@ public class AbstractLdapDAOTest
             }
             catch (UserNotFoundException e)
             {
-                User user = new User();
-                user.getIdentities().add(cadcDaoTest1_HttpPrincipal);
-                user.getIdentities().add(cadcDaoTest1_X500Principal);
-                user.personalDetails = new PersonalDetails("CADC", "DAOTest1");
-                user.personalDetails.email = cadcDaoTest1_CN + "@canada.ca";
-                UserRequest userRequest = new UserRequest(user, "password".toCharArray());
-                getUserDAO().addUserRequest(userRequest);
+                try {
+                    cadcDaoTest1_User = getUserDAO().getUserRequest(cadcDaoTest1_HttpPrincipal);
+                } catch (UserNotFoundException ex) {
+                    User user = new User();
+                    user.getIdentities().add(cadcDaoTest1_HttpPrincipal);
+                    user.getIdentities().add(cadcDaoTest1_X500Principal);
+                    user.personalDetails = new PersonalDetails("CADC", "DAOTest1");
+                    user.personalDetails.email = cadcDaoTest1_CN + "@canada.ca";
+                    UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+                    getUserDAO().addUserRequest(userRequest);
+                }
+                
                 getUserDAO().approveUserRequest(cadcDaoTest1_HttpPrincipal);
                 cadcDaoTest1_User = getUserDAO().getUser(cadcDaoTest1_HttpPrincipal);
             }
@@ -184,13 +192,18 @@ public class AbstractLdapDAOTest
             }
             catch (UserNotFoundException e)
             {
-                User user = new User();
-                user.getIdentities().add(cadcDaoTest2_HttpPrincipal);
-                user.getIdentities().add(cadcDaoTest2_X500Principal);
-                user.personalDetails = new PersonalDetails("CADC", "DAOTest2");
-                user.personalDetails.email = cadcDaoTest2_CN + "@canada.ca";
-                UserRequest userRequest = new UserRequest(user, "password".toCharArray());
-                getUserDAO().addUserRequest(userRequest);
+                try {
+                    cadcDaoTest2_User = getUserDAO().getUserRequest(cadcDaoTest2_HttpPrincipal);
+                } catch (UserNotFoundException ex) {
+                    User user = new User();
+                    user.getIdentities().add(cadcDaoTest2_HttpPrincipal);
+                    user.getIdentities().add(cadcDaoTest2_X500Principal);
+                    user.personalDetails = new PersonalDetails("CADC", "DAOTest2");
+                    user.personalDetails.email = cadcDaoTest2_CN + "@canada.ca";
+                    UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+                    getUserDAO().addUserRequest(userRequest);
+                }
+                
                 getUserDAO().approveUserRequest(cadcDaoTest2_HttpPrincipal);
                 cadcDaoTest2_User = getUserDAO().getUser(cadcDaoTest2_HttpPrincipal);
             }
@@ -201,13 +214,18 @@ public class AbstractLdapDAOTest
             }
             catch (UserNotFoundException e)
             {
-                User user = new User();
-                user.getIdentities().add(cadcDaoTest3_HttpPrincipal);
-                user.getIdentities().add(cadcDaoTest3_X500Principal);
-                user.personalDetails = new PersonalDetails("CADC", "DAOTest3");
-                user.personalDetails.email = cadcDaoTest3_CN + "@canada.ca";
-                UserRequest userRequest = new UserRequest(user, "password".toCharArray());
-                getUserDAO().addUserRequest(userRequest);
+                try {
+                    cadcDaoTest3_User = getUserDAO().getUserRequest(cadcDaoTest3_HttpPrincipal);
+                } catch (UserNotFoundException ex) {
+                    User user = new User();
+                    user.getIdentities().add(cadcDaoTest3_HttpPrincipal);
+                    user.getIdentities().add(cadcDaoTest3_X500Principal);
+                    user.personalDetails = new PersonalDetails("CADC", "DAOTest3");
+                    user.personalDetails.email = cadcDaoTest3_CN + "@canada.ca";
+                    UserRequest userRequest = new UserRequest(user, "password".toCharArray());
+                    getUserDAO().addUserRequest(userRequest);
+                }
+                
                 getUserDAO().approveUserRequest(cadcDaoTest3_HttpPrincipal);
                 cadcDaoTest3_User = getUserDAO().getUser(cadcDaoTest3_HttpPrincipal);
             }
@@ -242,8 +260,13 @@ public class AbstractLdapDAOTest
 
     static LdapUserDAO getUserDAO() throws Exception
     {
-        LdapConnections connections = new LdapConnections(config);
         return new LdapUserDAO(connections);
+    }
+
+    LdapGroupDAO getGroupDAO() throws Exception
+    {
+        return new LdapGroupDAO(connections,
+                new LdapUserDAO(connections));
     }
 
     static protected LdapConfig getLdapConfig() throws Exception

@@ -288,27 +288,44 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 log.debug("getGroups  " + role + ": " + groups.size());
                 Collection<Group> ret = new ArrayList<Group>(groups.size());
                 Iterator<Group> i = groups.iterator();
+                String posixUserName = null;
+                if (caller.getPrincipals(HttpPrincipal.class).size() == 1)
+                {
+                    posixUserName = caller.getPrincipals(
+                        HttpPrincipal.class).iterator().next().getName();
+                }
                 while ( i.hasNext() )
                 {
                     Group g = i.next();
-                    if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID))
+                    
+                    // filter out the user's posix group
+                    if (posixUserName != null && g.getID().getName().equals(posixUserName))
                     {
-                        if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
+                        log.debug("Filtering out posix group: " + posixUserName);
+                    }
+                    else
+                    {
+                        if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID))
                         {
-                            try
+                            if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
                             {
-                                Group g2 = groupDAO.getGroup(g.getID().getName(), false);
-                                log.debug("role " + role + " loaded: " + g2);
-                                ret.add(g2);
+                                try
+                                {
+                                    Group g2 = groupDAO.getGroup(g.getID().getName(), false);
+                                    log.debug("role " + role + " loaded: " + g2);
+                                    ret.add(g2);
+                                }
+                                catch(GroupNotFoundException contentBug)
+                                {
+                                    log.error("group: " + g.getID() + " in cache but not found", contentBug);
+                                    // skip and continue so user gets something
+                                }
                             }
-                            catch(GroupNotFoundException contentBug)
+                            else
                             {
-                                log.error("group: " + g.getID() + " in cache but not found", contentBug);
-                                // skip and continue so user gets something
+                                ret.add(g);
                             }
                         }
-                        else
-                            ret.add(g);
                     }
                 }
                 profiler.checkpoint("get membership groups");

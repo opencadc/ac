@@ -104,6 +104,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.date.DateUtil;
 
 /**
@@ -301,6 +302,10 @@ public abstract class AbstractReaderWriter
         {
             principal = new DNPrincipal(identity);
         }
+        else if (type.equals(IdentityType.POSIX.getValue()))
+        {
+            principal = new PosixPrincipal(Integer.parseInt(identity));
+        }
         else
         {
             String error = "Unknown type attribute: " + type;
@@ -342,10 +347,10 @@ public abstract class AbstractReaderWriter
             String error = "posixDetails missing required element uid";
             throw new ReaderException(error);
         }
-        long uid;
+        int uid;
         try
         {
-            uid = Long.valueOf(uidElement.getText());
+            uid = Integer.parseInt(uidElement.getText());
         }
         catch (NumberFormatException e)
         {
@@ -360,10 +365,10 @@ public abstract class AbstractReaderWriter
             String error = "posixDetails missing required element gid";
             throw new ReaderException(error);
         }
-        long gid;
+        int gid;
         try
         {
-            gid = Long.valueOf(gidElement.getText());
+            gid = Integer.parseInt(gidElement.getText());
         }
         catch (NumberFormatException e)
         {
@@ -778,6 +783,10 @@ public abstract class AbstractReaderWriter
         else if ((identity instanceof DNPrincipal))
         {
             identityElement.setAttribute(TYPE, IdentityType.ENTRY_DN.getValue());
+        }
+        else if ((identity instanceof PosixPrincipal))
+        {
+            identityElement.setAttribute(TYPE, IdentityType.POSIX.getValue());
         }
         else
         {
