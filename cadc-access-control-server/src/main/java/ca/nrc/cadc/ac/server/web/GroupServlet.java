@@ -130,7 +130,7 @@ public class GroupServlet extends HttpServlet
         throws IOException
     {
         long start = System.currentTimeMillis();
-        GroupLogInfo logInfo = new GroupLogInfo(request);
+        GroupLogInfo logInfo = new GroupLogInfo(request, this.getServletName());
         try
         {
             log.info(logInfo.start());

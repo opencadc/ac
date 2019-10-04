@@ -166,6 +166,11 @@ public class WhoAmIServletTest
             {
                 return authMethod;
             }
+
+            @Override
+            public String getServletName() {
+                return "class_name";
+            }
         };
 
         final HttpServletRequest mockRequest =

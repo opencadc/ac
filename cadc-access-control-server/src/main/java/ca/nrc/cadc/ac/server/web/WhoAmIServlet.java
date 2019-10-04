@@ -118,7 +118,7 @@ public class WhoAmIServlet extends HttpServlet
             throws ServletException, IOException
     {
         final long start = System.currentTimeMillis();
-        final ServletLogInfo logInfo = new ServletLogInfo(request);
+        final ServletLogInfo logInfo = new ServletLogInfo(request, this.getServletName());
         log.info(logInfo.start());
         try
         {

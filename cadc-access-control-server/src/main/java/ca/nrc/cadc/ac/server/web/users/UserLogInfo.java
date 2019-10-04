@@ -75,9 +75,9 @@ public class UserLogInfo extends ServletLogInfo
 {
     public String userName;
 
-    public UserLogInfo(HttpServletRequest request)
+    public UserLogInfo(HttpServletRequest request, String className)
     {
-        super(request);
+        super(request, className);
     }
 
 }

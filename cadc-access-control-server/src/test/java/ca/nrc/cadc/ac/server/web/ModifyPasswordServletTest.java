@@ -130,6 +130,11 @@ public class ModifyPasswordServletTest
             {
                 return subject;
             }
+
+            @Override
+            public String getServletName() {
+                return "class_name";
+            }
         };
 
         final HttpServletRequest mockRequest =
@@ -234,6 +239,11 @@ public class ModifyPasswordServletTest
             Subject getSubject(final HttpServletRequest request)
             {
                 return subject;
+            }
+
+            @Override
+            public String getServletName() {
+                return "class_name";
             }
         };
 
