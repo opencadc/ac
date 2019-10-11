@@ -159,7 +159,7 @@ public class LoginServlet extends HttpServlet
         throws IOException
     {
         long start = System.currentTimeMillis();
-        ServletLogInfo logInfo = new ServletLogInfo(request, this.getServletName());
+        ServletLogInfo logInfo = new ServletLogInfo(request, this.getClass());
         try
         {
             log.info(logInfo.start());

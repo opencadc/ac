@@ -82,9 +82,9 @@ public class GroupLogInfo extends ServletLogInfo
     public List<String> addedMembers;
     public List<String> deletedMembers;
 
-    public GroupLogInfo(HttpServletRequest request, String className)
+    public GroupLogInfo(HttpServletRequest request, Class clz)
     {
-        super(request, className);
+        super(request, clz);
     }
 
 }
