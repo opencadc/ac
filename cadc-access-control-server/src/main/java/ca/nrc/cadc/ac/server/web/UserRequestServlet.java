@@ -221,8 +221,8 @@ public class UserRequestServlet extends HttpServlet
     {
         Profiler profiler = new Profiler(UserRequestServlet.class);
         long start = System.currentTimeMillis();
-        UserLogInfo logInfo = new UserLogInfo(request, this.getClass());
-
+        UserLogInfo logInfo = new UserLogInfo(request);
+        logInfo.setClass(this.getClass());
         try
         {
             log.info(logInfo.start());

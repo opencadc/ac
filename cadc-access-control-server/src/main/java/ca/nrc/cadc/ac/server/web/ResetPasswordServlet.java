@@ -280,7 +280,8 @@ public class ResetPasswordServlet extends HttpServlet
             throws ServletException, IOException
     {
         final long start = System.currentTimeMillis();
-        final ServletLogInfo logInfo = new ServletLogInfo(request, this.getClass());
+        final ServletLogInfo logInfo = new ServletLogInfo(request);
+        logInfo.setClass(this.getClass());
         log.info(logInfo.start());
         try
         {
@@ -409,7 +410,8 @@ public class ResetPasswordServlet extends HttpServlet
             throws IOException
     {
         final long start = System.currentTimeMillis();
-        final ServletLogInfo logInfo = new ServletLogInfo(request, this.getClass());
+        final ServletLogInfo logInfo = new ServletLogInfo(request);
+        logInfo.setClass(this.getClass());
         log.info(logInfo.start());
         try
         {
