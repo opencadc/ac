@@ -131,7 +131,7 @@ public class GroupServlet extends HttpServlet
     {
         long start = System.currentTimeMillis();
         GroupLogInfo logInfo = new GroupLogInfo(request);
-        logInfo.setClass(this.getClass());
+
         try
         {
             log.info(logInfo.start());

@@ -281,7 +281,6 @@ public class ResetPasswordServlet extends HttpServlet
     {
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
-        logInfo.setClass(this.getClass());
         log.info(logInfo.start());
         try
         {
@@ -411,7 +410,6 @@ public class ResetPasswordServlet extends HttpServlet
     {
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
-        logInfo.setClass(this.getClass());
         log.info(logInfo.start());
         try
         {

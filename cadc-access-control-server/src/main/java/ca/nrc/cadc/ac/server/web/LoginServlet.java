@@ -160,7 +160,6 @@ public class LoginServlet extends HttpServlet
     {
         long start = System.currentTimeMillis();
         ServletLogInfo logInfo = new ServletLogInfo(request);
-        logInfo.setClass(this.getClass());
         try
         {
             log.info(logInfo.start());
