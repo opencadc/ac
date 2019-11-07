@@ -202,9 +202,9 @@ public class WhoAmIServlet extends HttpServlet
     /**
      * Forward on to the Service's user endpoint.
      *
-     * @param response     The HTTP response.
-     * @param webPrincipal The HttpPrincipal instance.
-     * @param scheme       The scheme
+     * @param response      The HTTP response.
+     * @param principal     The HttpPrincipal instance.
+     * @param authMethod    The authMethod
      */
     void redirect(HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
     {

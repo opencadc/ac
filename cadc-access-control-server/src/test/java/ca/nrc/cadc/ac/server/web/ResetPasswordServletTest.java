@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -124,6 +124,11 @@ public class ResetPasswordServletTest
             {
                 return subject;
             }
+
+            @Override
+            public String getServletName() {
+                return "class_name";
+            }
         };
 
         final HttpServletRequest mockRequest =
@@ -134,7 +139,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
+//        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (!StringUtil.hasText(emailAddress))
         {
@@ -205,6 +210,11 @@ public class ResetPasswordServletTest
             {
                 return subject;
             }
+
+            @Override
+            public String getServletName() {
+                return "class_name";
+            }
         };
 
         final HttpServletRequest mockRequest =
@@ -215,7 +225,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("POST").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
-        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
+//        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
         if (privSubjects != null && !privSubjects.isEmpty())
         {
