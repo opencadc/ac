@@ -143,14 +143,14 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         catch (AccessControlException e)
         {
             log.debug(e.getMessage(), e);
-            String message = "Permission Denied";
+            String message = "Permission Denied: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(403, message);
         }
         catch (IllegalArgumentException e)
         {
             log.debug(e.getMessage(), e);
-            String message = e.getMessage();
+            String message = "Bad request: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(400, message);
         }
