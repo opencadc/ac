@@ -26,7 +26,7 @@ fi
 TS=$(date)
 echo "$TS $SELF DONE"
 
-/usr/sbin/sssd -d 10 --logger=files
+/usr/sbin/sssd -d 6 --logger=files
 
 PID=$(pgrep -x 'sssd')
 echo "PID: $PID"
