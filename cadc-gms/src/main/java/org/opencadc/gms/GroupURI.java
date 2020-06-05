@@ -65,23 +65,19 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
 package org.opencadc.gms;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-
 import org.apache.log4j.Logger;
 
 /**
  * Identifier for a group.
  *
  */
-public class GroupURI
-{
-    private static Logger log = Logger.getLogger(GroupURI.class);
-
+public class GroupURI implements Comparable<GroupURI> {
     private URI uri;
     private static String GROUP_NAME_ERRORMSG = "Group Name contains illegal characters (only alphanumeric, '-', '.', '_', '~' allowed";
 
@@ -89,98 +85,91 @@ public class GroupURI
      * Attempts to create a URI using the specified uri.
      *
      * @param uri The URI to use.
-     * @throws IllegalArgumentException if the URI scheme is not vos
-     * @throws NullPointerException if uri is null
+     * @throws IllegalArgumentException argument URI is not a valid group URI
      */
-    public GroupURI(URI uri)
-    {
-        if (uri == null)
-        {
+    public GroupURI(URI uri) throws IllegalArgumentException {
+        if (uri == null) {
             throw new IllegalArgumentException("Null URI");
         }
 
         // Ensure the scheme is correct
-        if (uri.getScheme() == null || !"ivo".equals(uri.getScheme()))
-        {
+        if (uri.getScheme() == null || !"ivo".equals(uri.getScheme())) {
             throw new IllegalArgumentException("GroupURI scheme must be 'ivo'.");
         }
 
-        if (uri.getAuthority() == null)
-        {
+        if (uri.getAuthority() == null) {
             throw new IllegalArgumentException("Group authority is required.");
         }
 
-        if (uri.getPath() == null || uri.getPath().length() == 0)
-        {
+        if (uri.getPath() == null || uri.getPath().length() == 0) {
             throw new IllegalArgumentException("Missing authority and/or path.");
         }
 
         String fragment = uri.getFragment();
         String query = uri.getQuery();
         String name = null;
-        if (query == null)
-        {
-            if (fragment != null)
-            {
+        if (query == null) {
+            if (fragment != null) {
                 // allow the fragment to define the group name (old style)
-                if (isValidGroupName(fragment))
-                {
+                if (isValidGroupName(fragment)) {
                     name = fragment;
-                }
-                else
-                {
+                } else {
                     throw new IllegalArgumentException(GROUP_NAME_ERRORMSG);
                 }
 
-            }
-            else
-            {
+            } else {
                 throw new IllegalArgumentException("Group name is required.");
             }
-        }
-        else
-        {
-            if (fragment != null)
-            {
+        } else {
+            if (fragment != null) {
                 throw new IllegalArgumentException("Fragment not allowed in group URIs");
             }
 
-            if (isValidGroupName(query))
-            {
+            if (isValidGroupName(query)) {
                 name = query;
-            }
-            else
-            {
+            } else {
                 throw new IllegalArgumentException(GROUP_NAME_ERRORMSG);
             }
         }
 
         this.uri = URI.create(
-            uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
+                uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
     }
 
     /**
      * Constructs a URI from the string and calls the constructor
      * that takes a URI object.
+     * @param uri 
+     * @throws IllegalArgumentException if the URI is not a valid group URI
+     * @throws URISyntaxException if the argument is not a valid URI
      */
-    public GroupURI(String uri)
-    {
-        this(URI.create(uri));
+    public GroupURI(String uri) throws IllegalArgumentException, URISyntaxException {
+        this(new URI(uri));
     }
 
     @Override
-    public boolean equals(Object other)
-    {
-        if (other == null)
+    public boolean equals(Object other) {
+        if (other == null) {
             return false;
-        if (this == other)
+        }
+        if (this == other) {
             return true;
-        if (other instanceof GroupURI)
-        {
+        }
+        if (other instanceof GroupURI) {
             GroupURI otherURI = (GroupURI) other;
             return uri.equals(otherURI.getURI());
         }
         return false;
+    }
+    
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
+    
+    @Override
+    public int compareTo(GroupURI t) {
+        return uri.compareTo(t.uri);
     }
 
     /**
@@ -188,8 +177,7 @@ public class GroupURI
      *
      * @return The URI object for this GroupURI.
      */
-    public URI getURI()
-    {
+    public URI getURI() {
         return uri;
     }
 
@@ -198,47 +186,39 @@ public class GroupURI
      *
      * @return fragment of the URI, or null if the fragment is undefined.
      */
-    public String getName()
-    {
+    public String getName() {
         return uri.getQuery();
     }
 
-    public URI getServiceID()
-    {
-        String serviceIDString = uri.getScheme() +
-            "://" +
-            uri.getAuthority() +
-            uri.getPath();
-        try
-        {
+    public URI getServiceID() {
+        String serviceIDString = uri.getScheme()
+                + "://"
+                + uri.getAuthority()
+                + uri.getPath();
+        try {
             return new URI(serviceIDString);
-        }
-        catch (URISyntaxException e)
-        {
-            log.error("Could not create service ID", e);
-            throw new IllegalStateException(e);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("BUG: failed to create serviceID from GroupURI: " + uri, e);
         }
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         // Validate name portion
-        return uri.toString();
+        return "GroupURI[" + uri.toString() + "]";
     }
 
     /**
      * Validate groupName passed in. Accepted characters include:
      * Alphanumerics, "-", ".", "_", "~"
+     *
      * @param groupName
      * @return boolean
      */
-    private boolean isValidGroupName(String groupName)
-    {
+    private boolean isValidGroupName(String groupName) {
         boolean isValid = false;
 
-        if (groupName.matches("^[a-zA-Z0-9_\\-\\.~]+$"))
-        {
+        if (groupName.matches("^[a-zA-Z0-9_\\-\\.~]+$")) {
             isValid = true;
         }
 
