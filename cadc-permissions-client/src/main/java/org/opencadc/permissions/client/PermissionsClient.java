@@ -184,7 +184,7 @@ public class PermissionsClient {
      */
     URL getGrantURL(URL serviceURL, Operation op, URI assetID) {
         try {
-            return new URL(serviceURL.toExternalForm() + "?OP=" + op + "&URI=" + assetID.toASCIIString());
+            return new URL(serviceURL.toExternalForm() + "?OP=" + op + "&ID=" + assetID.toASCIIString());
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("invalid assetID " + assetID + ": " + e.getMessage());
         }
