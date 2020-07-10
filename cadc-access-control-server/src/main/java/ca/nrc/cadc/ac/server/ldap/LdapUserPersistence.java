@@ -160,8 +160,11 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         User user = null;
         try
         {
-            // create the group to be associated with this userRequest
+            // add the userRequest
             userDAO = new LdapUserDAO(conns);
+            user = userDAO.addUserRequest(userRequest);
+
+            // create the group to be associated with this userRequest
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
@@ -169,24 +172,14 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             Group group = new Group(groupID);
             User groupOwner = userDAO.getAugmentedUser(ownerHttpPrincipal,  false);
             ObjectUtil.setField(group, groupOwner, "owner");
-
-            // ensure that there is no existing group with the same user name
-            boolean groupExists = checkIfGroupExists(group, groupDAO);
-            if (groupExists) {
-                throw new GroupAlreadyExistsException("Group " + group.getID().getName() + " already exists ");
-            }
             
-            // group does not exist, add the userRequest
-            user = userDAO.addUserRequest(userRequest);
+            // add the user to the group
             group.getUserMembers().add(user);
             
             // add the group associated with the userRequest
             groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
         } catch (GroupAlreadyExistsException ex) {
-            // clean up
-            if (user != null) {
-                deleteUserRequest(user.getHttpPrincipal());
-            }
+            // no need to add the group, do nothing
         }
         finally
         {
