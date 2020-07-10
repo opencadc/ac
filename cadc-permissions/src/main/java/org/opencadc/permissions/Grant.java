@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,44 +62,75 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
+ *  $Revision: 4 $
  *
  ************************************************************************
  */
 
-package org.opencadc.inventory.permissions;
+package org.opencadc.permissions;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import org.opencadc.gms.GroupURI;
 
 /**
- * Holds read grant information about an artifact.
+ * Holds grant information about an artifact.
  * 
  * @author majorb
  *
  */
-public class ReadGrant extends Grant {
+public abstract class Grant {
 
-    // Is the artifact available to anonymous (all) users.
-    private boolean anonymousAccess;
+    private final URI assetID;
+    private Date expiryDate;
+
+    private final List<GroupURI> groups = new ArrayList<GroupURI>();
 
     /**
-     * Construct a read grant for the given artifactURI and expiry date.
-     * @param artifactURI The applicable targetURI.
-     * @param expiryDate The expiry date of the grant.
-     * @param anonymousAccess true is the artifact has anonymous access, false otherwise.
+     * Construct a grant for the given artifactURI and expiryDate.
+     *
+     * @param assetID the asset identifier
+     * @param expiryDate the expiry date of the grant
      */
-    public ReadGrant(URI artifactURI, Date expiryDate, boolean anonymousAccess) {
-        super(artifactURI, expiryDate);
-        this.anonymousAccess = anonymousAccess;
+    public Grant(URI assetID, Date expiryDate) {
+        assertNotNull(Grant.class, "assetID", assetID);
+        assertNotNull(Grant.class, "expiryDate", expiryDate);
+        this.assetID = assetID;
+        this.expiryDate = expiryDate;
     }
 
     /**
-     * Check if artifact is accessible by anonymous (all) users.
-     * @return true if the artifact has anonymous access, false otherwise.
+     * Get the asset identifier to which this grant applies.
+     *
+     * @return assetID
      */
-    public boolean isAnonymousAccess() {
-        return anonymousAccess;
+    public URI getAssetID() {
+        return assetID;
     }
 
+    /**
+     * Get date after which the Grant is considered expired and should be renewed.
+     *
+     * @return grant expiry date
+     */
+    public Date getExpiryDate() {
+        return expiryDate;
+    }
+    
+    /**
+     * Get the group list with access to the asset.
+     * 
+     * @return list of groups with access
+     */
+    public List<GroupURI> getGroups() {
+        return groups;
+    }
+    
+    private void assertNotNull(Class caller, String name, Object test) {
+        if (test == null) {
+            throw new IllegalArgumentException("invalid " + caller.getSimpleName() + "." + name + ": null");
+        }
+    }
 }

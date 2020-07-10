@@ -1,5 +1,9 @@
-package org.opencadc.inventory.permissions;
+package org.opencadc.permissions;
 
+import org.opencadc.permissions.Grant;
+import org.opencadc.permissions.TokenUtil;
+import org.opencadc.permissions.WriteGrant;
+import org.opencadc.permissions.ReadGrant;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 

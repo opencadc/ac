@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package org.opencadc.inventory.permissions.xml;
+package org.opencadc.permissions.xml;
 
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.xml.XmlUtil;
@@ -86,14 +86,14 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.inventory.permissions.Grant;
-import org.opencadc.inventory.permissions.ReadGrant;
-import org.opencadc.inventory.permissions.WriteGrant;
+import org.opencadc.permissions.Grant;
+import org.opencadc.permissions.ReadGrant;
+import org.opencadc.permissions.WriteGrant;
 
 public class GrantReader {
 
     static enum ENAMES {
-        grant(), artifactURI(), expiryDate(), anonymousRead(), groups(), groupURI(),
+        grant(), assetID(), expiryDate(), anonymousRead(), groups(), groupURI(),
         type(), ReadGrant(), WriteGrant();
     }
 
@@ -126,7 +126,7 @@ public class GrantReader {
         }
         boolean isReadGrant = isReadGrant(root);
 
-        URI artifactURI = getURI(ENAMES.artifactURI.name(), root.getChildTextTrim(ENAMES.artifactURI.name()));
+        URI artifactURI = getURI(ENAMES.assetID.name(), root.getChildTextTrim(ENAMES.assetID.name()));
         Date expiryDate = getDate(ENAMES.expiryDate.name(), root.getChildTextTrim(ENAMES.expiryDate.name()));
 
         Grant grant;
