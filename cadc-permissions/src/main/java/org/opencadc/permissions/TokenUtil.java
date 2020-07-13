@@ -65,7 +65,7 @@
 ************************************************************************
  */
 
-package org.opencadc.inventory.permissions;
+package org.opencadc.permissions;
 
 import ca.nrc.cadc.util.Base64;
 import ca.nrc.cadc.util.RsaSignatureGenerator;

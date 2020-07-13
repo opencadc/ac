@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package org.opencadc.inventory.permissions;
+package org.opencadc.permissions.client;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.net.HttpGet;
@@ -80,7 +80,10 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import org.opencadc.inventory.permissions.xml.GrantReader;
+import org.opencadc.permissions.Grant;
+import org.opencadc.permissions.ReadGrant;
+import org.opencadc.permissions.WriteGrant;
+import org.opencadc.permissions.xml.GrantReader;
 
 /**
  * Client for retrieving grant information about artifacts.
@@ -113,40 +116,40 @@ public class PermissionsClient {
     }
 
     /**
-     * Get the read permissions information about the file identified by artifactURI.
+     * Get the read permissions information about the file identified by assetID.
      *
-     * @param artifactURI Identifies the artifact for which to retrieve grant information.
-     * @return Null if permission information isn't found for the artifactURI, otherwise the read grant information.
-     *
-     * @throws TransientException If an unexpected, temporary exception occurred.
-     */
-    public ReadGrant getReadGrant(URI artifactURI) throws TransientException {
-        return (ReadGrant) getGrant(artifactURI, Operation.read);
-    }
-
-    /**
-     * Get the write permissions information about the file identified by artifactURI.
-     *
-     * @param artifactURI Identifies the artifact for which to retrieve grant information.
-     * @return Null if permission information isn't found for the artifactURI, otherwise the write grant information.
+     * @param assetID Identifies the artifact for which to retrieve grant information.
+     * @return Null if permission information isn't found for the assetID, otherwise the read grant information.
      *
      * @throws TransientException If an unexpected, temporary exception occurred.
      */
-    public WriteGrant getWriteGrant(URI artifactURI) throws TransientException {
-        return (WriteGrant) getGrant(artifactURI, Operation.write);
+    public ReadGrant getReadGrant(URI assetID) throws TransientException {
+        return (ReadGrant) getGrant(assetID, Operation.read);
     }
 
     /**
-     * Get the permission information about the file identified by artifactURI.
+     * Get the write permissions information about the file identified by assetID.
      *
-     * @param artifactURI Identifies the artifact for which to retrieve grant information.
+     * @param assetID Identifies the artifact for which to retrieve grant information.
+     * @return Null if permission information isn't found for the assetID, otherwise the write grant information.
+     *
+     * @throws TransientException If an unexpected, temporary exception occurred.
+     */
+    public WriteGrant getWriteGrant(URI assetID) throws TransientException {
+        return (WriteGrant) getGrant(assetID, Operation.write);
+    }
+
+    /**
+     * Get the permission information about the file identified by assetID.
+     *
+     * @param assetID Identifies the artifact for which to retrieve grant information.
      * @param op The type of grant to retrieve.
-     * @return Null if permission information isn't found for the artifactURI, otherwise the grant information.
+     * @return Null if permission information isn't found for the assetID, otherwise the grant information.
      * @throws TransientException If an unexpected, temporary exception occurred.
      */
-    Grant getGrant(URI artifactURI, Operation op) throws TransientException {
+    Grant getGrant(URI assetID, Operation op) throws TransientException {
 
-        URL grantURL = getGrantURL(serviceURL, op, artifactURI);
+        URL grantURL = getGrantURL(serviceURL, op, assetID);
         HttpGet httpGet = new HttpGet(grantURL, true);
 
         try {
@@ -156,7 +159,7 @@ public class PermissionsClient {
         } catch (IOException e) {
             throw new RuntimeException("error reading server response", e);
         } catch (InterruptedException e) {
-            throw new TransientException("temporarily unavailable: " + artifactURI);
+            throw new TransientException("temporarily unavailable: " + assetID);
         } catch (ResourceNotFoundException e) {
             return null;
         }
@@ -176,14 +179,14 @@ public class PermissionsClient {
      *
      * @param serviceURL The URL of the permissions service.
      * @param op The type of grant to retrieve.
-     * @param artifactURI Identifies the artifact for which to retrieve grant information.
+     * @param assetID Identifies the artifact for which to retrieve grant information.
      * @return URL to the grant information.
      */
-    URL getGrantURL(URL serviceURL, Operation op, URI artifactURI) {
+    URL getGrantURL(URL serviceURL, Operation op, URI assetID) {
         try {
-            return new URL(serviceURL.toExternalForm() + "?OP=" + op + "&URI=" + artifactURI.toASCIIString());
+            return new URL(serviceURL.toExternalForm() + "?OP=" + op + "&ID=" + assetID.toASCIIString());
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("invalid artifactURI " + artifactURI + ": " + e.getMessage());
+            throw new IllegalArgumentException("invalid assetID " + assetID + ": " + e.getMessage());
         }
     }
 
