@@ -62,52 +62,85 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
+ *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.gms;
+package org.opencadc.permissions.xml;
 
-import ca.nrc.cadc.util.Log4jInit;
-import java.net.URI;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import ca.nrc.cadc.date.DateUtil;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.text.DateFormat;
+import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.permissions.Grant;
+import org.opencadc.permissions.ReadGrant;
 
-public class GroupClientTest {
+public class GrantWriter {
 
-    Logger log = Logger.getLogger(GroupClientTest.class);
+    private DateFormat dateFormat;
+    private final boolean writeEmptyCollections;
 
-    public GroupClientTest() {
-        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.INFO);
+    public GrantWriter() {
+        this(false);
     }
 
-    @Test
-    public void testDefaultImpl() {
-        try {
-            // null resource id
-            GroupClient client = GroupUtil.getGroupClient(null);
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
+    public GrantWriter(boolean writeEmptyCollections) {
+        this.writeEmptyCollections = writeEmptyCollections;
+        this.dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+    }
 
-            // resource id but no client in classpath
-            client = GroupUtil.getGroupClient(new URI("test"));
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
+    public void write(Grant grant, OutputStream ostream) throws IOException {
+        write(grant, new OutputStreamWriter(ostream));
+    }
 
-        } catch (Throwable t) {
-            log.info("Unexpected failure: " + t.getMessage(), t);
-            Assert.fail("Unexpected failure: " + t.getMessage());
+    public void write(Grant grant, Writer writer) throws IOException {
+        Element root = new Element(GrantReader.ENAMES.grant.name());
+
+        addChild(root, GrantReader.ENAMES.assetID.name(), grant.getAssetID().toASCIIString());
+        addChild(root, GrantReader.ENAMES.expiryDate.name(), dateFormat.format(grant.getExpiryDate()));
+
+        if (grant instanceof ReadGrant) {
+            // root.addNamespaceDeclaration(XSI_NS);
+            root.setAttribute(GrantReader.ENAMES.type.name(), GrantReader.ENAMES.ReadGrant.name());
+            Element pub = new Element(GrantReader.ENAMES.anonymousRead.name());
+            pub.setText(Boolean.toString(((ReadGrant) grant).isAnonymousAccess()));
+            root.addContent(pub);
+        } else {
+            root.setAttribute(GrantReader.ENAMES.type.name(), GrantReader.ENAMES.WriteGrant.name());
+        }
+
+        Element groups = new Element(GrantReader.ENAMES.groups.name());
+        if (!grant.getGroups().isEmpty() || writeEmptyCollections) {
+            root.addContent(groups);
+        }
+        addGroups(grant.getGroups(), groups);
+
+        Document doc = new Document(root);
+        XMLOutputter outputter = new XMLOutputter();
+        outputter.setFormat(Format.getPrettyFormat());
+        outputter.output(doc, writer);
+    }
+
+    private void addChild(Element parent, String ename, String eval) {
+        Element uri = new Element(ename);
+        uri.setText(eval);
+        parent.addContent(uri);
+    }
+
+    private void addGroups(List<GroupURI> groups, Element parent) {
+        for (GroupURI groupURI : groups) {
+            Element uri = new Element(GrantReader.ENAMES.groupURI.name());
+            uri.setText(groupURI.getURI().toASCIIString());
+            parent.addContent(uri);
         }
     }
-
-    private void assertDefaultImpl(GroupClient client) {
-        Assert.assertTrue(client instanceof NoOpGroupClient);
-        Assert.assertFalse(client.isMember(new GroupURI(URI.create("ivo://cadc.nrc.ca/test?group"))));
-        Assert.assertNotNull(client.getMemberships());
-        Assert.assertTrue(client.getMemberships().isEmpty());
-    }
-
 }

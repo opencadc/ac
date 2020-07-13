@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,47 +67,70 @@
  ************************************************************************
  */
 
-package org.opencadc.gms;
+package org.opencadc.permissions;
 
-import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import org.opencadc.gms.GroupURI;
 
-public class GroupClientTest {
+/**
+ * Holds grant information about an artifact.
+ * 
+ * @author majorb
+ *
+ */
+public abstract class Grant {
 
-    Logger log = Logger.getLogger(GroupClientTest.class);
+    private final URI assetID;
+    private Date expiryDate;
 
-    public GroupClientTest() {
-        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.INFO);
+    private final List<GroupURI> groups = new ArrayList<GroupURI>();
+
+    /**
+     * Construct a grant for the given artifactURI and expiryDate.
+     *
+     * @param assetID the asset identifier
+     * @param expiryDate the expiry date of the grant
+     */
+    public Grant(URI assetID, Date expiryDate) {
+        assertNotNull(Grant.class, "assetID", assetID);
+        assertNotNull(Grant.class, "expiryDate", expiryDate);
+        this.assetID = assetID;
+        this.expiryDate = expiryDate;
     }
 
-    @Test
-    public void testDefaultImpl() {
-        try {
-            // null resource id
-            GroupClient client = GroupUtil.getGroupClient(null);
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
+    /**
+     * Get the asset identifier to which this grant applies.
+     *
+     * @return assetID
+     */
+    public URI getAssetID() {
+        return assetID;
+    }
 
-            // resource id but no client in classpath
-            client = GroupUtil.getGroupClient(new URI("test"));
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-
-        } catch (Throwable t) {
-            log.info("Unexpected failure: " + t.getMessage(), t);
-            Assert.fail("Unexpected failure: " + t.getMessage());
+    /**
+     * Get date after which the Grant is considered expired and should be renewed.
+     *
+     * @return grant expiry date
+     */
+    public Date getExpiryDate() {
+        return expiryDate;
+    }
+    
+    /**
+     * Get the group list with access to the asset.
+     * 
+     * @return list of groups with access
+     */
+    public List<GroupURI> getGroups() {
+        return groups;
+    }
+    
+    private void assertNotNull(Class caller, String name, Object test) {
+        if (test == null) {
+            throw new IllegalArgumentException("invalid " + caller.getSimpleName() + "." + name + ": null");
         }
     }
-
-    private void assertDefaultImpl(GroupClient client) {
-        Assert.assertTrue(client instanceof NoOpGroupClient);
-        Assert.assertFalse(client.isMember(new GroupURI(URI.create("ivo://cadc.nrc.ca/test?group"))));
-        Assert.assertNotNull(client.getMemberships());
-        Assert.assertTrue(client.getMemberships().isEmpty());
-    }
-
 }

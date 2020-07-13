@@ -62,52 +62,44 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
+ *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.gms;
+package org.opencadc.permissions;
 
-import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.Date;
 
-public class GroupClientTest {
+/**
+ * Holds read grant information about an artifact.
+ * 
+ * @author majorb
+ *
+ */
+public class ReadGrant extends Grant {
 
-    Logger log = Logger.getLogger(GroupClientTest.class);
+    // Is the artifact available to anonymous (all) users.
+    private boolean anonymousAccess;
 
-    public GroupClientTest() {
-        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.INFO);
+    /**
+     * Construct a read grant for the given artifactURI and expiry date.
+     * @param artifactURI The applicable targetURI.
+     * @param expiryDate The expiry date of the grant.
+     * @param anonymousAccess true is the artifact has anonymous access, false otherwise.
+     */
+    public ReadGrant(URI artifactURI, Date expiryDate, boolean anonymousAccess) {
+        super(artifactURI, expiryDate);
+        this.anonymousAccess = anonymousAccess;
     }
 
-    @Test
-    public void testDefaultImpl() {
-        try {
-            // null resource id
-            GroupClient client = GroupUtil.getGroupClient(null);
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-
-            // resource id but no client in classpath
-            client = GroupUtil.getGroupClient(new URI("test"));
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-
-        } catch (Throwable t) {
-            log.info("Unexpected failure: " + t.getMessage(), t);
-            Assert.fail("Unexpected failure: " + t.getMessage());
-        }
-    }
-
-    private void assertDefaultImpl(GroupClient client) {
-        Assert.assertTrue(client instanceof NoOpGroupClient);
-        Assert.assertFalse(client.isMember(new GroupURI(URI.create("ivo://cadc.nrc.ca/test?group"))));
-        Assert.assertNotNull(client.getMemberships());
-        Assert.assertTrue(client.getMemberships().isEmpty());
+    /**
+     * Check if artifact is accessible by anonymous (all) users.
+     * @return true if the artifact has anonymous access, false otherwise.
+     */
+    public boolean isAnonymousAccess() {
+        return anonymousAccess;
     }
 
 }

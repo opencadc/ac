@@ -62,52 +62,31 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
+ *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.gms;
+package org.opencadc.permissions;
 
-import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.Date;
 
-public class GroupClientTest {
+/**
+ * Holds grant information about an artifact.
+ * 
+ * @author majorb
+ *
+ */
+public class WriteGrant extends Grant {
 
-    Logger log = Logger.getLogger(GroupClientTest.class);
-
-    public GroupClientTest() {
-        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.INFO);
-    }
-
-    @Test
-    public void testDefaultImpl() {
-        try {
-            // null resource id
-            GroupClient client = GroupUtil.getGroupClient(null);
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-
-            // resource id but no client in classpath
-            client = GroupUtil.getGroupClient(new URI("test"));
-            Assert.assertNotNull(client);
-            assertDefaultImpl(client);
-
-        } catch (Throwable t) {
-            log.info("Unexpected failure: " + t.getMessage(), t);
-            Assert.fail("Unexpected failure: " + t.getMessage());
-        }
-    }
-
-    private void assertDefaultImpl(GroupClient client) {
-        Assert.assertTrue(client instanceof NoOpGroupClient);
-        Assert.assertFalse(client.isMember(new GroupURI(URI.create("ivo://cadc.nrc.ca/test?group"))));
-        Assert.assertNotNull(client.getMemberships());
-        Assert.assertTrue(client.getMemberships().isEmpty());
+    /**
+     * Construct a write grant for the given artifactURI.
+     * @param artifactURI The applicable targetURI.
+     * @param expiryDate The expiry date of the grant.
+     */
+    public WriteGrant(URI artifactURI, Date expiryDate) {
+        super(artifactURI, expiryDate);
     }
 
 }
