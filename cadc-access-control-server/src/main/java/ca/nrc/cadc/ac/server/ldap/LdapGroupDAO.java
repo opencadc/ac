@@ -1193,7 +1193,7 @@ public class LdapGroupDAO extends LdapDAO
         URI gmsServiceID = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
         if (attributes == PUB_GROUP_ATTRS)
         {
-            GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
+            GroupURI groupID = new GroupURI(gmsServiceID, groupName);
             return new Group(groupID);
         }
 
@@ -1205,7 +1205,7 @@ public class LdapGroupDAO extends LdapDAO
         try
         {
             User owner = userDAO.getUser(new DNPrincipal(ownerDN), ldapConn);
-            GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
+            GroupURI groupID = new GroupURI(gmsServiceID, groupName);
             Group group = new Group(groupID);
             setField(group, owner, LDAP_OWNER);
             if (result.hasAttribute(LDAP_DESCRIPTION))
