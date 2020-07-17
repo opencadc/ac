@@ -66,25 +66,8 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-
-import java.util.Set;
-import javax.security.auth.Subject;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
@@ -100,8 +83,22 @@ import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
-
 import com.unboundid.ldap.sdk.LDAPException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Set;
+import javax.security.auth.Subject;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
 @SuppressWarnings("serial")
 public class LoginServlet extends HttpServlet
