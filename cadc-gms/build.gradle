@@ -10,11 +10,11 @@ repositories {
     mavenLocal()
 }
 
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '1.0.1'
+version = '1.0.2'
 
 dependencies {
     compile 'log4j:log4j:[1.2,2.0)'
