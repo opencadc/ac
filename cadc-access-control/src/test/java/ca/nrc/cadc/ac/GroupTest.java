@@ -149,39 +149,6 @@ public class GroupTest
         }
         assertTrue(thrown);
 
-        // invavlid group IDs
-        thrown = false;
-        try
-        {
-            new Group(new GroupURI("ivo://example.org/New/Test/Group"));
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-
-        thrown = false;
-        try
-        {
-            new Group(new GroupURI("ivo://example.org/New%Test%Group"));
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
-
-        thrown = false;
-        try
-        {
-            new Group(new GroupURI("ivo://example.org/New\\Test\\Group"));
-        }
-        catch(IllegalArgumentException e)
-        {
-            thrown = true;
-        }
-        assertTrue(thrown);
     }
 
 }

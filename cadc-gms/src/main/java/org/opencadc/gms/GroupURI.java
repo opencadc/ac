@@ -78,6 +78,8 @@ import org.apache.log4j.Logger;
  *
  */
 public class GroupURI implements Comparable<GroupURI> {
+    private static final Logger log = Logger.getLogger(GroupURI.class);
+    
     private URI uri;
     private static String GROUP_NAME_ERRORMSG = "Group Name contains illegal characters (only alphanumeric, '-', '.', '_', '~' allowed";
 
@@ -142,11 +144,36 @@ public class GroupURI implements Comparable<GroupURI> {
      * @param uri 
      * @throws IllegalArgumentException if the URI is not a valid group URI
      * @throws URISyntaxException if the argument is not a valid URI
+     * @deprecated 
      */
+    @Deprecated
     public GroupURI(String uri) throws IllegalArgumentException, URISyntaxException {
         this(new URI(uri));
     }
 
+    public GroupURI(URI resourceID, String name) {
+        if (resourceID == null) {
+            throw new IllegalArgumentException("Null URI");
+        }
+
+        // Ensure the scheme is correct
+        if (resourceID.getScheme() == null || !"ivo".equals(resourceID.getScheme())) {
+            throw new IllegalArgumentException("scheme must be 'ivo' in resourceID: " + resourceID);
+        }
+
+        if (resourceID.getAuthority() == null) {
+            throw new IllegalArgumentException("authority is required in resourceID: " + resourceID);
+        }
+
+        if (resourceID.getPath() == null || resourceID.getPath().length() == 0) {
+            throw new IllegalArgumentException("path is required in resourceID: " + resourceID);
+        }
+        if (resourceID.getFragment() != null) {
+            throw new IllegalArgumentException("fragment not allowed in resourceID: " + resourceID.getFragment());
+        }
+        this.uri = URI.create(resourceID.toASCIIString() + "?" + name);
+    }
+    
     @Override
     public boolean equals(Object other) {
         if (other == null) {
@@ -182,9 +209,9 @@ public class GroupURI implements Comparable<GroupURI> {
     }
 
     /**
-     * Returns the decoded fragment component of the URI.
+     * Returns the query string component of the group URI.
      *
-     * @return fragment of the URI, or null if the fragment is undefined.
+     * @return group name
      */
     public String getName() {
         return uri.getQuery();
@@ -204,8 +231,10 @@ public class GroupURI implements Comparable<GroupURI> {
 
     @Override
     public String toString() {
-        // Validate name portion
-        return "GroupURI[" + uri.toString() + "]";
+        // TECHNICAL DEBT: reverting to using this method for debugging purposes only breaks all kinds of
+        // things because some functional code expects toString() to be equivalent to getURI().toASCIIString()
+        //return "GroupURI[" + uri.toString() + "]";
+        return uri.toASCIIString();
     }
 
     /**
