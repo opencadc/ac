@@ -155,31 +155,46 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     public User addUserRequest(UserRequest userRequest, final Principal ownerHttpPrincipal)
         throws UserNotFoundException, TransientException, AccessControlException, UserAlreadyExistsException
     {
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
+        LdapUserDAO userDAO = null;
+        LdapGroupDAO groupDAO = null;
         User user = null;
+        Group group = null;
         try
         {
-            // add the userRequest
-            userDAO = new LdapUserDAO(conns);
-            user = userDAO.addUserRequest(userRequest);
-
             // create the group to be associated with this userRequest
-            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+            userDAO = new LdapUserDAO(conns);
+            groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
             GroupURI groupID = new GroupURI(gmsServiceURI, userRequest.getUser().getHttpPrincipal().getName());
-            Group group = new Group(groupID);
+            group = new Group(groupID);
             User groupOwner = userDAO.getAugmentedUser(ownerHttpPrincipal,  false);
             ObjectUtil.setField(group, groupOwner, "owner");
             
+            // add the userRequest
+            user = userDAO.addUserRequest(userRequest);
+           
             // add the user to the group
             group.getUserMembers().add(user);
             
             // add the group associated with the userRequest
             groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
         } catch (GroupAlreadyExistsException ex) {
-            // no need to add the group, do nothing
+            // generate another userRequest
+        	group.getUserMembers().clear();
+            user = userDAO.addUserRequest(userRequest);
+            group.getUserMembers().add(user);
+            
+            try {
+            	// add the group associated with the userRequest
+	            groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
+            } catch (GroupAlreadyExistsException gaex) {
+            	// again a group already exists for a newly created userRequest
+            	// something is wrong
+            	String msg = "BUG: " + ex.getMessage() + ", " + gaex.getMessage();
+                throw new IllegalStateException("BUG: " + ex.getMessage() + ", " + gaex.getMessage());
+            }
         }
         finally
         {
