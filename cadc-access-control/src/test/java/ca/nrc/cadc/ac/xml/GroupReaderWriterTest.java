@@ -79,7 +79,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
 
@@ -100,7 +99,9 @@ import ca.nrc.cadc.ac.TestUtil;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import org.apache.log4j.Level;
 
 /**
  *
@@ -112,6 +113,10 @@ public class GroupReaderWriterTest
 
     private String ERROR_MSG_BASE = "should throw InvalidExceptionError";
 
+    static {
+        Log4jInit.setLevel(Group.class.getPackage().getName(), Level.INFO);
+    }
+    
     @BeforeClass
     public static void setupClass()
     {
@@ -242,37 +247,6 @@ public class GroupReaderWriterTest
         assertTrue(expected.getUserMembers().containsAll(actual.getUserMembers()));
         assertTrue(actual.getUserMembers().containsAll(expected.getUserMembers()));
     }
-
-
-    @Test
-    public void testInvalidQuery() throws Exception
-    {
-        String base = "ivo://example.org/gms?";
-        ArrayList<String> badGroupURIStrings = new ArrayList<String>();
-
-        // Add other cases to this list in order to add to the test.
-        badGroupURIStrings.add(base + "Garfield#$%!");
-        badGroupURIStrings.add(base + "/segment/of/rest/url");
-        badGroupURIStrings.add(base + "any+badness:;here@'=?");
-        badGroupURIStrings.add(base + "white space");
-        badGroupURIStrings.add(base + "(reallyBadGroup&)");
-        badGroupURIStrings.add(base + "*");
-        badGroupURIStrings.add(base + base);
-
-        for (String badGroupURIString: badGroupURIStrings) {
-            try
-            {
-                GroupURI newGroupURI = new GroupURI(badGroupURIString);
-                fail("URI " + badGroupURIString + " " + ERROR_MSG_BASE);
-            }
-            catch (IllegalArgumentException iae)
-            {
-                // Continue
-            }
-        }
-
-    }
-
 
     private void setGroupOwner(Group group, User owner)
     {

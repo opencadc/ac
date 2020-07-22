@@ -67,26 +67,39 @@
  ************************************************************************
  */
 
-package org.opencadc.inventory.permissions;
+package org.opencadc.permissions;
 
 import java.net.URI;
 import java.util.Date;
 
 /**
- * Holds grant information about an artifact.
+ * Holds read grant information about an artifact.
  * 
  * @author majorb
  *
  */
-public class WriteGrant extends Grant {
+public class ReadGrant extends Grant {
+
+    // Is the artifact available to anonymous (all) users.
+    private boolean anonymousAccess;
 
     /**
-     * Construct a write grant for the given artifactURI.
+     * Construct a read grant for the given artifactURI and expiry date.
      * @param artifactURI The applicable targetURI.
      * @param expiryDate The expiry date of the grant.
+     * @param anonymousAccess true is the artifact has anonymous access, false otherwise.
      */
-    public WriteGrant(URI artifactURI, Date expiryDate) {
+    public ReadGrant(URI artifactURI, Date expiryDate, boolean anonymousAccess) {
         super(artifactURI, expiryDate);
+        this.anonymousAccess = anonymousAccess;
+    }
+
+    /**
+     * Check if artifact is accessible by anonymous (all) users.
+     * @return true if the artifact has anonymous access, false otherwise.
+     */
+    public boolean isAnonymousAccess() {
+        return anonymousAccess;
     }
 
 }

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,58 +62,73 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
+ *  : 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.inventory.permissions.xml;
+package org.opencadc.permissions.client;
 
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.util.Date;
+import java.security.AccessControlException;
+import java.security.PrivilegedExceptionAction;
+import java.util.List;
+import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.inventory.permissions.Grant;
-import org.opencadc.inventory.permissions.ReadGrant;
-import org.opencadc.inventory.permissions.WriteGrant;
+import org.opencadc.permissions.ReadGrant;
+import org.opencadc.permissions.WriteGrant;
 
-public class GrantReaderWriterTest {
+public class PermissionsClientTest {
 
-    private static final Logger log = Logger.getLogger(GrantReaderWriterTest.class);
+    private static final Logger log = Logger.getLogger(PermissionsClientTest.class);
 
-    static {
-        Log4jInit.setLevel("package org.opencadc.inventory.permissions.xml", Level.INFO);
+    // Subject NOT authorized in Baldur.properties to retrieve grant information.
+    private static Subject cadcRegTest1Subject;
+
+    // Subject authorized in Baldur.properties to retrieve grant information.
+    private static Subject cadcAuthTest1Subject;
+
+    private static URI serviceID;
+    private static URI testArtifact;
+    private static GroupURI readGroup1;
+    private static GroupURI writeGroup1;
+    private static GroupURI writeGroup2;
+    private static GroupURI writeGroup3;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        Log4jInit.setLevel("org.opencadc.inventory.permissions", Level.INFO);
+
+        cadcRegTest1Subject = SSLUtil.createSubject(
+            FileUtil.getFileFromResource("x509_CADCRegtest1.pem", PermissionsClientTest.class));
+        cadcAuthTest1Subject = SSLUtil.createSubject(
+            FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", PermissionsClientTest.class));
+
+        serviceID = URI.create("ivo://cadc.nrc.ca/baldur");
+
+        testArtifact = URI.create("cadc:TEST-GROUPS/foo");
+        readGroup1 = new GroupURI("ivo://cadc.nrc.ca/gms?TestReadGroup-1");
+        writeGroup1 = new GroupURI("ivo://cadc.nrc.ca/gms?TestWriteGroup-1");
+        writeGroup2 = new GroupURI("ivo://cadc.nrc.ca/gms?TestWriteGroup-2");
+        writeGroup3 = new GroupURI("ivo://cadc.nrc.ca/gms?TestWriteGroup-3");
     }
 
-    public GrantReaderWriterTest() {}
-
     @Test
-    public void testMinimalReadGrant() {
+    public void testAnonAccess() {
         try {
-            ReadGrant expected = new ReadGrant(URI.create("ivo:foo/bar"), new Date(), true);
-            
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            GrantWriter writer = new GrantWriter();
-            writer.write(expected, bos);
-            
-            String xml = bos.toString();
-            log.info("xml:\n" + xml);
-            
-            GrantReader reader = new GrantReader();
-            Grant actual = reader.read(xml);
+            PermissionsClient testSubject = new PermissionsClient(serviceID);
+            ReadGrant readGrant = testSubject.getReadGrant(testArtifact);
+            Assert.fail("Anonymous user access should " + "throw exception");
+        } catch (AccessControlException expected) {
 
-            Assert.assertTrue(actual instanceof ReadGrant);
-            
-            Assert.assertEquals(expected.getArtifactURI(), actual.getArtifactURI());
-            Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
-            Assert.assertEquals(expected.isAnonymousAccess(), ((ReadGrant) actual).isAnonymousAccess());
-            Assert.assertTrue(actual.getGroups().isEmpty());
-            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -121,26 +136,19 @@ public class GrantReaderWriterTest {
     }
 
     @Test
-    public void testMinimalWriteGrant() {
+    public void testNotAuthorized() {
         try {
-            WriteGrant expected = new WriteGrant(URI.create("ivo://foo/bar"), new Date());
-            
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            GrantWriter writer = new GrantWriter();
-            writer.write(expected, bos);
-            
-            String xml = bos.toString();
-            log.info("xml:\n" + xml);
-            
-            GrantReader reader = new GrantReader();
-            Grant actual = reader.read(xml);
+            PermissionsClient testSubject = new PermissionsClient(serviceID);
+            log.debug(cadcRegTest1Subject);
+            Subject.doAs(cadcRegTest1Subject, new PrivilegedExceptionAction<Object>() {
+                @Override public Object run() throws Exception {
+                    ReadGrant readGrant = testSubject.getReadGrant(testArtifact);
+                    Assert.fail("Anonymous user access should " + "throw exception");
+                    return null;
+                }
+            });
+        } catch (AccessControlException expected) {
 
-            Assert.assertTrue(actual instanceof WriteGrant);
-            
-            Assert.assertEquals(expected.getArtifactURI(), actual.getArtifactURI());
-            Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
-            Assert.assertTrue(actual.getGroups().isEmpty());
-            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -148,28 +156,26 @@ public class GrantReaderWriterTest {
     }
 
     @Test
-    public void testReadGrantRoundTrip() {
+    public void testGetReadGrants() {
         try {
-            ReadGrant expected = new ReadGrant(URI.create("ivo:foo/bar"), new Date(), true);
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group1"));
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group2"));
-            
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            GrantWriter writer = new GrantWriter();
-            writer.write(expected, bos);
-            
-            String xml = bos.toString();
-            log.info("xml:\n" + xml);
-            System.out.println("xml:\n" + xml);
-            
-            GrantReader reader = new GrantReader();
-            ReadGrant actual = (ReadGrant) reader.read(xml);
-            
-            Assert.assertEquals(expected.getArtifactURI(), actual.getArtifactURI());
-            Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
-            Assert.assertEquals(expected.isAnonymousAccess(), actual.isAnonymousAccess());
-            Assert.assertEquals(expected.getGroups().size(), actual.getGroups().size());
-            
+            PermissionsClient testSubject = new PermissionsClient(serviceID);
+
+            Subject.doAs(cadcAuthTest1Subject, new PrivilegedExceptionAction<Object>() {
+                @Override
+                public Object run() throws Exception {
+                    ReadGrant readGrant = testSubject.getReadGrant(testArtifact);
+                    Assert.assertNotNull(readGrant);
+                    Assert.assertTrue(readGrant.isAnonymousAccess());
+
+                    List<GroupURI> groups = readGrant.getGroups();
+                    Assert.assertEquals(groups.size(), 4);
+                    Assert.assertTrue(groups.contains(readGroup1));
+                    Assert.assertTrue(groups.contains(writeGroup1));
+                    Assert.assertTrue(groups.contains(writeGroup2));
+                    Assert.assertTrue(groups.contains(writeGroup3));
+                    return null;
+                }
+            });
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -177,30 +183,29 @@ public class GrantReaderWriterTest {
     }
 
     @Test
-    public void testWriteGrantRoundTrip() {
+    public void testGetWriteGrants() {
         try {
-            WriteGrant expected = new WriteGrant(URI.create("ivo:foo/bar"), new Date());
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group1"));
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group2"));
-            
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            GrantWriter writer = new GrantWriter();
-            writer.write(expected, bos);
-            
-            String xml = bos.toString();
-            log.info("xml:\n" + xml);
-            
-            GrantReader reader = new GrantReader();
-            WriteGrant actual = (WriteGrant) reader.read(xml);
-            
-            Assert.assertEquals(expected.getArtifactURI(), actual.getArtifactURI());
-            Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
-            Assert.assertEquals(expected.getGroups().size(), actual.getGroups().size());
-            
+            PermissionsClient testSubject = new PermissionsClient(serviceID);
+
+            Subject.doAs(cadcAuthTest1Subject, new PrivilegedExceptionAction<Object>() {
+                @Override
+                public Object run() throws Exception {
+                    WriteGrant writeGrant = testSubject.getWriteGrant(testArtifact);
+                    Assert.assertNotNull(writeGrant);
+
+                    List<GroupURI> groups = writeGrant.getGroups();
+                    Assert.assertEquals(groups.size(), 3);
+                    Assert.assertTrue(groups.contains(writeGroup1));
+                    Assert.assertTrue(groups.contains(writeGroup2));
+                    Assert.assertTrue(groups.contains(writeGroup3));
+
+                    return null;
+                }
+            });
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
+
 }

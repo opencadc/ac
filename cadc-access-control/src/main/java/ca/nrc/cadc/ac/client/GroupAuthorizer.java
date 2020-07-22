@@ -67,12 +67,14 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.auth.Authorizer;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.net.TransientException;
 import java.io.FileNotFoundException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.AccessControlException;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
@@ -100,8 +102,9 @@ public class GroupAuthorizer implements Authorizer
         try
         {
             this.groupURI = new GroupURI(uri);
+        } catch (URISyntaxException ex) {
+            throw new IllegalArgumentException("invalid group URI: " + uri);
         }
-        finally { }
     }
 
     @Override

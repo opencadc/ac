@@ -165,7 +165,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userRequest.getUser().getHttpPrincipal().getName());
+            GroupURI groupID = new GroupURI(gmsServiceURI, userRequest.getUser().getHttpPrincipal().getName());
             Group group = new Group(groupID);
             User groupOwner = userDAO.getAugmentedUser(ownerHttpPrincipal,  false);
             ObjectUtil.setField(group, groupOwner, "owner");
@@ -402,7 +402,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
             String userName = userRequest.getHttpPrincipal().getName();
-            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userName);
+            GroupURI groupID = new GroupURI(gmsServiceURI, userName);
             try {
                 // activate the group
                 Group associatedGroup = groupDAO.getUserAssociatedGroup(groupID.getName(), true);
@@ -546,7 +546,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             // delete the pending group associated with the user
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());            
-            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + userID.getName());
+            GroupURI groupID = new GroupURI(gmsServiceURI, userID.getName());
             try {
                 // delete the group and then the userRequest
                 groupDAO.deleteUserAssociatedGroup(groupID.getName());

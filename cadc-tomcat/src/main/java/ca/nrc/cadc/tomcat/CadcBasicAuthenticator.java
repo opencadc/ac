@@ -157,10 +157,9 @@ public class CadcBasicAuthenticator extends RealmBase {
             return null;
         } catch (Throwable t) {
             success = false;
-            String message = "Could not do http basic authentication: "
-                    + t.getMessage();
+            String message = "username/password authentication failed: " + t.getMessage();
             log.error(message, t);
-            throw new IllegalStateException(message, t);
+            return null;
         } finally {
             long duration = System.currentTimeMillis() - start;
 

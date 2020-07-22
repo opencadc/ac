@@ -1034,7 +1034,7 @@ public class LdapUserDAO extends LdapDAO
         String[] parts = cn.split("=");
         if (parts.length == 2 && parts[0].equals("cn"))
         {
-            GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + parts[1]);
+            GroupURI groupID = new GroupURI(gmsServiceURI, parts[1]);
             return new Group(groupID);
         }
         throw new RuntimeException("BUG: failed to extract group name from " + groupDN

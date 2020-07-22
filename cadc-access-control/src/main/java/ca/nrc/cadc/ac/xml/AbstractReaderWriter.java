@@ -494,8 +494,14 @@ public abstract class AbstractReaderWriter
             user = getUser(userElement);
         }
 
-        GroupURI groupURI = new GroupURI(uri);
-        Group group = new Group(groupURI);
+        
+        Group group;
+        try {
+            GroupURI groupURI = new GroupURI(uri);
+            group = new Group(groupURI);
+        } catch (URISyntaxException ex) {
+            throw new ReaderException("invalid group URI: " + uri);
+        }
 
         // set owner field
         setField(group, user, OWNER);
