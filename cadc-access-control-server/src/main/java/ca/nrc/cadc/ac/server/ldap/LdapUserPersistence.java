@@ -181,20 +181,8 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             // add the group associated with the userRequest
             groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
         } catch (GroupAlreadyExistsException ex) {
-            // generate another userRequest
-        	group.getUserMembers().clear();
-            user = userDAO.addUserRequest(userRequest);
-            group.getUserMembers().add(user);
-            
-            try {
-            	// add the group associated with the userRequest
-	            groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
-            } catch (GroupAlreadyExistsException gaex) {
-            	// again a group already exists for a newly created userRequest
-            	// something is wrong
-            	String msg = "BUG: " + ex.getMessage() + ", " + gaex.getMessage();
-                throw new IllegalStateException("BUG: " + ex.getMessage() + ", " + gaex.getMessage());
-            }
+            String msg = "group " + user.posixDetails.getGid() + " already existed";
+            throw new IllegalStateException(msg, ex);
         }
         finally
         {
