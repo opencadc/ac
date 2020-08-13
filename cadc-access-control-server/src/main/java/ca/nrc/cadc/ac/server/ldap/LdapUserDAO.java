@@ -383,7 +383,7 @@ public class LdapUserDAO extends LdapDAO
             try
             {
                 getUserByEmailAddress(email, usersDN);
-                final String error = "user " + userID.getName() + " found in " + usersDN;
+                final String error = "email address " + email + " for user " + userID.getName() + " found in " + usersDN;
                 throw new UserAlreadyExistsException(error);
             }
             catch (UserNotFoundException ok) { }
@@ -674,7 +674,6 @@ public class LdapUserDAO extends LdapDAO
         Profiler profiler = new Profiler(LdapUserDAO.class);
         
         String searchField = userLdapAttrib.get(userID.getClass());
-        
         if (searchField == null) {
             throw new IllegalArgumentException(
                 "Unsupported principal type " + userID.getClass());
