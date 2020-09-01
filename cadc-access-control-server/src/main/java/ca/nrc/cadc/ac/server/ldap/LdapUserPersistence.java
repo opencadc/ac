@@ -155,38 +155,34 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     public User addUserRequest(UserRequest userRequest, final Principal ownerHttpPrincipal)
         throws UserNotFoundException, TransientException, AccessControlException, UserAlreadyExistsException
     {
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
+        LdapUserDAO userDAO = null;
+        LdapGroupDAO groupDAO = null;
         User user = null;
+        Group group = null;
         try
         {
             // create the group to be associated with this userRequest
             userDAO = new LdapUserDAO(conns);
-            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+            groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
             URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
             GroupURI groupID = new GroupURI(gmsServiceURI, userRequest.getUser().getHttpPrincipal().getName());
-            Group group = new Group(groupID);
+            group = new Group(groupID);
             User groupOwner = userDAO.getAugmentedUser(ownerHttpPrincipal,  false);
             ObjectUtil.setField(group, groupOwner, "owner");
-
-            // ensure that there is no existing group with the same user name
-            boolean groupExists = checkIfGroupExists(group, groupDAO);
-            if (groupExists) {
-                throw new GroupAlreadyExistsException("Group " + group.getID().getName() + " already exists ");
-            }
             
-            // group does not exist, add the userRequest
+            // add the userRequest
             user = userDAO.addUserRequest(userRequest);
+           
+            // add the user to the group
             group.getUserMembers().add(user);
             
             // add the group associated with the userRequest
             groupDAO.addUserAssociatedGroup(group, user.posixDetails.getGid());
         } catch (GroupAlreadyExistsException ex) {
-            // clean up
-            if (user != null) {
-                deleteUserRequest(user.getHttpPrincipal());
-            }
+            String msg = "group " + user.posixDetails.getGid() + " already existed";
+            throw new IllegalStateException(msg, ex);
         }
         finally
         {
