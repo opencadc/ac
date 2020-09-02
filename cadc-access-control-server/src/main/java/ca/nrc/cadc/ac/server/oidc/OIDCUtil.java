@@ -66,8 +66,15 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
+import ca.nrc.cadc.auth.DelegationToken;
+import ca.nrc.cadc.auth.HttpPrincipal;
+
+import java.io.IOException;
+import java.net.URI;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,10 +92,13 @@ import io.jsonwebtoken.security.Keys;
  */
 public class OIDCUtil {
     
-    public static final String ID_TOKEN_SCOPE = "cadc:oauth2/id_token";
+    public static final String AUTHORIZE_TOKEN_SCOPE = "cadc:oauth2/authorize_token";
+    public static final String ACCESS_TOKEN_SCOPE = "cadc:oauth2/access_tokend";
     
-    public static final int TOKEN_CODE_EXPIRY_MINUTES = 10;
-    public static final Integer ID_TOKEN_EXPIRY_MINUTES = 3600;
+    public static final Integer ID_TOKEN_EXPIRY_MINUTES = 10;
+    public static final Integer AUTHORIZE_CODE_EXPIRY_MINUTES = 10;
+    public static final Integer ACCESS_CODE_EXPIRY_MINUTES = 3600;
+    public static final Integer JWT_EXPIRY_MINUTES = 3600;
     
     public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
     public static final String CLAIM_GROUPS_KEY = "memberOf";
@@ -113,6 +123,14 @@ public class OIDCUtil {
     
     public static RelyParty getRelyParty(String clientID) {
         return relyParties.get(clientID);
+    }
+    
+    public static String getAccessCode(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {
+        HttpPrincipal p = new HttpPrincipal(username);
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.MINUTE, expiryMinutes);
+        DelegationToken idToken = new DelegationToken(p, scope, c.getTime(), null);
+        return DelegationToken.format(idToken);
     }
     
 }

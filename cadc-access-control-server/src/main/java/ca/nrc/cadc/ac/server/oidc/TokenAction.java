@@ -226,12 +226,15 @@ public class TokenAction extends RestAction {
         builder.claim("aud", clientID);
         String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
         
+        URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
+        String accessToken = OIDCUtil.getAccessCode(userid, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
+        
         StringBuilder json = new StringBuilder();
         json.append("{ ");
-        json.append("  \"access_token\": \"not-used\",");
+        json.append("  \"access_token\": \"" + accessToken + "\",");
         // TODO: add refresh_token
         json.append("  \"token_type\": \"Bearer\",");
-        json.append("  \"expires_in\": \"").append(OIDCUtil.TOKEN_CODE_EXPIRY_MINUTES).append("\",");
+        json.append("  \"expires_in\": \"").append(OIDCUtil.JWT_EXPIRY_MINUTES).append("\",");
         json.append("  \"id_token\": \"").append(jws).append("\"");
         json.append(" }");
         
@@ -282,7 +285,7 @@ public class TokenAction extends RestAction {
     class TokenScopeValidator extends ScopeValidator {
         @Override
         public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
-            URI expected = URI.create(OIDCUtil.ID_TOKEN_SCOPE);
+            URI expected = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
             if (!expected.equals(scope)) {
                 throw new InvalidDelegationTokenException("invalid scope");
             }

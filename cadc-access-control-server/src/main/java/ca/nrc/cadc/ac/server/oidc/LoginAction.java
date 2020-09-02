@@ -127,7 +127,8 @@ public class LoginAction extends RestAction {
         
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirect_uri);
-        String idToken = getIdToken(username);
+        URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
+        String idToken = OIDCUtil.getAccessCode(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
         redirect.append("?code=");
         redirect.append(idToken);
         if (state != null) {
@@ -136,15 +137,6 @@ public class LoginAction extends RestAction {
         }
         syncOutput.setCode(302);
         syncOutput.setHeader("Location", redirect);
-    }
-    
-    private String getIdToken(String username) throws InvalidKeyException, IOException {
-        HttpPrincipal p = new HttpPrincipal(username);
-        URI scope = URI.create(OIDCUtil.ID_TOKEN_SCOPE);
-        Calendar c = Calendar.getInstance();
-        c.add(Calendar.MINUTE, OIDCUtil.TOKEN_CODE_EXPIRY_MINUTES);
-        DelegationToken idToken = new DelegationToken(p, scope, c.getTime(), null);
-        return DelegationToken.format(idToken);
     }
     
     @Override
