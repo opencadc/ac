@@ -226,6 +226,9 @@ public class TokenAction extends RestAction {
         builder.claim("aud", clientID);
         String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
         
+        log.debug("building access token");
+        // NOTE: These tokens should be more static than our current delegation tokens
+        // where the expiry date is built in.  
         URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
         String accessToken = OIDCUtil.getAccessCode(userid, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
         
