@@ -151,8 +151,8 @@ public class GrantReaderWriterTest {
     public void testReadGrantRoundTrip() {
         try {
             ReadGrant expected = new ReadGrant(URI.create("ivo:foo/bar"), new Date(), true);
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group1"));
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group2"));
+            expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group1")));
+            expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group2")));
             
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GrantWriter writer = new GrantWriter();
@@ -180,8 +180,8 @@ public class GrantReaderWriterTest {
     public void testWriteGrantRoundTrip() {
         try {
             WriteGrant expected = new WriteGrant(URI.create("ivo:foo/bar"), new Date());
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group1"));
-            expected.getGroups().add(new GroupURI("ivo://foo.com/bar?group2"));
+            expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group1")));
+            expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group2")));
             
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GrantWriter writer = new GrantWriter();
