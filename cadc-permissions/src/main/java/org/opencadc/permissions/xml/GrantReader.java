@@ -188,7 +188,7 @@ public class GrantReader {
 
     private GroupURI getGroupURI(String value) {
         try {
-            return new GroupURI(value);
+            return new GroupURI(new URI(value));
         } catch (Exception ex) {
             throw new IllegalArgumentException("invalid groupURI element: " + value + " expected: valid GroupURI");
         }

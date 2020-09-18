@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2020.                            (c) 2020.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -70,13 +70,12 @@ package org.opencadc.permissions;
 import ca.nrc.cadc.util.Base64;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
-
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -86,18 +85,47 @@ import org.apache.log4j.Logger;
  * @author majorb
  *
  */
-public class TokenUtil {
+public class TokenTool {
 
-    private static final Logger log = Logger.getLogger(TokenUtil.class);
+    private static final Logger log = Logger.getLogger(TokenTool.class);
 
     private static final String KEY_META_URI = "uri";
     private static final String KEY_META_GRANT = "gnt";
     private static final String KEY_META_SUBJECT = "sub";
     
-    private static final String PUB_KEY_FILENAME = "InventoryPub.key";
-    private static final String PRIV_KEY_FILENAME = "InventoryPriv.key";
+    private final File publicKey;
+    private final File privateKey;
     
     private static final String TOKEN_DELIM = "~";
+    
+    /**
+     * Constructor for a TokenTool that can validate tokens.
+     * @param publicKey public key file to validate
+     */
+    public TokenTool(File publicKey) {
+        if (publicKey == null) {
+            throw new IllegalArgumentException("publicKey cannot be null");
+        }
+        this.publicKey = publicKey;
+        this.privateKey = null;
+    }
+    
+    /**
+     * Constructor for a TokenTool that can generate and validate tokens.
+     * 
+     * @param publicKey public key file to validate
+     * @param privateKey private key file to generate
+     */
+    public TokenTool(File publicKey, File privateKey) {
+        if (publicKey == null) {
+            throw new IllegalArgumentException("publicKey cannot be null");
+        }
+        if (privateKey == null) {
+            throw new IllegalArgumentException("privateKey cannot be null");
+        }
+        this.publicKey = publicKey;
+        this.privateKey = privateKey;
+    }
 
     /**
      * Generate an artifact token given the input parameters.
@@ -106,8 +134,11 @@ public class TokenUtil {
      * @param user The user initiating the action on the artifact.
      * @return A pre-authorized signed token.
      */
-    public static String generateToken(URI uri, Class<? extends Grant> grantClass, String user) {
-
+    public String generateToken(URI uri, Class<? extends Grant> grantClass, String user) {
+        if (privateKey == null) {
+            throw new IllegalStateException("cannot generate token: no private key");
+        }
+        
         // create the metadata and signature segments
         StringBuilder metaSb = new StringBuilder();
         metaSb.append(KEY_META_URI).append("=").append(uri.toString());
@@ -117,7 +148,7 @@ public class TokenUtil {
         metaSb.append(KEY_META_SUBJECT).append("=").append(user);
         byte[] metaBytes = metaSb.toString().getBytes();
 
-        RsaSignatureGenerator sg = new RsaSignatureGenerator(PRIV_KEY_FILENAME);
+        RsaSignatureGenerator sg = new RsaSignatureGenerator(privateKey);
         String sig;
         try {
             byte[] sigBytes = sg.sign(new ByteArrayInputStream(metaBytes));
@@ -156,7 +187,7 @@ public class TokenUtil {
      * @throws AccessControlException If any of the expectations are not met or if the token is invalid.
      * @throws IOException If a processing error occurs.
      */
-    public static String validateToken(String token, URI expectedURI, Class<? extends Grant> expectedGrantClass) throws AccessControlException, IOException {
+    public String validateToken(String token, URI expectedURI, Class<? extends Grant> expectedGrantClass) throws AccessControlException, IOException {
 
         log.debug("validating token: " + token);
         String[] parts = token.split(TOKEN_DELIM);
@@ -168,7 +199,7 @@ public class TokenUtil {
         byte[] metaBytes = Base64.decode(base64URLDecode(parts[0]));
         byte[] sigBytes = Base64.decode(base64URLDecode(parts[1]));
 
-        RsaSignatureVerifier sv = new RsaSignatureVerifier(PUB_KEY_FILENAME);
+        RsaSignatureVerifier sv = new RsaSignatureVerifier(publicKey);
         boolean verified;
         try {
             verified = sv.verify(new ByteArrayInputStream(metaBytes), sigBytes);
