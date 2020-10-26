@@ -86,18 +86,18 @@ public class AuthorizeGetAction extends AuthorizeAction {
         }
         
         scope = syncInput.getParameter("scope");
-        response_type = syncInput.getParameter("response_type");
-        client_id = syncInput.getParameter("client_id");
-        redirect_uri = syncInput.getParameter("redirect_uri");
+        responseType = syncInput.getParameter("response_type");
+        clientID = syncInput.getParameter("client_id");
+        redirectURI = syncInput.getParameter("redirect_uri");
         state = syncInput.getParameter("state");
-        response_mode = syncInput.getParameter("response_mode");
+        responseMode = syncInput.getParameter("response_mode");
         nonce = syncInput.getParameter("nonce");
         display = syncInput.getParameter("display");
         prompt = syncInput.getParameter("prompt");
-        max_age = syncInput.getParameter("max_age");
-        ui_locales = syncInput.getParameter("ui_locales");
-        id_token_hint = syncInput.getParameter("id_token_hint");
-        login_hint = syncInput.getParameter("login_hint");
+        maxAge = syncInput.getParameter("max_age");
+        uiLocales = syncInput.getParameter("ui_locales");
+        idTokenHint = syncInput.getParameter("id_token_hint");
+        loginHint = syncInput.getParameter("login_hint");
     }
     
     @Override

@@ -66,14 +66,6 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DelegationToken;
@@ -81,27 +73,17 @@ import ca.nrc.cadc.auth.DelegationToken.ScopeValidator;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.InvalidDelegationTokenException;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
-import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
-
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
 
 /**
  * 
@@ -118,6 +100,7 @@ public class TokenAction extends RestAction {
     public void doAction() throws Exception {
         
         if (log.isDebugEnabled()) {
+            log.debug("params:");
             for (String s : syncInput.getParameterNames()) {
                 log.debug("param: " + s + "=" + syncInput.getParameter(s));
             }
@@ -141,29 +124,46 @@ public class TokenAction extends RestAction {
         // Check the grant type
         String grantType = syncInput.getParameter("grant_type");
         log.debug("checking grant type: " + grantType);
-        // TODO: support refresh_token grant_type
-        if (!"authorization_code".equals(grantType)) {
+        DelegationToken dt = null;
+        
+        if ("refresh_token".equals(grantType)) {
+            
+            String refreshToken = syncInput.getParameter("refresh_token");
+            if (refreshToken == null) {
+                sendError("invalid_request");
+                return;
+            }
+            
+            try {
+                dt = DelegationToken.parse(refreshToken, null, new RefreshTokenScopeValidator());
+            } catch (InvalidDelegationTokenException e) {
+                log.debug("Invalid refresh Token", e);
+                sendError("invalid_scope");
+                return;
+            }
+            
+        } else if ("authorization_code".equals(grantType)) {
+            // Verify that the Authorization Code is valid.
+            log.debug("validating code");
+            String code = syncInput.getParameter("code");
+            if (code == null) {
+                sendError("invalid_request");
+                return;
+            }
+            
+            // TODO: Ensure the Authorization Code was issued to the authenticated Client.
+            
+            try {
+                dt = DelegationToken.parse(code, null, new TokenScopeValidator());
+            } catch (InvalidDelegationTokenException e) {
+                log.debug("Invalid delegation Token", e);
+                sendError("invalid_scope");
+                return;
+            }
+            
+        } else {
             log.debug("returning unsupported_grant_type");
             sendError("unsupported_grant_type");
-            return;
-        }
-        
-        // TODO: Ensure the Authorization Code was issued to the authenticated Client.
-        
-        // Verify that the Authorization Code is valid.
-        log.debug("validating code");
-        String code = syncInput.getParameter("code");
-        DelegationToken dt = null;
-        if (code == null) {
-            sendError("invalid_request");
-            return;
-        }
-        
-        try {
-            dt = DelegationToken.parse(code, null, new TokenScopeValidator());
-        } catch (InvalidDelegationTokenException e) {
-            log.debug("Invalid delegation Token", e);
-            sendError("invalid_scope");
             return;
         }
 
@@ -193,7 +193,7 @@ public class TokenAction extends RestAction {
             @Override
             public Object run() throws Exception {
                 
-                String email = getEmail(useridPrincipal);
+                String email = OIDCUtil.getEmail(useridPrincipal);
                 String jwt = createJWT(useridPrincipal.getName(), email, numericPrincipal.getName(), clientID);
                 
                 log.debug("set headers and return json: \n" + jwt);
@@ -213,29 +213,23 @@ public class TokenAction extends RestAction {
     private String createJWT(String userid, String email, String numericID, String clientID) throws Exception {
         
         log.debug("building jwt");
-        JwtBuilder builder = Jwts.builder();
-        builder.claim("iss", OIDCUtil.CLAIM_ISSUER_VALUE);
-        builder.claim("sub", numericID);
-        Calendar calendar = Calendar.getInstance();
-        builder.claim("iat", calendar.getTime());
-        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-        builder.claim("exp", calendar.getTime());
-        builder.claim("name", userid);
-        builder.claim("email", email);
-        builder.claim("memberOf", getGroupList());
-        builder.claim("aud", clientID);
-        String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
+        
+        String jws = OIDCUtil.buildIDToken(numericID, clientID);
         
         log.debug("building access token");
         // NOTE: These tokens should be more static than our current delegation tokens
-        // where the expiry date is built in.  
-        URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
-        String accessToken = OIDCUtil.getAccessCode(userid, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
+        // where the expiry date is built in. 
+        // Update: Seems like validation of JWTs is dynamic so having differing expiry dates
+        // is probably okay. 
+        URI accessTokenScope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
+        URI refreshTokenScope = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
+        String accessToken = OIDCUtil.getToken(userid, accessTokenScope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
+        String refreshToken = OIDCUtil.getToken(userid, refreshTokenScope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
         
         StringBuilder json = new StringBuilder();
         json.append("{ ");
         json.append("  \"access_token\": \"" + accessToken + "\",");
-        // TODO: add refresh_token
+        json.append("  \"refresh_token\": \"" + refreshToken + "\",");
         json.append("  \"token_type\": \"Bearer\",");
         json.append("  \"expires_in\": \"").append(OIDCUtil.JWT_EXPIRY_MINUTES).append("\",");
         json.append("  \"id_token\": \"").append(jws).append("\"");
@@ -260,35 +254,21 @@ public class TokenAction extends RestAction {
         writer.write(jsonErrorMsg);
         writer.flush();
     }
-    
-    private List<String> getGroupList() throws Exception {
-        GroupPersistence gp = new LdapGroupPersistence();
-        Collection<Group> groups = gp.getGroups(Role.MEMBER, null);
-        List<String> groupNames = new ArrayList<String>();
-        Iterator<Group> it = groups.iterator();
-        int count = 0;
-        // limit to 15 groups for now
-        while (it.hasNext() && count < 16) {
-            groupNames.add(it.next().getID().getName());
-            count++;
-        }
-        return groupNames;
-    }
-    
-    private String getEmail(HttpPrincipal userID)
-            throws AccessControlException, UserNotFoundException, TransientException {
-        UserPersistence up = new LdapUserPersistence();
-        User user = up.getUser(userID);
-        if (user.personalDetails != null && user.personalDetails.email != null) {
-            return user.personalDetails.email;
-        }
-        return "";
-    }
 
     class TokenScopeValidator extends ScopeValidator {
         @Override
         public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
             URI expected = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
+            if (!expected.equals(scope)) {
+                throw new InvalidDelegationTokenException("invalid scope");
+            }
+        }
+    }
+    
+    class RefreshTokenScopeValidator extends ScopeValidator {
+        @Override
+        public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
+            URI expected = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
             if (!expected.equals(scope)) {
                 throw new InvalidDelegationTokenException("invalid scope");
             }

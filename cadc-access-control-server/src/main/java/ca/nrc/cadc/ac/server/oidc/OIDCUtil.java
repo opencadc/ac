@@ -66,11 +66,17 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.TransientException;
 
 import java.io.IOException;
 import java.net.URI;
+import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
@@ -80,6 +86,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
@@ -93,12 +101,13 @@ import io.jsonwebtoken.security.Keys;
 public class OIDCUtil {
     
     public static final String AUTHORIZE_TOKEN_SCOPE = "cadc:oauth2/authorize_token";
-    public static final String ACCESS_TOKEN_SCOPE = "cadc:oauth2/access_tokend";
+    public static final String REFRESH_TOKEN_SCOPE = "cadc:oauth2/refresh_token";
+    public static final String ACCESS_TOKEN_SCOPE = "cadc:oauth2/access_token";
     
-    public static final Integer ID_TOKEN_EXPIRY_MINUTES = 10;
+    public static final Integer ID_TOKEN_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
     public static final Integer AUTHORIZE_CODE_EXPIRY_MINUTES = 10;
-    public static final Integer ACCESS_CODE_EXPIRY_MINUTES = 3600;
-    public static final Integer JWT_EXPIRY_MINUTES = 3600;
+    public static final Integer ACCESS_CODE_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
+    public static final Integer JWT_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
     
     public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
     public static final String CLAIM_GROUPS_KEY = "memberOf";
@@ -125,12 +134,39 @@ public class OIDCUtil {
         return relyParties.get(clientID);
     }
     
-    public static String getAccessCode(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {
+    public static String getToken(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {
         HttpPrincipal p = new HttpPrincipal(username);
         Calendar c = Calendar.getInstance();
         c.add(Calendar.MINUTE, expiryMinutes);
-        DelegationToken idToken = new DelegationToken(p, scope, c.getTime(), null);
-        return DelegationToken.format(idToken);
+        DelegationToken token = new DelegationToken(p, scope, c.getTime(), null);
+        return DelegationToken.format(token);
+    }
+    
+    public static String getEmail(HttpPrincipal userID)
+            throws AccessControlException, UserNotFoundException, TransientException {
+        UserPersistence up = new LdapUserPersistence();
+        User user = up.getUser(userID);
+        if (user.personalDetails != null && user.personalDetails.email != null) {
+            return user.personalDetails.email;
+        }
+        return "";
+    }
+    
+    public static String buildIDToken(String numericID, String clientID) {
+        JwtBuilder builder = Jwts.builder();
+        builder.claim("iss", OIDCUtil.CLAIM_ISSUER_VALUE);
+        builder.claim("sub", numericID);
+        Calendar calendar = Calendar.getInstance();
+        builder.claim("iat", calendar.getTime());
+        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+        builder.claim("exp", calendar.getTime());
+        // only provide user info from the userinfo endpoint
+        //builder.claim("name", userid);
+        //builder.claim("email", email);
+        //builder.claim("memberOf", getGroupList());
+        builder.claim("aud", clientID);
+        String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
+        return jws;
     }
     
 }

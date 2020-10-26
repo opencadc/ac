@@ -66,10 +66,21 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.rest.RestAction;
 
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.util.Set;
+
+import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 
@@ -85,20 +96,27 @@ public abstract class AuthorizeAction extends RestAction {
     
     private static final Logger log = Logger.getLogger(AuthorizeAction.class);
     
+    private static final String CODE_REPSONSE_TYPE = "code";
+    private static final String TOKEN_REPSONSE_TYPE = "token";
+    private static final String IDTOKEN_REPSONSE_TYPE = "idToken";
+    
+    private static final String OIDC_SCOPE = "openid";
+    private static final String COMMAND_LINE_SCOPE = "cli";
+    
     protected String scope;
-    protected String response_type;
-    protected String client_id;
-    protected String redirect_uri;
+    protected String responseType;
+    protected String clientID;
+    protected String redirectURI;
     protected String state;
-    protected String response_mode;
+    protected String responseMode;
     protected String nonce;
     protected String display;
     protected String prompt;
-    protected String max_age;
-    protected String ui_locales;
-    protected String id_token_hint;
-    protected String login_hint;
-    protected String acr_values;
+    protected String maxAge;
+    protected String uiLocales;
+    protected String idTokenHint;
+    protected String loginHint;
+    protected String acrValues;
     
     protected abstract void loadRequestInput();
     
@@ -106,14 +124,71 @@ public abstract class AuthorizeAction extends RestAction {
     public void doAction() throws Exception {
         
         loadRequestInput();
-        AuthorizeError validateError = validateRequestInput();
-        if (validateError != null) {
-            sendError(validateError);
+        logRequestInput();
+        
+        if (scope == null) {
+            AuthorizeError error = missingParameter("scope");
+            sendError(error);
+            return;
+        }
+        if (responseType == null) {
+            AuthorizeError error = missingParameter("response_type");
+            sendError(error);
+            return;
+        }
+        
+        // determine the request flow using response_type and scope
+        if (CODE_REPSONSE_TYPE.equals(responseType)) {
+            
+            // only openid connect code flow supported
+            if (!OIDC_SCOPE.equals(scope)) {
+                AuthorizeError error = new AuthorizeError();
+                error.error = "invalid_scope";
+                sendError(error);
+                return;
+            }
+            
+            doOpenIDCodeFlow();
+            
+        } else if (TOKEN_REPSONSE_TYPE.equals(responseType) || IDTOKEN_REPSONSE_TYPE.equals(responseType)) {
+            
+            // only 'command line scope' supported for token and idToken responseType
+            if (!COMMAND_LINE_SCOPE.equals(scope)) {
+                AuthorizeError error = new AuthorizeError();
+                error.error = "invalid_scope";
+                sendError(error);
+                return;
+            }
+            
+            doCLIFlow();
+            
+        } else {
+            AuthorizeError error = new AuthorizeError();
+            error.error = "unsupported_response_type";
+            sendError(error);
+            return;
+        }
+
+
+    }
+    
+    private void doOpenIDCodeFlow() throws Exception {
+        
+        // check required params
+        if (redirectURI == null) {
+            AuthorizeError error = missingParameter("redirect_uri");
+            sendError(error);
+            return;
+        }
+
+        if (clientID == null) {
+            AuthorizeError error = missingParameter("client_id");
+            sendError(error);
             return;
         }
         
         // check client id
-        RelyParty rp = OIDCUtil.getRelyParty(client_id);
+        RelyParty rp = OIDCUtil.getRelyParty(clientID);
         if (rp == null) {
             AuthorizeError authError = new AuthorizeError();
             authError.error = "unauthorized_client";
@@ -132,55 +207,121 @@ public abstract class AuthorizeAction extends RestAction {
             sendError(error);
             return;
         }
-        
-        // send redirect to username/password form
-        StringBuilder redirect = new StringBuilder("oidc-login.html#redirect_uri=");
-        redirect.append(redirect_uri);
-        if (login_hint != null) {
-            redirect.append("&username=");
-            redirect.append(login_hint);
+
+        // see if the request is already authenticated
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
+        if (authMethod.equals(AuthMethod.ANON)) {
+            
+            // send redirect to username/password form
+            StringBuilder redirect = new StringBuilder("oidc-login.html#redirect_uri=");
+            redirect.append(redirectURI);
+            if (loginHint != null) {
+                redirect.append("&username=");
+                redirect.append(loginHint);
+            }
+            if (state != null) {
+                redirect.append("&state=");
+                redirect.append(state);
+            }
+            syncOutput.setCode(302);
+            syncOutput.setHeader("Location", redirect);
+            
+        } else {
+            
+            // if authenticated (only possible by cookie) skip login form
+            // formulate the authenticate redirect response
+            
+            Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
+            String username = useridPrincipals.iterator().next().getName();
+            
+            StringBuilder redirect = new StringBuilder(redirectURI);
+            URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
+            String code = OIDCUtil.getToken(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
+            redirect.append("?code=");
+            redirect.append(code);
+            if (state != null) {
+                redirect.append("&state=");
+                redirect.append(state);
+            }
+            syncOutput.setCode(302);
+            syncOutput.setHeader("Location", redirect);
         }
-        if (state != null) {
-            redirect.append("&state=");
-            redirect.append(state);
-        }
-        syncOutput.setCode(302);
-        syncOutput.setHeader("Location", redirect);
 
     }
     
-    private AuthorizeError validateRequestInput() {
+    private void doCLIFlow() throws Exception {
+        
+        // see if the request is authenticated
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
+        if (authMethod.equals(AuthMethod.ANON)) {
+            
+            // 401 and Authenticate headers set by cadc-rest
+            throw new NotAuthenticatedException("login requried");
+            
+        } else {
+            
+            Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
+            String username = useridPrincipals.iterator().next().getName();
+            
+            if (TOKEN_REPSONSE_TYPE.equals(responseType)) {
+                
+                URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
+                String token = OIDCUtil.getToken(username, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
+                
+                // write to header and body
+                syncOutput.setHeader("X-Auth-Token", token);
+                OutputStream out = syncOutput.getOutputStream();
+                OutputStreamWriter writer = new OutputStreamWriter(out);
+                writer.write(token);
+                writer.flush();
+                
+            } else if (IDTOKEN_REPSONSE_TYPE.equals(responseType)) {
+                
+                // check client id
+                RelyParty rp = OIDCUtil.getRelyParty(clientID);
+                if (rp == null) {
+                    AuthorizeError authError = new AuthorizeError();
+                    authError.error = "unauthorized_client";
+                    sendError(authError);
+                    return;
+                }
+                
+                Set<NumericPrincipal> numericPrincipals = s.getPrincipals(NumericPrincipal.class);
+                String numericID = numericPrincipals.iterator().next().getName();
+                
+                // Note: clientID is the 'audience' of the id token
+                String jws = OIDCUtil.buildIDToken(numericID, clientID);
+                
+                // write to header and body
+                syncOutput.setHeader("X-Auth-Token", jws);
+                OutputStream out = syncOutput.getOutputStream();
+                OutputStreamWriter writer = new OutputStreamWriter(out);
+                writer.write(jws);
+                writer.flush();
+                
+            }
+             
+        }
+        
+    }
+    
+    private void logRequestInput() {
         log.debug("scope: " + scope);
-        log.debug("response_type: " + response_type);
-        log.debug("client_id: " + client_id);
-        log.debug("redirect_uri: " + redirect_uri);
+        log.debug("response_type: " + responseType);
+        log.debug("client_id: " + clientID);
+        log.debug("redirect_uri: " + redirectURI);
         log.debug("state: " + state);
-        log.debug("response_mode: " + response_mode);
+        log.debug("response_mode: " + responseMode);
         log.debug("nonce: " + nonce);
         log.debug("display: " + display);
         log.debug("prompt: " + prompt);
-        log.debug("max_age: " + max_age);
-        log.debug("ui_locales: " + ui_locales);
-        log.debug("id_token_hint: " + id_token_hint);
-        log.debug("login_hint: " + login_hint);
-        log.debug("acr_values: " + acr_values);
-        
-        // check required params
-        if (redirect_uri == null) {
-            return missingParameter("redirect_uri");
-        }
-        if (scope == null) {
-            return missingParameter("scope");
-        }
-        if (response_type == null) {
-            return missingParameter("response_type");
-        }
-        if (client_id == null) {
-            return missingParameter("client_id");
-        }
-        
-        // TODO: check other values
-        return null;
+        log.debug("max_age: " + maxAge);
+        log.debug("ui_locales: " + uiLocales);
+        log.debug("id_token_hint: " + idTokenHint);
+        log.debug("login_hint: " + loginHint);
+        log.debug("acr_values: " + acrValues);
     }
     
     private AuthorizeError missingParameter(String param) {
@@ -191,10 +332,10 @@ public abstract class AuthorizeAction extends RestAction {
     }
     
     private void sendError(AuthorizeError error) throws UnsupportedEncodingException {
-        if (redirect_uri == null) {
+        if (redirectURI == null) {
             throw new IllegalArgumentException("missing required param 'redirect_uri'");
         }
-        StringBuilder redirect = new StringBuilder(redirect_uri);
+        StringBuilder redirect = new StringBuilder(redirectURI);
         redirect.append("?error=");
         redirect.append(error.error);
         if (error.error_description != null) {

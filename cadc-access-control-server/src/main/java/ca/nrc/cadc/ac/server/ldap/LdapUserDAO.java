@@ -78,6 +78,7 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
+import ca.nrc.cadc.auth.BearerTokenPrincipal;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -199,6 +200,7 @@ public class LdapUserDAO extends LdapDAO
         this.userLdapAttrib.put(PosixPrincipal.class, LDAP_UID_NUMBER);
         this.userLdapAttrib.put(NumericPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(DNPrincipal.class, LDAP_ENTRYDN);
+        this.userLdapAttrib.put(BearerTokenPrincipal.class, LDAP_USER_NAME);
 
         // add the id attributes to user and member attributes
         String[] princs = userLdapAttrib.values()
@@ -904,12 +906,15 @@ public class LdapUserDAO extends LdapDAO
         try
         {
             String name;
-            if (userID instanceof NumericPrincipal)
-            {
+            if (userID instanceof NumericPrincipal) {
                 name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
-            }
-            else
-            {
+            } else if (userID instanceof BearerTokenPrincipal) {
+                HttpPrincipal user = ((BearerTokenPrincipal) userID).user;
+                if (user == null) {
+                    throw new IllegalArgumentException("Missing user information in bearer token");
+                }
+                name = user.getName();
+            } else {
                 name = userID.getName();
             }
 

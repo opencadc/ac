@@ -109,19 +109,19 @@ public class AuthorizePostAction extends AuthorizeAction implements InlineConten
                 scope = value;
             }
             if ("response_type".equals(name)) {
-                response_type = value;
+                responseType = value;
             }
             if ("client_id".equals(name)) {
-                client_id = value;
+                clientID = value;
             }
             if ("redirect_uri".equals(name)) {
-                redirect_uri = value;
+                redirectURI = value;
             }
             if ("state".equals(name)) {
                 state = value;
             }
             if ("response_mode".equals(name)) {
-                response_mode = value;
+                responseMode = value;
             }
             if ("nonce".equals(name)) {
                 nonce = value;
@@ -133,16 +133,16 @@ public class AuthorizePostAction extends AuthorizeAction implements InlineConten
                 prompt = value;
             }
             if ("max_age".equals(name)) {
-                max_age = value;
+                maxAge = value;
             }
             if ("ui_locales".equals(name)) {
-                ui_locales = value;
+                uiLocales = value;
             }
             if ("id_token_hint".equals(name)) {
-                id_token_hint = value;
+                idTokenHint = value;
             }
             if ("login_hint".equals(name)) {
-                login_hint = value;
+                loginHint = value;
             }
         }
     }

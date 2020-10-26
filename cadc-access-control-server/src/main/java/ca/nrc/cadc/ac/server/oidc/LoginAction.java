@@ -128,9 +128,9 @@ public class LoginAction extends RestAction {
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirect_uri);
         URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
-        String idToken = OIDCUtil.getAccessCode(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
+        String code = OIDCUtil.getToken(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
         redirect.append("?code=");
-        redirect.append(idToken);
+        redirect.append(code);
         if (state != null) {
             redirect.append("&state=");
             redirect.append(state);
