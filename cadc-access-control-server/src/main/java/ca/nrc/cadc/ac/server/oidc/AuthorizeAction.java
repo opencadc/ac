@@ -98,7 +98,7 @@ public abstract class AuthorizeAction extends RestAction {
     
     private static final String CODE_REPSONSE_TYPE = "code";
     private static final String TOKEN_REPSONSE_TYPE = "token";
-    private static final String IDTOKEN_REPSONSE_TYPE = "idToken";
+    private static final String IDTOKEN_REPSONSE_TYPE = "id_token";
     
     private static final String OIDC_SCOPE = "openid";
     private static final String COMMAND_LINE_SCOPE = "cli";
@@ -327,20 +327,25 @@ public abstract class AuthorizeAction extends RestAction {
     private AuthorizeError missingParameter(String param) {
         AuthorizeError error = new AuthorizeError();
         error.error = "invalid_request";
-        error.error_description = "missing required parameter '" + param + "'";
+        error.errorDescription = "missing required parameter '" + param + "'";
         return error;
     }
     
     private void sendError(AuthorizeError error) throws UnsupportedEncodingException {
         if (redirectURI == null) {
-            throw new IllegalArgumentException("missing required param 'redirect_uri'");
+            // cannot send error to the redirect URI, throw IllegalArgument instead.
+            if (error.errorDescription == null) {
+                throw new IllegalArgumentException("bad request");
+            } else {
+                throw new IllegalArgumentException(error.errorDescription);
+            }
         }
         StringBuilder redirect = new StringBuilder(redirectURI);
         redirect.append("?error=");
         redirect.append(error.error);
-        if (error.error_description != null) {
+        if (error.errorDescription != null) {
             redirect.append("&error_description=");
-            redirect.append(URLEncoder.encode(error.error_description, "utf-8"));
+            redirect.append(URLEncoder.encode(error.errorDescription, "utf-8"));
         }
         if (state != null) {
             redirect.append("&state=");
@@ -352,7 +357,7 @@ public abstract class AuthorizeAction extends RestAction {
     
     private class AuthorizeError {
         String error;
-        String error_description;
+        String errorDescription;
         //String error_uri;  // for when a web page explains the error
     }
 
