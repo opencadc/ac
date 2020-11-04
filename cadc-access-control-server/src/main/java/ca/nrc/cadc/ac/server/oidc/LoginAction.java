@@ -95,14 +95,14 @@ public class LoginAction extends RestAction {
     @Override
     public void doAction() throws Exception {
 
-        String redirect_uri = syncInput.getParameter("redirect_uri");
+        String redirectURI = syncInput.getParameter("redirect_uri");
         String state = syncInput.getParameter("state");
         String username = syncInput.getParameter("username");
         String password = syncInput.getParameter("password");
-        log.debug("redirect_uri: " + redirect_uri);
+        log.debug("redirect_uri: " + redirectURI);
         log.debug("state: " + state);
         log.debug("username: " + username);
-        if (redirect_uri == null) {
+        if (redirectURI == null) {
             throw new IllegalArgumentException("missing required param 'redirect_uri'");
         }
         if (username == null) {
@@ -126,7 +126,7 @@ public class LoginAction extends RestAction {
         }
         
         // formulate the authenticate redirect response
-        StringBuilder redirect = new StringBuilder(redirect_uri);
+        StringBuilder redirect = new StringBuilder(redirectURI);
         URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
         String code = OIDCUtil.getToken(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
         redirect.append("?code=");

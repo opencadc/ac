@@ -125,12 +125,7 @@ public abstract class AuthorizeAction extends RestAction {
         
         loadRequestInput();
         logRequestInput();
-        
-        if (scope == null) {
-            AuthorizeError error = missingParameter("scope");
-            sendError(error);
-            return;
-        }
+
         if (responseType == null) {
             AuthorizeError error = missingParameter("response_type");
             sendError(error);
@@ -139,6 +134,12 @@ public abstract class AuthorizeAction extends RestAction {
         
         // determine the request flow using response_type and scope
         if (CODE_REPSONSE_TYPE.equals(responseType)) {
+            
+            if (scope == null) {
+                AuthorizeError error = missingParameter("scope");
+                sendError(error);
+                return;
+            }
             
             // only openid connect code flow supported
             if (!OIDC_SCOPE.equals(scope)) {
@@ -153,12 +154,12 @@ public abstract class AuthorizeAction extends RestAction {
         } else if (TOKEN_REPSONSE_TYPE.equals(responseType) || IDTOKEN_REPSONSE_TYPE.equals(responseType)) {
             
             // only 'command line scope' supported for token and idToken responseType
-            if (!COMMAND_LINE_SCOPE.equals(scope)) {
-                AuthorizeError error = new AuthorizeError();
-                error.error = "invalid_scope";
-                sendError(error);
-                return;
-            }
+            //if (!COMMAND_LINE_SCOPE.equals(scope)) {
+            //    AuthorizeError error = new AuthorizeError();
+            //    error.error = "invalid_scope";
+            //    sendError(error);
+            //    return;
+            //}
             
             doCLIFlow();
             
@@ -333,12 +334,11 @@ public abstract class AuthorizeAction extends RestAction {
     
     private void sendError(AuthorizeError error) throws UnsupportedEncodingException {
         if (redirectURI == null) {
-            // cannot send error to the redirect URI, throw IllegalArgument instead.
-            if (error.errorDescription == null) {
-                throw new IllegalArgumentException("bad request");
-            } else {
-                throw new IllegalArgumentException(error.errorDescription);
+            String msg = error.error;
+            if (error.errorDescription != null) {
+                msg = msg + ": " + error.errorDescription;
             }
+            throw new IllegalArgumentException(msg);
         }
         StringBuilder redirect = new StringBuilder(redirectURI);
         redirect.append("?error=");
