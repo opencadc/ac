@@ -373,7 +373,8 @@ public class UserClient
         }
 
         // in the case that there is more than one principal in the
-        // subject, favor x500 principals then numeric principals
+        // subject, favor x500 principals, then numeric principals,
+        // then http principals.
         Set<X500Principal> x500Principals = subject
                 .getPrincipals(X500Principal.class);
         if (x500Principals.size() > 0)
@@ -386,6 +387,13 @@ public class UserClient
         if (numericPrincipals.size() > 0)
         {
             return numericPrincipals.iterator().next();
+        }
+        
+        Set<HttpPrincipal> httpPrincipals = subject
+                .getPrincipals(HttpPrincipal.class);
+        if (httpPrincipals.size() > 0)
+        {
+            return httpPrincipals.iterator().next();
         }
 
         // just return the first one
@@ -414,7 +422,7 @@ public class UserClient
         if (idTypeStr == null)
         {
             final String msg = "Subject has unsupported principal " +
-                               principal.getName();
+                               principal.getClass();
             throw new IllegalArgumentException(msg);
         }
 

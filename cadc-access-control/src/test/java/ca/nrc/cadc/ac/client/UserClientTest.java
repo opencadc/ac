@@ -201,9 +201,8 @@ public class UserClientTest
         }
         catch (IllegalArgumentException e)
         {
-            String expected = "Subject has unsupported principal " + principal
-                    .getName();
-            Assert.assertEquals(expected, e.getMessage());
+            String expected = "Subject has unsupported principal";
+            Assert.assertTrue(e.getMessage().startsWith(expected));
         }
         catch (Throwable t)
         {

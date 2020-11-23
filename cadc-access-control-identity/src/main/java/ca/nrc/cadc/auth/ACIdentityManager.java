@@ -270,6 +270,12 @@ public class ACIdentityManager implements IdentityManager {
         if (principalSet.size() > 1 && !nPrincipalSet.isEmpty()) {
             return;
         }
+        
+        // Create a supporting HttpPrincipal if we have a BearerTokenPrincipal
+        Principal p = principalSet.iterator().next();
+        if (p instanceof BearerTokenPrincipal) {
+            principalSet.add(((BearerTokenPrincipal) p).user);
+        }
 
         try {
             PrivilegedExceptionAction<Object> action = new PrivilegedExceptionAction<Object>() {
