@@ -101,7 +101,7 @@ public abstract class AuthorizeAction extends RestAction {
     private static final String IDTOKEN_REPSONSE_TYPE = "id_token";
     
     private static final String OIDC_SCOPE = "openid";
-    private static final String COMMAND_LINE_SCOPE = "cli";
+    private static final String VO_SINGLESIGNON_SCOPE = "vo-sso";
     
     protected String scope;
     protected String responseType;
@@ -152,14 +152,6 @@ public abstract class AuthorizeAction extends RestAction {
             doOpenIDCodeFlow();
             
         } else if (TOKEN_REPSONSE_TYPE.equals(responseType) || IDTOKEN_REPSONSE_TYPE.equals(responseType)) {
-            
-            // only 'command line scope' supported for token and idToken responseType
-            //if (!COMMAND_LINE_SCOPE.equals(scope)) {
-            //    AuthorizeError error = new AuthorizeError();
-            //    error.error = "invalid_scope";
-            //    sendError(error);
-            //    return;
-            //}
             
             doCLIFlow();
             
@@ -259,7 +251,7 @@ public abstract class AuthorizeAction extends RestAction {
         if (authMethod.equals(AuthMethod.ANON)) {
             
             // 401 and Authenticate headers set by cadc-rest
-            throw new NotAuthenticatedException("login requried");
+            throw new NotAuthenticatedException("login_requried");
             
         } else {
             
@@ -267,6 +259,14 @@ public abstract class AuthorizeAction extends RestAction {
             String username = useridPrincipals.iterator().next().getName();
             
             if (TOKEN_REPSONSE_TYPE.equals(responseType)) {
+                
+                // only 'vo-sso' scope supported for token responseType
+                if (scope != null && !VO_SINGLESIGNON_SCOPE.equals(scope)) {
+                    AuthorizeError error = new AuthorizeError();
+                    error.error = "invalid_scope";
+                    sendError(error);
+                    return;
+                }
                 
                 URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
                 String token = OIDCUtil.getToken(username, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
@@ -289,11 +289,8 @@ public abstract class AuthorizeAction extends RestAction {
                     return;
                 }
                 
-                Set<NumericPrincipal> numericPrincipals = s.getPrincipals(NumericPrincipal.class);
-                String numericID = numericPrincipals.iterator().next().getName();
-                
                 // Note: clientID is the 'audience' of the id token
-                String jws = OIDCUtil.buildIDToken(numericID, clientID);
+                String jws = OIDCUtil.buildIDToken(clientID);
                 
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", jws);

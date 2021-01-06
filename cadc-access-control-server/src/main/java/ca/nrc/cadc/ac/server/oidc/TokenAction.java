@@ -187,14 +187,12 @@ public class TokenAction extends RestAction {
         subject.getPublicCredentials().add(authMethod);
         log.debug("augmenting user subject");
         subject = AuthenticationUtil.augmentSubject(subject);
-        final NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             @Override
             public Object run() throws Exception {
                 
-                String email = OIDCUtil.getEmail(useridPrincipal);
-                String jwt = createJWT(useridPrincipal.getName(), email, numericPrincipal.getName(), clientID);
+                String jwt = createJWT(useridPrincipal.getName(), clientID);
                 
                 log.debug("set headers and return json: \n" + jwt);
                 syncOutput.setHeader("Content-Type", "application/json");
@@ -210,11 +208,11 @@ public class TokenAction extends RestAction {
         
     }
     
-    private String createJWT(String userid, String email, String numericID, String clientID) throws Exception {
+    private String createJWT(String userid, String clientID) throws Exception {
         
         log.debug("building jwt");
         
-        String jws = OIDCUtil.buildIDToken(numericID, clientID);
+        String jws = OIDCUtil.buildIDToken(clientID);
         
         log.debug("building access token");
         // NOTE: These tokens should be more static than our current delegation tokens

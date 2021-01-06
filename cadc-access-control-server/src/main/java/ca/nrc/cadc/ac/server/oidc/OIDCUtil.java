@@ -66,12 +66,18 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.TransientException;
 
 import java.io.IOException;
@@ -80,9 +86,15 @@ import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+
+import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 
@@ -152,18 +164,38 @@ public class OIDCUtil {
         return "";
     }
     
-    public static String buildIDToken(String numericID, String clientID) {
+    public static List<String> getGroupList() throws Exception {
+        GroupPersistence gp = new LdapGroupPersistence();
+        Collection<Group> groups = gp.getGroups(Role.MEMBER, null);
+        List<String> groupNames = new ArrayList<String>();
+        Iterator<Group> it = groups.iterator();
+        int count = 0;
+        // limit to 15 groups for now
+        while (it.hasNext() && count < 16) {
+            groupNames.add(it.next().getID().getName());
+            count++;
+        }
+        return groupNames;
+    }
+    
+    public static String buildIDToken(String clientID) throws Exception {
+        
+        final Subject subject = AuthenticationUtil.getCurrentSubject();
+        
+        NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
+        HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
+        String email = OIDCUtil.getEmail(useridPrincipal);
+        
         JwtBuilder builder = Jwts.builder();
         builder.claim("iss", OIDCUtil.CLAIM_ISSUER_VALUE);
-        builder.claim("sub", numericID);
+        builder.claim("sub", numericPrincipal.getName());
         Calendar calendar = Calendar.getInstance();
         builder.claim("iat", calendar.getTime());
         calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
         builder.claim("exp", calendar.getTime());
-        // only provide user info from the userinfo endpoint
-        //builder.claim("name", userid);
-        //builder.claim("email", email);
-        //builder.claim("memberOf", getGroupList());
+        builder.claim("name", useridPrincipal.getName());
+        builder.claim("email", email);
+        builder.claim("memberOf", getGroupList());
         builder.claim("aud", clientID);
         String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
         return jws;

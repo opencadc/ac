@@ -122,23 +122,9 @@ public class UserInfoAction extends RestAction {
             throw new NotAuthenticatedException("unauthorized");
         }
         
-        NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
-        HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
-        String email = OIDCUtil.getEmail(useridPrincipal);
-        
-        log.debug("building jwt");
-        JwtBuilder builder = Jwts.builder();
-        builder.claim("iss", OIDCUtil.CLAIM_ISSUER_VALUE);
-        builder.claim("sub", numericPrincipal.getName());
-        Calendar calendar = Calendar.getInstance();
-        builder.claim("iat", calendar.getTime());
-        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-        builder.claim("exp", calendar.getTime());
-        builder.claim("name", useridPrincipal.getName());
-        builder.claim("email", email);
-        builder.claim("memberOf", getGroupList());
-        //builder.claim("aud", clientID);
-        String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
+        // TODO: big hack:  "arbutus-harbor" is the clientID and this needs to come from the current subject
+        // instead of being hard-coded.  This needs to be fixed before a second RelyParty can be added.
+        String jws = OIDCUtil.buildIDToken("arbutus-harbor");
         
         log.debug("set headers and return json: \n" + jws);
         syncOutput.setHeader("Content-Type", "application/jwt");
@@ -149,169 +135,13 @@ public class UserInfoAction extends RestAction {
         writer.write(jws);
         writer.flush();
         
-//        
-//        // Authenticate the Client
-//        log.debug("authenticating client");
-//        final String clientID = syncInput.getParameter("client_id");
-//        // (our config makes clients post the secret: "token_endpoint_auth_methods_supported: client_secret_post")
-//        String clientSecret = syncInput.getParameter("client_secret");
-//        if (clientID == null || clientSecret == null) {
-//            sendError("invalid_client");
-//            return;
-//        }
-//        RelyParty rp = OIDCUtil.getRelyParty(clientID);
-//        if (rp == null || !rp.getClientSecret().equals(clientSecret)) {
-//            sendError("invalid_client");
-//            return;
-//        }
-//        
-//        // Check the grant type
-//        String grantType = syncInput.getParameter("grant_type");
-//        log.debug("checking grant type: " + grantType);
-//        // TODO: support refresh_token grant_type
-//        if (!"authorization_code".equals(grantType)) {
-//            log.debug("returning unsupported_grant_type");
-//            sendError("unsupported_grant_type");
-//            return;
-//        }
-//        
-//        // TODO: Ensure the Authorization Code was issued to the authenticated Client.
-//        
-//        // Verify that the Authorization Code is valid.
-//        log.debug("validating code");
-//        String code = syncInput.getParameter("code");
-//        DelegationToken dt = null;
-//        if (code == null) {
-//            sendError("invalid_request");
-//            return;
-//        }
-//        
-//        try {
-//            dt = DelegationToken.parse(code, null, new TokenScopeValidator());
-//        } catch (InvalidDelegationTokenException e) {
-//            log.debug("Invalid delegation Token", e);
-//            sendError("invalid_scope");
-//            return;
-//        }
-//
-//        // TODO: If possible, verify that the Authorization Code has not been previously used.
-//        
-//        // TODO: Ensure that the redirect_uri parameter value is identical to the redirect_uri
-//        //   parameter value that was included in the initial Authorization Request. If the
-//        //   redirect_uri parameter value is not present when there is only one registered redirect_uri
-//        //   value, the Authorization Server MAY return an error (since the Client should have included
-//        //   the parameter) or MAY proceed without an error (since OAuth 2.0 permits the parameter to be
-//        //   omitted in this case).
-//        
-//        // TODO: Verify that the Authorization Code used was issued in response to an OpenID Connect
-//        //   Authentication Request (so that an ID Token will be returned from the Token Endpoint).
-//        
-//        // Create and run as the target subject
-//        final HttpPrincipal useridPrincipal = dt.getPrincipalByClass(HttpPrincipal.class);
-//        Subject subject = new Subject();
-//        subject.getPrincipals().add(useridPrincipal);
-//        AuthMethod authMethod = AuthMethod.TOKEN;
-//        subject.getPublicCredentials().add(authMethod);
-//        log.debug("augmenting user subject");
-//        subject = AuthenticationUtil.augmentSubject(subject);
-//        final NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
-//
-//        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
-//            @Override
-//            public Object run() throws Exception {
-//                
-//                String email = getEmail(useridPrincipal);
-//                String jwt = createJWT(useridPrincipal.getName(), email, numericPrincipal.getName(), clientID);
-//                
-//                log.debug("set headers and return json: \n" + jwt);
-//                syncOutput.setHeader("Content-Type", "application/json");
-//                syncOutput.setHeader("Cache-Control", "no-store");
-//                syncOutput.setHeader("Pragma", "no-cache");
-//                
-//                OutputStreamWriter writer = new OutputStreamWriter(syncOutput.getOutputStream());
-//                writer.write(jwt.toString());
-//                writer.flush();
-//                return null;
-//            }
-//        });
-        
     }
     
-    private String createJWT(String userid, String email, String numericID, String clientID) throws Exception {
-        
-        log.debug("building jwt");
-        JwtBuilder builder = Jwts.builder();
-        builder.claim("iss", OIDCUtil.CLAIM_ISSUER_VALUE);
-        builder.claim("sub", numericID);
-        Calendar calendar = Calendar.getInstance();
-        builder.claim("iat", calendar.getTime());
-        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-        builder.claim("exp", calendar.getTime());
-        builder.claim("name", userid);
-        builder.claim("email", email);
-        builder.claim("memberOf", getGroupList());
-        builder.claim("aud", clientID);
-        String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
-        
-        log.debug("building access token");
-        // NOTE: These tokens should be more static than our current delegation tokens
-        // where the expiry date is built in.  
-        URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
-        String accessToken = OIDCUtil.getToken(userid, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
-        
-        StringBuilder json = new StringBuilder();
-        json.append("{ ");
-        json.append("  \"access_token\": \"" + accessToken + "\",");
-        // TODO: add refresh_token
-        json.append("  \"token_type\": \"Bearer\",");
-        json.append("  \"expires_in\": \"").append(OIDCUtil.JWT_EXPIRY_MINUTES).append("\",");
-        json.append("  \"id_token\": \"").append(jws).append("\"");
-        json.append(" }");
-        
-        return json.toString();
-    }
-
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;
     }
     
-    private void sendError(String message) throws IOException {
-        syncOutput.setHeader("Content-Type", "application/json");
-        syncOutput.setHeader("Cache-Control", "no-store");
-        syncOutput.setHeader("Pragma", "no-cache");
-        syncOutput.setCode(400);
-        OutputStreamWriter writer = new OutputStreamWriter(syncOutput.getOutputStream());
-        String jsonErrorMsg = "{ \"error\": \"" + message + "\" }";
-        log.debug("returning error:\n" + jsonErrorMsg);
-        writer.write(jsonErrorMsg);
-        writer.flush();
-    }
-    
-    private List<String> getGroupList() throws Exception {
-        GroupPersistence gp = new LdapGroupPersistence();
-        Collection<Group> groups = gp.getGroups(Role.MEMBER, null);
-        List<String> groupNames = new ArrayList<String>();
-        Iterator<Group> it = groups.iterator();
-        int count = 0;
-        // limit to 15 groups for now
-        while (it.hasNext() && count < 16) {
-            groupNames.add(it.next().getID().getName());
-            count++;
-        }
-        return groupNames;
-    }
-    
-    private String getEmail(HttpPrincipal userID)
-            throws AccessControlException, UserNotFoundException, TransientException {
-        UserPersistence up = new LdapUserPersistence();
-        User user = up.getUser(userID);
-        if (user.personalDetails != null && user.personalDetails.email != null) {
-            return user.personalDetails.email;
-        }
-        return "";
-    }
-
     class TokenScopeValidator extends ScopeValidator {
         @Override
         public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
