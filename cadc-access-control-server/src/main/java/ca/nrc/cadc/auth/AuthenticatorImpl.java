@@ -82,6 +82,8 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.profiler.Profiler;
 
+import java.security.AccessControlException;
+
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
  * This class augments the subject with additional identities using the
@@ -94,12 +96,18 @@ public class AuthenticatorImpl implements Authenticator
     private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
 
     public AuthenticatorImpl() { }
+    
+    @Override
+    public Subject validate(Subject subject) throws AccessControlException {
+        return AuthenticationUtil.validateTokens(subject);
+    }
 
     /**
      * @param subject
      * @return the possibly modified subject
      */
-    public Subject getSubject(Subject subject)
+    @Override
+    public Subject augment(Subject subject)
     {
         Profiler profiler = new Profiler(AuthenticatorImpl.class);
         log.debug("ac augment subject: " + subject);

@@ -70,7 +70,6 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.OutputStream;

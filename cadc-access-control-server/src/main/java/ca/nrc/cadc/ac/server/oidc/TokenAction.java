@@ -72,7 +72,6 @@ import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.DelegationToken.ScopeValidator;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.InvalidDelegationTokenException;
-import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 

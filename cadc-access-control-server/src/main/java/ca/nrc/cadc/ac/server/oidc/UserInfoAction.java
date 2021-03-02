@@ -66,40 +66,19 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import ca.nrc.cadc.auth.DelegationToken.ScopeValidator;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.DelegationToken.ScopeValidator;
 import ca.nrc.cadc.auth.InvalidDelegationTokenException;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
-import java.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
-
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
 
 /**
  * 

@@ -68,16 +68,11 @@ package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import ca.nrc.cadc.auth.DelegationToken;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
-import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
-import java.security.InvalidKeyException;
-import java.util.Calendar;
 
 import org.apache.log4j.Logger;
 
