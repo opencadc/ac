@@ -80,6 +80,9 @@ public class Group
     private final static Logger log = Logger.getLogger(Group.class);
 
     private GroupURI groupID;
+    
+    // posix gid
+    public Integer gid;
 
     private User owner;
 
