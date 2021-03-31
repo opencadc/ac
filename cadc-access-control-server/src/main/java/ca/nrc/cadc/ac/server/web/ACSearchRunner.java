@@ -186,11 +186,15 @@ public class ACSearchRunner implements JobRunner {
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.createGroupPersistence();
             Collection<Group> groups = new HashSet<Group>();
-            for (String groupName : groupNames) {
-                try {
-                    groups.addAll(dao.getGroups(role, groupName));
-                } catch (GroupNotFoundException ignore) {
-                    log.debug("no memberships found");
+            if (groupNames.isEmpty()) {
+                groups.addAll(dao.getGroups(role, null));
+            } else {
+                for (String groupName : groupNames) {
+                    try {
+                        groups.addAll(dao.getGroups(role, groupName));
+                    } catch (GroupNotFoundException ignore) {
+                        log.debug("no memberships found");
+                    }
                 }
             }
             
