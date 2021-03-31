@@ -93,9 +93,9 @@ import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -112,7 +112,7 @@ public class ACSearchRunner implements JobRunner {
     private Job job;
     private JobLogInfo logInfo;
 
-    private String groupName;
+    private Set<String> groupNames = new HashSet<String>();
     private Role role;
     private boolean ivoaStandardResponse = false;
 
@@ -185,14 +185,16 @@ public class ACSearchRunner implements JobRunner {
 
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.createGroupPersistence();
-            Collection<Group> groups;
-            try {
-                groups = dao.getGroups(role, groupName);
-            } catch (GroupNotFoundException ignore) {
-                log.debug("no memberships found");
-                groups = new ArrayList<Group>();
+            Collection<Group> groups = new HashSet<Group>();
+            for (String groupName : groupNames) {
+                try {
+                    groups.addAll(dao.getGroups(role, groupName));
+                } catch (GroupNotFoundException ignore) {
+                    log.debug("no memberships found");
+                }
             }
             
+            // TODO: change response type based on RESPONSEFORMAT param or Accept header
             if (ivoaStandardResponse) {
                 if (groups.size() > 0) {
                     StringBuilder response = new StringBuilder();
@@ -287,36 +289,38 @@ public class ACSearchRunner implements JobRunner {
      * 
      * IVOA GMS requests can be:
      *   - (no params) - list group memberships
-     *   - group=[groupName] - is member of {groupName}?
-     * CADC legacy requests can be:
+     *   - one or more group=[groupName] params - is member of {groupName1} - {groupNameN}?
+     * CADC parameter extensions of GMS standard:
      *   - role=[role] - list groups in role (member, admin, or owner)
      *   - role=[role] groupID=[groupName}] - list group if user has specified role in group
      * 
      * @param params The incoming parameters.
      */
-    protected void validateParams(List<Parameter> params) {
+    void validateParams(List<Parameter> params) {
         
         if (params == null) {
             throw new IllegalArgumentException("missing parameters");
         }
         
         String roleParam = ParameterUtil.findParameterValue("ROLE", params);
+        // GROUPID param support is deprecated
         String groupIDParam = ParameterUtil.findParameterValue("GROUPID", params);
         // ivoa param name is 'group'
-        String groupParam = ParameterUtil.findParameterValue("group", params);
+        List<String> groupParams = ParameterUtil.findParameterValues("group", params);
         
         // ivoa search for all memberships is request with no params
-        if (roleParam == null && groupIDParam == null && groupParam == null) {
+        if (roleParam == null && groupIDParam == null && groupParams.isEmpty()) {
             // default to membership role
             this.role = Role.MEMBER;
             ivoaStandardResponse = true;
             return;
         }
         
-        if (groupParam != null) {
-            this.groupName = groupParam;
+        if (!groupParams.isEmpty()) {
+            // set will drop duplicates
+            this.groupNames.addAll(groupParams);
             if (roleParam != null) {
-                // allow role with vo param, but use old xml response
+                // allow role with vo param, but use xml response
                 this.role = Role.toValue(roleParam);
             } else {
                 ivoaStandardResponse = true;
@@ -334,20 +338,20 @@ public class ACSearchRunner implements JobRunner {
         
         // groupID is optional
         if (groupIDParam != null) {
-            this.groupName = groupIDParam;
+            this.groupNames.add(groupIDParam);
         }
 
     }
     
-    protected Role getRole() {
+    Role getRole() {
         return role;
     }
     
-    protected String getGroupID() {
-        return groupName;
+    Set<String> getGroupNames() {
+        return groupNames;
     }
     
-    public boolean isIvoaStandardResponse() {
+    boolean isIvoaStandardResponse() {
         return ivoaStandardResponse;
     }
 

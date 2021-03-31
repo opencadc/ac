@@ -116,7 +116,7 @@ public class ACSearchRunnerTest {
             List<Parameter> paramList = new ArrayList<Parameter>();
             searchRunner.validateParams(paramList);
             Assert.assertTrue(searchRunner.isIvoaStandardResponse());
-            Assert.assertNull(searchRunner.getGroupID());
+            Assert.assertTrue(searchRunner.getGroupNames().isEmpty());
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
             
             // group only param
@@ -125,7 +125,35 @@ public class ACSearchRunnerTest {
             paramList.add(new Parameter("group", "foo"));
             searchRunner.validateParams(paramList);
             Assert.assertTrue(searchRunner.isIvoaStandardResponse());
-            Assert.assertEquals("foo", searchRunner.getGroupID());
+            Assert.assertEquals(1, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+            // multiple group params
+            searchRunner = new ACSearchRunner();
+            paramList.clear();
+            paramList.add(new Parameter("group", "foo"));
+            paramList.add(new Parameter("group", "bar"));
+            paramList.add(new Parameter("group", "zen"));
+            searchRunner.validateParams(paramList);
+            Assert.assertTrue(searchRunner.isIvoaStandardResponse());
+            Assert.assertEquals(3, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
+            Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
+            Assert.assertTrue(searchRunner.getGroupNames().contains("zen"));
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+            // multiple group params with duplicate
+            searchRunner = new ACSearchRunner();
+            paramList.clear();
+            paramList.add(new Parameter("group", "foo"));
+            paramList.add(new Parameter("group", "bar"));
+            paramList.add(new Parameter("group", "bar"));
+            searchRunner.validateParams(paramList);
+            Assert.assertTrue(searchRunner.isIvoaStandardResponse());
+            Assert.assertEquals(2, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
+            Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
             
             // invalid role param
@@ -144,7 +172,7 @@ public class ACSearchRunnerTest {
             paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
             searchRunner.validateParams(paramList);
             Assert.assertFalse(searchRunner.isIvoaStandardResponse());
-            Assert.assertNull(searchRunner.getGroupID());
+            Assert.assertTrue(searchRunner.getGroupNames().isEmpty());
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
 
             // valid role and group
@@ -154,7 +182,8 @@ public class ACSearchRunnerTest {
             paramList.add(new Parameter("GROUPID", "bar"));
             searchRunner.validateParams(paramList);
             Assert.assertFalse(searchRunner.isIvoaStandardResponse());
-            Assert.assertEquals("bar", searchRunner.getGroupID());
+            Assert.assertEquals(1, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
             
         } catch (Throwable t) {
