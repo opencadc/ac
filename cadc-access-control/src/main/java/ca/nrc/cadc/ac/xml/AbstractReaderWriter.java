@@ -493,7 +493,6 @@ public abstract class AbstractReaderWriter
             }
             user = getUser(userElement);
         }
-
         
         Group group;
         try {
@@ -505,6 +504,13 @@ public abstract class AbstractReaderWriter
 
         // set owner field
         setField(group, user, OWNER);
+        
+        // gid
+        Element gidElement = element.getChild(GID);
+        if (gidElement != null)
+        {
+            group.gid = Integer.parseInt(gidElement.getText());
+        }
 
         // description
         Element descriptionElement = element.getChild(DESCRIPTION);
@@ -937,6 +943,14 @@ public abstract class AbstractReaderWriter
         Element groupElement = new Element(GROUP);
         String groupURI = group.getID().toString();
         groupElement.setAttribute(new Attribute(URI, groupURI));
+        
+        // gid
+        if (group.gid != null)
+        {
+            Element gidElement = new Element(GID);
+            gidElement.setText(group.gid.toString());
+            groupElement.addContent(gidElement);
+        }
 
         // Group owner
         if (group.getOwner() != null)

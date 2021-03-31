@@ -208,6 +208,7 @@ public class GroupReaderWriterTest
 
         Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));
         setGroupOwner(expected, owner);
+        expected.gid = 20000;
         expected.description = "description";
         expected.lastModified = new Date();
         expected.getProperties().add(new GroupProperty("key1", "value1", true));
@@ -239,6 +240,7 @@ public class GroupReaderWriterTest
         Group actual = groupReader.read(xml.toString());
         assertNotNull(actual);
         assertEquals(expected, actual);
+        assertEquals(expected.gid, actual.gid);
         assertEquals(expected.description, actual.description);
         assertEquals(expected.lastModified, actual.lastModified);
         assertEquals(expected.getProperties(), actual.getProperties());

@@ -6,5 +6,7 @@ RUN \
   touch /run/utmp && \
   chmod u+s /usr/bin/ping
 
+ADD src/nsswitch.conf /etc/
+
 COPY src/cadc-sssd-start /usr/bin/cadc-sssd-start
 CMD ["/usr/bin/cadc-sssd-start"]
