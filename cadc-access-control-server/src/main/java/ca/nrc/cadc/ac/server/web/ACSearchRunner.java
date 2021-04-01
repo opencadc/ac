@@ -71,18 +71,21 @@ package ca.nrc.cadc.ac.server.web;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.RequestValidator;
 import ca.nrc.cadc.ac.xml.GroupListWriter;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.ParameterUtil;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.util.JobLogInfo;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -90,17 +93,18 @@ import java.security.AccessControlContext;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+
 import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 
-public class ACSearchRunner implements JobRunner
-{
+public class ACSearchRunner implements JobRunner {
     private static Logger log = Logger.getLogger(ACSearchRunner.class);
 
     private JobUpdater jobUpdater;
@@ -108,41 +112,37 @@ public class ACSearchRunner implements JobRunner
     private Job job;
     private JobLogInfo logInfo;
 
+    private Set<String> groupNames = new HashSet<String>();
+    private Role role;
+    private boolean ivoaStandardResponse = false;
+
     @Override
-    public void setJobUpdater(JobUpdater jobUpdater)
-    {
+    public void setJobUpdater(JobUpdater jobUpdater) {
         this.jobUpdater = jobUpdater;
     }
 
     @Override
-    public void setJob(Job job)
-    {
+    public void setJob(Job job) {
         this.job = job;
     }
 
     @Override
-    public void setSyncOutput(SyncOutput syncOut)
-    {
+    public void setSyncOutput(SyncOutput syncOut) {
         this.syncOut = syncOut;
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
 
         log.debug("RUN ACSearchRunner: " + subject);
-        if (log.isDebugEnabled())
-        {
+        if (log.isDebugEnabled()) {
             Set<Principal> principals = subject.getPrincipals();
             Iterator<Principal> i = principals.iterator();
-            while (i.hasNext())
-            {
+            while (i.hasNext()) {
                 Principal next = i.next();
-                log.debug("Principal " +
-                        next.getClass().getSimpleName()
-                        + ": " + next.getName());
+                log.debug("Principal " + next.getClass().getSimpleName() + ": " + next.getName());
             }
         }
 
@@ -163,122 +163,108 @@ public class ACSearchRunner implements JobRunner
     }
 
     @SuppressWarnings("unchecked")
-    private void search(Subject subject)
-    {
+    private void search(Subject subject) {
 
         // Note: This search runner is customized to run with
         // InMemoryJobPersistence, and synchronous POST requests are
         // dealt with immediately, rather than returning results via
         // a redirect.
         // Jobs in this runner are never updated after execution begins
-        // in case the in-memory job has gone away.  Error reporting
+        // in case the in-memory job has gone away. Error reporting
         // is done directly through the response on both POST and GET
 
-        try
-        {
-            ExecutionPhase ep =
-                jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED,
-                                    ExecutionPhase.EXECUTING, new Date());
-            if ( !ExecutionPhase.EXECUTING.equals(ep) )
-            {
+        try {
+            ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING,
+                    new Date());
+            if (!ExecutionPhase.EXECUTING.equals(ep)) {
                 throw new IllegalStateException("QUEUED -> EXECUTING [FAILED]");
             }
             log.debug(job.getID() + ": QUEUED -> EXECUTING [OK]");
 
-            RequestValidator rv = new RequestValidator();
-            rv.validate(job.getParameterList());
-
-            // only allow users to search themselves...
-            //Principal userBeingSearched = rv.getPrincipal();
+            validateParams(job.getParameterList());
 
             PluginFactory factory = new PluginFactory();
             GroupPersistence dao = factory.createGroupPersistence();
-            Collection<Group> groups;
-            try
-            {
-                groups = dao.getGroups(rv.getRole(), rv.getGroupID());
+            Collection<Group> groups = new HashSet<Group>();
+            if (groupNames.isEmpty()) {
+                groups.addAll(dao.getGroups(role, null));
+            } else {
+                for (String groupName : groupNames) {
+                    try {
+                        groups.addAll(dao.getGroups(role, groupName));
+                    } catch (GroupNotFoundException ignore) {
+                        log.debug("no memberships found");
+                    }
+                }
             }
-            catch(GroupNotFoundException ignore)
-            {
-                log.debug("no memberships found");
-                groups = new ArrayList<Group>();
+            
+            // TODO: change response type based on RESPONSEFORMAT param or Accept header
+            if (ivoaStandardResponse) {
+                if (groups.size() > 0) {
+                    StringBuilder response = new StringBuilder();
+                    for (Group g : groups) {
+                        response.append(g.getID().getName());
+                        response.append("\n");
+                    }
+                    syncOut.setHeader("Content-Type", "text/plain");
+                    syncOut.getOutputStream().write(response.toString().getBytes());
+                }
+            } else {
+                GroupListWriter groupListWriter = new GroupListWriter();
+                groupListWriter.write(groups, syncOut.getOutputStream());
             }
-            syncOut.setResponseCode(HttpServletResponse.SC_OK);
-            GroupListWriter groupListWriter = new GroupListWriter();
-            groupListWriter.write(groups, syncOut.getOutputStream());
-        }
-        catch (TransientException t)
-        {
+            
+        } catch (TransientException t) {
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
             log.error("FAIL", t);
 
-            syncOut.setResponseCode(503);
+            syncOut.setCode(503);
             syncOut.setHeader("Content-Type", "text/plain");
             if (t.getRetryDelay() > 0)
                 syncOut.setHeader("Retry-After", Integer.toString(t.getRetryDelay()));
-            try
-            {
+            try {
                 syncOut.getOutputStream().write(("Transient Exception: " + t.getMessage()).getBytes());
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 log.warn("Could not write response to output stream", e);
             }
-        }
-        catch (UserNotFoundException t)
-        {
+        } catch (UserNotFoundException t) {
             logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
 
-            syncOut.setResponseCode(404);
+            syncOut.setCode(404);
             syncOut.setHeader("Content-Type", "text/plain");
-            try
-            {
+            try {
                 syncOut.getOutputStream().write(t.getMessage().getBytes());
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 log.warn("Could not write response to output stream", e);
             }
-        }
-        catch(IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logInfo.setSuccess(true);
             logInfo.setMessage(ex.getMessage());
             log.debug("FAIL", ex);
 
-            syncOut.setResponseCode(400);
+            syncOut.setCode(400);
             syncOut.setHeader("Content-Type", "text/plain");
-            try
-            {
+            try {
                 syncOut.getOutputStream().write(ex.getMessage().getBytes());
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 log.warn("Could not write response to output stream", e);
             }
-        }
-        catch (AccessControlException t)
-        {
+        } catch (AccessControlException t) {
             logInfo.setSuccess(true);
             logInfo.setMessage(t.getMessage());
             log.debug("FAIL", t);
 
-            syncOut.setResponseCode(403);
+            syncOut.setCode(403);
             syncOut.setHeader("Content-Type", "text/plain");
-            try
-            {
+            try {
                 syncOut.getOutputStream().write("Permission Denied".getBytes());
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 log.warn("Could not write response to output stream", e);
             }
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
             log.error("FAIL", t);
@@ -287,23 +273,90 @@ public class ACSearchRunner implements JobRunner
         }
     }
 
-    private void writeError(SyncOutput syncOutput, int code, Throwable t)
-    {
-        try
-        {
-            syncOutput.setResponseCode(code);
+    private void writeError(SyncOutput syncOutput, int code, Throwable t) {
+        try {
+            syncOutput.setCode(code);
             syncOut.setHeader("Content-Type", "text/plain");
             OutputStream ostream = syncOut.getOutputStream();
-            if (ostream != null)
-            {
+            if (ostream != null) {
                 OutputStreamWriter w = new OutputStreamWriter(ostream);
                 w.write(t.toString());
                 w.flush();
             }
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             log.warn("Could not write response to output stream", e);
         }
     }
+
+    /**
+     * Validate the incoming parameters.
+     * 
+     * IVOA GMS requests can be:
+     *   - (no params) - list group memberships
+     *   - one or more group=[groupName] params - is member of {groupName1} - {groupNameN}?
+     * CADC parameter extensions of GMS standard:
+     *   - role=[role] - list groups in role (member, admin, or owner)
+     *   - role=[role] groupID=[groupName}] - list group if user has specified role in group
+     * 
+     * @param params The incoming parameters.
+     */
+    void validateParams(List<Parameter> params) {
+        
+        if (params == null) {
+            throw new IllegalArgumentException("missing parameters");
+        }
+        
+        String roleParam = ParameterUtil.findParameterValue("ROLE", params);
+        // GROUPID param support is deprecated
+        String groupIDParam = ParameterUtil.findParameterValue("GROUPID", params);
+        // ivoa param name is 'group'
+        List<String> groupParams = ParameterUtil.findParameterValues("group", params);
+        
+        // ivoa search for all memberships is request with no params
+        if (roleParam == null && groupIDParam == null && groupParams.isEmpty()) {
+            // default to membership role
+            this.role = Role.MEMBER;
+            ivoaStandardResponse = true;
+            return;
+        }
+        
+        if (!groupParams.isEmpty()) {
+            // set will drop duplicates
+            this.groupNames.addAll(groupParams);
+            if (roleParam != null) {
+                // allow role with vo param, but use xml response
+                this.role = Role.toValue(roleParam);
+            } else {
+                ivoaStandardResponse = true;
+                role = Role.MEMBER;
+            }
+            return;
+        }
+        
+        // role is required
+        if (roleParam != null) {
+            this.role = Role.toValue(roleParam);
+        } else {
+            throw new IllegalArgumentException("required parameter ROLE not found");
+        }
+        
+        // groupID is optional
+        if (groupIDParam != null) {
+            this.groupNames.add(groupIDParam);
+        }
+
+    }
+    
+    Role getRole() {
+        return role;
+    }
+    
+    Set<String> getGroupNames() {
+        return groupNames;
+    }
+    
+    boolean isIvoaStandardResponse() {
+        return ivoaStandardResponse;
+    }
+
 }
