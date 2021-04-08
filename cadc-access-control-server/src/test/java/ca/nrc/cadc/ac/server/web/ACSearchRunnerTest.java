@@ -66,10 +66,13 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
+package ca.nrc.cadc.ac.server.web;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.server.web.groups.AddUserMemberActionTest;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
 
@@ -78,22 +81,19 @@ import java.util.List;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  *
  * @author jburke
  */
-public class RequestValidatorTest
-{
-    private final static Logger log = Logger.getLogger(AddUserMemberActionTest.class);
+public class ACSearchRunnerTest {
+    private final static Logger log = Logger.getLogger(ACSearchRunnerTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
@@ -101,61 +101,92 @@ public class RequestValidatorTest
      * Test of validate method, of class RequestValidator.
      */
     @Test
-    public void testValidate()
-    {
-        try
-        {
-            RequestValidator rv = new RequestValidator();
+    public void testValidate() {
+        try {
+            ACSearchRunner searchRunner = new ACSearchRunner();
 
-            try
-            {
-                rv.validate(null);
+            try {
+                searchRunner.validateParams(null);
                 fail("null parameter list should throw IllegalArgumentException");
+            } catch (IllegalArgumentException ignore) {
             }
-            catch (IllegalArgumentException ignore) {}
 
+            // no params
+            searchRunner = new ACSearchRunner();
             List<Parameter> paramList = new ArrayList<Parameter>();
-            try
-            {
-                rv.validate(paramList);
-                fail("empty parameter list should throw IllegalArgumentException");
-            }
-            catch (IllegalArgumentException ignore) {}
-
+            searchRunner.validateParams(paramList);
+            Assert.assertTrue(searchRunner.isIvoaStandardResponse());
+            Assert.assertTrue(searchRunner.getGroupNames().isEmpty());
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+            // group only param
+            searchRunner = new ACSearchRunner();
+            paramList.clear();
+            paramList.add(new Parameter("group", "foo"));
+            searchRunner.validateParams(paramList);
+            Assert.assertTrue(searchRunner.isIvoaStandardResponse());
+            Assert.assertEquals(1, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+            // multiple group params
+            searchRunner = new ACSearchRunner();
+            paramList.clear();
+            paramList.add(new Parameter("group", "foo"));
+            paramList.add(new Parameter("group", "bar"));
+            paramList.add(new Parameter("group", "zen"));
+            searchRunner.validateParams(paramList);
+            Assert.assertTrue(searchRunner.isIvoaStandardResponse());
+            Assert.assertEquals(3, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
+            Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
+            Assert.assertTrue(searchRunner.getGroupNames().contains("zen"));
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+            // multiple group params with duplicate
+            searchRunner = new ACSearchRunner();
+            paramList.clear();
+            paramList.add(new Parameter("group", "foo"));
+            paramList.add(new Parameter("group", "bar"));
+            paramList.add(new Parameter("group", "bar"));
+            searchRunner.validateParams(paramList);
+            Assert.assertTrue(searchRunner.isIvoaStandardResponse());
+            Assert.assertEquals(2, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
+            Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+            // invalid role param
+            searchRunner = new ACSearchRunner();
             paramList.clear();
             paramList.add(new Parameter("ROLE", "foo"));
-            try
-            {
-                rv.validate(paramList);
+            try {
+                searchRunner.validateParams(paramList);
                 fail("invalid ROLE parameter should throw IllegalArgumentException");
+            } catch (IllegalArgumentException ignore) {
             }
-            catch (IllegalArgumentException ignore) {}
 
+            // valid role
+            searchRunner = new ACSearchRunner();
             paramList.clear();
             paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
-            paramList.add(new Parameter("GROUPID", ""));
-            try
-            {
-                rv.validate(paramList);
-                fail("empty GROUPID parameter value should throw IllegalArgumentException");
-            }
-            catch (IllegalArgumentException ignore) {}
+            searchRunner.validateParams(paramList);
+            Assert.assertFalse(searchRunner.isIvoaStandardResponse());
+            Assert.assertTrue(searchRunner.getGroupNames().isEmpty());
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
 
+            // valid role and group
+            searchRunner = new ACSearchRunner();
             paramList.clear();
             paramList.add(new Parameter("ROLE", Role.MEMBER.getValue()));
-            rv.validate(paramList);
-
-            assertNotNull(rv.getRole());
-            assertNull(rv.getGroupID());
-
             paramList.add(new Parameter("GROUPID", "bar"));
-            rv.validate(paramList);
-
-            assertNotNull(rv.getRole());
-            assertNotNull(rv.getGroupID());
-        }
-        catch (Throwable t)
-        {
+            searchRunner.validateParams(paramList);
+            Assert.assertFalse(searchRunner.isIvoaStandardResponse());
+            Assert.assertEquals(1, searchRunner.getGroupNames().size());
+            Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
+            Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
+            
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }
