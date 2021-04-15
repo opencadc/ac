@@ -20,19 +20,19 @@ jobs:
         java-version: 1.8
       
     - name: build and test cadc-permissions
-      run: cd cadc-permissions && gradle --info clean build javadoc install
+      run: cd cadc-permissions && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-permissions-client
-      run: cd cadc-permissions-client && gradle --info clean build javadoc install
+      run: cd cadc-permissions-client && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-gms
-      run: cd cadc-gms && gradle --info clean build javadoc install
+      run: cd cadc-gms && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-access-control
-      run: cd cadc-access-control && gradle --info clean build javadoc install
+      run: cd cadc-access-control && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-access-control-server
-      run: cd cadc-access-control-server && gradle --info clean build javadoc install
+      run: cd cadc-access-control-server && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-access-control
-      run: cd cadc-access-control && gradle --info clean build javadoc install
+      run: cd cadc-access-control && ../gradlew --info clean build javadoc install
