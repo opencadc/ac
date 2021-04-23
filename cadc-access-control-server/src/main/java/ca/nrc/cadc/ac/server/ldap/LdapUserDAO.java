@@ -200,7 +200,6 @@ public class LdapUserDAO extends LdapDAO
         this.userLdapAttrib.put(PosixPrincipal.class, LDAP_UID_NUMBER);
         this.userLdapAttrib.put(NumericPrincipal.class, LDAP_UID);
         this.userLdapAttrib.put(DNPrincipal.class, LDAP_ENTRYDN);
-        this.userLdapAttrib.put(BearerTokenPrincipal.class, LDAP_USER_NAME);
 
         // add the id attributes to user and member attributes
         String[] princs = userLdapAttrib.values()
@@ -908,12 +907,6 @@ public class LdapUserDAO extends LdapDAO
             String name;
             if (userID instanceof NumericPrincipal) {
                 name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
-            } else if (userID instanceof BearerTokenPrincipal) {
-                HttpPrincipal user = ((BearerTokenPrincipal) userID).user;
-                if (user == null) {
-                    throw new IllegalArgumentException("Missing user information in bearer token");
-                }
-                name = user.getName();
             } else {
                 name = userID.getName();
             }

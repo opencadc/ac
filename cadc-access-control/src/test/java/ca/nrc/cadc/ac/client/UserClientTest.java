@@ -368,7 +368,7 @@ public class UserClientTest
 
         final Subject s = createSubject(new Principal[]
                                                 {
-                                                        new CookiePrincipal("COOKIESESSIONID")
+                                                        new CookiePrincipal("CADC-SSO", "COOKIESESSIONID")
                                                 });
 
         s.getPublicCredentials().add(

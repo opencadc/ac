@@ -170,7 +170,7 @@ public class OIDCUtil {
         Collection<Group> groups = gp.getGroups(Role.MEMBER, null);
         List<String> groupNames = new ArrayList<String>();
         Iterator<Group> it = groups.iterator();
-        while (it.hasNext() && count < 16) {
+        while (it.hasNext()) {
             groupNames.add(it.next().getID().getName());
         }
         return groupNames;

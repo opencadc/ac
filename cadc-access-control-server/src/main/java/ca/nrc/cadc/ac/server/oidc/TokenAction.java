@@ -134,7 +134,7 @@ public class TokenAction extends RestAction {
             }
             
             try {
-                dt = DelegationToken.parse(refreshToken, null, new RefreshTokenScopeValidator());
+                dt = DelegationToken.parse(refreshToken);
             } catch (InvalidDelegationTokenException e) {
                 log.debug("Invalid refresh Token", e);
                 sendError("invalid_scope");
@@ -153,7 +153,7 @@ public class TokenAction extends RestAction {
             // TODO: Ensure the Authorization Code was issued to the authenticated Client.
             
             try {
-                dt = DelegationToken.parse(code, null, new TokenScopeValidator());
+                dt = DelegationToken.parse(code);
             } catch (InvalidDelegationTokenException e) {
                 log.debug("Invalid delegation Token", e);
                 sendError("invalid_scope");
@@ -252,24 +252,24 @@ public class TokenAction extends RestAction {
         writer.flush();
     }
 
-    class TokenScopeValidator extends ScopeValidator {
-        @Override
-        public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
-            URI expected = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
-            if (!expected.equals(scope)) {
-                throw new InvalidDelegationTokenException("invalid scope");
-            }
-        }
-    }
-    
-    class RefreshTokenScopeValidator extends ScopeValidator {
-        @Override
-        public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
-            URI expected = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
-            if (!expected.equals(scope)) {
-                throw new InvalidDelegationTokenException("invalid scope");
-            }
-        }
-    }
+//    class TokenScopeValidator extends ScopeValidator {
+//        @Override
+//        public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
+//            URI expected = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
+//            if (!expected.equals(scope)) {
+//                throw new InvalidDelegationTokenException("invalid scope");
+//            }
+//        }
+//    }
+//    
+//    class RefreshTokenScopeValidator extends ScopeValidator {
+//        @Override
+//        public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
+//            URI expected = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
+//            if (!expected.equals(scope)) {
+//                throw new InvalidDelegationTokenException("invalid scope");
+//            }
+//        }
+//    }
 
 }

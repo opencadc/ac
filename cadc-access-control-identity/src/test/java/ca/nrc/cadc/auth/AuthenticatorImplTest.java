@@ -106,7 +106,7 @@ public class AuthenticatorImplTest
             Subject subject = new Subject();
             subject.getPrincipals().add(new X500Principal(dn));
             subject.getPublicCredentials().add(AuthMethod.CERT);
-            subject = ai.getSubject(subject);
+            subject = ai.validate(subject);
 
             Assert.assertEquals(AuthMethod.CERT, AuthenticationUtil.getAuthMethod(subject));
         }
