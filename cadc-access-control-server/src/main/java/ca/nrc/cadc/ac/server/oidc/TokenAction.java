@@ -221,7 +221,7 @@ public class TokenAction extends RestAction {
         URI accessTokenScope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
         URI refreshTokenScope = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
         String accessToken = OIDCUtil.getToken(userid, accessTokenScope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
-        String refreshToken = OIDCUtil.getToken(userid, refreshTokenScope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
+        String refreshToken = OIDCUtil.getToken(userid, refreshTokenScope, OIDCUtil.REFRESH_TOKEN_EXPIRY_MINUTES);
         
         StringBuilder json = new StringBuilder();
         json.append("{ ");

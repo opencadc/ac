@@ -94,6 +94,13 @@ public class UserInfoAction extends RestAction {
     @Override
     public void doAction() throws Exception {
         
+        if (log.isDebugEnabled()) {
+            log.debug("params:");
+            for (String s : syncInput.getParameterNames()) {
+                log.debug("param: " + s + "=" + syncInput.getParameter(s));
+            }
+        }
+        
         final Subject subject = AuthenticationUtil.getCurrentSubject();
         log.debug("Subject: " + subject);
         

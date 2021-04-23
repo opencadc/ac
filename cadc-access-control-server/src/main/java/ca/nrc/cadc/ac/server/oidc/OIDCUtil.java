@@ -119,6 +119,7 @@ public class OIDCUtil {
     public static final Integer ID_TOKEN_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
     public static final Integer AUTHORIZE_CODE_EXPIRY_MINUTES = 10;
     public static final Integer ACCESS_CODE_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
+    public static final Integer REFRESH_TOKEN_EXPIRY_MINUTES = 60*24*7*52; // 1 year
     public static final Integer JWT_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
     
     public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
@@ -169,11 +170,8 @@ public class OIDCUtil {
         Collection<Group> groups = gp.getGroups(Role.MEMBER, null);
         List<String> groupNames = new ArrayList<String>();
         Iterator<Group> it = groups.iterator();
-        int count = 0;
-        // limit to 15 groups for now
         while (it.hasNext() && count < 16) {
             groupNames.add(it.next().getID().getName());
-            count++;
         }
         return groupNames;
     }
