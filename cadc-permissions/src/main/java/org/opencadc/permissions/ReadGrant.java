@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,111 +62,44 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
+ *  $Revision: 5 $
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
 
-import java.security.Principal;
-import java.util.List;
+package org.opencadc.permissions;
 
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.uws.Parameter;
-import ca.nrc.cadc.uws.ParameterUtil;
+import java.net.URI;
+import java.util.Date;
 
 /**
- * Request Validator. This class extracts and validates the ID, TYPE, ROLE
- * and GURI parameters.
+ * Holds read grant information about an artifact.
+ * 
+ * @author majorb
  *
  */
-public class RequestValidator
-{
-    private static final Logger log = Logger.getLogger(RequestValidator.class);
-    
-    //private Principal principal;
-    private Role role;
-    private String groupID;
-    
-    public RequestValidator() { }
+public class ReadGrant extends Grant {
 
-    private void clear()
-    {
-        //this.principal = null;
-        this.role = null;
-        this.groupID = null;
+    // Is the artifact available to anonymous (all) users.
+    private boolean anonymousAccess;
+
+    /**
+     * Construct a read grant for the given artifactURI and expiry date.
+     * @param artifactURI The applicable targetURI.
+     * @param expiryDate The expiry date of the grant.
+     * @param anonymousAccess true is the artifact has anonymous access, false otherwise.
+     */
+    public ReadGrant(URI artifactURI, Date expiryDate, boolean anonymousAccess) {
+        super(artifactURI, expiryDate);
+        this.anonymousAccess = anonymousAccess;
     }
-    
-    public void validate(List<Parameter> paramList)
-    {
-        clear();
-        if (paramList == null || paramList.isEmpty())
-        {
-            throw new IllegalArgumentException(
-                    "Missing required parameters: ID, IDTYPE, ROLE");
-        }
 
-        // ID
-        //String param = ParameterUtil.findParameterValue("ID", paramList);
-        //if (param == null || param.trim().isEmpty())
-        //{
-        //    throw new IllegalArgumentException(
-        //            "ID parameter required but not found");
-        //}
-        //String userID = param.trim();
-        //log.debug("ID: " + userID);
-
-        // TYPE
-        //param = ParameterUtil.findParameterValue("IDTYPE", paramList);
-        //if (param == null || param.trim().isEmpty())
-        //{
-        //    throw new IllegalArgumentException(
-        //            "IDTYPE parameter required but not found");
-        //}
-        
-        //principal = 
-        //    AuthenticationUtil.createPrincipal(userID, 
-        //                                       param.trim());
-        //log.debug("TYPE: " + param.trim());
-        
-        // ROLE
-        String param = ParameterUtil.findParameterValue("ROLE", paramList);
-        if (param == null || param.trim().isEmpty())
-        {
-            throw new IllegalArgumentException(
-                    "ROLE parameter required but not found");
-        }
-        this.role = Role.toValue(param);
-        log.debug("ROLE: " + role);
-        
-        // GROUPID
-        param = ParameterUtil.findParameterValue("GROUPID", paramList);
-        if (param != null)
-        {
-            if (param.isEmpty())
-                throw new IllegalArgumentException(
-                        "GROUPID parameter specified without a value");
-            this.groupID = param.trim();
-        }
-        log.debug("GROUPID: " + groupID);
-    }
-    
-    //public Principal getPrincipal()
-    //{
-    //    return principal;
-    //}
-
-    public Role getRole()
-    {
-        return role;
-    }
-    
-    public String getGroupID()
-    {
-        return groupID;
+    /**
+     * Check if artifact is accessible by anonymous (all) users.
+     * @return true if the artifact has anonymous access, false otherwise.
+     */
+    public boolean isAnonymousAccess() {
+        return anonymousAccess;
     }
 
 }

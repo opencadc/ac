@@ -123,6 +123,7 @@ public class LdapGroupDAO extends LdapDAO
 
     // LDAP Group attributes
     protected static final String LDAP_DESCRIPTION = "description";
+    protected static final String LDAP_GID_NUMBER = "gidNumber";
     protected static final String LDAP_GROUP_OF_UNIQUE_NAMES = "groupofuniquenames";
     protected static final String LDAP_MODIFY_TIMESTAMP = "modifytimestamp";
     protected static final String LDAP_OWNER = "owner";
@@ -136,12 +137,12 @@ public class LdapGroupDAO extends LdapDAO
     private static final String[] GROUP_ATTRS = new String[]
             {
                     LDAP_ENTRYDN, LDAP_CN, LDAP_NSACCOUNTLOCK, LDAP_OWNER,
-                    LDAP_MODIFY_TIMESTAMP, LDAP_DESCRIPTION
+                    LDAP_MODIFY_TIMESTAMP, LDAP_DESCRIPTION, LDAP_GID_NUMBER
             };
     private static final String[] GROUP_AND_MEMBER_ATTRS = new String[]
             {
                     LDAP_ENTRYDN, LDAP_CN, LDAP_NSACCOUNTLOCK, LDAP_OWNER,
-                    LDAP_MODIFY_TIMESTAMP, LDAP_DESCRIPTION, LDAP_UNIQUE_MEMBER
+                    LDAP_MODIFY_TIMESTAMP, LDAP_DESCRIPTION, LDAP_GID_NUMBER, LDAP_UNIQUE_MEMBER
             };
 
     private LdapUserDAO userDAO;
@@ -1193,7 +1194,7 @@ public class LdapGroupDAO extends LdapDAO
         URI gmsServiceID = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
         if (attributes == PUB_GROUP_ATTRS)
         {
-            GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
+            GroupURI groupID = new GroupURI(gmsServiceID, groupName);
             return new Group(groupID);
         }
 
@@ -1205,12 +1206,16 @@ public class LdapGroupDAO extends LdapDAO
         try
         {
             User owner = userDAO.getUser(new DNPrincipal(ownerDN), ldapConn);
-            GroupURI groupID = new GroupURI(gmsServiceID.toString() + "?" + groupName);
+            GroupURI groupID = new GroupURI(gmsServiceID, groupName);
             Group group = new Group(groupID);
             setField(group, owner, LDAP_OWNER);
             if (result.hasAttribute(LDAP_DESCRIPTION))
             {
                 group.description = result.getAttributeValue(LDAP_DESCRIPTION);
+            }
+            if (result.hasAttribute(LDAP_GID_NUMBER))
+            {
+                group.gid = Integer.parseInt(result.getAttributeValue(LDAP_GID_NUMBER));
             }
             if (result.hasAttribute(LDAP_MODIFY_TIMESTAMP))
             {

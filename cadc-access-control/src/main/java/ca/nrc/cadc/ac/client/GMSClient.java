@@ -90,6 +90,7 @@ import ca.nrc.cadc.net.HttpTransfer;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.event.TransferEvent;
 import ca.nrc.cadc.net.event.TransferListener;
 import ca.nrc.cadc.reg.Standards;
@@ -97,7 +98,6 @@ import ca.nrc.cadc.reg.client.RegistryClient;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -500,7 +500,7 @@ public class GMSClient implements TransferListener, GroupClient
             {
                 throw new IllegalArgumentException(error.getMessage());
             }
-            if (error instanceof FileNotFoundException)
+            if (error instanceof ResourceNotFoundException)
             {
                 throw new GroupNotFoundException(error.getMessage());
             }
@@ -660,7 +660,7 @@ public class GMSClient implements TransferListener, GroupClient
             {
                 throw new IllegalArgumentException(error.getMessage());
             }
-            if (error instanceof FileNotFoundException)
+            if (error instanceof ResourceNotFoundException)
             {
                 throw new GroupNotFoundException(error.getMessage());
             }
@@ -709,7 +709,7 @@ public class GMSClient implements TransferListener, GroupClient
             {
                 throw new IllegalArgumentException(error.getMessage());
             }
-            if (error instanceof FileNotFoundException)
+            if (error instanceof ResourceNotFoundException)
             {
                 String errMessage = error.getMessage();
                 if (errMessage != null && errMessage.toLowerCase().contains("user"))
