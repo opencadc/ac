@@ -68,10 +68,9 @@ package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.DelegationToken;
-import ca.nrc.cadc.auth.DelegationToken.ScopeValidator;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.InvalidDelegationTokenException;
+import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
@@ -123,7 +122,7 @@ public class TokenAction extends RestAction {
         // Check the grant type
         String grantType = syncInput.getParameter("grant_type");
         log.debug("checking grant type: " + grantType);
-        DelegationToken dt = null;
+        SignedToken dt = null;
         
         if ("refresh_token".equals(grantType)) {
             
@@ -134,7 +133,7 @@ public class TokenAction extends RestAction {
             }
             
             try {
-                dt = DelegationToken.parse(refreshToken);
+                dt = SignedToken.parse(refreshToken);
             } catch (InvalidDelegationTokenException e) {
                 log.debug("Invalid refresh Token", e);
                 sendError("invalid_scope");
@@ -153,7 +152,7 @@ public class TokenAction extends RestAction {
             // TODO: Ensure the Authorization Code was issued to the authenticated Client.
             
             try {
-                dt = DelegationToken.parse(code);
+                dt = SignedToken.parse(code);
             } catch (InvalidDelegationTokenException e) {
                 log.debug("Invalid delegation Token", e);
                 sendError("invalid_scope");

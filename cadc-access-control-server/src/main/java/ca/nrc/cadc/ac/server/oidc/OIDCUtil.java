@@ -75,9 +75,9 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.DelegationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.net.TransientException;
 
 import java.io.IOException;
@@ -151,8 +151,8 @@ public class OIDCUtil {
         HttpPrincipal p = new HttpPrincipal(username);
         Calendar c = Calendar.getInstance();
         c.add(Calendar.MINUTE, expiryMinutes);
-        DelegationToken token = new DelegationToken(p, scope, c.getTime(), null);
-        return DelegationToken.format(token);
+        SignedToken token = new SignedToken(p, scope, c.getTime(), null);
+        return SignedToken.format(token);
     }
     
     public static String getEmail(HttpPrincipal userID)

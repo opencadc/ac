@@ -69,11 +69,6 @@
 
 package ca.nrc.cadc.auth;
 
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
@@ -85,6 +80,11 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import java.security.AccessControlException;
 import java.security.Principal;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
 
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
@@ -101,7 +101,7 @@ public class AuthenticatorImpl implements Authenticator
     
     @Override
     public Subject validate(Subject subject) throws AccessControlException {
-        return AuthenticationUtil.validateTokens(subject);
+        return TokenValidator.validateTokens(subject);
     }
 
     /**

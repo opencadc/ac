@@ -69,6 +69,13 @@
 
 package ca.nrc.cadc.auth;
 
+import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.vosi.avail.CheckResource;
+import ca.nrc.cadc.vosi.avail.CheckWebService;
+
 import java.net.URI;
 import java.net.URL;
 import java.security.AccessControlException;
@@ -76,13 +83,6 @@ import java.security.AccessControlException;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.vosi.avail.CheckResource;
-import ca.nrc.cadc.vosi.avail.CheckWebService;
 
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
@@ -110,7 +110,7 @@ public class AuthenticatorImpl implements Authenticator
      */
     @Override
     public Subject validate(Subject subject) throws AccessControlException {
-        return AuthenticationUtil.validateTokens(subject);
+        return TokenValidator.validateTokens(subject);
     }
 
     /**

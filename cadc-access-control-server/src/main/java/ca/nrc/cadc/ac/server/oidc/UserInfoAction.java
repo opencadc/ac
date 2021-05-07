@@ -67,14 +67,11 @@
 package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.DelegationToken.ScopeValidator;
-import ca.nrc.cadc.auth.InvalidDelegationTokenException;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.OutputStreamWriter;
-import java.net.URI;
 
 import javax.security.auth.Subject;
 
@@ -126,16 +123,6 @@ public class UserInfoAction extends RestAction {
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;
-    }
-    
-    class TokenScopeValidator extends ScopeValidator {
-        @Override
-        public void verifyScope(URI scope, String requestURI) throws InvalidDelegationTokenException {
-            URI expected = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
-            if (!expected.equals(scope)) {
-                throw new InvalidDelegationTokenException("invalid scope");
-            }
-        }
     }
 
 }
