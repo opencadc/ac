@@ -81,6 +81,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opencadc.permissions.xml.GrantReader;
 
 public class TokenToolTest {
 
@@ -155,6 +156,17 @@ public class TokenToolTest {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
+    }
+
+    @Test
+    public void testRoundTripTokenAnonUser() throws Exception {
+        String uri = "cadc:TEST/file.fits";
+        Class<? extends Grant> grant = ReadGrant.class;
+        TokenTool gen = new TokenTool(pubKeyFile, privateKeyFile);
+        TokenTool ver = new TokenTool(pubKeyFile);
+        String token = gen.generateToken(URI.create(uri), grant, null);
+        String actUser = ver.validateToken(token, URI.create(uri), grant);
+        Assert.assertEquals("user", null, actUser);
     }
 
     @Test
