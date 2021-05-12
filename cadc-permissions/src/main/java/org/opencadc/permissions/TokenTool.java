@@ -144,8 +144,10 @@ public class TokenTool {
         metaSb.append(KEY_META_URI).append("=").append(uri.toString());
         metaSb.append("&");
         metaSb.append(KEY_META_GRANT).append("=").append(grantClass.getSimpleName());
-        metaSb.append("&");
-        metaSb.append(KEY_META_SUBJECT).append("=").append(user);
+        if (user != null) {
+            metaSb.append("&");
+            metaSb.append(KEY_META_SUBJECT).append("=").append(user);
+        }
         byte[] metaBytes = metaSb.toString().getBytes();
 
         RsaSignatureGenerator sg = new RsaSignatureGenerator(privateKey);
