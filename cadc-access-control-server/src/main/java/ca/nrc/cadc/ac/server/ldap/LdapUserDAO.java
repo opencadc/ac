@@ -78,7 +78,6 @@ import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.client.GroupMemberships;
-import ca.nrc.cadc.auth.BearerTokenPrincipal;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
