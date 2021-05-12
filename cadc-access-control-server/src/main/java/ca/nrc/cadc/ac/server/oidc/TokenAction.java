@@ -69,7 +69,7 @@ package ca.nrc.cadc.ac.server.oidc;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.InvalidDelegationTokenException;
+import ca.nrc.cadc.auth.InvalidSignedTokenException;
 import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
@@ -134,7 +134,7 @@ public class TokenAction extends RestAction {
             
             try {
                 dt = SignedToken.parse(refreshToken);
-            } catch (InvalidDelegationTokenException e) {
+            } catch (InvalidSignedTokenException e) {
                 log.debug("Invalid refresh Token", e);
                 sendError("invalid_scope");
                 return;
@@ -153,8 +153,8 @@ public class TokenAction extends RestAction {
             
             try {
                 dt = SignedToken.parse(code);
-            } catch (InvalidDelegationTokenException e) {
-                log.debug("Invalid delegation Token", e);
+            } catch (InvalidSignedTokenException e) {
+                log.debug("Invalid signed Token", e);
                 sendError("invalid_scope");
                 return;
             }
