@@ -67,10 +67,15 @@
 package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -99,15 +104,27 @@ public class GetConfigAction extends RestAction {
             throw new ResourceNotFoundException("No OIDC configuration information available");
         }
         Path path = Paths.get(url.toURI());
-        byte[] json = Files.readAllBytes(path);
+        byte[] jsonBytes = Files.readAllBytes(path);
+        String json = new String(jsonBytes);
+        String hostname = getHostname();
+        json = json.replaceAll("replace.me.com", hostname);
         syncOutput.setHeader("Content-Type", "application/json");
         OutputStream out = syncOutput.getOutputStream();
-        out.write(json);
+        out.write(json.getBytes());
+        out.flush();
     }
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;
+    }
+    
+    String getHostname() throws IOException, ResourceNotFoundException {
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceURI = localAuthority.getServiceURI(Standards.SECURITY_METHOD_OAUTH.toString());
+        RegistryClient regClient = new RegistryClient();
+        URL oauthURL = regClient.getAccessURL(serviceURI);
+        return oauthURL.getHost();
     }
 
 }
