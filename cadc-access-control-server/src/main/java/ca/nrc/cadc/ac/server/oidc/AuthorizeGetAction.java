@@ -71,6 +71,9 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import org.apache.log4j.Logger;
 
 /**
+ * This class responds to HTTP GET requests to /authorize.  Since authorize can
+ * be called with a POST as well, the work for authorize is done in AuthorizeAction.
+ * 
  * @author majorb
  *
  */

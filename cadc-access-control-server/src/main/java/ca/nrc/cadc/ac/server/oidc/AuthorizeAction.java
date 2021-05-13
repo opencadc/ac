@@ -87,6 +87,8 @@ import org.apache.log4j.Logger;
  * 
  * Authorize the RelyParty to obtain a OAuth2 token by ensuring
  * the client is authenticated and has given consent.
+ * Subclasses AuthorizeGetAction and AuthorizePostAction collect the incoming
+ * parameters.
  *
  * @author majorb
  *

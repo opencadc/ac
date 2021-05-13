@@ -81,7 +81,8 @@ import org.apache.log4j.Logger;
 /**
  * @author majorb
  * 
- * Write the CADC OpenID Connection configuration.
+ * Write the CADC OpenID Connection configuration.  This responds to an HTTP GET
+ * to requests to /.well-known/openid-configuration
  *
  */
 public class GetConfigAction extends RestAction {

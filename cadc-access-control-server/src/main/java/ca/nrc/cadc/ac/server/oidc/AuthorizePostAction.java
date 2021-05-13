@@ -82,6 +82,10 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 /**
+ * 
+ * This class responds to HTTP POST requests to /authorize.  Since authorize can
+ * be called with a GET as well, the work for authorize is done in AuthorizeAction.
+ * 
  * @author majorb
  *
  */

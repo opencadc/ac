@@ -78,7 +78,8 @@ import org.apache.log4j.Logger;
 
 /**
  * 
- * Authenticate username password and redirect to the RelyParty.
+ * Authenticate username password and redirect to the RelyParty.  This class responds
+ * to HTTP POST calls.
  *
  * @author majorb
  *

@@ -80,6 +80,9 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 /**
+ * This class responds to HTTP GET calls and returns the public key used to decrypt
+ * signed JWTs.
+ * 
  * @author majorb
  *
  */

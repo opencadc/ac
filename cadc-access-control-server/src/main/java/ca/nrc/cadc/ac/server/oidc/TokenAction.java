@@ -85,7 +85,8 @@ import org.apache.log4j.Logger;
 
 /**
  * 
- * Verify authorization code and issue an OAuth2 token.
+ * Verify authorization code and issue an OAuth2 token.   This class responds to
+ * HTTP POST calls.
  * 
  * @author majorb
  *

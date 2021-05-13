@@ -79,7 +79,7 @@ import org.apache.log4j.Logger;
 
 /**
  * 
- * Return user info claims.
+ * Return user info claims.  This class responds to HTTP GET calls.
  * 
  * @author majorb
  *
