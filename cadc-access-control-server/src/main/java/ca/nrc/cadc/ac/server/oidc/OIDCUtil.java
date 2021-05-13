@@ -135,6 +135,9 @@ public class OIDCUtil {
     
     private static final Logger log = Logger.getLogger(OIDCUtil.class);
     
+    // NOTE:  RelyParties should come from a properties file, ac.properties.  The other
+    // current properties file ac-domains.properties should be transitioned to use this
+    // single per-service file when rely parties are configured there.
     private static final Map<String, RelyParty> relyParties;
     
     static {
