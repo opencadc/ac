@@ -78,10 +78,15 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SignedToken;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -122,7 +127,7 @@ public class OIDCUtil {
     public static final Integer REFRESH_TOKEN_EXPIRY_MINUTES = 60*24*7*52; // 1 year
     public static final Integer JWT_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
     
-    public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
+    //public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
     public static final String CLAIM_GROUPS_KEY = "memberOf";
     
     static final Key publicSigningKey;
@@ -185,7 +190,7 @@ public class OIDCUtil {
         String email = OIDCUtil.getEmail(useridPrincipal);
         
         JwtBuilder builder = Jwts.builder();
-        builder.claim("iss", OIDCUtil.CLAIM_ISSUER_VALUE);
+        builder.claim("iss", getClaimIssuer());
         builder.claim("sub", numericPrincipal.getName());
         Calendar calendar = Calendar.getInstance();
         builder.claim("iat", calendar.getTime());
@@ -197,6 +202,22 @@ public class OIDCUtil {
         builder.claim("aud", clientID);
         String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
         return jws;
+    }
+    
+    /**
+     * Return the baseURL to the service (this service) running OAuth.
+     * @return The baseURL of the OAuth service.
+     * @throws IOException
+     * @throws ResourceNotFoundException
+     */
+    static String getClaimIssuer() throws IOException, ResourceNotFoundException {
+        LocalAuthority localAuthority = new LocalAuthority();
+        URI serviceURI = localAuthority.getServiceURI(Standards.SECURITY_METHOD_OAUTH.toString());
+        RegistryClient regClient = new RegistryClient();
+        String oauthURL = regClient.getAccessURL(serviceURI).toString();
+        // remove the last path element for the base URL
+        int lastSlash = oauthURL.lastIndexOf("/");
+        return oauthURL.substring(0, lastSlash);
     }
     
 }
