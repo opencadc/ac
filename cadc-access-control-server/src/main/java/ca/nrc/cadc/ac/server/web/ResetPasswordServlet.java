@@ -94,14 +94,14 @@ import org.apache.log4j.Logger;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.ACScopeValidator;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.DelegationToken;
+import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
@@ -119,6 +119,8 @@ import java.util.regex.Pattern;
 public class ResetPasswordServlet extends HttpServlet
 {
     private static final Logger log = Logger.getLogger(ResetPasswordServlet.class);
+    
+    public static final String RESET_PASSWORD_SCOPE = "/resetPassword";
 
     List<Subject> privilegedSubjects;
     UserPersistence userPersistence;
@@ -304,13 +306,13 @@ public class ResetPasswordServlet extends HttpServlet
                             {
                                 User user = userPersistence.getUserByEmailAddress(emailAddress);
                                 HttpPrincipal userID = (HttpPrincipal) user.getHttpPrincipal();
-                                URI scopeURI = new URI(ACScopeValidator.RESET_PASSWORD_SCOPE);
+                                URI scopeURI = new URI(RESET_PASSWORD_SCOPE);
                                 int duration = 24; // hours
                                 Calendar expiry = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                                 expiry.add(Calendar.HOUR, duration);
                                 // Domain list is null for this case
-                                DelegationToken dt = new DelegationToken(userID, scopeURI, expiry.getTime(), null);
-                                return DelegationToken.format(dt);
+                                SignedToken dt = new SignedToken(userID, scopeURI, expiry.getTime(), null);
+                                return SignedToken.format(dt);
                             }
                             else
                             {
@@ -422,6 +424,15 @@ public class ResetPasswordServlet extends HttpServlet
             }
             else
             {
+                // verify the scope
+                Set<AuthorizationToken> tokens = subject.getPublicCredentials(AuthorizationToken.class);
+                AuthorizationToken token = tokens.iterator().next();
+                SignedToken t = SignedToken.parse(token.getCredentials());
+                if (!(URI.create(RESET_PASSWORD_SCOPE).equals(t.getScope()))) {
+                    logInfo.setMessage("Unauthorized subject, insufficient scope");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                }
+                
                 Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
                 {
                     public Object run() throws Exception

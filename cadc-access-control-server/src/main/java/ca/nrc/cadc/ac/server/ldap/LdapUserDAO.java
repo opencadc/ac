@@ -904,12 +904,9 @@ public class LdapUserDAO extends LdapDAO
         try
         {
             String name;
-            if (userID instanceof NumericPrincipal)
-            {
+            if (userID instanceof NumericPrincipal) {
                 name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
-            }
-            else
-            {
+            } else {
                 name = userID.getName();
             }
 

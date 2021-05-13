@@ -69,19 +69,20 @@
 
 package ca.nrc.cadc.auth;
 
-import java.net.URI;
-import java.net.URL;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.avail.CheckResource;
 import ca.nrc.cadc.vosi.avail.CheckWebService;
+
+import java.net.URI;
+import java.net.URL;
+import java.security.AccessControlException;
+
+import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
 
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
@@ -98,13 +99,28 @@ public class AuthenticatorImpl implements Authenticator
     public AuthenticatorImpl()
     {
     }
+    
+
 
     /**
-     * @param subject
-     * @return the possibly modified subject
+     * If necessary, validate principals in the subject.
+     * 
+     * @param subject The subject to be validated.
+     * @return The validated subject with added public credentials.
      */
-    public Subject getSubject(Subject subject)
-    {
+    @Override
+    public Subject validate(Subject subject) throws AccessControlException {
+        return TokenValidator.validateTokens(subject);
+    }
+
+    /**
+     * Augment the subject with the missing principals.
+     * 
+     * @param subject The subject to augment.
+     * @return The augmented subject.
+     */
+    @Override
+    public Subject augment(Subject subject) {
         AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
         if (am == null || AuthMethod.ANON.equals(am))
         {
@@ -121,6 +137,7 @@ public class AuthenticatorImpl implements Authenticator
         return subject;
     }
 
+
     protected void augmentSubject(Subject subject)
     {
         ACIdentityManager identityManager = new ACIdentityManager();
@@ -135,4 +152,5 @@ public class AuthenticatorImpl implements Authenticator
         URL availURL = regClient.getServiceURL(serviceURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
         return new CheckWebService(availURL.toExternalForm());
     }
+    
 }
