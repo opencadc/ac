@@ -83,15 +83,16 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
+import ca.nrc.cadc.util.RsaSignatureVerifier;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -108,8 +109,6 @@ import org.apache.log4j.Logger;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 
 /**
  * 
@@ -132,8 +131,12 @@ public class OIDCUtil {
     
     //public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
     public static final String CLAIM_GROUPS_KEY = "memberOf";
-    
-    private static RsaSignatureGenerator keyGenerator = null;
+
+    private static final String PUBLIC_KEY_NAME = "oidc-rsa256-pub.key";
+    private static final String PRIVATE_KEY_NAME = "oidc-rsa256-priv.key";
+
+    private static Set<PublicKey> publicKeys = null;
+    private static Key privateKey = null;
     
     private static final Logger log = Logger.getLogger(OIDCUtil.class);
     
@@ -148,25 +151,24 @@ public class OIDCUtil {
         relyParties.put("arbutus-harbor", new RelyParty("arbutus-harbor", "harbor-secret"));
     }
     
-    private static void initKeys() {
-        keyGenerator = new RsaSignatureGenerator();
-    }
-    
     public static Set<PublicKey> getPublicKeys() {
-        if (keyGenerator == null) {
-            initKeys();
+        if (publicKeys == null) {
+            String configDir = System.getProperty("user.home") + "/config";
+            File pubFile = new File(configDir, PRIVATE_KEY_NAME);
+            RsaSignatureVerifier verifier = new RsaSignatureVerifier(pubFile);
+            publicKeys = verifier.getPublicKeys();
         }
-        return keyGenerator.getPublicKeys();
+        return publicKeys;
     }
     
     public static Key getPrivateKey() {
-        if (keyGenerator == null) {
-            initKeys();
+        if (privateKey == null) {
+            File privFile = FileUtil.getFileFromResource(PUBLIC_KEY_NAME, OIDCUtil.class);
+            RsaSignatureGenerator generator = new RsaSignatureGenerator(privFile);
+            privateKey = generator.getPrivateKey();
         }
-        return keyGenerator.getPrivateKey();
+        return privateKey;
     }
-    
-    
     
     public static RelyParty getRelyParty(String clientID) {
         return relyParties.get(clientID);
