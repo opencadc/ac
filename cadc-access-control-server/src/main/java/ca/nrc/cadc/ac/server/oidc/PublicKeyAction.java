@@ -74,7 +74,9 @@ import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 
 import java.io.OutputStreamWriter;
+import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -95,7 +97,10 @@ public class PublicKeyAction extends RestAction {
     public void doAction() throws Exception {
         log.debug("returning public key as jwks");
         
-        JWK jwk = new RSAKey.Builder((RSAPublicKey)OIDCUtil.publicSigningKey)
+        Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
+        RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
+        
+        JWK jwk = new RSAKey.Builder(key)
             .keyUse(KeyUse.SIGNATURE)
             .keyID(KID)
             .build();

@@ -83,6 +83,7 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.RsaSignatureGenerator;
 
 import java.io.IOException;
 import java.net.URI;
@@ -91,6 +92,7 @@ import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -98,6 +100,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 
@@ -130,8 +133,7 @@ public class OIDCUtil {
     //public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
     public static final String CLAIM_GROUPS_KEY = "memberOf";
     
-    static final Key publicSigningKey;
-    static final Key privateSigningKey;
+    private static RsaSignatureGenerator keyGenerator = null;
     
     private static final Logger log = Logger.getLogger(OIDCUtil.class);
     
@@ -144,12 +146,27 @@ public class OIDCUtil {
         // add all rely parties
         relyParties = new HashMap<String, RelyParty>();
         relyParties.put("arbutus-harbor", new RelyParty("arbutus-harbor", "harbor-secret"));
-        
-        // create signing keys
-        KeyPair kp = Keys.keyPairFor(SignatureAlgorithm.RS256);
-        publicSigningKey = kp.getPublic();
-        privateSigningKey = kp.getPrivate();
     }
+    
+    private static void initKeys() {
+        keyGenerator = new RsaSignatureGenerator();
+    }
+    
+    public static Set<PublicKey> getPublicKeys() {
+        if (keyGenerator == null) {
+            initKeys();
+        }
+        return keyGenerator.getPublicKeys();
+    }
+    
+    public static Key getPrivateKey() {
+        if (keyGenerator == null) {
+            initKeys();
+        }
+        return keyGenerator.getPrivateKey();
+    }
+    
+    
     
     public static RelyParty getRelyParty(String clientID) {
         return relyParties.get(clientID);
@@ -203,7 +220,7 @@ public class OIDCUtil {
         builder.claim("email", email);
         builder.claim("memberOf", getGroupList());
         builder.claim("aud", clientID);
-        String jws = builder.signWith(OIDCUtil.privateSigningKey).compact();
+        String jws = builder.signWith(OIDCUtil.getPrivateKey()).compact();
         return jws;
     }
     
