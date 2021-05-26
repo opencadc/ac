@@ -154,16 +154,16 @@ public class OIDCUtil {
     public static Set<PublicKey> getPublicKeys() {
         if (publicKeys == null) {
             String configDir = System.getProperty("user.home") + "/config";
-            File pubFile = new File(configDir, PRIVATE_KEY_NAME);
+            File pubFile = new File(configDir, PUBLIC_KEY_NAME);
             RsaSignatureVerifier verifier = new RsaSignatureVerifier(pubFile);
             publicKeys = verifier.getPublicKeys();
         }
         return publicKeys;
     }
     
-    public static Key getPrivateKey() {
+    private static Key getPrivateKey() {
         if (privateKey == null) {
-            File privFile = FileUtil.getFileFromResource(PUBLIC_KEY_NAME, OIDCUtil.class);
+            File privFile = FileUtil.getFileFromResource(PRIVATE_KEY_NAME, OIDCUtil.class);
             RsaSignatureGenerator generator = new RsaSignatureGenerator(privFile);
             privateKey = generator.getPrivateKey();
         }
