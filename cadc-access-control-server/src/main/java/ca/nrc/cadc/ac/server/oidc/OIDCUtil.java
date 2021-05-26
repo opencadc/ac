@@ -161,7 +161,7 @@ public class OIDCUtil {
         return publicKeys;
     }
     
-    public static Key getPrivateKey() {
+    private static Key getPrivateKey() {
         if (privateKey == null) {
             File privFile = FileUtil.getFileFromResource(PRIVATE_KEY_NAME, OIDCUtil.class);
             RsaSignatureGenerator generator = new RsaSignatureGenerator(privFile);
