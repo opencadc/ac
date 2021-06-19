@@ -72,22 +72,28 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SignedToken;
+import ca.nrc.cadc.db.ConnectionConfig;
+import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
@@ -119,6 +125,8 @@ import io.jsonwebtoken.Jwts;
  */
 public class OIDCUtil {
     
+    public static final String CONFIG = "ac-oidc-clients.properties";
+
     public static final String AUTHORIZE_TOKEN_SCOPE = "cadc:oauth2/authorize_token";
     public static final String REFRESH_TOKEN_SCOPE = "cadc:oauth2/refresh_token";
     public static final String ACCESS_TOKEN_SCOPE = "cadc:oauth2/access_token";
@@ -143,13 +151,7 @@ public class OIDCUtil {
     // NOTE:  RelyParties should come from a properties file, ac.properties.  The other
     // current properties file ac-domains.properties should be transitioned to use this
     // single per-service file when rely parties are configured there.
-    private static final Map<String, RelyParty> relyParties;
-    
-    static {
-        // add all rely parties
-        relyParties = new HashMap<String, RelyParty>();
-        relyParties.put("arbutus-harbor", new RelyParty("arbutus-harbor", "harbor-secret"));
-    }
+    private static Map<String, RelyParty> relyParties = null;
     
     public static Set<PublicKey> getPublicKeys() {
         if (publicKeys == null) {
@@ -171,6 +173,24 @@ public class OIDCUtil {
     }
     
     public static RelyParty getRelyParty(String clientID) {
+        if (relyParties == null) {
+            // add all rely parties
+            log.debug("Reading RelyParties properties from: " + CONFIG);
+            relyParties = new HashMap<String, RelyParty>();
+            PropertiesReader pr = new PropertiesReader(CONFIG);
+            MultiValuedProperties config = pr.getAllProperties();
+            if (config == null || config.keySet() == null)
+            {
+                throw new RuntimeException("failed to read any OIDC property ");
+            }
+            
+            Set<String> oidcs = config.keySet();
+            for (String oidc : oidcs) {
+                String secret = config.getProperty(oidc).get(0);
+                relyParties.put(oidc, new RelyParty(oidc, secret));
+            }
+        }
+
         return relyParties.get(clientID);
     }
     
