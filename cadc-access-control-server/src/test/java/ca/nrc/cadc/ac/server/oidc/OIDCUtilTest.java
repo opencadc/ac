@@ -40,7 +40,7 @@ public class OIDCUtilTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", org.apache.log4j.Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", org.apache.log4j.Level.INFO);
     }
     
     String getTestConfigDir() { 
