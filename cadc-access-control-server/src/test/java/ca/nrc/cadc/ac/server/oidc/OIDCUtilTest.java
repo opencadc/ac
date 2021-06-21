@@ -48,9 +48,8 @@ public class OIDCUtilTest
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/config");
         System.setProperty("user.home", "src/test/config");
 
-        // looks for arbutus-harbor=harbor-secret in ac-oidc-clients.properties
-        String oidc = "arbutus-harbor";
-        String secret = "harbor-secret";
+        String oidc = "clientID";
+        String secret = "clientSecret";
         RelyParty actual = OIDCUtil.getRelyParty(oidc);
         Assert.assertEquals("Incorrect client ID", oidc, actual.getClientID());
         Assert.assertEquals("Incorrect client secret", secret, actual.getClientSecret());
