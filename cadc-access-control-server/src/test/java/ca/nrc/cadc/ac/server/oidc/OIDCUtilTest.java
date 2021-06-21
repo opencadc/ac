@@ -43,10 +43,6 @@ public class OIDCUtilTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", org.apache.log4j.Level.INFO);
     }
     
-    String getTestConfigDir() { 
-        return System.getProperty("user.dir") + "/build/tmp";
-    }
-
     @Test
     public void testNoSuchProperties() throws Exception {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/config");
