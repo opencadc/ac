@@ -69,10 +69,6 @@
 
 package ca.nrc.cadc.auth;
 
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
@@ -81,6 +77,14 @@ import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.profiler.Profiler;
+
+import java.security.AccessControlException;
+import java.security.Principal;
+
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.log4j.Logger;
 
 /**
  * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
@@ -94,12 +98,18 @@ public class AuthenticatorImpl implements Authenticator
     private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
 
     public AuthenticatorImpl() { }
+    
+    @Override
+    public Subject validate(Subject subject) throws AccessControlException {
+        return TokenValidator.validateTokens(subject);
+    }
 
     /**
      * @param subject
      * @return the possibly modified subject
      */
-    public Subject getSubject(Subject subject)
+    @Override
+    public Subject augment(Subject subject)
     {
         Profiler profiler = new Profiler(AuthenticatorImpl.class);
         log.debug("ac augment subject: " + subject);
@@ -136,7 +146,8 @@ public class AuthenticatorImpl implements Authenticator
             Profiler profiler = new Profiler(AuthenticatorImpl.class);
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
-            User user = userPersistence.getAugmentedUser(subject.getPrincipals().iterator().next(), true);
+            Principal ldapPrincipal = getLdapPrincipal(subject);
+            User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
             if (user.getIdentities() != null)
             {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");
@@ -179,6 +190,20 @@ public class AuthenticatorImpl implements Authenticator
         {
             throw new IllegalStateException("Internal error", e);
         }
+    }
+    
+    // prefer principals that map to ldap attributes
+    private static Principal getLdapPrincipal(Subject s) {
+        Principal ret = null;
+        for (Principal p : s.getPrincipals()) {
+            ret = p;
+            if ((p instanceof HttpPrincipal) || (p instanceof X500Principal) ||
+                (p instanceof NumericPrincipal) || (p instanceof DNPrincipal) ||
+                (p instanceof PosixPrincipal)) {
+                return ret;
+            }
+        }
+        return ret;
     }
 
 }

@@ -68,6 +68,16 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.server.web.WebUtil;
+import ca.nrc.cadc.auth.CookiePrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityType;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.auth.SSOCookieManager;
+import ca.nrc.cadc.net.NetUtil;
+
 import java.io.IOException;
 import java.security.Principal;
 import java.util.UUID;
@@ -76,15 +86,6 @@ import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.web.WebUtil;
-import ca.nrc.cadc.auth.CookiePrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import ca.nrc.cadc.auth.PosixPrincipal;
-import ca.nrc.cadc.net.NetUtil;
 
 
 public abstract class UserActionFactory
@@ -261,7 +262,7 @@ public abstract class UserActionFactory
         }
         else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue()))
         {
-            return new CookiePrincipal(userName);
+            return new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, userName);
         }
         else if (idType.equalsIgnoreCase(IdentityType.POSIX.getValue()))
         {
