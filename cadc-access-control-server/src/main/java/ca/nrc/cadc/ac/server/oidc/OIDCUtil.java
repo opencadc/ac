@@ -75,7 +75,6 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
-import ca.nrc.cadc.ac.server.oidc.RelyParty.EncryptMode;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -189,25 +188,23 @@ public class OIDCUtil {
             for (String c : clientIDs) {
                 String clientSecret = config.getProperty(c).get(0);
                 
+                // TODO: Alinga
                 // these four fields (plus the groupID field) will be moved to the properties file
                 // in the next version of this class.
                 String description = null;
                 List<Claim> claims = null;
-                EncryptMode idTokenEncryptMode = null;
-                EncryptMode userInfoEncryptMode = null;
+                boolean signDocuments = false;
                 if (c.equals("arbutus_harbor")) {
                     description = "CANFAR Image Repository";
                     claims = Arrays.asList(new Claim[] {RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
-                    idTokenEncryptMode = EncryptMode.ENCRYPT_AND_SIGN;
-                    userInfoEncryptMode = EncryptMode.ENCRYPT_AND_SIGN;
+                    signDocuments = true;
                 }
                 if (c.equals("unions_wiki")) {
                     description = "UNIONS Wiki";
                     claims = Arrays.asList(new Claim[] {RelyParty.Claim.EMAIL});
-                    idTokenEncryptMode = EncryptMode.ENCRYPT_ONLY;
-                    userInfoEncryptMode = EncryptMode.NONE;
+                    signDocuments = false;
                 }
-                relyParties.put(c, new RelyParty(c, clientSecret, description, claims, idTokenEncryptMode, userInfoEncryptMode));
+                relyParties.put(c, new RelyParty(c, clientSecret, description, claims, signDocuments));
             }
         }
 
@@ -252,14 +249,7 @@ public class OIDCUtil {
         String email = OIDCUtil.getEmail(useridPrincipal);
         Calendar calendar = Calendar.getInstance();
         
-        EncryptMode encryptMode = null;
-        if (isUserInfo) {
-            encryptMode = rp.getUserInfoEncryptMode();
-        } else {
-            encryptMode = rp.getIdTokenEncryptMode();
-        }
-        
-        if (encryptMode.equals(EncryptMode.ENCRYPT_AND_SIGN) || encryptMode.equals(EncryptMode.ENCRYPT_ONLY)) {
+        if (rp.isSignDocuments() || !isUserInfo) {
             JwtBuilder builder = Jwts.builder();
             builder.claim("sub", numericPrincipal.getName());
             builder.claim("iss", getClaimIssuer());
@@ -279,10 +269,10 @@ public class OIDCUtil {
                 builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
             }
             
-            if (encryptMode.equals(EncryptMode.ENCRYPT_ONLY)) {
-                return builder.compact();
-            } else {
+            if (rp.isSignDocuments()) {
                 return builder.signWith(OIDCUtil.getPrivateKey()).compact();
+            } else {
+                return builder.compact();
             }
         } else {
             JSONObject json = new JSONObject();

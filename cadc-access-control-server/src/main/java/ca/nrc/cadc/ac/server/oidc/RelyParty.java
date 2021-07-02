@@ -86,18 +86,16 @@ public class RelyParty {
     private String clientSecret;
     private String clientDescription;
     private List<Claim> claims = new ArrayList<Claim>();
-    private EncryptMode idTokenEncryptMode;
-    private EncryptMode userInfoEncryptMode;
+    private boolean signDocuments;
     
-    public RelyParty(String clientID, String clientSecret, String clientDescription, List<Claim> claims, EncryptMode idTokenEncryptMode, EncryptMode userInfoEncryptMode) {
+    public RelyParty(String clientID, String clientSecret, String clientDescription, List<Claim> claims, boolean signDocuments) {
         this.clientID = clientID;
         this.clientSecret = clientSecret;
         this.clientDescription = clientDescription;
         if (claims != null) {
             this.claims = claims;
         }
-        this.idTokenEncryptMode = idTokenEncryptMode;
-        this.userInfoEncryptMode = userInfoEncryptMode;
+        this.signDocuments = signDocuments;
     }
     
     public String getClientID() {
@@ -116,12 +114,8 @@ public class RelyParty {
         return claims;
     }
     
-    public EncryptMode getIdTokenEncryptMode() {
-        return idTokenEncryptMode;
-    }
-
-    public EncryptMode getUserInfoEncryptMode() {
-        return userInfoEncryptMode;
+    public boolean isSignDocuments() {
+        return signDocuments;
     }
 
     @Override
@@ -168,33 +162,4 @@ public class RelyParty {
         }
     }
     
-    public enum EncryptMode {
-        NONE("none"), 
-        ENCRYPT_ONLY("encrypt-only"),
-        ENCRYPT_AND_SIGN("encrypt-and-sign");
-
-        private final String value;
-
-        private EncryptMode(String s) {
-            this.value = s;
-        }
-
-        public static EncryptMode getEncryptMode(String s) {
-            for (EncryptMode em : values()) {
-                if (em.value.equals(s)) {
-                    return em;
-                }
-            }
-            throw new IllegalArgumentException("invalid value: " + s);
-        }
-
-        public String getValue() {
-            return value;
-        }
-
-        @Override
-        public String toString() {
-            return "EncryptMode[" + value + "]";
-        }
-    }
 }

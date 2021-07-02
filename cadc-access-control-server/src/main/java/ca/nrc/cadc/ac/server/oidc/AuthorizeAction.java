@@ -231,6 +231,9 @@ public abstract class AuthorizeAction extends RestAction {
             // if authenticated (only possible by cookie) skip login form
             // formulate the authenticate redirect response
             
+            // TODO Alinga
+            // Add group check on rp.accessGroup here
+            
             Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
             String username = useridPrincipals.iterator().next().getName();
             
