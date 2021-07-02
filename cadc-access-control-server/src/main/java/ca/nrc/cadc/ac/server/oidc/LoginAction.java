@@ -131,6 +131,7 @@ public class LoginAction extends RestAction {
             redirect.append("&state=");
             redirect.append(state);
         }
+        log.debug("redirecting to: " + redirect);
         syncOutput.setCode(302);
         syncOutput.setHeader("Location", redirect);
     }

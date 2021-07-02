@@ -77,6 +77,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.Set;
 
 import javax.security.auth.Subject;
@@ -142,8 +143,9 @@ public abstract class AuthorizeAction extends RestAction {
                 return;
             }
             
-            // only openid connect code flow supported
-            if (!OIDC_SCOPE.equals(scope)) {
+            // ensure oidc code flow in scope
+            String[] scopes = scope.split("\\s+");
+            if (!Arrays.asList(scopes).contains(OIDC_SCOPE)) {
                 AuthorizeError error = new AuthorizeError();
                 error.error = "invalid_scope";
                 sendError(error);
@@ -218,6 +220,9 @@ public abstract class AuthorizeAction extends RestAction {
                 redirect.append("&state=");
                 redirect.append(state);
             }
+            redirect.append("&client=").append(rp.getClientDescription());
+            String claimDesc = OIDCUtil.getClaimDescriptionString(rp.getClaims());
+            redirect.append("&claims=").append(claimDesc);
             syncOutput.setCode(302);
             syncOutput.setHeader("Location", redirect);
             
@@ -290,8 +295,7 @@ public abstract class AuthorizeAction extends RestAction {
                     return;
                 }
                 
-                // Note: clientID is the 'audience' of the id token
-                String jws = OIDCUtil.buildIDToken(clientID);
+                String jws = OIDCUtil.buildIDToken(rp, false);
                 
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", jws);

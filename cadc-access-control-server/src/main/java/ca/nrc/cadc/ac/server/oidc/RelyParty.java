@@ -66,6 +66,9 @@
  */
 package ca.nrc.cadc.ac.server.oidc;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -81,16 +84,20 @@ public class RelyParty {
     
     private String clientID;
     private String clientSecret;
+    private String clientDescription;
+    private List<Claim> claims = new ArrayList<Claim>();
+    private EncryptMode idTokenEncryptMode;
+    private EncryptMode userInfoEncryptMode;
     
-    public RelyParty(String clientID, String clientSecret) {
-        if (clientID == null) {
-            throw new IllegalArgumentException("clientID cannot be null");
-        }
-        if (clientSecret == null) {
-            throw new IllegalArgumentException("clientSecret cannot be null");
-        }
+    public RelyParty(String clientID, String clientSecret, String clientDescription, List<Claim> claims, EncryptMode idTokenEncryptMode, EncryptMode userInfoEncryptMode) {
         this.clientID = clientID;
         this.clientSecret = clientSecret;
+        this.clientDescription = clientDescription;
+        if (claims != null) {
+            this.claims = claims;
+        }
+        this.idTokenEncryptMode = idTokenEncryptMode;
+        this.userInfoEncryptMode = userInfoEncryptMode;
     }
     
     public String getClientID() {
@@ -101,11 +108,93 @@ public class RelyParty {
         return clientSecret;
     }
     
+    public String getClientDescription() {
+        return clientDescription;
+    }
+    
+    public List<Claim> getClaims() {
+        return claims;
+    }
+    
+    public EncryptMode getIdTokenEncryptMode() {
+        return idTokenEncryptMode;
+    }
+
+    public EncryptMode getUserInfoEncryptMode() {
+        return userInfoEncryptMode;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || !(o instanceof RelyParty)) {
             return false;
         }
         return ((RelyParty) o).clientID.equals(this.clientID);
+    }
+    
+    public enum Claim {
+        NAME("name", "Name"),
+        EMAIL("email", "Email Address"),
+        GROUPS("memberOf", "Group Memberships");
+        
+        private final String value;
+        private final String description;
+
+        private Claim(String value, String description) {
+            this.value = value;
+            this.description = description;
+        }
+
+        public static Claim getClaim(String s) {
+            for (Claim c : values()) {
+                if (c.value.equals(s)) {
+                    return c;
+                }
+            }
+            throw new IllegalArgumentException("invalid value: " + s);
+        }
+
+        public String getValue() {
+            return value;
+        }
+        
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public String toString() {
+            return "Claim[" + value + "]";
+        }
+    }
+    
+    public enum EncryptMode {
+        NONE("none"), 
+        ENCRYPT_ONLY("encrypt-only"),
+        ENCRYPT_AND_SIGN("encrypt-and-sign");
+
+        private final String value;
+
+        private EncryptMode(String s) {
+            this.value = s;
+        }
+
+        public static EncryptMode getEncryptMode(String s) {
+            for (EncryptMode em : values()) {
+                if (em.value.equals(s)) {
+                    return em;
+                }
+            }
+            throw new IllegalArgumentException("invalid value: " + s);
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return "EncryptMode[" + value + "]";
+        }
     }
 }
