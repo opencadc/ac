@@ -70,6 +70,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.OutputStream;
@@ -220,9 +221,9 @@ public abstract class AuthorizeAction extends RestAction {
                 redirect.append("&state=");
                 redirect.append(state);
             }
-            redirect.append("&client=").append(rp.getClientDescription());
+            redirect.append("&client=").append(NetUtil.encode(rp.getClientDescription()));
             String claimDesc = OIDCUtil.getClaimDescriptionString(rp.getClaims());
-            redirect.append("&claims=").append(claimDesc);
+            redirect.append("&claims=").append(NetUtil.encode(claimDesc));
             syncOutput.setCode(302);
             syncOutput.setHeader("Location", redirect);
             
