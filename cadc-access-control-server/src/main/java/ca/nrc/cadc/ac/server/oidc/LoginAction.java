@@ -121,6 +121,10 @@ public class LoginAction extends RestAction {
             throw new AccessControlException("login failed");
         }
         
+        // TODO Alinga
+        // Add group check on rp.accessGroup here
+        // (will require client_id to be passed from AuthorizeAction, to oidc-login.html, to here)
+        
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirectURI);
         URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
@@ -131,6 +135,7 @@ public class LoginAction extends RestAction {
             redirect.append("&state=");
             redirect.append(state);
         }
+        log.debug("redirecting to: " + redirect);
         syncOutput.setCode(302);
         syncOutput.setHeader("Location", redirect);
     }

@@ -123,7 +123,7 @@ public class TokenAction extends RestAction {
         // Check the grant type
         String grantType = syncInput.getParameter("grant_type");
         log.debug("checking grant type: " + grantType);
-        SignedToken dt = null;
+        SignedToken st = null;
         
         if ("refresh_token".equals(grantType)) {
             
@@ -134,7 +134,7 @@ public class TokenAction extends RestAction {
             }
             
             try {
-                dt = SignedToken.parse(refreshToken);
+                st = SignedToken.parse(refreshToken);
             } catch (InvalidSignedTokenException e) {
                 log.debug("Invalid refresh Token", e);
                 sendError("invalid_scope");
@@ -153,7 +153,7 @@ public class TokenAction extends RestAction {
             // TODO: Ensure the Authorization Code was issued to the authenticated Client.
             
             try {
-                dt = SignedToken.parse(code);
+                st = SignedToken.parse(code);
             } catch (InvalidSignedTokenException e) {
                 log.debug("Invalid signed Token", e);
                 sendError("invalid_scope");
@@ -179,7 +179,7 @@ public class TokenAction extends RestAction {
         //   Authentication Request (so that an ID Token will be returned from the Token Endpoint).
         
         // Create and run as the target subject
-        final HttpPrincipal useridPrincipal = dt.getPrincipalByClass(HttpPrincipal.class);
+        final HttpPrincipal useridPrincipal = st.getPrincipalByClass(HttpPrincipal.class);
         Subject subject = new Subject();
         subject.getPrincipals().add(useridPrincipal);
         AuthMethod authMethod = AuthMethod.TOKEN;
@@ -191,7 +191,7 @@ public class TokenAction extends RestAction {
             @Override
             public Object run() throws Exception {
                 
-                String jwt = createJWT(useridPrincipal.getName(), clientID);
+                String jwt = createJWT(useridPrincipal.getName(), rp);
                 
                 log.debug("set headers and return json: \n" + jwt);
                 syncOutput.setHeader("Content-Type", "application/json");
@@ -207,18 +207,16 @@ public class TokenAction extends RestAction {
         
     }
     
-    private String createJWT(String userid, String clientID) throws Exception {
+    private String createJWT(String userid, RelyParty rp) throws Exception {
         
         log.debug("building jwt");
         
-        String jws = OIDCUtil.buildIDToken(clientID);
+        String jws = OIDCUtil.buildIDToken(rp, false);
         
         log.debug("building access token");
-        // NOTE: These tokens should be more static than our current delegation tokens
-        // where the expiry date is built in. 
-        // Update: Seems like validation of JWTs is dynamic so having differing expiry dates
-        // is probably okay. 
-        URI accessTokenScope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
+        
+        // include the clientID in the scope for use by the UserInfo endpoint.
+        URI accessTokenScope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE +"/" + rp.getClientID());
         URI refreshTokenScope = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
         String accessToken = OIDCUtil.getToken(userid, accessTokenScope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
         String refreshToken = OIDCUtil.getToken(userid, refreshTokenScope, OIDCUtil.REFRESH_TOKEN_EXPIRY_MINUTES);

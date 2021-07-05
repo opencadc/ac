@@ -74,6 +74,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -97,6 +98,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -108,6 +110,7 @@ import java.util.Set;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -171,6 +174,7 @@ public class OIDCUtil {
     public static RelyParty getRelyParty(String clientID) {
         if (relyParties == null) {
             // add all rely parties
+ 
             log.debug("Reading RelyParties properties from: " + CONFIG);
             relyParties = new HashMap<String, RelyParty>();
             PropertiesReader pr = new PropertiesReader(CONFIG);
@@ -180,10 +184,27 @@ public class OIDCUtil {
                 throw new RuntimeException("failed to read any OIDC property ");
             }
             
-            Set<String> oidcs = config.keySet();
-            for (String oidc : oidcs) {
-                String secret = config.getProperty(oidc).get(0);
-                relyParties.put(oidc, new RelyParty(oidc, secret));
+            Set<String> clientIDs = config.keySet();
+            for (String c : clientIDs) {
+                String clientSecret = config.getProperty(c).get(0);
+                
+                // TODO: Alinga
+                // these four fields (plus the groupID field) will be moved to the properties file
+                // in the next version of this class.
+                String description = null;
+                List<Claim> claims = null;
+                boolean signDocuments = false;
+                if (c.equals("arbutus_harbor")) {
+                    description = "CANFAR Image Repository";
+                    claims = Arrays.asList(new Claim[] {RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
+                    signDocuments = true;
+                }
+                if (c.equals("unions_wiki")) {
+                    description = "UNIONS Wiki";
+                    claims = Arrays.asList(new Claim[] {RelyParty.Claim.EMAIL});
+                    signDocuments = false;
+                }
+                relyParties.put(c, new RelyParty(c, clientSecret, description, claims, signDocuments));
             }
         }
 
@@ -219,27 +240,63 @@ public class OIDCUtil {
         return groupNames;
     }
     
-    public static String buildIDToken(String clientID) throws Exception {
+    public static String buildIDToken(RelyParty rp, boolean isUserInfo) throws Exception {
         
         final Subject subject = AuthenticationUtil.getCurrentSubject();
         
         NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
-        
-        JwtBuilder builder = Jwts.builder();
-        builder.claim("iss", getClaimIssuer());
-        builder.claim("sub", numericPrincipal.getName());
         Calendar calendar = Calendar.getInstance();
-        builder.claim("iat", calendar.getTime());
-        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-        builder.claim("exp", calendar.getTime());
-        builder.claim("name", useridPrincipal.getName());
-        builder.claim("email", email);
-        builder.claim("memberOf", getGroupList());
-        builder.claim("aud", clientID);
-        String jws = builder.signWith(OIDCUtil.getPrivateKey()).compact();
-        return jws;
+        
+        if (rp.isSignDocuments() || !isUserInfo) {
+            JwtBuilder builder = Jwts.builder();
+            builder.claim("sub", numericPrincipal.getName());
+            builder.claim("iss", getClaimIssuer());
+            if (rp.getClientID() != null) {
+                builder.claim("aud", rp.getClientID());
+            }
+            builder.claim("iat", calendar.getTime());
+            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+            builder.claim("exp", calendar.getTime());
+            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+                builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+                builder.claim(RelyParty.Claim.EMAIL.getValue(), email);
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+                builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
+            }
+            
+            if (rp.isSignDocuments()) {
+                return builder.signWith(OIDCUtil.getPrivateKey()).compact();
+            } else {
+                return builder.compact();
+            }
+        } else {
+            JSONObject json = new JSONObject();
+            json.put("sub", numericPrincipal.getName());
+            json.put("iss", getClaimIssuer());
+            if (rp.getClientID() != null) {
+                json.put("aud", rp.getClientID());
+            }
+            json.put("iat", calendar.getTime());
+            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+            json.put("exp", calendar.getTime());
+            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+                json.put(RelyParty.Claim.EMAIL.getValue(), email);
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
+            }
+            
+            return json.toString();
+        }
+
     }
     
     /**
@@ -256,6 +313,19 @@ public class OIDCUtil {
         // remove the last path element for the base URL
         int lastSlash = oauthURL.lastIndexOf("/");
         return oauthURL.substring(0, lastSlash);
+    }
+    
+    static String getClaimDescriptionString(List<Claim> claims) {
+        StringBuilder sb = new StringBuilder();
+        int count = 0;
+        for (Claim c : claims) {
+            if (count > 0) {
+                sb.append(", ");
+            }
+            count++;
+            sb.append(c.getDescription());
+        }
+        return sb.toString();
     }
     
 }
