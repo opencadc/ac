@@ -194,7 +194,7 @@ public class OIDCUtil {
                 String description = null;
                 List<Claim> claims = null;
                 boolean signDocuments = false;
-                if (c.equals("arbutus_harbor")) {
+                if (c.equals("arbutus-harbor")) {
                     description = "CANFAR Image Repository";
                     claims = Arrays.asList(new Claim[] {RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
                     signDocuments = true;
