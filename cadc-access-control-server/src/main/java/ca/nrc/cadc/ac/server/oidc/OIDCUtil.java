@@ -98,10 +98,10 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +111,7 @@ import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.opencadc.gms.GroupURI;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -171,41 +172,101 @@ public class OIDCUtil {
         return privateKey;
     }
     
+    private static Set<String> getClientIDs(MultiValuedProperties config) {
+        Set<String> clientIDs = new HashSet<String>();
+        Set<String> keys = config.keySet();;
+        for (String k : keys) {
+            clientIDs.add(k.split("\\.")[0]);
+        }
+        
+        return clientIDs;
+    }
+    
+    private static void checkKey(MultiValuedProperties config, Set<String> keys, String key) {
+        if (!keys.contains(key)) {
+            throw new IllegalStateException("missing key " + key + " in " + CONFIG);
+        } else if (config.getProperty(key).get(0).isEmpty()) {
+            throw new IllegalStateException("missing value for " + key + " in " + CONFIG);
+        }
+    }
+    
+    private static String getSecret(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String secretKey = clientID + ".secret";
+        checkKey(config, keys, secretKey);
+        return config.getProperty(secretKey).get(0);
+    }
+    
+    private static String getDescription(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String descriptionKey = clientID + ".description";
+        checkKey(config, keys, descriptionKey);
+        return config.getProperty(descriptionKey).get(0);
+    }
+    
+    private static boolean getSignDocuments(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String signDocumentsKey = clientID + ".sign-documents";
+        checkKey(config, keys, signDocumentsKey);
+        return Boolean.valueOf(config.getProperty(signDocumentsKey).get(0));
+    }
+    
+    private static List<Claim> getClaims(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String claimsKey = clientID + ".claims";
+        checkKey(config, keys, claimsKey);
+        List<Claim> claims = new ArrayList<Claim>();
+        final String[] claimsArray = config.getProperty(claimsKey).get(0).split(" ");
+        for (String claim : claimsArray) {
+            if (RelyParty.Claim.NAME.getValue().equals(claim)) {
+                claims.add(RelyParty.Claim.NAME);
+            } else if (RelyParty.Claim.EMAIL.getValue().equals(claim)) {
+                claims.add(RelyParty.Claim.EMAIL);
+            } else if (RelyParty.Claim.GROUPS.getValue().equals(claim)) {
+                claims.add(RelyParty.Claim.GROUPS);
+            } else {
+                throw new IllegalStateException("claim " + claim + " is not supported");
+            }
+        }
+        
+        return claims;
+    }
+    
+    private static void loadConfig() {
+        log.debug("Reading RelyParties properties from: " + CONFIG);
+        relyParties = new HashMap<String, RelyParty>();
+        PropertiesReader pr = new PropertiesReader(CONFIG);
+        MultiValuedProperties config = pr.getAllProperties();
+        Set<String> keys = config.keySet();;
+        if (config == null || keys.isEmpty())
+        {
+            throw new RuntimeException("failed to read any OIDC property ");
+        }
+        
+        Set<String> clientIDs = getClientIDs(config);
+        for (String clientID : clientIDs) {
+            final String secret = getSecret(config, keys, clientID);
+            final String description = getDescription(config, keys, clientID);
+            final boolean signDocuments = getSignDocuments(config, keys, clientID);
+            List<Claim> claims = getClaims(config, keys, clientID);
+
+            RelyParty relyParty = new RelyParty(clientID, secret, description, claims, signDocuments);
+            
+            // access group is optional
+            String accessGroupKey = clientID + ".access-group";
+            if (keys.contains(accessGroupKey)) {
+                final String accessGroupString = config.getProperty(accessGroupKey).get(0);
+                if (!accessGroupString.isEmpty()) {
+                    GroupURI accessGroup = new GroupURI(URI.create(accessGroupString));
+                    relyParty.setAccessGroup(accessGroup);
+                }
+            }
+
+            relyParties.put(clientID, relyParty);
+        }
+
+    }
+    
     public static RelyParty getRelyParty(String clientID) {
         if (relyParties == null) {
             // add all rely parties
- 
-            log.debug("Reading RelyParties properties from: " + CONFIG);
-            relyParties = new HashMap<String, RelyParty>();
-            PropertiesReader pr = new PropertiesReader(CONFIG);
-            MultiValuedProperties config = pr.getAllProperties();
-            if (config == null || config.keySet() == null)
-            {
-                throw new RuntimeException("failed to read any OIDC property ");
-            }
-            
-            Set<String> clientIDs = config.keySet();
-            for (String c : clientIDs) {
-                String clientSecret = config.getProperty(c).get(0);
-                
-                // TODO: Alinga
-                // these four fields (plus the groupID field) will be moved to the properties file
-                // in the next version of this class.
-                String description = null;
-                List<Claim> claims = null;
-                boolean signDocuments = false;
-                if (c.equals("arbutus-harbor")) {
-                    description = "CANFAR Image Repository";
-                    claims = Arrays.asList(new Claim[] {RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
-                    signDocuments = true;
-                }
-                if (c.equals("unions_wiki")) {
-                    description = "UNIONS Wiki";
-                    claims = Arrays.asList(new Claim[] {RelyParty.Claim.EMAIL});
-                    signDocuments = false;
-                }
-                relyParties.put(c, new RelyParty(c, clientSecret, description, claims, signDocuments));
-            }
+            loadConfig();
         }
 
         return relyParties.get(clientID);
