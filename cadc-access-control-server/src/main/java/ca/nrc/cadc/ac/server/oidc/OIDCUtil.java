@@ -70,6 +70,7 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GMSClient;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
@@ -270,6 +271,18 @@ public class OIDCUtil {
         }
 
         return relyParties.get(clientID);
+    }
+    
+    public static boolean accessAllowed(String clientID) {
+        RelyParty rp = getRelyParty(clientID);
+        GroupURI accessGroup = rp.getAccessGroup();
+        if (accessGroup == null) {
+            // access group not specified, allow access
+            return true;
+        } else {
+            GMSClient gmsClient = new GMSClient(accessGroup.getServiceID());
+            return gmsClient.isMember(accessGroup);
+        }
     }
     
     public static String getToken(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {

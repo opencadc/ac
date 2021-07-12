@@ -221,6 +221,7 @@ public abstract class AuthorizeAction extends RestAction {
                 redirect.append("&state=");
                 redirect.append(state);
             }
+            redirect.append("&clientid=").append(NetUtil.encode(clientID));
             redirect.append("&client=").append(NetUtil.encode(rp.getClientDescription()));
             String claimDesc = OIDCUtil.getClaimDescriptionString(rp.getClaims());
             redirect.append("&claims=").append(NetUtil.encode(claimDesc));
@@ -234,6 +235,12 @@ public abstract class AuthorizeAction extends RestAction {
             
             // TODO Alinga
             // Add group check on rp.accessGroup here
+            if (!OIDCUtil.accessAllowed(clientID)) {
+                AuthorizeError authError = new AuthorizeError();
+                authError.error = "access group check failed";
+                sendError(authError);
+                return;
+            }
             
             Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
             String username = useridPrincipals.iterator().next().getName();

@@ -75,6 +75,7 @@ import java.net.URI;
 import java.security.AccessControlException;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 /**
  * 
@@ -95,6 +96,7 @@ public class LoginAction extends RestAction {
         String state = syncInput.getParameter("state");
         String username = syncInput.getParameter("username");
         String password = syncInput.getParameter("password");
+        String clientID = syncInput.getParameter("clientid");
         log.debug("redirect_uri: " + redirectURI);
         log.debug("state: " + state);
         log.debug("username: " + username);
@@ -124,6 +126,11 @@ public class LoginAction extends RestAction {
         // TODO Alinga
         // Add group check on rp.accessGroup here
         // (will require client_id to be passed from AuthorizeAction, to oidc-login.html, to here)
+        if (!OIDCUtil.accessAllowed(clientID)) {
+            GroupURI accessGroup = OIDCUtil.getRelyParty(clientID).getAccessGroup();
+            String msg = "login failed, group access check failed, not a member of " + accessGroup;
+            throw new AccessControlException(msg);
+        }
         
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirectURI);
