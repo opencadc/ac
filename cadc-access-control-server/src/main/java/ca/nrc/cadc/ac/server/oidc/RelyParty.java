@@ -70,6 +70,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 /**
  * 
@@ -84,6 +85,7 @@ public class RelyParty {
     
     private String clientID;
     private String clientSecret;
+    private GroupURI accessGroup = null;   // optional
     private String clientDescription;
     private List<Claim> claims = new ArrayList<Claim>();
     private boolean signDocuments;
@@ -104,6 +106,14 @@ public class RelyParty {
     
     public String getClientSecret() {
         return clientSecret;
+    }
+
+    public GroupURI getAccessGroup() {
+        return accessGroup;
+    }
+    
+    public void setAccessGroup(GroupURI group) {
+        this.accessGroup = group;
     }
     
     public String getClientDescription() {
