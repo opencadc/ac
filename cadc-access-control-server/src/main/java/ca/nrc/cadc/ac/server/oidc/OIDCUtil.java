@@ -281,7 +281,15 @@ public class OIDCUtil {
             return true;
         } else {
             GMSClient gmsClient = new GMSClient(accessGroup.getServiceID());
-            return gmsClient.isMember(accessGroup);
+            try {
+                return gmsClient.isMember(accessGroup);
+            } catch (RuntimeException ex) {
+                if (ex.getMessage().contains("access not supported")) {
+                    return false;
+                } else {
+                    throw ex;
+                }
+            }
         }
     }
     

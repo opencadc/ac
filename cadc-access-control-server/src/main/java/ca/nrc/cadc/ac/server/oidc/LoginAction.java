@@ -123,9 +123,8 @@ public class LoginAction extends RestAction {
             throw new AccessControlException("login failed");
         }
         
-        // TODO Alinga
-        // Add group check on rp.accessGroup here
-        // (will require client_id to be passed from AuthorizeAction, to oidc-login.html, to here)
+        // perform group check on rp.accessGroup 
+        // (use clientID passed from AuthorizeAction, to oidc-login.html)
         if (!OIDCUtil.accessAllowed(clientID)) {
             GroupURI accessGroup = OIDCUtil.getRelyParty(clientID).getAccessGroup();
             String msg = "login failed, group access check failed, not a member of " + accessGroup;

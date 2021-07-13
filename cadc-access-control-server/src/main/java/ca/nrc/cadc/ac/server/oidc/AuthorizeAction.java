@@ -233,8 +233,7 @@ public abstract class AuthorizeAction extends RestAction {
             // if authenticated (only possible by cookie) skip login form
             // formulate the authenticate redirect response
             
-            // TODO Alinga
-            // Add group check on rp.accessGroup here
+            // perform group check on rp.accessGroup 
             if (!OIDCUtil.accessAllowed(clientID)) {
                 AuthorizeError authError = new AuthorizeError();
                 authError.error = "access group check failed";

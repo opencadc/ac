@@ -28,15 +28,21 @@
 
 package ca.nrc.cadc.ac.server.oidc;
 
+import java.io.File;
 import java.net.URI;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.security.auth.Subject;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
 
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 
@@ -57,7 +63,7 @@ public class OIDCUtilTest
         // normal attributes
         String oidc = "client-id";
         String secret = "client-secret";
-        GroupURI accessGroup = new GroupURI(URI.create("ivo://cadc.nrc.ca/gms?mygroup"));
+        GroupURI accessGroup = new GroupURI(URI.create("ivo://cadc.nrc.ca/gms?CADC_TEST1-Staff"));
         String description = "client description";
         List<Claim> claims = Arrays.asList(new Claim[] {RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
         boolean signDocuments = true;
@@ -135,6 +141,39 @@ public class OIDCUtilTest
         }
 
         Assert.assertEquals("Incorrect signdocuments", signDocuments, actual.isSignDocuments());
+    }
+
+    @Test
+    public void testAccessAllowed() throws Exception {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/config");
+        System.setProperty("user.home", "src/test/config");
+
+        // case 1: no access group, should be allowed
+        Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed("client-id-no-access-group"));
         
+        // case 2: Anonymous access not supported
+        Assert.assertFalse("should not be allowed, i.e. false", OIDCUtil.accessAllowed("client-id-1-claim"));
+
+        // case 3: subject is a member of the access group, should be allowed
+        File auth1 = FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", OIDCUtilTest.class);
+        Subject subject = SSLUtil.createSubject(auth1);
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            @Override
+            public Object run() throws Exception {
+                Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed("client-id"));
+                return null;
+            }
+        });
+
+        // case 4: subject is not a member of the access group, should not be allowed
+        auth1 = FileUtil.getFileFromResource("x509_CADCRegtest1.pem", OIDCUtilTest.class);
+        subject = SSLUtil.createSubject(auth1);
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            @Override
+            public Object run() throws Exception {
+                Assert.assertFalse("should be allowed, i.e. true", OIDCUtil.accessAllowed("client-id"));
+                return null;
+            }
+        });
     }
 }
