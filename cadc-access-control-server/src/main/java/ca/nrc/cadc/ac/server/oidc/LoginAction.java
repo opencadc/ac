@@ -109,6 +109,9 @@ public class LoginAction extends RestAction {
         if (password == null) {
             throw new IllegalArgumentException("missing required param 'password'");
         }
+        if (clientID == null) {
+            throw new IllegalArgumentException("missing required param 'clientID'");
+        }
         
         UserPersistence userPersistence = new LdapUserPersistence();
         Boolean loginResult = null;
@@ -123,11 +126,15 @@ public class LoginAction extends RestAction {
             throw new AccessControlException("login failed");
         }
         
+        // check client id
+        RelyParty rp = OIDCUtil.getRelyParty(clientID);
+        if (rp == null) {
+            throw new AccessControlException("login failed, unauthorized client " + clientID);
+        }
         // perform group check on rp.accessGroup 
-        // (use clientID passed from AuthorizeAction, to oidc-login.html)
-        if (!OIDCUtil.accessAllowed(clientID)) {
-            GroupURI accessGroup = OIDCUtil.getRelyParty(clientID).getAccessGroup();
-            String msg = "login failed, group access check failed, not a member of " + accessGroup;
+        if (!OIDCUtil.accessAllowed(rp)) {
+            GroupURI accessGroup = rp.getAccessGroup();
+            String msg = "login failed, client " + clientID + " is not a member of " + accessGroup;
             throw new AccessControlException(msg);
         }
         

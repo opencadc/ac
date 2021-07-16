@@ -70,7 +70,6 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.client.GMSClient;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
@@ -112,7 +111,9 @@ import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -175,7 +176,7 @@ public class OIDCUtil {
     
     private static Set<String> getClientIDs(MultiValuedProperties config) {
         Set<String> clientIDs = new HashSet<String>();
-        Set<String> keys = config.keySet();;
+        Set<String> keys = config.keySet();
         for (String k : keys) {
             clientIDs.add(k.split("\\.")[0]);
         }
@@ -215,15 +216,7 @@ public class OIDCUtil {
         List<Claim> claims = new ArrayList<Claim>();
         final String[] claimsArray = config.getProperty(claimsKey).get(0).split(" ");
         for (String claim : claimsArray) {
-            if (RelyParty.Claim.NAME.getValue().equals(claim)) {
-                claims.add(RelyParty.Claim.NAME);
-            } else if (RelyParty.Claim.EMAIL.getValue().equals(claim)) {
-                claims.add(RelyParty.Claim.EMAIL);
-            } else if (RelyParty.Claim.GROUPS.getValue().equals(claim)) {
-                claims.add(RelyParty.Claim.GROUPS);
-            } else {
-                throw new IllegalStateException("claim " + claim + " is not supported");
-            }
+            claims.add(RelyParty.Claim.getClaim(claim));
         }
         
         return claims;
@@ -234,7 +227,7 @@ public class OIDCUtil {
         relyParties = new HashMap<String, RelyParty>();
         PropertiesReader pr = new PropertiesReader(CONFIG);
         MultiValuedProperties config = pr.getAllProperties();
-        Set<String> keys = config.keySet();;
+        Set<String> keys = config.keySet();
         if (config == null || keys.isEmpty())
         {
             throw new RuntimeException("failed to read any OIDC property ");
@@ -273,23 +266,14 @@ public class OIDCUtil {
         return relyParties.get(clientID);
     }
     
-    public static boolean accessAllowed(String clientID) {
-        RelyParty rp = getRelyParty(clientID);
+    public static boolean accessAllowed(RelyParty rp) {
         GroupURI accessGroup = rp.getAccessGroup();
         if (accessGroup == null) {
             // access group not specified, allow access
             return true;
         } else {
-            GMSClient gmsClient = new GMSClient(accessGroup.getServiceID());
-            try {
-                return gmsClient.isMember(accessGroup);
-            } catch (RuntimeException ex) {
-                if (ex.getMessage().contains("access not supported")) {
-                    return false;
-                } else {
-                    throw ex;
-                }
-            }
+            GroupClient groupClient = GroupUtil.getGroupClient(accessGroup.getServiceID());
+            return groupClient.isMember(accessGroup);
         }
     }
     
