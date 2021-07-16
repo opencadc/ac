@@ -272,8 +272,7 @@ public class OIDCUtil {
             // access group not specified, allow access
             return true;
         } else {
-            GroupClient groupClient = GroupUtil.getGroupClient(accessGroup.getServiceID());
-            return groupClient.isMember(accessGroup);
+            return GroupUtil.getGroupClient(accessGroup.getServiceID()).isMember(accessGroup);
         }
     }
     
