@@ -221,6 +221,7 @@ public abstract class AuthorizeAction extends RestAction {
                 redirect.append("&state=");
                 redirect.append(state);
             }
+            redirect.append("&clientid=").append(NetUtil.encode(clientID));
             redirect.append("&client=").append(NetUtil.encode(rp.getClientDescription()));
             String claimDesc = OIDCUtil.getClaimDescriptionString(rp.getClaims());
             redirect.append("&claims=").append(NetUtil.encode(claimDesc));
@@ -232,8 +233,13 @@ public abstract class AuthorizeAction extends RestAction {
             // if authenticated (only possible by cookie) skip login form
             // formulate the authenticate redirect response
             
-            // TODO Alinga
-            // Add group check on rp.accessGroup here
+            // perform group check on rp.accessGroup 
+            if (!OIDCUtil.accessAllowed(rp)) {
+                AuthorizeError authError = new AuthorizeError();
+                authError.error = "login failed, not a member of " + rp.getAccessGroup();
+                sendError(authError);
+                return;
+            }
             
             Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
             String username = useridPrincipals.iterator().next().getName();

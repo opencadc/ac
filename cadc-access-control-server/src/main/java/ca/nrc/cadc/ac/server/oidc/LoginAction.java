@@ -75,6 +75,7 @@ import java.net.URI;
 import java.security.AccessControlException;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 /**
  * 
@@ -95,6 +96,7 @@ public class LoginAction extends RestAction {
         String state = syncInput.getParameter("state");
         String username = syncInput.getParameter("username");
         String password = syncInput.getParameter("password");
+        String clientID = syncInput.getParameter("clientid");
         log.debug("redirect_uri: " + redirectURI);
         log.debug("state: " + state);
         log.debug("username: " + username);
@@ -106,6 +108,9 @@ public class LoginAction extends RestAction {
         }
         if (password == null) {
             throw new IllegalArgumentException("missing required param 'password'");
+        }
+        if (clientID == null) {
+            throw new IllegalArgumentException("missing required param 'clientID'");
         }
         
         UserPersistence userPersistence = new LdapUserPersistence();
@@ -121,9 +126,17 @@ public class LoginAction extends RestAction {
             throw new AccessControlException("login failed");
         }
         
-        // TODO Alinga
-        // Add group check on rp.accessGroup here
-        // (will require client_id to be passed from AuthorizeAction, to oidc-login.html, to here)
+        // check client id
+        RelyParty rp = OIDCUtil.getRelyParty(clientID);
+        if (rp == null) {
+            throw new AccessControlException("login failed, unauthorized client " + clientID);
+        }
+        // perform group check on rp.accessGroup 
+        if (!OIDCUtil.accessAllowed(rp)) {
+            GroupURI accessGroup = rp.getAccessGroup();
+            String msg = "login failed, not a member of " + accessGroup;
+            throw new AccessControlException(msg);
+        }
         
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirectURI);
