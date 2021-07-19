@@ -134,7 +134,7 @@ public class LoginAction extends RestAction {
         // perform group check on rp.accessGroup 
         if (!OIDCUtil.accessAllowed(rp)) {
             GroupURI accessGroup = rp.getAccessGroup();
-            String msg = "login failed, client " + clientID + " is not a member of " + accessGroup;
+            String msg = "login failed, not a member of " + accessGroup;
             throw new AccessControlException(msg);
         }
         

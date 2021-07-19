@@ -236,7 +236,7 @@ public abstract class AuthorizeAction extends RestAction {
             // perform group check on rp.accessGroup 
             if (!OIDCUtil.accessAllowed(rp)) {
                 AuthorizeError authError = new AuthorizeError();
-                authError.error = "login failed, client " + clientID + " is not a member of " + rp.getAccessGroup();
+                authError.error = "login failed, not a member of " + rp.getAccessGroup();
                 sendError(authError);
                 return;
             }
