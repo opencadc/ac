@@ -70,11 +70,13 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -266,14 +268,27 @@ public class OIDCUtil {
         return relyParties.get(clientID);
     }
     
-    public static boolean accessAllowed(RelyParty rp) {
+    public static boolean accessAllowed(RelyParty rp, Subject subject) {
         GroupURI accessGroup = rp.getAccessGroup();
         if (accessGroup == null) {
             // access group not specified, allow access
             return true;
         } else {
-            GroupClient groupClient = GroupUtil.getGroupClient(accessGroup.getServiceID());
-            return groupClient.isMember(accessGroup);
+            subject = AuthenticationUtil.augmentSubject(subject);
+            Set<GroupMemberships> groupMembershipsSet = subject.getPrivateCredentials(GroupMemberships.class);
+            for (GroupMemberships groupMemberships : groupMembershipsSet) {
+                List<Group> groups = groupMemberships.getMemberships(Role.MEMBER);
+                for (Group group : groups) {
+                    GroupURI groupURI = group.getID();
+                    log.info("alinga-- group: " + groupURI);
+                    if (accessGroup.equals(groupURI)) {
+                        log.info("alinga-- found matching access group");
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
     
