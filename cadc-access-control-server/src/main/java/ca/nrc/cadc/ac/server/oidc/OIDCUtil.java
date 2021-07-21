@@ -280,9 +280,9 @@ public class OIDCUtil {
                 List<Group> groups = groupMemberships.getMemberships(Role.MEMBER);
                 for (Group group : groups) {
                     GroupURI groupURI = group.getID();
-                    log.info("alinga-- group: " + groupURI);
+                    log.debug("group: " + groupURI);
                     if (accessGroup.equals(groupURI)) {
-                        log.info("alinga-- found matching access group");
+                        log.debug("found matching access group " + groupURI);
                         return true;
                     }
                 }
