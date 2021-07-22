@@ -158,6 +158,6 @@ public class OIDCUtilTest
 
         // case 1: no access group, should be allowed
         RelyParty noAccessGroupRp = OIDCUtil.getRelyParty("client-id-no-access-group");
-        Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed(noAccessGroupRp, new Subject()));
+        Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed(noAccessGroupRp));
     }
 }

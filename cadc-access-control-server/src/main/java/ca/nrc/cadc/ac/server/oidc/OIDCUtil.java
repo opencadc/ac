@@ -272,26 +272,20 @@ public class OIDCUtil {
         return relyParties.get(clientID);
     }
     
-    public static boolean accessAllowed(RelyParty rp, Subject subject) throws PrivilegedActionException {
+    public static boolean accessAllowed(RelyParty rp) 
+        throws AccessControlException, UserNotFoundException, GroupNotFoundException, TransientException {
         GroupURI accessGroup = rp.getAccessGroup();
         if (accessGroup == null) {
             // access group not specified, allow access
             return true;
         } else {
-            subject = AuthenticationUtil.augmentSubject(subject);
-            boolean allowed = (boolean) Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
-                public Object run() throws Exception {
-                    LdapGroupPersistence ldapGroupPersistence = new LdapGroupPersistence();
-                    Collection<Group> groups = ldapGroupPersistence.getGroups(Role.MEMBER, accessGroup.getName());
-                    if (groups == null || groups.isEmpty()) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }
-            });
-            
-            return allowed;
+            LdapGroupPersistence ldapGroupPersistence = new LdapGroupPersistence();
+            Collection<Group> groups = ldapGroupPersistence.getGroups(Role.MEMBER, accessGroup.getName());
+            if (groups == null || groups.isEmpty()) {
+                return false;
+            } else {
+                return true;
+            }
         }
     }
     
