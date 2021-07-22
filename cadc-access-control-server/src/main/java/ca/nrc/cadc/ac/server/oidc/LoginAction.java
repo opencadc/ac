@@ -68,11 +68,17 @@ package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.net.URI;
 import java.security.AccessControlException;
+import java.security.PrivilegedExceptionAction;
+
+import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
@@ -131,12 +137,23 @@ public class LoginAction extends RestAction {
         if (rp == null) {
             throw new AccessControlException("login failed, unauthorized client " + clientID);
         }
-        // perform group check on rp.accessGroup 
-        if (!OIDCUtil.accessAllowed(rp)) {
-            GroupURI accessGroup = rp.getAccessGroup();
-            String msg = "login failed, not a member of " + accessGroup;
-            throw new AccessControlException(msg);
-        }
+        
+        Subject subject = new Subject();
+        subject.getPrincipals().add(new HttpPrincipal(username));
+        subject.getPublicCredentials().add(AuthMethod.PASSWORD);
+        subject = AuthenticationUtil.augmentSubject(subject);
+        Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
+            @Override
+            public Void run() throws Exception {
+                if (!OIDCUtil.accessAllowed(rp)) {
+                    GroupURI accessGroup = rp.getAccessGroup();
+                    String msg = "login failed, not a member of " + accessGroup;
+                    throw new AccessControlException(msg);
+                }
+                
+                return null;
+            }
+        });
         
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirectURI);

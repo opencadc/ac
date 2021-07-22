@@ -67,14 +67,18 @@
 package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -96,6 +100,8 @@ import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -266,14 +272,20 @@ public class OIDCUtil {
         return relyParties.get(clientID);
     }
     
-    public static boolean accessAllowed(RelyParty rp) {
+    public static boolean accessAllowed(RelyParty rp) 
+        throws AccessControlException, UserNotFoundException, GroupNotFoundException, TransientException {
         GroupURI accessGroup = rp.getAccessGroup();
         if (accessGroup == null) {
             // access group not specified, allow access
             return true;
         } else {
-            GroupClient groupClient = GroupUtil.getGroupClient(accessGroup.getServiceID());
-            return groupClient.isMember(accessGroup);
+            LdapGroupPersistence ldapGroupPersistence = new LdapGroupPersistence();
+            Collection<Group> groups = ldapGroupPersistence.getGroups(Role.MEMBER, accessGroup.getName());
+            if (groups == null || groups.isEmpty()) {
+                return false;
+            } else {
+                return true;
+            }
         }
     }
     

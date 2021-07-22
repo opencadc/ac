@@ -159,15 +159,5 @@ public class OIDCUtilTest
         // case 1: no access group, should be allowed
         RelyParty noAccessGroupRp = OIDCUtil.getRelyParty("client-id-no-access-group");
         Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed(noAccessGroupRp));
-        
-        // case 2: Anonymous access not supported
-        RelyParty oneClaimRp = OIDCUtil.getRelyParty("client-id-1-claim");
-        try {
-            OIDCUtil.accessAllowed(oneClaimRp);
-            Assert.fail("should have thrown an anonumous access not supported exception");
-        } catch (Exception ex) {
-            String msg = "Anonymous access not supported";
-            Assert.assertTrue("should not support anonymous access" + ex.getMessage(), ex.getMessage().contains(msg));
-        }
     }
 }
