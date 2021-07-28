@@ -71,12 +71,14 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Set;
@@ -209,9 +211,18 @@ public abstract class AuthorizeAction extends RestAction {
         Subject s = AuthenticationUtil.getCurrentSubject();
         AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
         if (authMethod.equals(AuthMethod.ANON)) {
-            
+            // Get the service URL for ac
+            RegistryClient regClient = new RegistryClient();
+            URL regCapabilitiesURL = regClient.getAccessURL(new URI("ivo://cadc.nrc.ca/reg"));
+
+            String regCapURLStr = regCapabilitiesURL.toString();
+            String oidcLoginHostURL = regCapURLStr.replace("/reg/capabilities","");
+
             // send redirect to username/password form
-            StringBuilder redirect = new StringBuilder("oidc-login.html#redirect_uri=");
+            // In future, this reference to /en/login.html can be replaced by
+            // a provide an arbitrary login screen.
+            StringBuilder redirect = new StringBuilder(oidcLoginHostURL);
+            redirect.append("/en/login.html#redirect_uri=");
             redirect.append(redirectURI);
             if (loginHint != null) {
                 redirect.append("&username=");
