@@ -137,7 +137,7 @@ public class LoginAction extends RestAction {
         if (rp == null) {
             throw new AccessControlException("login failed, unauthorized client " + clientID);
         }
-        
+
         Subject subject = new Subject();
         subject.getPrincipals().add(new HttpPrincipal(username));
         subject.getPublicCredentials().add(AuthMethod.PASSWORD);
@@ -150,7 +150,7 @@ public class LoginAction extends RestAction {
                     String msg = "login failed, not a member of " + accessGroup;
                     throw new AccessControlException(msg);
                 }
-                
+
                 return null;
             }
         });
@@ -165,9 +165,11 @@ public class LoginAction extends RestAction {
             redirect.append("&state=");
             redirect.append(state);
         }
-        log.debug("redirecting to: " + redirect);
-        syncOutput.setCode(302);
-        syncOutput.setHeader("Location", redirect);
+        log.debug("returning redirect URL: " + redirect);
+
+        syncOutput.setCode(200);
+        syncOutput.setHeader("Content-Type", "text/plain");
+        syncOutput.getOutputStream().write(redirect.toString().getBytes());
     }
     
     @Override
