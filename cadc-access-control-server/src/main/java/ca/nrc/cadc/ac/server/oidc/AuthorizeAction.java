@@ -215,12 +215,11 @@ public abstract class AuthorizeAction extends RestAction {
             RegistryClient regClient = new RegistryClient();
             URL regCapabilitiesURL = regClient.getAccessURL(new URI("ivo://cadc.nrc.ca/reg"));
 
-            String regCapURLStr = regCapabilitiesURL.toString();
-            String oidcLoginHostURL = regCapURLStr.replace("/reg/capabilities","");
+            String oidcLoginHostURL = regCapabilitiesURL.getHost();
 
             // send redirect to username/password form
             // In future, this reference to /en/login.html can be replaced by
-            // a provide an arbitrary login screen.
+            // an arbitrary login screen.
             StringBuilder redirect = new StringBuilder(oidcLoginHostURL);
             redirect.append("/en/login.html#redirect_uri=");
             redirect.append(redirectURI);
