@@ -220,7 +220,8 @@ public abstract class AuthorizeAction extends RestAction {
             // send redirect to username/password form
             // In future, this reference to /en/login.html can be replaced by
             // a mechanism to provide an arbitrary login screen.
-            StringBuilder redirect = new StringBuilder(oidcLoginHostURL);
+            StringBuilder redirect = new StringBuilder("https://");
+            redirect.append(oidcLoginHostURL);
             redirect.append("/en/login.html#redirect_uri=");
             redirect.append(redirectURI);
             if (loginHint != null) {
