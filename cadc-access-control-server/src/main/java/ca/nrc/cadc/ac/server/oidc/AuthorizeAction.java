@@ -215,13 +215,14 @@ public abstract class AuthorizeAction extends RestAction {
             RegistryClient regClient = new RegistryClient();
             URL regCapabilitiesURL = regClient.getAccessURL(new URI("ivo://cadc.nrc.ca/reg"));
 
-            String oidcLoginHostURL = regCapabilitiesURL.getHost();
+            // set up redirect with parameters needed for OIDC authorization
+            StringBuilder redirect = new StringBuilder(regCapabilitiesURL.getProtocol());
+            redirect.append("://");
+            redirect.append(regCapabilitiesURL.getHost());
 
-            // send redirect to username/password form
-            // In future, this reference to /en/login.html can be replaced by
-            // a mechanism to provide an arbitrary login screen.
-            StringBuilder redirect = new StringBuilder("https://");
-            redirect.append(oidcLoginHostURL);
+            // username/password form
+            // NOTE: In future, this reference to /en/login.html can be replaced by
+            // a mechanism to provide an arbitrary login screen. - HJ July 30, 2021
             redirect.append("/en/login.html#redirect_uri=");
             redirect.append(redirectURI);
             if (loginHint != null) {
@@ -236,6 +237,8 @@ public abstract class AuthorizeAction extends RestAction {
             redirect.append("&client=").append(NetUtil.encode(rp.getClientDescription()));
             String claimDesc = OIDCUtil.getClaimDescriptionString(rp.getClaims());
             redirect.append("&claims=").append(NetUtil.encode(claimDesc));
+
+            log.debug("redirecting to " + redirect.toString());
             syncOutput.setCode(302);
             syncOutput.setHeader("Location", redirect);
             
