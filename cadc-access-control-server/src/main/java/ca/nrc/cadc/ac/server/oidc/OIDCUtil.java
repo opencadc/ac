@@ -163,8 +163,7 @@ public class OIDCUtil {
     
     public static Set<PublicKey> getPublicKeys() {
         if (publicKeys == null) {
-            String configDir = System.getProperty("user.home") + "/config";
-            File pubFile = new File(configDir, PUBLIC_KEY_NAME);
+            File pubFile = FileUtil.getFileFromResource(PUBLIC_KEY_NAME, OIDCUtil.class);
             RsaSignatureVerifier verifier = new RsaSignatureVerifier(pubFile);
             publicKeys = verifier.getPublicKeys();
         }
