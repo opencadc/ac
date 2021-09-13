@@ -69,6 +69,7 @@
 
  package ca.nrc.cadc.ac.admin;
 
+import com.sun.prism.Texture;
 import java.io.PrintStream;
 import java.security.cert.CertificateException;
 
@@ -247,6 +248,17 @@ public class CmdLineParser
             count++;
     	}
 
+        userID = am.getValue("disable");
+        if (userID != null	)
+        {
+            if (this.hasValue(userID))
+            {
+                this.command = new DisableUser(userID);
+            }
+
+            count++;
+        }
+
     	if (count == 1)
     	{
             return true;
@@ -312,6 +324,7 @@ public class CmdLineParser
     	sb.append("--approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the\n");
     	sb.append("                             : distinguished name to <dn>\n");
     	sb.append("--reject=<userid>            : Delete this user request\n");
+        sb.append("--disable=<userid>           : Disable this user account\n");
     	sb.append("\n");
     	sb.append("-v|--verbose                 : Verbose mode print progress and error messages\n");
     	sb.append("-d|--debug                   : Debug mode print all the logging messages\n");

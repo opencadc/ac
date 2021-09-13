@@ -146,6 +146,10 @@ public class LdapUserDAO extends LdapDAO
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
 
+    private final Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+    private final Filter notTrueFilter = Filter.createNOTFilter(Filter.createEqualityFilter(LDAP_NSACCOUNTLOCK,"true"));
+    private final Filter lockFilter = Filter.createANDFilter(notFilter, notTrueFilter);
+
     // User cn and sn values for users without a HttpPrincipal
     protected static final String EXTERNAL_USER_CN = "$EXTERNAL-CN";
     protected static final String EXTERNAL_USER_SN = "$EXTERNAL-SN";
@@ -686,9 +690,12 @@ public class LdapUserDAO extends LdapDAO
             } else {
                 name = userID.getName();
             }
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+
+//            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//            Filter notTrueFilter = Filter.createNOTFilter(Filter.createEqualityFilter(LDAP_NSACCOUNTLOCK,"true"));
+//            Filter lockFilter = Filter.createANDFilter(notFilter, notTrueFilter);
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
-            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            Filter filter = Filter.createANDFilter(this.lockFilter, equalsFilter);
             logger.debug("getUser: search filter = " + filter);
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -746,9 +753,9 @@ public class LdapUserDAO extends LdapDAO
             {
                 name = userID.getName();
             }
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
-            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            Filter filter = Filter.createANDFilter(this.lockFilter, equalsFilter);
             logger.debug("getAllUsers: search filter = " + filter);
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -819,9 +826,9 @@ public class LdapUserDAO extends LdapDAO
         Filter filter = null;
         try
         {
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter("email", emailAddress);
-            filter = Filter.createANDFilter(notFilter, equalsFilter);
+            filter = Filter.createANDFilter(this.lockFilter, equalsFilter);
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
@@ -910,9 +917,9 @@ public class LdapUserDAO extends LdapDAO
                 name = userID.getName();
             }
 
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
-            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            Filter filter = Filter.createANDFilter(this.lockFilter, equalsFilter);
 
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("getAugmentedUser: search filter = " + filter);
@@ -1066,9 +1073,9 @@ public class LdapUserDAO extends LdapDAO
     {
         final Collection<User> users = new ArrayList<User>();
 
-        Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+//        Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
         Filter presenceFilter = Filter.createPresenceFilter(LDAP_UID);
-        Filter filter = Filter.createANDFilter(notFilter, presenceFilter);
+        Filter filter = Filter.createANDFilter(this.lockFilter, presenceFilter);
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
@@ -1339,6 +1346,22 @@ public class LdapUserDAO extends LdapDAO
     }
 
     /**
+     * Delete the user specified by userID from the active user tree.
+     *
+     * @param userID The userID.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void unlockUser(final Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        unlockUser(userID, config.getUsersDN());
+    }
+
+
+    /**
      * Delete the user specified by userID from the pending user tree.
      *
      * @param userID The userID.
@@ -1398,6 +1421,35 @@ public class LdapUserDAO extends LdapDAO
                     "BUG: " + userID.getName() + " not deleted in " + usersDN);
             }
             catch (UserNotFoundException ignore) {}
+        }
+    }
+
+    private void unlockUser(final Principal userID, final String usersDN)
+        throws UserNotFoundException, AccessControlException, TransientException
+    {
+        User user2Unlock = getUser(userID, usersDN);
+        LDAPConnection ldapRWConn = getReadWriteConnection();
+        try
+        {
+            long uuid = uuid2long(user2Unlock.getID().getUUID());
+            DN userDN = getUserDN(uuid, usersDN);
+
+            List<Modification> modifs = new ArrayList<Modification>();
+            // TODO: if DELETE works, then the extra 'lockfilter' won't be
+            // necessary that's been added through this file...
+            modifs.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK, "false"));
+
+            ModifyRequest modifyRequest = new ModifyRequest(userDN, modifs);
+
+            LDAPResult result = ldapRWConn.modify(modifyRequest);
+            LdapDAO.checkLdapResult(result.getResultCode());
+
+            logger.debug("unlocked " + userID.getName());
+        }
+        catch (LDAPException e1)
+        {
+            logger.debug("UnlockUser Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
         }
     }
 

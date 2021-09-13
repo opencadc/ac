@@ -460,7 +460,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Delete the user specified by userID.
+     * Lock the user account specified by userID.
      *
      * @param userID The userID.
      *
@@ -482,6 +482,36 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         {
             userDAO = new LdapUserDAO(conns);
             userDAO.deleteUser(userID, true);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
+    /**
+     * Unlock the user account specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void reactivateUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if ( !isMatch(caller, userID) )
+            throw new AccessControlException("permission denied: target user does not match current user");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO(conns);
+            userDAO.unlockUser(userID);
         }
         finally
         {
