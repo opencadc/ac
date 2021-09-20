@@ -200,13 +200,13 @@ public class ACSearchRunner implements JobRunner {
             
             // TODO: change response type based on RESPONSEFORMAT param or Accept header
             if (ivoaStandardResponse) {
+                syncOut.setHeader("Content-Type", "text/plain");
                 if (groups.size() > 0) {
                     StringBuilder response = new StringBuilder();
                     for (Group g : groups) {
                         response.append(g.getID().getName());
                         response.append("\n");
                     }
-                    syncOut.setHeader("Content-Type", "text/plain");
                     syncOut.getOutputStream().write(response.toString().getBytes());
                 }
             } else {
