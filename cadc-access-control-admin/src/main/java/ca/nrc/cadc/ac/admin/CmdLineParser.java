@@ -259,6 +259,17 @@ public class CmdLineParser
             count++;
         }
 
+        userID = am.getValue("enable");
+        if (userID != null	)
+        {
+            if (this.hasValue(userID))
+            {
+                this.command = new EnableUser(userID);
+            }
+
+            count++;
+        }
+
     	if (count == 1)
     	{
             return true;

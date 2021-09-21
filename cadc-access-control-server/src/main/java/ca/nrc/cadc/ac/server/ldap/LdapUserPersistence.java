@@ -224,6 +224,37 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
+     * Get the user specified by userID from the active users tree.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User getLockedUser(Principal userID)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if ( !isMatch(caller, userID) )
+            throw new AccessControlException("permission denied: target user does not match current user");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO(conns);
+            return userDAO.getLockedUser(userID);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
+    /**
      * Get the user specified by email address exists in the active users tree.
      *
      * @param emailAddress The user's email address.

@@ -105,12 +105,25 @@ public class ViewUser extends AbstractUserCommand
             log.debug("principal: " + this.getPrincipal());
             User user = this.getUserPersistence().getUser(this.getPrincipal());
             this.printUser(user);
+            this.systemOut.println("User Status: ACTIVE");
         }
         catch (AccessControlException | UserNotFoundException e)
         {
-            // Not in the main tree, try the pending tree
-            User user = this.getUserPersistence().getUserRequest(this.getPrincipal());
-            this.printUser(user);
+            try
+            {
+                // Not in the main tree, try the pending tree
+                User user = this.getUserPersistence().getUserRequest(this.getPrincipal());
+                this.printUser(user);
+                this.systemOut.println("User Status: PENDING");
+            }
+            catch (AccessControlException | UserNotFoundException ue)
+            {
+                // Check to see if it's locked
+                log.debug("principal: " + this.getPrincipal());
+                User user = this.getUserPersistence().getLockedUser(this.getPrincipal());
+                this.printUser(user);
+                this.systemOut.println("User Status: LOCKED");
+            }
         }
     }
 }

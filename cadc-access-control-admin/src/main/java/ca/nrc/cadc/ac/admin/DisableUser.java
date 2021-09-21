@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -75,7 +75,7 @@ import java.security.AccessControlException;
 import org.apache.log4j.Logger;
 
 /**
- * This class disables the specified pending user from the LDAP server.
+ * This class disables the specified user (Locks the user account in LDAP).
  * @author jeevesh
  *
  */
@@ -95,9 +95,16 @@ public class DisableUser extends AbstractUserCommand
     protected void execute()
         throws AccessControlException, UserNotFoundException, TransientException
     {
-        // Use deactivateUser, which will lock the user account in LDAP
-        this.getUserPersistence().deactivateUser(this.getPrincipal());
-        String msg = "User " + this.getPrincipal().getName() + " was disabled successfully.";
-        this.systemOut.println(msg);
+        try {
+            // Use deactivateUser, which will lock the user account in LDAP
+            this.getUserPersistence().deactivateUser(this.getPrincipal());
+            String msg = "User " + this.getPrincipal().getName() + " is disabled (locked).";
+            this.systemOut.println(msg);
+        }
+        catch (UserNotFoundException u)
+        {
+            String msg = "User " + this.getPrincipal().getName() + ": already disabled (locked) or does not exist.";
+            this.systemOut.println(msg);
+        }
     }
 }

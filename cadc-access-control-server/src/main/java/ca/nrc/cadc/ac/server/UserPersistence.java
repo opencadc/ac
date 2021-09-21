@@ -181,6 +181,21 @@ public interface UserPersistence
         AccessControlException;
 
     /**
+     * Get the user with the specified Principal whose account is locked (disabled).
+     *
+     * @param userID A Principal of the User.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User getLockedUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
+
+    /**
      * Get all user names from the active users tree.
      *
      * @return A collection of strings.
