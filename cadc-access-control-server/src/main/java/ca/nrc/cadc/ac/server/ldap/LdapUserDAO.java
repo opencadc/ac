@@ -344,7 +344,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.error("addUser Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            LdapUserDAO.checkUserLDAPResult(e);
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -475,7 +475,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.error("addUserRequest Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            LdapUserDAO.checkUserLDAPResult(e);
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -1288,7 +1288,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.debug("setPassword Exception: " + e);
-            LdapDAO.checkLdapResult(e.getResultCode());
+            LdapDAO.checkLdapResult(e);
         }
     }
 
@@ -1530,6 +1530,19 @@ public class LdapUserDAO extends LdapDAO
         else
         {
             LdapDAO.checkLdapResult(code);
+        }
+    }
+    
+    protected static void checkUserLDAPResult(LDAPException e)
+            throws TransientException, UserAlreadyExistsException
+    {
+        if (e.getResultCode() == ResultCode.ENTRY_ALREADY_EXISTS)
+        {
+            throw new UserAlreadyExistsException("User already exists.");
+        }
+        else
+        {
+            LdapDAO.checkLdapResult(e);
         }
     }
 
