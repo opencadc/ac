@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,7 +69,6 @@
 
  package ca.nrc.cadc.ac.admin;
 
-import com.sun.prism.Texture;
 import java.io.PrintStream;
 import java.security.cert.CertificateException;
 
@@ -249,7 +248,7 @@ public class CmdLineParser
     	}
 
         userID = am.getValue("disable");
-        if (userID != null	)
+        if (userID != null)
         {
             if (this.hasValue(userID))
             {
@@ -260,7 +259,7 @@ public class CmdLineParser
         }
 
         userID = am.getValue("enable");
-        if (userID != null	)
+        if (userID != null)
         {
             if (this.hasValue(userID))
             {
@@ -335,6 +334,7 @@ public class CmdLineParser
     	sb.append("--approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the\n");
     	sb.append("                             : distinguished name to <dn>\n");
     	sb.append("--reject=<userid>            : Delete this user request\n");
+        sb.append("--enable=<userid>            : Enable this user account\n");
         sb.append("--disable=<userid>           : Disable this user account\n");
     	sb.append("\n");
     	sb.append("-v|--verbose                 : Verbose mode print progress and error messages\n");

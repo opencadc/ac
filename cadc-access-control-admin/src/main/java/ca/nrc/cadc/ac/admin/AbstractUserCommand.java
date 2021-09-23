@@ -137,7 +137,7 @@ public abstract class AbstractUserCommand extends AbstractCommand
             this.systemOut.println();
             if (user.personalDetails != null)
             {
-                // Returns users that are locked (disabled or marked deleted)
+                this.systemOut.println(user.personalDetails.toStringFormatted());
             }
         }
     }
