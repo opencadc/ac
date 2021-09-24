@@ -211,19 +211,10 @@ public abstract class AuthorizeAction extends RestAction {
         Subject s = AuthenticationUtil.getCurrentSubject();
         AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
         if (authMethod.equals(AuthMethod.ANON)) {
-            // Get the service URL for ac
-            RegistryClient regClient = new RegistryClient();
-            URL regCapabilitiesURL = regClient.getAccessURL(new URI("ivo://cadc.nrc.ca/reg"));
 
-            // set up redirect with parameters needed for OIDC authorization
-            StringBuilder redirect = new StringBuilder(regCapabilitiesURL.getProtocol());
-            redirect.append("://");
-            redirect.append(regCapabilitiesURL.getHost());
-
-            // username/password form
-            // NOTE: In future, this reference to /en/login.html can be replaced by
-            // a mechanism to provide an arbitrary login screen. - HJ July 30, 2021
-            redirect.append("/en/login.html#redirect_uri=");
+            StringBuilder redirect = new StringBuilder();
+            // TODO: Need a better way of discovering this URL
+            redirect.append("https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/login.html#redirect_uri=");
             redirect.append(redirectURI);
             if (loginHint != null) {
                 redirect.append("&username=");
