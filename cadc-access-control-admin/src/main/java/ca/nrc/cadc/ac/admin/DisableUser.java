@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,61 +69,42 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import java.security.AccessControlException;
-
-import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import org.apache.log4j.Logger;
 
 /**
- * This class provides details of the specified user in the LDAP server.
- * @author yeunga
+ * This class disables the specified user (Locks the user account in LDAP).
+ * @author jeevesh
  *
  */
-public class ViewUser extends AbstractUserCommand
+public class DisableUser extends AbstractUserCommand
 {
-    private static final Logger log = Logger.getLogger(ViewUser.class);
+    private static final Logger log = Logger.getLogger(DisableUser.class);
 
     /**
      * Constructor
-     * @param userID Id of the user to provide details for
+     * @param userID Id of the user to be disabled (deactivated)
      */
-    public ViewUser(final String userID)
+    public DisableUser(final String userID)
     {
     	super(userID);
-        log.debug("view user: " + userID);
     }
 
     protected void execute()
-        throws AccessControlException, TransientException, UserNotFoundException
+        throws AccessControlException, UserNotFoundException, TransientException
     {
-        try
-        {
-            // Try the main tree first
-            log.debug("principal: " + this.getPrincipal());
-            User user = this.getUserPersistence().getUser(this.getPrincipal());
-            this.printUser(user);
-            this.systemOut.println("User Status: ACTIVE");
+        try {
+            // Use deactivateUser, which will lock the user account in LDAP
+            this.getUserPersistence().deactivateUser(this.getPrincipal());
+            String msg = "User " + this.getPrincipal().getName() + " is disabled (locked).";
+            this.systemOut.println(msg);
         }
-        catch (AccessControlException | UserNotFoundException e)
+        catch (UserNotFoundException u)
         {
-            try
-            {
-                // Not in the main tree, try the pending tree
-                User user = this.getUserPersistence().getUserRequest(this.getPrincipal());
-                this.printUser(user);
-                this.systemOut.println("User Status: PENDING");
-            }
-            catch (AccessControlException | UserNotFoundException ue)
-            {
-                // Check to see if it's locked
-                log.debug("principal: " + this.getPrincipal());
-                User user = this.getUserPersistence().getLockedUser(this.getPrincipal());
-                this.printUser(user);
-                this.systemOut.println("User Status: LOCKED");
-            }
+            String msg = "User " + this.getPrincipal().getName() + ": already disabled (locked) or does not exist.";
+            this.systemOut.println(msg);
         }
     }
 }
