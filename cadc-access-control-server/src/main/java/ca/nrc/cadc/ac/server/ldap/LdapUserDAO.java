@@ -350,7 +350,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.error("addUser Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            LdapUserDAO.checkUserLDAPResult(e);
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -481,7 +481,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.error("addUserRequest Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            LdapUserDAO.checkUserLDAPResult(e);
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -1311,7 +1311,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.debug("setPassword Exception: " + e);
-            LdapDAO.checkLdapResult(e.getResultCode());
+            LdapDAO.checkLdapResult(e);
         }
     }
 
@@ -1466,7 +1466,7 @@ public class LdapUserDAO extends LdapDAO
 
             // If there is no LDAP_NSACCOUNTLOCK attribute, the user is not locked
             // and for this function it's not an error
-            LdapDAO.checkLdapResult(e1.getResultCode(), true);
+            LdapDAO.checkLdapResult(e1.getResultCode(), true, e1.getMessage());
         }
     }
 
@@ -1599,6 +1599,19 @@ public class LdapUserDAO extends LdapDAO
         else
         {
             LdapDAO.checkLdapResult(code);
+        }
+    }
+    
+    protected static void checkUserLDAPResult(LDAPException e)
+            throws TransientException, UserAlreadyExistsException
+    {
+        if (e.getResultCode() == ResultCode.ENTRY_ALREADY_EXISTS)
+        {
+            throw new UserAlreadyExistsException("User already exists.");
+        }
+        else
+        {
+            LdapDAO.checkLdapResult(e);
         }
     }
 

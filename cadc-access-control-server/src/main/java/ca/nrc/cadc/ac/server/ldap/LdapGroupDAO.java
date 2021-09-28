@@ -1108,12 +1108,12 @@ public class LdapGroupDAO extends LdapDAO
         {
             logger.debug("clearMembers " + groupDN);
             LDAPResult result = ldapRWConn.modify(clearMembers);
-            LdapDAO.checkLdapResult(result.getResultCode(), true);
+            LdapDAO.checkLdapResult(result.getResultCode(), true, null);
         }
         catch (LDAPException e1)
         {
             logger.debug("clear members fail: " + e1, e1);
-            LdapDAO.checkLdapResult(e1.getResultCode(), true);
+            LdapDAO.checkLdapResult(e1.getResultCode(), true, null);
         }
 
         ModifyRequest deleteGroup = new ModifyRequest(groupDN,
