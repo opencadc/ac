@@ -14,6 +14,8 @@ Where command is:
 --approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the
                              : distinguished name to <dn>
 --reject=<userid>            : Delete this user request
+--disable=<userid>           : Lock this user account
+--enable=<userid>            : Unlock this user account
 
 -v|--verbose                 : Verbose mode print progress and error messages
 -d|--debug                   : Debug mode print all the logging messages
