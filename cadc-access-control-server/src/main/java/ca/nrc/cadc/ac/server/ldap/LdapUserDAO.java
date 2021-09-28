@@ -1466,7 +1466,7 @@ public class LdapUserDAO extends LdapDAO
 
             // If there is no LDAP_NSACCOUNTLOCK attribute, the user is not locked
             // and for this function it's not an error
-            LdapDAO.checkLdapResult(e1.getResultCode(), true);
+            LdapDAO.checkLdapResult(e1.getResultCode(), true, e1.getMessage());
         }
     }
 
