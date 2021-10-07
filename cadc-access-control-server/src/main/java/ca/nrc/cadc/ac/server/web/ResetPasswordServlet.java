@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -85,6 +85,7 @@ import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -399,6 +400,7 @@ public class ResetPasswordServlet extends HttpServlet
         }
     }
 
+
     /**
      * Attempt to change password.
      *
@@ -480,18 +482,29 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                addMessage(response, e);
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             }
             catch (IllegalArgumentException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                addMessage(response, e);
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+            catch (NotAuthenticatedException e)
+            {
+                // NotAuthenticatedException is thrown when token passed in is invalid
+                log.debug(e.getMessage(), e);
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                addMessage(response, e);
+                logInfo.setMessage(e.getMessage());
             }
             catch (AccessControlException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                addMessage(response, e);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             catch (Throwable t1)
@@ -509,6 +522,24 @@ public class ResetPasswordServlet extends HttpServlet
             log.info(logInfo.end());
         }
      }
+
+    /**
+     * Add an output message to the HttpServletResponse from Exception passed in.
+     * @param response
+     * @param ex
+     * @throws IOException
+     */
+    private void addMessage(HttpServletResponse response, Exception ex) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(ex.getMessage()).append("\n");
+        byte[] out = sb.toString().getBytes();
+        response.setContentType("text/plain");
+        response.setContentLength(out.length);
+        ServletOutputStream sos = response.getOutputStream();
+        sos.write(out);
+        sos.flush();
+        sos.close();
+    }
 
     /**
      * Get and augment the Subject. Tests can override this method.
