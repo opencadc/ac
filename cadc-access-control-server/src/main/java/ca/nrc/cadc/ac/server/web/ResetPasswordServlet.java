@@ -482,13 +482,15 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                addMessage(response, e);
+                
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                addMessage(response, e);
             }
             catch (IllegalArgumentException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 addMessage(response, e);
             }
@@ -497,6 +499,7 @@ public class ResetPasswordServlet extends HttpServlet
                 // NotAuthenticatedException is thrown when token passed in is invalid
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 addMessage(response, e);
                 
@@ -505,8 +508,9 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                addMessage(response, e);
+                
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                addMessage(response, e);
             }
             catch (Throwable t1)
             {
@@ -514,6 +518,7 @@ public class ResetPasswordServlet extends HttpServlet
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
+                
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         }
