@@ -489,16 +489,17 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                addMessage(response, e);
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                addMessage(response, e);
             }
             catch (NotAuthenticatedException e)
             {
                 // NotAuthenticatedException is thrown when token passed in is invalid
                 log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 addMessage(response, e);
-                logInfo.setMessage(e.getMessage());
+                
             }
             catch (AccessControlException e)
             {
