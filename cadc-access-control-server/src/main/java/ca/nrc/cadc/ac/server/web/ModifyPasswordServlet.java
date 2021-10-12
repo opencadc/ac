@@ -189,15 +189,19 @@ public class ModifyPasswordServlet extends HttpServlet
             catch (IllegalArgumentException e)
             {
                 log.debug(e.getMessage(), e);
-                response.setContentType("text/plain");
                 logInfo.setMessage(e.getMessage());
+                
+                response.setContentType("text/plain");
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write(e.getMessage());
             }
             catch (AccessControlException | NotAuthenticatedException e)
             {
                 log.debug(e.getMessage(), e);
-                response.setContentType("text/plain");
                 logInfo.setMessage(e.getMessage());
+                
+                response.setContentType("text/plain");
+                response.getWriter().write("permission denied: " + e.getMessage());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             catch (TransientException e)
@@ -206,20 +210,23 @@ public class ModifyPasswordServlet extends HttpServlet
                 String message = e.getMessage();
                 logInfo.setMessage(message);
                 logInfo.setSuccess(false);
+                
                 response.setContentType("text/plain");
                 if (e.getRetryDelay() > 0)
                     response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
-                response.getWriter().write("Transient Error: " + message);
                 response.setStatus(503);
+                response.getWriter().write("Transient Error: " + message);
             }
             catch (Throwable e)
             {
                 String message = "Internal Server Error: " + e.getMessage();
                 log.error(message, e);
-                response.setContentType("text/plain");
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
+                
+                response.setContentType("text/plain");
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().write("Transient Error: " + message);
             }
             finally
             {

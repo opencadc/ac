@@ -375,8 +375,9 @@ public class ResetPasswordServlet extends HttpServlet
                 response.setContentType("text/plain");
                 if (e.getRetryDelay() > 0)
                     response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
-                response.getWriter().write("Transient Error: " + message);
+                
                 response.setStatus(503);
+                response.getWriter().write("Transient Error: " + message);
             }
             catch (AccessControlException | NotAuthenticatedException e)
             {
