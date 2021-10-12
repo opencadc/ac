@@ -383,6 +383,7 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             catch (Throwable t1)
@@ -391,7 +392,9 @@ public class ResetPasswordServlet extends HttpServlet
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
+                
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().write(message);
             }
         }
         finally
