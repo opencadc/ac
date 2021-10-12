@@ -812,7 +812,6 @@ public class LdapUserDAO extends LdapDAO
      *
      * @return List of users.
      *
-     * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
@@ -828,7 +827,6 @@ public class LdapUserDAO extends LdapDAO
      * @param emailAddress  The email address.
      * @param usersDN The LDAP tree to search.
      * @return List of users
-     * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
