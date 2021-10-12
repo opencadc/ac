@@ -292,15 +292,17 @@ public class UserRequestServlet extends HttpServlet
         {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            response.getWriter().write(e.getMessage());
+            
             response.setStatus(400);
+            response.getWriter().write(e.getMessage());
         }
         catch (NotAuthenticatedException e)
         {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            response.getWriter().write(e.getMessage());
+            
             response.setStatus(401);
+            response.getWriter().write(e.getMessage());
         }
         catch (Throwable t)
         {
@@ -308,8 +310,9 @@ public class UserRequestServlet extends HttpServlet
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
-            response.getWriter().write(message);
+            
             response.setStatus(500);
+            response.getWriter().write(message);
         }
         finally
         {
