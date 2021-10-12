@@ -201,8 +201,8 @@ public class ModifyPasswordServlet extends HttpServlet
                 logInfo.setMessage(e.getMessage());
                 
                 response.setContentType("text/plain");
-                response.getWriter().write("permission denied: " + e.getMessage());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("permission denied: " + e.getMessage());
             }
             catch (TransientException e)
             {
