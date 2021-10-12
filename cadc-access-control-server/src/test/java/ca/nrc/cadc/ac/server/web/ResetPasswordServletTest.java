@@ -95,6 +95,8 @@ import ca.nrc.cadc.ac.server.ldap.LdapUserDAO;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
 
 
 public class ResetPasswordServletTest
@@ -241,6 +243,7 @@ public class ResetPasswordServletTest
 
         mockResponse.setStatus(responseStatus);
         expectLastCall().once();
+        expect(mockResponse.getWriter()).andReturn(new PrintWriter(new ByteArrayOutputStream())).anyTimes();
 
         replay(mockRequest, mockResponse, mockUserPersistence);
 

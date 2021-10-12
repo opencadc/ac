@@ -375,13 +375,15 @@ public class ResetPasswordServlet extends HttpServlet
                 response.setContentType("text/plain");
                 if (e.getRetryDelay() > 0)
                     response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
-                response.getWriter().write("Transient Error: " + message);
+                
                 response.setStatus(503);
+                response.getWriter().write("Transient Error: " + message);
             }
             catch (AccessControlException | NotAuthenticatedException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             catch (Throwable t1)
@@ -390,7 +392,9 @@ public class ResetPasswordServlet extends HttpServlet
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
+                
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().write(message);
             }
         }
         finally

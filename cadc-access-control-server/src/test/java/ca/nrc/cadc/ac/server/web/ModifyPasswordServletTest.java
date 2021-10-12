@@ -95,6 +95,8 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
 
 
 public class ModifyPasswordServletTest
@@ -161,6 +163,7 @@ public class ModifyPasswordServletTest
 
         mockResponse.setStatus(responseStatus);
         expectLastCall().once();
+        expect(mockResponse.getWriter()).andReturn(new PrintWriter(new ByteArrayOutputStream())).once();
 
         replay(mockRequest, mockResponse);
 
@@ -266,6 +269,7 @@ public class ModifyPasswordServletTest
 
             mockResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             expectLastCall().once();
+            expect(mockResponse.getWriter()).andReturn(new PrintWriter(new ByteArrayOutputStream())).once();
         }
 
         replay(mockRequest, mockResponse, mockUserPersistence);
