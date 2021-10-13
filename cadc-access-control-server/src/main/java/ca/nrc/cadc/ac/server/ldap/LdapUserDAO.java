@@ -386,13 +386,11 @@ public class LdapUserDAO extends LdapDAO
         // check if email address is already in use
         if (email != null)
         {
-            try
-            {
-                getUserByEmailAddress(email, usersDN);
+            List<User> users = getUsersByEmailAddress(email, usersDN);
+            if (users.size() > 0) {
                 final String error = "email address " + email + " for user " + userID.getName() + " found in " + usersDN;
                 throw new UserAlreadyExistsException(error);
             }
-            catch (UserNotFoundException ok) { }
         }
     }
 
@@ -808,40 +806,34 @@ public class LdapUserDAO extends LdapDAO
     }
 
     /**
-     * Get the user specified by the email address exists.
+     * Get the users specified by the email address exists.
      *
-     * @param emailAddress The user's email address.
+     * @param emailAddress The email address.
      *
-     * @return User instance.
+     * @return List of users.
      *
-     * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
-     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    public User getUserByEmailAddress(final String emailAddress)
-        throws UserNotFoundException, TransientException,
-               AccessControlException, UserAlreadyExistsException
+    public List<User> getUsersByEmailAddress(final String emailAddress)
+        throws TransientException, AccessControlException
     {
-        return getUserByEmailAddress(emailAddress, config.getUsersDN());
+        return getUsersByEmailAddress(emailAddress, config.getUsersDN());
     }
 
     /**
-     * Get the user specified by the email address exists.
+     * Get the users specified by the email address exists.
      *
-     * @param emailAddress  The user's email address.
+     * @param emailAddress  The email address.
      * @param usersDN The LDAP tree to search.
-     * @return User ID
-     * @throws UserNotFoundException  when the user is not found.
+     * @return List of users
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
-     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    private User getUserByEmailAddress(final String emailAddress, final String usersDN)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
+    private List<User> getUsersByEmailAddress(final String emailAddress, final String usersDN)
+        throws TransientException, AccessControlException
     {
-        SearchResultEntry searchResult = null;
+        SearchResult multiSearchResult = null;
         Filter filter = null;
         try
         {
@@ -852,67 +844,71 @@ public class LdapUserDAO extends LdapDAO
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
-            searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            multiSearchResult = getReadOnlyConnection().search(searchRequest);
 
-            if (searchResult == null)
-            {
-                String msg = "getUserByEmailAddress: user with email address " +
-                             emailAddress + " not found";
-                logger.debug(msg);
-                throw new UserNotFoundException(msg);
-            }
         }
         catch (LDAPException e)
         {
             LdapDAO.checkLdapResult(e.getResultCode());
         }
-
-        String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
-
-        User user = new User();
-        // don't add http identities for those with external dns
-        if (!EXTERNAL_USER_CN.equals(userIDString)) {
-            HttpPrincipal userID = new HttpPrincipal(userIDString);
-            user.getIdentities().add(userID);
-        }
-
-        // Set the User's private InternalID field
-        String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
-        InternalID internalID = getInternalID(numericID);
-        ObjectUtil.setField(user, internalID, USER_ID);
-        user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
-
-        String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
-        logger.debug("getUserByEmailAddress: x500principal = " + x500str);
-        if (x500str != null)
-            user.getIdentities().add(new X500Principal(x500str));
-
-        String uidNumberStr = searchResult.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
-        logger.debug("getUserByEmailAddress: posixprincipal = " + uidNumberStr);
-        if (uidNumberStr != null)
-            user.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberStr)));
-
-        String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
-        String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
-        if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName))
-        {
-            user.personalDetails = new PersonalDetails(firstName, lastName);
-            user.personalDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
-            user.personalDetails.city = searchResult.getAttributeValue(LDAP_CITY);
-            user.personalDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
-            user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
-            user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
-            
-            String homeDir = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
-            if (homeDir != null) {
-                // numericID, uidNumber and gidNumber hold the same value
-                int uidNumber = Integer.parseInt(uidNumberStr);
-                user.posixDetails = new PosixDetails(userIDString, uidNumber, uidNumber, homeDir);
-                user.posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
+        
+        logger.debug("Found " + multiSearchResult.getSearchEntries().size() + " users with email: " + emailAddress);
+        
+        List<User> users = new ArrayList<User>();
+        Iterator<SearchResultEntry> it = multiSearchResult.getSearchEntries().iterator();
+        while (it.hasNext()) {
+            SearchResultEntry searchResult = it.next();
+        
+            String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
+    
+            User user = new User();
+            // don't add http identities for those with external dns
+            if (!EXTERNAL_USER_CN.equals(userIDString)) {
+                HttpPrincipal userID = new HttpPrincipal(userIDString);
+                user.getIdentities().add(userID);
             }
+    
+            // Set the User's private InternalID field
+            String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
+            InternalID internalID = getInternalID(numericID);
+            ObjectUtil.setField(user, internalID, USER_ID);
+            user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
+    
+            String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
+            logger.debug("getUserByEmailAddress: x500principal = " + x500str);
+            if (x500str != null)
+                user.getIdentities().add(new X500Principal(x500str));
+    
+            String uidNumberStr = searchResult.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
+            logger.debug("getUserByEmailAddress: posixprincipal = " + uidNumberStr);
+            if (uidNumberStr != null)
+                user.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberStr)));
+    
+            String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
+            String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
+            if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName))
+            {
+                user.personalDetails = new PersonalDetails(firstName, lastName);
+                user.personalDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
+                user.personalDetails.city = searchResult.getAttributeValue(LDAP_CITY);
+                user.personalDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
+                user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
+                user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
+                
+                String homeDir = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
+                if (homeDir != null) {
+                    // numericID, uidNumber and gidNumber hold the same value
+                    int uidNumber = Integer.parseInt(uidNumberStr);
+                    user.posixDetails = new PosixDetails(userIDString, uidNumber, uidNumber, homeDir);
+                    user.posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
+                }
+            }
+
+            users.add(user);
+        
         }
 
-        return user;
+        return users;
     }
 
     public User getAugmentedUser(final Principal userID, final boolean primeGroupCache)

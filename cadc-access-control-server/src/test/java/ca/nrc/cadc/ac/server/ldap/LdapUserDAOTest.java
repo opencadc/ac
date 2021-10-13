@@ -1266,8 +1266,10 @@ public class LdapUserDAOTest extends AbstractLdapDAOTest
                 try
                 {
                     final LdapUserDAO userDAO = getUserDAO();
-                    final User user = userDAO.getUserByEmailAddress(emailAddress);
-                    assertNotNull(user);
+                    final List<User> users = userDAO.getUsersByEmailAddress(emailAddress);
+                    assertNotNull(users);
+                    assertEquals(1, users.size());
+                    User user = users.get(0);
                     PersonalDetails pd =  user.personalDetails;
                     assertEquals(emailAddress, pd.email);
                     String actualName = user.getHttpPrincipal().getName();

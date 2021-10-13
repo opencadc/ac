@@ -353,18 +353,24 @@ public class ResetPasswordServlet extends HttpServlet
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setContentType("text/plain");
+                response.getWriter().write(e.getMessage());
             }
             catch (UserNotFoundException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("text/plain");
+                response.getWriter().write(e.getMessage());
             }
             catch (IllegalArgumentException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType("text/plain");
+                response.getWriter().write(e.getMessage());
             }
             catch (TransientException e)
             {
@@ -394,6 +400,7 @@ public class ResetPasswordServlet extends HttpServlet
                 logInfo.setMessage(message);
                 
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setContentType("text/plain");
                 response.getWriter().write(message);
             }
         }

@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.List;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -148,6 +149,19 @@ public interface UserPersistence
     User getUserByEmailAddress(String emailAddress)
             throws UserNotFoundException, UserAlreadyExistsException,
             TransientException, AccessControlException;
+    
+    /**
+     * Get the users specified by email address exists in the active users tree.
+     *
+     * @param emailAddress The user's email address.
+     *
+     * @return List of Users.
+     *
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    List<User> getUsersByEmailAddress(String emailAddress)
+            throws TransientException, AccessControlException;
 
     /**
      * Get the user with the specified Principal whose account is pending approval.
@@ -231,6 +245,21 @@ public interface UserPersistence
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
+    /**
+     * Update the user with the specified Principal in the active users tree.
+     *
+     * @param user      The user instance with personal details to modify.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User modifyUserPersonalDetails(User user)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+    
     /**
      * Update the user with the specified Principal in the active users tree.
      *
