@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,43 +69,47 @@
 
 package ca.nrc.cadc.ac.admin;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
-import java.util.Collection;
-
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.net.TransientException;
-
 /**
- * This class provides a list of all active users in the LDAP server.
- * Active users are users in the main tree.
- * @author yeunga
- *
+ * This class updates the email address for a user.
  */
-public class ListUsers extends AbstractListUsers
+public class ModifyUser extends AbstractUserCommand
 {
-    private static final Logger log = Logger.getLogger(ListUsers.class);
-
+    private static final Logger log = Logger.getLogger(ModifyUser.class);
+    
     private String emailAddress;
-    
-    public ListUsers() {
-        super();
-    }
-    
-    public ListUsers(String emailAddress) {
-        super();
-        this.emailAddress = emailAddress;
+
+    /**
+     * Constructor
+     * @param userID Id of the user to be updated
+     */
+    public ModifyUser(final String userID, final String emailAddress)
+    {
+    	super(userID);
+    	this.emailAddress = emailAddress;
     }
 
-    protected Collection<User> getUsers()
-    		throws AccessControlException, TransientException
+    protected void execute()
+        throws AccessControlException, UserNotFoundException, TransientException
     {
-        if (emailAddress == null) {
-            return this.getUserPersistence().getUsers();
-        } else {
-            return this.getUserPersistence().getUsersByEmailAddress(emailAddress);
+        try {
+
+            User user = this.getUserPersistence().getUser(this.getPrincipal());
+            user.personalDetails.email = emailAddress;
+            
+            this.getUserPersistence().modifyUserPersonalDetails(user);
+            String msg = "User " + this.getPrincipal().getName() + " now has email address " + emailAddress;
+            this.systemOut.println(msg);
+        }
+        catch (UserNotFoundException u)
+        {
+            String msg = "User " + this.getPrincipal().getName() + ": not found.";
+            this.systemOut.println(msg);
         }
     }
-
 }
