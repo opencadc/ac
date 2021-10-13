@@ -364,7 +364,7 @@ public class CmdLineParser
     	sb.append("-h|--help                      : Print this message and exit\n");
     	sb.append("\n");
         sb.append("Authentication and authorization:\n");
-        sb.append("  - An LdapConfig.properties file must exist in directory ~/config/\n");
+        sb.append("  - An ac-ldap-config.properties file must exist in directory ~/config/\n");
         sb.append("  - The corresponding host entry (devLdap or prodLdap) must exist\n");
         sb.append("    in your ~/.dbrc file.");
 
