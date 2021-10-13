@@ -105,7 +105,7 @@ public class ModifyUserAction extends AbstractUserAction
     public void doAction() throws Exception
     {
         final User user = readUser(this.inputStream);
-        final User modifiedUser = userPersistence.modifyUser(user);
+        final User modifiedUser = userPersistence.modifyUserPersonalDetails(user);
         logUserInfo(modifiedUser.getHttpPrincipal().getName());
 
         final URL requestURL = new URL(request.getRequestURL().toString());

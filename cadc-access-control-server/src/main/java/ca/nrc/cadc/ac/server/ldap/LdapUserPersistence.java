@@ -263,12 +263,12 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @return User ID.
      *
      * @throws UserNotFoundException when the user is not found.
+     * @throws UserAlreadyExistsException if more than one account with the email address is found
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     public User getUserByEmailAddress(String emailAddress)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
+        throws UserNotFoundException, UserAlreadyExistsException, TransientException, AccessControlException
     {
         LdapConnections conns = new LdapConnections(this);
         try
@@ -279,7 +279,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
                 throw new UserNotFoundException("user with email address " + emailAddress + " not found");
             }
             if (users.size() > 1) {
-                throw new IllegalStateException("more than one account matched email address " + emailAddress);
+                throw new UserAlreadyExistsException("more than one account matched email address " + emailAddress);
             }
             return users.get(0);
         }
@@ -501,7 +501,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User modifyUser(User user)
+    public User modifyUserPersonalDetails(User user)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -509,6 +509,40 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if ( !isMatch(caller, user) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            // trim out all but personal details
+            user.posixDetails = null;
+            
+            // do the modification
+            userDAO = new LdapUserDAO(conns);
+            return userDAO.modifyUser(user);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+    
+    /**
+     * Admin function to modify a user.
+     *
+     * @param user          The user to update.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User modifyUser(User user)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        // no auth check - admin function
+        
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
