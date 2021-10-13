@@ -216,7 +216,7 @@ public abstract class LdapPersistence
                         {
                             // unbind just to be safe
                             ic.unbind(LDAP_POOL_JNDI_NAME);
-                            logger.warn("Unbound previously bound pool");
+                            logger.debug("Unbound previously bound pool");
                         }
                         catch (NamingException e)
                         {

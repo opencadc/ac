@@ -195,8 +195,11 @@ public class CmdLineParser
         // only one command is allowed per command line
     	if (am.isSet("list"))
     	{
-            System.out.println("--list");
-            this.command = new ListUsers();
+    	    if (am.isSet("email")) {
+    	        this.command = new ListUsers(am.getValue("email"));
+    	    } else {
+    	        this.command = new ListUsers();
+    	    }
             count++;
     	}
 
@@ -213,9 +216,23 @@ public class CmdLineParser
     	    {
                 this.command = new ViewUser(userID);
     	    }
-
             count++;
     	}
+    	
+    	userID = am.getValue("set");
+        if (userID != null)
+        {
+            String email = am.getValue("email");
+            if (email != null)
+            {
+                this.command = new ModifyUser(userID, email);
+            }
+            else
+            {
+                throw new UsageException("Missing parameter 'email'");
+            }
+            count++;
+        }
 
         userID = am.getValue("reject");
     	if (userID != null	)
@@ -328,21 +345,23 @@ public class CmdLineParser
     	sb.append(CertCmdArgUtil.getCertArgUsage());
     	sb.append("\n");
     	sb.append("Where command is\n");
-    	sb.append("--list                       : List users in the Users tree\n");
-    	sb.append("--list-pending               : List users in the UserRequests tree\n");
-    	sb.append("--view=<userid>              : Print the entire details of the user\n");
-    	sb.append("--approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the\n");
-    	sb.append("                             : distinguished name to <dn>\n");
-    	sb.append("--reject=<userid>            : Delete this user request\n");
-        sb.append("--enable=<userid>            : Enable this user account\n");
-        sb.append("--disable=<userid>           : Disable this user account\n");
+    	sb.append("--list                         : List users in the Users tree\n");
+        sb.append("--list --email=<email>         : List users with email address <email>\n");
+    	sb.append("--list-pending                 : List users in the UserRequests tree\n");
+    	sb.append("--view=<userid>                : Print the entire details of the user\n");
+    	sb.append("--set=<userid> --email=<email> : Set the email address to <email> for user <userid>\n");
+    	sb.append("--approve=<userid> --dn=<dn>   : Approve user with userid=<userid> and set the\n");
+    	sb.append("                               : distinguished name to <dn>\n");
+    	sb.append("--reject=<userid>              : Delete this user request\n");
+        sb.append("--enable=<userid>              : Enable this user account\n");
+        sb.append("--disable=<userid>             : Disable this user account\n");
     	sb.append("\n");
-    	sb.append("-v|--verbose                 : Verbose mode print progress and error messages\n");
-    	sb.append("-d|--debug                   : Debug mode print all the logging messages\n");
-    	sb.append("-h|--help                    : Print this message and exit\n");
+    	sb.append("-v|--verbose                   : Verbose mode print progress and error messages\n");
+    	sb.append("-d|--debug                     : Debug mode print all the logging messages\n");
+    	sb.append("-h|--help                      : Print this message and exit\n");
     	sb.append("\n");
         sb.append("Authentication and authorization:\n");
-        sb.append("  - An LdapConfig.properties file must exist in directory ~/config/\n");
+        sb.append("  - An ac-ldap-config.properties file must exist in directory ~/config/\n");
         sb.append("  - The corresponding host entry (devLdap or prodLdap) must exist\n");
         sb.append("    in your ~/.dbrc file.");
 
