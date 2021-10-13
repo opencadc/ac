@@ -76,7 +76,8 @@ import java.security.AccessControlException;
 import org.apache.log4j.Logger;
 
 /**
- * This class updates the email address for a user.
+ * This class updates the information on a user.  Currently it is just
+ * the email address.
  */
 public class ModifyUser extends AbstractUserCommand
 {
@@ -87,6 +88,7 @@ public class ModifyUser extends AbstractUserCommand
     /**
      * Constructor
      * @param userID Id of the user to be updated
+     * @param emailAddress The new email address for the user
      */
     public ModifyUser(final String userID, final String emailAddress)
     {

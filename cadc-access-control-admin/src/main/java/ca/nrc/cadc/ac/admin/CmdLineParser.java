@@ -216,23 +216,20 @@ public class CmdLineParser
     	    {
                 this.command = new ViewUser(userID);
     	    }
-
             count++;
     	}
     	
-        if (am.isSet("set"))
+    	userID = am.getValue("set");
+        if (userID != null)
         {
-            if (this.hasValue(userID))
+            String email = am.getValue("email");
+            if (email != null)
             {
-                String email = am.getValue("email");
-                if (email != null)
-                {
-                    this.command = new ModifyUser(userID, email);
-                }
-                else
-                {
-                    throw new UsageException("Missing parameter 'email'");
-                }
+                this.command = new ModifyUser(userID, email);
+            }
+            else
+            {
+                throw new UsageException("Missing parameter 'email'");
             }
             count++;
         }
