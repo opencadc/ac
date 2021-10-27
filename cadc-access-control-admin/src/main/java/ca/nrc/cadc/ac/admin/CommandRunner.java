@@ -68,6 +68,7 @@
 
 package ca.nrc.cadc.ac.admin;
 
+import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.security.Principal;
 import java.util.Set;
 
@@ -88,13 +89,16 @@ public class CommandRunner
     private final static Logger LOGGER = Logger.getLogger(CommandRunner.class);
     private final CmdLineParser commandLineParser;
     private final UserPersistence userPersistence;
+    private final GroupPersistence groupPersistence;
 
 
     public CommandRunner(final CmdLineParser commandLineParser,
-                         final UserPersistence userPersistence)
+                         final UserPersistence userPersistence,
+                         final GroupPersistence groupPersistence)
     {
         this.commandLineParser = commandLineParser;
         this.userPersistence = userPersistence;
+        this.groupPersistence = groupPersistence;
     }
 
 
@@ -106,6 +110,7 @@ public class CommandRunner
     {
         AbstractCommand command = commandLineParser.getCommand();
         command.setUserPersistence(userPersistence);
+        command.setGroupPersistence(groupPersistence);
 
         Subject operatorSubject = new Subject();
 

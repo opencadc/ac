@@ -17,6 +17,14 @@ Where command is:
 --disable=<userid>           : Lock this user account
 --enable=<userid>            : Unlock this user account
 
+--send-email                                   : Send an email to selected users
+    --file=<email-properties-file>             : Config file with email details
+    --outfile=<list-of-successful-sends>       : Log file
+    --to=<group> | --to-all                    : --to send - to all members of a group
+                                               : --to-all - send to all users
+    [--resume=<last-successful-send-address>]  : Resume sending after this email address
+    [--dry-run]     
+        
 -v|--verbose                 : Verbose mode print progress and error messages
 -d|--debug                   : Debug mode print all the logging messages
 -h|--help                    : Print this message and exit
