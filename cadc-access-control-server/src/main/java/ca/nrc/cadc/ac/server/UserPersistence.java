@@ -79,6 +79,7 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import java.util.SortedSet;
 
 public interface UserPersistence
 {
@@ -368,5 +369,16 @@ public interface UserPersistence
      */
     void resetPassword(HttpPrincipal userID, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException;
+
+    /**
+     * Get a sorted set of distinct email addresses for all users in the users tree.
+     * Items are sorted in ascending order.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    SortedSet<String> getEmailsForAllUsers()
+        throws TransientException, AccessControlException;
 
 }
