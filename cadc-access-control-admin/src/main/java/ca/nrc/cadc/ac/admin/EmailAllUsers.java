@@ -88,6 +88,8 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.mail.MessagingException;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import org.apache.log4j.Logger;
 
 public class EmailAllUsers extends AbstractCommand {
@@ -147,9 +149,11 @@ public class EmailAllUsers extends AbstractCommand {
             e.printStackTrace();
             throw new IllegalStateException(String.format("unknown group name - %s: %s",this.toGroup, e.getMessage()));
         }
-        this.systemOut.printf("emails to process - %s%n", allEmails.size());
+
+        int total = allEmails.size();
+        this.systemOut.printf("emails to process: %s%n", total);
         if (dryRun) {
-            this.systemOut.printf("dry run - no emails will be sent, only logged%n");
+            this.systemOut.printf("dry run: logging only, no emails will be sent%n");
         }
 
         // send and log emails in batches of BATCH_SIZE
@@ -157,15 +161,23 @@ public class EmailAllUsers extends AbstractCommand {
         SortedSet<String> toSend = new TreeSet<>();
         int batch;
         int skipped = 0;
-        int total = 0;
+        int sent = 0;
         boolean done = false;
         while (!done) {
             batch = 0;
             toSend.clear();
             while (iter.hasNext() && batch < BATCH_SIZE) {
                 String email = iter.next();
-                if (!email.contains("@") || email.startsWith("CadcAdminIntTestUser")) {
-                    this.systemOut.printf("skipping - %s%n", email);
+                // remove noise from dev ldap
+                if (email.startsWith("CadcAdminIntTestUser")) {
+                    skipped++;
+                    continue;
+                }
+                try {
+                    boolean strict = true;
+                    new InternetAddress(email, strict);
+                } catch (AddressException e) {
+                    this.systemOut.printf("invalid address - skip: %s%n", email);
                     skipped++;
                     continue;
                 }
@@ -177,13 +189,14 @@ public class EmailAllUsers extends AbstractCommand {
                 done = true;
                 continue;
             }
-            total += toSend.size();
 
             try {
                 sendEmails(toSend);
-                this.systemOut.printf("emails processed %s [%s/%s] skipped %s %n",
-                                      toSend.size(), total, allEmails.size(), skipped);
+                sent += toSend.size();
+                this.systemOut.printf("processed:%s sent:%s skipped:%s total[%s/%s]%n",
+                                      toSend.size(), sent, skipped, sent + skipped, allEmails.size());
             } catch (MessagingException e) {
+                e.printStackTrace();
                 throw new IllegalStateException(String.format("error sending email: %s", e.getMessage()));
             }
 
@@ -207,7 +220,9 @@ public class EmailAllUsers extends AbstractCommand {
                 }
             }
         }
-        this.systemOut.printf("total emails sent - %s%n", total);
+        this.systemOut.printf("  total: %s%n", total);
+        this.systemOut.printf("   sent: %s%n", sent);
+        this.systemOut.printf("skipped: %s%n", skipped);
 
         try {
             this.logWriter.close();
