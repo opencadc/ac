@@ -130,13 +130,10 @@ public class ApproveUser extends AbstractUserCommand
             throw new IllegalArgumentException("Invalid DN format: " + dn);
         }
 
-        boolean approved = false;
-
         try
         {
             this.getUserPersistence().approveUserRequest(this.getPrincipal());
             this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
-            approved = true;
         }
         catch (UserNotFoundException e)
         {
@@ -155,11 +152,8 @@ public class ApproveUser extends AbstractUserCommand
             return;
         }
 
-        if (approved)
-        {
-            // email the user if configuration is available
-            emailUser(user);
-        }
+        // email the user
+        emailUser(user);
 
         user.getIdentities().add(dnPrincipal);
         this.getUserPersistence().modifyUser(user);
@@ -219,7 +213,7 @@ public class ApproveUser extends AbstractUserCommand
                 mailer.setBccList(new String[] { mailProps.getString(Mailer.MAIL_BCC) });
             }
 
-            mailer.setContentType(Mailer.DEFAULT_CONTENT_TYPE);
+            mailer.setContentType(Mailer.HTML_CONTENT_TYPE);
 
             mailer.doSend();
             this.systemOut.println("Emailed approval message to user.");
