@@ -74,6 +74,7 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.List;
 
+import java.util.SortedSet;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
@@ -780,7 +781,38 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             conns.releaseConnections();
         }
     }
-    
+
+    /**
+     * Get a sorted set of distinct email addresses for all users in the users tree.
+     * Items are sorted in ascending order.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public SortedSet<String> getEmailsForAllUsers()
+        throws TransientException, AccessControlException {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
+            throw new AccessControlException("Caller is not authenticated");
+
+        // user must also have an approved account
+        if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
+            throw new AccessControlException("Caller does not have authorized account");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO(conns);
+            return userDAO.getEmailsForAllUsers();
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
     private boolean checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
     	boolean groupExists = false;
         try {

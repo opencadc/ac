@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,97 +62,52 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
+ *  : 5 $
  *
  ************************************************************************
  */
 
 package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.io.PrintStream;
-import java.security.AccessControlException;
-import java.security.PrivilegedAction;
+import ca.nrc.cadc.util.StringUtil;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.List;
+import java.util.PropertyResourceBundle;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.net.TransientException;
+public class AdminUtil {
 
+    private static final String USER_CONFIG_DIR = System.getProperty("user.home") + "/config/";
 
-/**
- * Provide attributes and methods that apply to all commands.
- * @author yeunga
- *
- */
-public abstract class AbstractCommand implements PrivilegedAction<Object>
-{
-    protected PrintStream systemOut = System.out;
-    protected PrintStream systemErr = System.err;
+    public static  PropertyResourceBundle getProperties(String propsFilename, List<String> propsRequired)
+        throws UsageException {
 
-    private UserPersistence userPersistence;
-    private GroupPersistence groupPersistence;
-
-    protected abstract void doRun()
-            throws AccessControlException, TransientException;
-
-    /**
-     * Set the system out.
-     * @param printStream       The stream to write System.out to .
-     */
-    public void setSystemOut(PrintStream printStream)
-    {
-        this.systemOut = printStream;
-    }
-
-    /**
-     * Set the system err.
-     * @param printStream       The stream to write System.err to.
-     */
-    public void setSystemErr(PrintStream printStream)
-    {
-        this.systemErr = printStream;
-    }
-
-    @Override
-    public Object run()
-    {
-        try
-        {
-            this.doRun();
-        }
-        catch (AccessControlException e)
-        {
-            this.systemErr.println("ERROR: " + e.getMessage());
-            e.printStackTrace(systemErr);
-        }
-        catch (TransientException e)
-        {
-            String message = "Internal Transient Error: " + e.getMessage();
-            this.systemErr.println("ERROR: " + message);
-            e.printStackTrace(systemErr);
+        PropertyResourceBundle resourceBundle;
+        try {
+            FileReader reader = new FileReader(USER_CONFIG_DIR + propsFilename);
+            resourceBundle = new PropertyResourceBundle(reader);
+        } catch (FileNotFoundException e) {
+            throw new UsageException(String.format("%s - file not found: %s", propsFilename, e.getMessage()));
+        } catch (IOException e) {
+            throw new UsageException(String.format("%s - unable to read file: %s", propsFilename, e.getMessage()));
         }
 
-        return null;
+        StringBuilder sb = new StringBuilder();
+        for (String property : propsRequired) {
+            if (!resourceBundle.containsKey(property)) {
+                sb.append(String.format("\n%s - %s property missing", propsFilename, property));
+            } else {
+                String value = resourceBundle.getString(property);
+                if (!StringUtil.hasText(value)) {
+                    sb.append(String.format("\n%s - %s property has no value", propsFilename, property));
+                }
+            }
+        }
+        if (sb.length() > 0) {
+            throw new UsageException(String.format("%s is incomplete\n%s", propsFilename, sb));
+        }
+        return resourceBundle;
     }
 
-    protected void setUserPersistence(
-            final UserPersistence userPersistence)
-    {
-        this.userPersistence = userPersistence;
-    }
-
-    public UserPersistence getUserPersistence()
-    {
-        return this.userPersistence;
-    }
-
-    protected void setGroupPersistence(
-        final GroupPersistence groupPersistence)
-    {
-        this.groupPersistence = groupPersistence;
-    }
-
-    public GroupPersistence getGroupPersistence()
-    {
-        return this.groupPersistence;
-    }
 }

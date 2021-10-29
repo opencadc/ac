@@ -95,7 +95,7 @@ public class CmdLineParser
 		{"ca.nrc.cadc.ac", "ca.nrc.cadc.auth", "ca.nrc.cadc.util"};
 
     // no need to proceed further if false
-    private Level logLevel = Level.OFF;
+    private Level logLevel = Level.DEBUG;
     private AbstractCommand command;
     private boolean isHelpCommand = false;
     private ArgumentMap am;
@@ -286,6 +286,49 @@ public class CmdLineParser
             count++;
         }
 
+        if (am.isSet("send-email")) {
+            StringBuilder sb = new StringBuilder();
+
+            String file = am.getValue("file");
+            if (file == null) {
+                sb.append("\nMissing parameter 'file'");
+            } else if (file.equals("true")) {
+                sb.append("\nParameter 'file' has no value");
+            }
+
+            String outfile = am.getValue("outfile");
+            if (outfile == null) {
+                sb.append("\nMissing parameter 'outfile'");
+            } else if (outfile.equals("true")) {
+                sb.append("\nParameter 'outfile' has no value");
+            }
+
+            String toGroup = am.getValue("to");
+            String toAll = am.getValue("to-all");
+            if (toGroup == null && toAll == null) {
+                sb.append("\nOne of '--to' or '--to-all' must be specified");
+            } else if (toGroup != null && toAll != null) {
+                sb.append("\n'--to' and '--to-all' are mutually exclusive options");
+            } else if (toGroup != null && toGroup.equals("true")) {
+                sb.append("\nParameter 'to' has no value");
+            }
+
+            String resume = am.getValue("resume");
+            if (resume != null && resume.equals("true")) {
+                sb.append("\nParameter 'resume' has no value");
+            }
+
+            if (sb.length() > 0) {
+                throw new UsageException(sb.toString());
+            }
+
+            boolean allUsers = toAll != null;
+            boolean dryRun = am.getValue("dry-run") != null;
+            boolean altDryRun = am.getValue("dryrun") != null;
+            this.command = new EmailAllUsers(file, outfile, toGroup, allUsers, resume, dryRun || altDryRun);
+            count++;
+        }
+
     	if (count == 1)
     	{
             return true;
@@ -355,6 +398,14 @@ public class CmdLineParser
     	sb.append("--reject=<userid>              : Delete this user request\n");
         sb.append("--enable=<userid>              : Enable this user account\n");
         sb.append("--disable=<userid>             : Disable this user account\n");
+        sb.append("\n");
+        sb.append("--send-email                                   : Send an email to selected users\n");
+        sb.append("    --file=<email-properties-file>             : Config file with email details\n");
+        sb.append("    --outfile=<list-of-successful-sends>       : Log file\n");
+        sb.append("    --to=<group> | --to-all                    : --to - send to all members of a group\n");
+        sb.append("                                               : --to-all - send to all users\n");
+        sb.append("    [--resume=<last-successful-send-address>]  : Resume sending after this email address\n");
+        sb.append("    [--dry-run]                                : Do not send email but log actions\n");
     	sb.append("\n");
     	sb.append("-v|--verbose                   : Verbose mode print progress and error messages\n");
     	sb.append("-d|--debug                     : Debug mode print all the logging messages\n");

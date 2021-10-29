@@ -124,6 +124,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.security.auth.x500.X500Principal;
@@ -1143,6 +1145,42 @@ public class LdapUserDAO extends LdapDAO
         }
         logger.debug("getUsers: found " + users.size() + " in " + usersDN);
         return users;
+    }
+
+    public SortedSet<String> getEmailsForAllUsers()
+        throws AccessControlException, TransientException {
+
+        Filter emailFilter = Filter.createPresenceFilter(LDAP_EMAIL);
+        Filter filter = Filter.createANDFilter(this.notLockedFilter, emailFilter);
+        logger.debug("search filter: " + filter);
+
+        final SortedSet<String> emails = new TreeSet<>();
+        final String[] attributes = new String[] { LDAP_EMAIL };
+        final SearchRequest searchRequest = new SearchRequest(config.getUsersDN(), SearchScope.ONE, filter, attributes);
+
+        try
+        {
+            final SearchResult searchResult = getReadOnlyConnection().search(searchRequest);
+
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            for (SearchResultEntry next : searchResult.getSearchEntries())
+            {
+                emails.add(next.getAttributeValue(LDAP_EMAIL));
+            }
+        }
+        catch (LDAPSearchException e)
+        {
+            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+            {
+                final String message = "Could not find users root";
+                logger.debug(message, e);
+                throw new IllegalStateException(message);
+            }
+        }
+        logger.debug("getDistinctEmailAddressesForAllUsers: found " + emails.size()
+                         + " distinct emails in " + config.getUsersDN());
+
+        return emails;
     }
 
     /**

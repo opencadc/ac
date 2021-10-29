@@ -68,6 +68,7 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.ac.UserSet;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -76,6 +77,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
@@ -336,6 +339,44 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         {
             log.error("getGroups fail", ex);
             throw ex;
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
+    /**
+     * Get a sorted set of distinct email addresses for members
+     * of the given group. Emails are sorted in ascending order.
+     *
+     * @param groupName The group name.
+     * @return A sorted set of email address.
+     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public SortedSet<String> getMemberEmailsForGroup(String groupName)
+        throws GroupNotFoundException, TransientException, AccessControlException {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        checkAuthenticatedWithAccount(caller);
+
+        LdapConnections conns = new LdapConnections(this);
+        LdapUserDAO userDAO = null;
+        LdapGroupDAO groupDAO = null;
+        try
+        {
+            SortedSet<String> emails = new TreeSet<>();
+            userDAO = new LdapUserDAO(conns);
+            groupDAO = new LdapGroupDAO(conns, userDAO);
+            Group group = groupDAO.getGroup(groupName, true);
+            UserSet userMembers = group.getUserMembers();
+            for (User userMember : userMembers) {
+                String email = userMember.personalDetails.email;
+                if (email != null) {
+                    emails.add(email);
+                }
+            }
+            return emails;
         }
         finally
         {
