@@ -98,9 +98,6 @@ public class EmailAllUsers extends AbstractCommand {
 
     private static final String SMTP_CONFIG = "ac-admin-email.properties";
 
-    // max bcc addresses per email
-    private static final int BATCH_SIZE = 250;
-
     // sleep time in secs between emails
     private static final int SLEEP_TIME = 10;
 
@@ -114,6 +111,7 @@ public class EmailAllUsers extends AbstractCommand {
 
     private final String emailPropsFilename;
     private final String logFilename;
+    private final int batchSize;
     private final String toGroup;
     private final boolean toAllUsers;
     private final String resumeEmail;
@@ -123,12 +121,13 @@ public class EmailAllUsers extends AbstractCommand {
     private PropertyResourceBundle mailProps;
     private BufferedWriter logWriter;
 
-    public EmailAllUsers(String emailPropsFilename, String logFilename, String toGroup,
+    public EmailAllUsers(String emailPropsFilename, String logFilename, int batchSize, String toGroup,
                          boolean toAllUsers, String resumeEmail, boolean dryRun)
         throws UsageException {
 
         this.emailPropsFilename = emailPropsFilename;
         this.logFilename = logFilename;
+        this.batchSize = batchSize;
         this.toGroup = toGroup;
         this.toAllUsers = toAllUsers;
         this.resumeEmail = resumeEmail;
@@ -166,7 +165,7 @@ public class EmailAllUsers extends AbstractCommand {
         while (!done) {
             batch = 0;
             toSend.clear();
-            while (iter.hasNext() && batch < BATCH_SIZE) {
+            while (iter.hasNext() && batch < this.batchSize) {
                 String email = iter.next();
                 // remove noise from dev ldap
                 if (email.startsWith("CadcAdminIntTestUser")) {
@@ -211,7 +210,7 @@ public class EmailAllUsers extends AbstractCommand {
             }
 
             // try to avoid sleeping after last batch of emails
-            if (toSend.size() == BATCH_SIZE) {
+            if (toSend.size() == this.batchSize) {
                 try {
                     this.systemOut.printf("sleeping for %s secs%n", SLEEP_TIME);
                     Thread.sleep(SLEEP_TIME * 1000);
