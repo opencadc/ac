@@ -20,6 +20,7 @@ Where command is:
 --send-email                                   : Send an email to selected users
     --file=<email-properties-file>             : Config file with email details
     --outfile=<list-of-successful-sends>       : Log file
+    --batch-size=<num-of-emails-in-bcc>        : Number of emails in the bcc list
     --to=<group> | --to-all                    : --to send - to all members of a group
                                                : --to-all - send to all users
     [--resume=<last-successful-send-address>]  : Resume sending after this email address

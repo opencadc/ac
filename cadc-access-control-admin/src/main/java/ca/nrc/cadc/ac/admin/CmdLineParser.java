@@ -303,6 +303,22 @@ public class CmdLineParser
                 sb.append("\nParameter 'outfile' has no value");
             }
 
+            int batchSize = -1;
+            String batch = am.getValue("batch-size");
+            if (batch == null) {
+                sb.append("\nMissing parameter 'batch-size'");
+            } else {
+                if (batch.equals("true")) {
+                    sb.append("\nParameter 'batch-size' has no value");
+                } else {
+                    try {
+                        batchSize = Integer.parseInt(batch);
+                    } catch (NumberFormatException e) {
+                        sb.append("\nParameter 'batch-size' must be a number");
+                    }
+                }
+            }
+
             String toGroup = am.getValue("to");
             String toAll = am.getValue("to-all");
             if (toGroup == null && toAll == null) {
@@ -325,7 +341,8 @@ public class CmdLineParser
             boolean allUsers = toAll != null;
             boolean dryRun = am.getValue("dry-run") != null;
             boolean altDryRun = am.getValue("dryrun") != null;
-            this.command = new EmailAllUsers(file, outfile, toGroup, allUsers, resume, dryRun || altDryRun);
+            this.command = new EmailAllUsers(file, outfile, batchSize, toGroup,
+                                             allUsers, resume, dryRun || altDryRun);
             count++;
         }
 
@@ -402,6 +419,7 @@ public class CmdLineParser
         sb.append("--send-email                                   : Send an email to selected users\n");
         sb.append("    --file=<email-properties-file>             : Config file with email details\n");
         sb.append("    --outfile=<list-of-successful-sends>       : Log file\n");
+        sb.append("    --batch-size=<num-of-emails-in-bcc>        : Number of emails in the bcc list\n");
         sb.append("    --to=<group> | --to-all                    : --to - send to all members of a group\n");
         sb.append("                                               : --to-all - send to all users\n");
         sb.append("    [--resume=<last-successful-send-address>]  : Resume sending after this email address\n");
