@@ -385,7 +385,7 @@ public class LoginServlet extends HttpServlet
         URL loginURL = regClient.getServiceURL(loginServiceURI, Standards.SECURITY_METHOD_PASSWORD, AuthMethod.ANON);
         
         StringBuilder authHeader = new StringBuilder();
-        authHeader.append(AuthenticationUtil.CHALLENGE_TYPE_IVOA).append(" ");
+        authHeader.append(AuthenticationUtil.CHALLENGE_TYPE_IVOA_BEARER).append(" ");
         authHeader.append("standard_id=\"").append(Standards.SECURITY_METHOD_PASSWORD.toString()).append("\", ");
         authHeader.append("access_url=\"").append(loginURL.toString()).append("\"");
         if (error) {
