@@ -246,18 +246,15 @@ public class LoginServlet extends HttpServlet
             }
             logInfo.setMessage(msg);
     	    response.setContentType(CONTENT_TYPE);
-            response.setHeader(AuthenticationUtil.AUTHENTICATE_HEADER, getWWWAuthenticateHeader(false, null));
             response.getWriter().write(msg);
             response.setStatus(400);
         }
         catch (AccessControlException e)
         {
             String message = e.getMessage();
-            String authHeader = this.getWWWAuthenticateHeader(true, message);
             log.debug(e.getMessage(), e);
             logInfo.setMessage(message);
     	    response.setContentType(CONTENT_TYPE);
-    	    response.setHeader(AuthenticationUtil.AUTHENTICATE_HEADER, authHeader);
             response.getWriter().write(message);
             response.setStatus(401);
         }
@@ -268,7 +265,6 @@ public class LoginServlet extends HttpServlet
             logInfo.setMessage(message);
             logInfo.setSuccess(false);
             response.setContentType("CONTENT_TYPE");
-            response.setHeader(AuthenticationUtil.AUTHENTICATE_HEADER, getWWWAuthenticateHeader(false, null));
             if (e.getRetryDelay() > 0)
                 response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             response.getWriter().write("Transient Error: " + message);
@@ -281,7 +277,6 @@ public class LoginServlet extends HttpServlet
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
     	    response.setContentType(CONTENT_TYPE);
-            response.setHeader(AuthenticationUtil.AUTHENTICATE_HEADER, getWWWAuthenticateHeader(false, null));
             response.getWriter().write(message);
             response.setStatus(500);
         }
@@ -378,23 +373,4 @@ public class LoginServlet extends HttpServlet
         return gp;
     }
     
-    private String getWWWAuthenticateHeader(boolean error, String errorMessage) {
-        LocalAuthority la = new LocalAuthority();
-        URI loginServiceURI = la.getServiceURI(Standards.SECURITY_METHOD_PASSWORD.toString());
-        RegistryClient regClient = new RegistryClient();
-        URL loginURL = regClient.getServiceURL(loginServiceURI, Standards.SECURITY_METHOD_PASSWORD, AuthMethod.ANON);
-        
-        StringBuilder authHeader = new StringBuilder();
-        authHeader.append(AuthenticationUtil.CHALLENGE_TYPE_IVOA_BEARER).append(" ");
-        authHeader.append("standard_id=\"").append(Standards.SECURITY_METHOD_PASSWORD.toString()).append("\", ");
-        authHeader.append("access_url=\"").append(loginURL.toString()).append("\"");
-        if (error) {
-            authHeader.append(", error=\"").append(NotAuthenticatedException.AuthError.INVALID_REQUEST.getValue()).append("\"");
-            if (errorMessage != null && !errorMessage.isEmpty()) {
-                authHeader.append(", error_description=\"").append(errorMessage).append("\"");
-            }
-        }
-        return authHeader.toString();
-    }
-
 }
