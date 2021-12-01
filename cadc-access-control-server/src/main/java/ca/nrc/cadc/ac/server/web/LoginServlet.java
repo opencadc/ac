@@ -224,6 +224,7 @@ public class LoginServlet extends HttpServlet
         	    response.setContentType(CONTENT_TYPE);
         	    response.setContentLength(token.length());
                 response.setHeader(AuthenticationUtil.VO_AUTHENTICATED_HEADER, userID);
+                response.setHeader(AuthenticationUtil.VO_TOKEN_BEARER, token);
         	    response.getWriter().write(token);
         	}
         }
