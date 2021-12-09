@@ -70,6 +70,7 @@
 package org.opencadc.gms;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -95,5 +96,10 @@ public class NoOpGroupClient implements GroupClient {
     public List<GroupURI> getMemberships() {
         return Arrays.asList();
     }
-    
+
+    @Override
+    public boolean isMember(List<GroupURI> groups) {
+        return false;
+    }
+
 }

@@ -71,6 +71,7 @@ package org.opencadc.gms;
 
 import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
+import java.util.ArrayList;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -108,6 +109,7 @@ public class GroupClientTest {
         Assert.assertFalse(client.isMember(new GroupURI(URI.create("ivo://cadc.nrc.ca/test?group"))));
         Assert.assertNotNull(client.getMemberships());
         Assert.assertTrue(client.getMemberships().isEmpty());
+        Assert.assertFalse(client.isMember(new ArrayList<GroupURI>()));
     }
 
 }

@@ -112,6 +112,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupClient;
@@ -194,8 +195,26 @@ public class GMSClient implements TransferListener, GroupClient
             throw new RuntimeException(e);
         }
     }
-    
 
+    /**
+     * GMSClient Interface compliance.
+     *
+     * Return true is the calling user is a member
+     * of a group in the list of groups.
+     *
+     * @param groups The groups whose membership to check
+     * @return true if the user is a member of a group, false otherwise.
+     */
+    @Override
+    public boolean isMember(List<GroupURI> groups) {
+        try {
+            List<String> groupNames = groups.stream().map(GroupURI::getName).collect(Collectors.toList());
+            List<Group> memberGroups = this.getMemberships(groupNames, null, Role.MEMBER);
+            return !memberGroups.isEmpty();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * Get a list of groups.
@@ -750,8 +769,14 @@ public class GMSClient implements TransferListener, GroupClient
         return getMemberships(null, role);
     }
 
-
     private List<Group> getMemberships(Principal ignore, Role role)
+        throws UserNotFoundException, AccessControlException, IOException
+    {
+        return this.getMemberships(null, ignore, role);
+    }
+
+
+    private List<Group> getMemberships(List<String> groupNames, Principal ignore, Role role)
         throws UserNotFoundException, AccessControlException, IOException
     {
         if (role == null)
@@ -760,7 +785,7 @@ public class GMSClient implements TransferListener, GroupClient
         }
 
         Principal userID = getCurrentUserID();
-        if (userID != null)
+        if (groupNames == null || groupNames.isEmpty() && userID != null)
         {
             List<Group> cachedGroups = getCachedGroups(userID, role, true);
             if (cachedGroups != null)
@@ -771,9 +796,17 @@ public class GMSClient implements TransferListener, GroupClient
 
         String roleString = role.getValue();
         URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_01);
-        URL getMembershipsURL = new URL(searchURL.toExternalForm()
-                                        + "?ROLE="
-                                        + NetUtil.encode(roleString));
+        StringBuilder sb = new StringBuilder();
+        sb.append(searchURL.toExternalForm());
+        sb.append("?ROLE=");
+        sb.append(NetUtil.encode(roleString));
+        if (groupNames != null) {
+            for (String groupName : groupNames) {
+                sb.append("&GROUPID=");
+                sb.append(NetUtil.encode(groupName));
+            }
+        }
+        URL getMembershipsURL = new URL(sb.toString());
 
         log.debug("getMemberships request to " + getMembershipsURL.toString());
         ByteArrayOutputStream out = new ByteArrayOutputStream();

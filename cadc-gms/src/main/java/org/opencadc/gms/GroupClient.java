@@ -69,6 +69,7 @@
 
 package org.opencadc.gms;
 
+import java.util.Collection;
 import java.util.List;
 
 
@@ -102,5 +103,13 @@ public interface GroupClient {
      */
     public List<GroupURI> getMemberships();
 
+    /**
+     * Return true is the calling user is a member
+     * of a group in the list of groups.
+     *
+     * @param groups The groups whose membership to check
+     * @return true if the user is a member of a group, false otherwise.
+     */
+    public boolean isMember(List<GroupURI> groups);
 
 }
