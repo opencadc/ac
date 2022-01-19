@@ -78,8 +78,6 @@ public class Mailer
 
     public static final String SMTP_HOST = "smtp.host";
     public static final String SMTP_PORT = "smtp.port";
-    public static final String SMTP_ACCOUNT = "smtp.account";
-    public static final String SMTP_PASSWORD = "smtp.password";
 
     public static final String MAIL_FROM = "mail.from";
     public static final String MAIL_TO = "mail.to";
@@ -113,8 +111,6 @@ public class Mailer
 
     protected String smtpHost;
     protected String smtpPort;
-    protected String smtpAccount;
-    protected String smtpPassword;
 
     public boolean isComplete()
     {
@@ -152,16 +148,6 @@ public class Mailer
             return false;
         }
 
-        if (smtpAccount == null || smtpAccount.length() == 0) {
-            logger.error("No SMTP account set in Mailer");
-            return false;
-        }
-
-        if (smtpPassword == null || smtpPassword.length() == 0) {
-            logger.error("No SMTP password set in Mailer");
-            return false;
-        }
-
         return true;
     }
 
@@ -184,8 +170,8 @@ public class Mailer
         Properties props = new Properties();
         props.put("mail.smtp.port", smtpPort);
         props.put("mail.smtp.host", smtpHost);
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", true);
+        //props.put("mail.smtp.auth", "true");
+        //props.put("mail.smtp.starttls.enable", true);
 
         if (session == null)
         {
@@ -245,13 +231,12 @@ public class Mailer
         logger.debug("set subject: " + subject);
 
         // Just in case the content type was set to null for some reason...
-        msg.setContent(body, StringUtil.hasText(contentType)
-            ? contentType : DEFAULT_CONTENT_TYPE);
+        msg.setContent(body, StringUtil.hasText(contentType) ? contentType : DEFAULT_CONTENT_TYPE);
         logger.debug("set body: " + body);
         logger.debug("contentType: " + (StringUtil.hasText(contentType) ? contentType : DEFAULT_CONTENT_TYPE));
 
         logger.debug("sending email");
-        Transport.send(msg, smtpAccount, smtpPassword);
+        Transport.send(msg);
     }
 
     /**
@@ -427,14 +412,6 @@ public class Mailer
 
     public void setSmtpPort(String smtpPort) {
         this.smtpPort = smtpPort;
-    }
-
-    public void setSmtpAccount(String smtpAccount) {
-        this.smtpAccount = smtpAccount;
-    }
-
-    public void setSmtpPassword(String smtpPassword) {
-        this.smtpPassword = smtpPassword;
     }
 
 }

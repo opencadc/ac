@@ -102,8 +102,7 @@ public class EmailAllUsers extends AbstractCommand {
     private static final int SLEEP_TIME = 10;
 
     private static final List<String> SMTP_PROPS =
-        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT,
-                  Mailer.SMTP_ACCOUNT, Mailer.SMTP_PASSWORD).collect(Collectors.toList());
+        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT).collect(Collectors.toList());
 
     private static final List<String> MAIL_PROPS =
         Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO,
@@ -288,8 +287,6 @@ public class EmailAllUsers extends AbstractCommand {
         Mailer mailer = new Mailer();
         mailer.setSmtpHost(smtpProps.getString(Mailer.SMTP_HOST));
         mailer.setSmtpPort(smtpProps.getString(Mailer.SMTP_PORT));
-        mailer.setSmtpAccount(smtpProps.getString(Mailer.SMTP_ACCOUNT));
-        mailer.setSmtpPassword(smtpProps.getString(Mailer.SMTP_PASSWORD));
 
         mailer.setToList(new String[] { mailProps.getString(Mailer.MAIL_TO)});
         mailer.setReplyToList(new String[] { mailProps.getString(Mailer.MAIL_REPLY_TO)});
