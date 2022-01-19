@@ -69,9 +69,7 @@
 
 package org.opencadc.gms;
 
-import java.util.Collection;
 import java.util.List;
-
 
 /**
  * 
@@ -87,29 +85,39 @@ import java.util.List;
 public interface GroupClient {
     
     /**
-     * Return true if the calling user is a member of
-     * the group.
+     * Return the given groups in which the calling user is a member.
+     * Groups in the list of given groups belonging to an unknown GMS service are ignored.
+     * If the list of given groups is null or empty, returns an empty list.
      * 
-     * @param group The group membership to check
-     * @return true if the user is a member.
+     * @return The group memberships for the user in the given groups.
      */
-    public boolean isMember(GroupURI group);
-    
-    /**
-     * Return the list of groups in which the calling user
-     * is a member.
-     * 
-     * @return The group memberships for the user.
-     */
-    public List<GroupURI> getMemberships();
+    public List<GroupURI> getMemberships(List<GroupURI> groups);
 
     /**
-     * Return true is the calling user is a member
-     * of a group in the list of groups.
+     * Return true is the calling user is a member of a group in the list of groups.
+     * Groups in the list of given groups belonging to an unknown GMS service are ignored.
+     * If the list of given groups is null or empty, returns false.
      *
-     * @param groups The groups whose membership to check
-     * @return true if the user is a member of a group, false otherwise.
+     * @param groups List of groups whose membership to check
+     * @return true if the user is a member of the given groups, false otherwise.
      */
     public boolean isMember(List<GroupURI> groups);
+
+    /**
+     * Return true if the calling user is a member of the given group.
+     * If the given group is null, or belongs to an unknown GMS service, returns false.
+     * 
+     * @param group The group membership to check
+     * @return true if the user is a member of the given group, false otherwise.
+     */
+    public boolean isMember(GroupURI group);
+
+    /**
+     * Return the list of groups in which the calling user is a member.
+     *
+     * @return The group memberships for the user.
+     */
+    @Deprecated
+    public List<GroupURI> getMemberships();
 
 }

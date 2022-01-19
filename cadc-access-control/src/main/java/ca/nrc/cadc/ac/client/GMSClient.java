@@ -113,6 +113,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupClient;
@@ -126,7 +127,7 @@ public class GMSClient implements TransferListener, GroupClient
 {
     private static final Logger log = Logger.getLogger(GMSClient.class);
 
-    private URI serviceID;
+    final private URI serviceID;
 
     /**
      * Constructor.
@@ -152,45 +153,38 @@ public class GMSClient implements TransferListener, GroupClient
     {
         return null; // no custom eventID header
     }
-    
 
-    
     /**
      * GMSClient Interface compliance.
-     * 
+     *
      * Default 'role' within a group is 'membership'
-     * 
+     *
      * Ensure serviceIDs match.
      */
     @Override
-    public boolean isMember(GroupURI group) {
-        if (group == null) {
-            throw new IllegalArgumentException("Null group");
+    public List<GroupURI> getMemberships(List<GroupURI> groups) {
+        // return empty list for null or empty groups list
+        if (groups == null || groups.isEmpty()) {
+            return new ArrayList<>();
         }
-        if (!group.getServiceID().equals(serviceID)) {
-            throw new UnsupportedOperationException("Group is not in the target GMS service.");
-        }
-        try {
-            return this.isMember(group.getName(), Role.MEMBER);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-    
-    /**
-     * GMSClient Interface compliance.
-     *  
-     * Default 'role' within a group is 'membership'
-     */
-    @Override
-    public List<GroupURI> getMemberships() {
-        try {
-            List<Group> groups = this.getMemberships(Role.MEMBER);
-            ArrayList<GroupURI> ret = new ArrayList<GroupURI>(groups.size());
-            for (Group next : groups) {
-                ret.add(next.getID());
+
+        // discard groups not in the target GMS service
+        List<String> groupNames = new ArrayList<>();
+        for (GroupURI group : groups) {
+            if (group.getServiceID().equals(this.serviceID)) {
+                groupNames.add(group.getName());
+            } else {
+                log.warn(String.format("%s is not in the target GMS service %s",
+                                       group.getURI().toASCIIString(), this.serviceID.toASCIIString()));
             }
-            return ret;
+        }
+        if (groupNames.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        try {
+            List<Group> memberships = this.getMemberships(groupNames, null, Role.MEMBER);
+            return memberships.stream().map(Group::getID).collect(Collectors.toList());
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -207,10 +201,32 @@ public class GMSClient implements TransferListener, GroupClient
      */
     @Override
     public boolean isMember(List<GroupURI> groups) {
+        return !this.getMemberships(groups).isEmpty();
+    }
+    
+    /**
+     * GMSClient Interface compliance.
+     * 
+     * Default 'role' within a group is 'membership'
+     * 
+     * Ensure serviceIDs match.
+     */
+    @Override
+    public boolean isMember(GroupURI group) {
+        return !this.getMemberships(Stream.of(group).collect(Collectors.toList())).isEmpty();
+    }
+    
+    /**
+     * GMSClient Interface compliance.
+     *  
+     * Default 'role' within a group is 'membership'
+     */
+    @Deprecated
+    @Override
+    public List<GroupURI> getMemberships() {
         try {
-            List<String> groupNames = groups.stream().map(GroupURI::getName).collect(Collectors.toList());
-            List<Group> memberGroups = this.getMemberships(groupNames, null, Role.MEMBER);
-            return !memberGroups.isEmpty();
+            List<Group> memberships = this.getMemberships(Role.MEMBER);
+            return memberships.stream().map(Group::getID).collect(Collectors.toList());
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

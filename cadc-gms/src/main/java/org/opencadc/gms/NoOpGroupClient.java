@@ -70,7 +70,6 @@
 package org.opencadc.gms;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -88,18 +87,24 @@ import java.util.List;
 public class NoOpGroupClient implements GroupClient {
 
     @Override
-    public boolean isMember(GroupURI group) {
-        return false;
-    }
-
-    @Override
-    public List<GroupURI> getMemberships() {
+    public List<GroupURI> getMemberships(List<GroupURI> groups) {
         return Arrays.asList();
     }
 
     @Override
     public boolean isMember(List<GroupURI> groups) {
         return false;
+    }
+
+    @Override
+    public boolean isMember(GroupURI group) {
+        return false;
+    }
+
+    @Deprecated
+    @Override
+    public List<GroupURI> getMemberships() {
+        return Arrays.asList();
     }
 
 }
