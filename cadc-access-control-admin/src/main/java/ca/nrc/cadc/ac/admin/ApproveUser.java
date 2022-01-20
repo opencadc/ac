@@ -98,9 +98,8 @@ public class ApproveUser extends AbstractUserCommand
     private static final String EMAIL_CONFIG = "ac-admin-email.properties";
 
     private static final List<String> MAIL_PROPS =
-        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT, Mailer.SMTP_ACCOUNT, Mailer.SMTP_PASSWORD,
-                  Mailer.MAIL_FROM, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY)
-            .collect(Collectors.toList());
+        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT, Mailer.MAIL_FROM, Mailer.MAIL_REPLY_TO,
+                  Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY).collect(Collectors.toList());
 
     private String dn;
     private final PropertyResourceBundle mailProps;
@@ -200,8 +199,6 @@ public class ApproveUser extends AbstractUserCommand
             Mailer mailer = new Mailer();
             mailer.setSmtpHost(this.mailProps.getString(Mailer.SMTP_HOST));
             mailer.setSmtpPort(this.mailProps.getString(Mailer.SMTP_PORT));
-            mailer.setSmtpAccount(this.mailProps.getString(Mailer.SMTP_ACCOUNT));
-            mailer.setSmtpPassword(this.mailProps.getString(Mailer.SMTP_PASSWORD));
 
             mailer.setToList(new String[] { recipient });
             mailer.setReplyToList(new String[] { mailProps.getString(Mailer.MAIL_REPLY_TO)});

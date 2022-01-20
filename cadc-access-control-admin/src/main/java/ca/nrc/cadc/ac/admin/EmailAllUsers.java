@@ -79,6 +79,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.AccessControlException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.PropertyResourceBundle;
@@ -97,13 +98,13 @@ public class EmailAllUsers extends AbstractCommand {
     private static final Logger log = Logger.getLogger(EmailAllUsers.class);
 
     private static final String SMTP_CONFIG = "ac-admin-email.properties";
+    public static final String MAIL_SKIP_DOMAINS = "mail.skip-domains";
 
     // sleep time in secs between emails
     private static final int SLEEP_TIME = 10;
 
     private static final List<String> SMTP_PROPS =
-        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT,
-                  Mailer.SMTP_ACCOUNT, Mailer.SMTP_PASSWORD).collect(Collectors.toList());
+        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT).collect(Collectors.toList());
 
     private static final List<String> MAIL_PROPS =
         Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO,
@@ -254,22 +255,41 @@ public class EmailAllUsers extends AbstractCommand {
     protected SortedSet<String> getEmails()
         throws GroupNotFoundException, AccessControlException, TransientException {
 
+        List<String> skipDomains = getSkipDomains();
         SortedSet<String> emails;
         if (this.toAllUsers) {
-            emails = this.getUserPersistence().getEmailsForAllUsers();
+            emails = this.getAllUserEmails();
         } else if (this.toGroup != null) {
-            emails = this.getGroupPersistence().getMemberEmailsForGroup(this.toGroup);
+            emails = this.getGroupEmails(this.toGroup);
         } else {
             // Shouldn't get here but...
             throw new IllegalStateException("One of --to or --to-all must be given");
         }
 
+        // Remove addresses for skipped domains
+        Iterator<String> it = emails.iterator();
+        while (it.hasNext()) {
+            String email = it.next();
+            for (String domain : skipDomains) {
+                if (email.endsWith(domain)) {
+                    it.remove();
+                    break;
+                }
+            }
+        }
+
         // Check if resuming from given email
-        if (StringUtil.hasText(this.resumeEmail)) {
+        if (!emails.isEmpty() && StringUtil.hasText(this.resumeEmail)) {
             try {
                 emails = emails.tailSet(this.resumeEmail);
                 emails.remove(this.resumeEmail);
-                this.systemOut.printf("resuming from email %s%n", emails.first());
+                String first;
+                if (emails.size() > 0) {
+                    first = emails.first();
+                } else {
+                    first = "- end of email list";
+                }
+                this.systemOut.printf("resuming from email %s%n", first);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format("--resume email %s not found in email list",
                                                                  this.resumeEmail));
@@ -288,8 +308,6 @@ public class EmailAllUsers extends AbstractCommand {
         Mailer mailer = new Mailer();
         mailer.setSmtpHost(smtpProps.getString(Mailer.SMTP_HOST));
         mailer.setSmtpPort(smtpProps.getString(Mailer.SMTP_PORT));
-        mailer.setSmtpAccount(smtpProps.getString(Mailer.SMTP_ACCOUNT));
-        mailer.setSmtpPassword(smtpProps.getString(Mailer.SMTP_PASSWORD));
 
         mailer.setToList(new String[] { mailProps.getString(Mailer.MAIL_TO)});
         mailer.setReplyToList(new String[] { mailProps.getString(Mailer.MAIL_REPLY_TO)});
@@ -301,6 +319,30 @@ public class EmailAllUsers extends AbstractCommand {
         mailer.setContentType(Mailer.HTML_CONTENT_TYPE);
 
         mailer.doSend();
+    }
+
+    protected SortedSet<String> getAllUserEmails() throws TransientException {
+        return this.getUserPersistence().getEmailsForAllUsers();
+    }
+
+    protected SortedSet<String> getGroupEmails(String group) throws TransientException, GroupNotFoundException {
+        return this.getGroupPersistence().getMemberEmailsForGroup(group);
+    }
+
+    protected List<String> getSkipDomains() {
+        List<String> domains = new ArrayList<>();
+        if (this.mailProps.containsKey(MAIL_SKIP_DOMAINS)) {
+            String prop = this.mailProps.getString(MAIL_SKIP_DOMAINS);
+            if (StringUtil.hasText(prop)) {
+                String[] tokens = prop.split("\\s+");
+                for (String token : tokens) {
+                    if (StringUtil.hasText(token)) {
+                        domains.add(token);
+                    }
+                }
+            }
+        }
+        return domains;
     }
 
 }
