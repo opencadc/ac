@@ -79,6 +79,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.AccessControlException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.PropertyResourceBundle;
@@ -97,6 +98,7 @@ public class EmailAllUsers extends AbstractCommand {
     private static final Logger log = Logger.getLogger(EmailAllUsers.class);
 
     private static final String SMTP_CONFIG = "ac-admin-email.properties";
+    public static final String MAIL_SKIP_DOMAINS = "mail.skip-domains";
 
     // sleep time in secs between emails
     private static final int SLEEP_TIME = 10;
@@ -107,8 +109,6 @@ public class EmailAllUsers extends AbstractCommand {
     private static final List<String> MAIL_PROPS =
         Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO,
                   Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY).collect(Collectors.toList());
-
-    private static final String SKIP_DOMAIN = "nrc.ca";
 
     private final String emailPropsFilename;
     private final String logFilename;
@@ -255,21 +255,27 @@ public class EmailAllUsers extends AbstractCommand {
     protected SortedSet<String> getEmails()
         throws GroupNotFoundException, AccessControlException, TransientException {
 
+        List<String> skipDomains = getSkipDomains();
         SortedSet<String> emails;
         if (this.toAllUsers) {
             emails = this.getAllUserEmails();
-            Iterator<String> it = emails.iterator();
-            while (it.hasNext()) {
-                String email = it.next();
-                if (email.endsWith(SKIP_DOMAIN)) {
-                    it.remove();
-                }
-            }
         } else if (this.toGroup != null) {
-            emails = this.getGroupPersistence().getMemberEmailsForGroup(this.toGroup);
+            emails = this.getGroupEmails(this.toGroup);
         } else {
             // Shouldn't get here but...
             throw new IllegalStateException("One of --to or --to-all must be given");
+        }
+
+        // Remove addresses for skipped domains
+        Iterator<String> it = emails.iterator();
+        while (it.hasNext()) {
+            String email = it.next();
+            for (String domain : skipDomains) {
+                if (email.endsWith(domain)) {
+                    it.remove();
+                    break;
+                }
+            }
         }
 
         // Check if resuming from given email
@@ -317,6 +323,26 @@ public class EmailAllUsers extends AbstractCommand {
 
     protected SortedSet<String> getAllUserEmails() throws TransientException {
         return this.getUserPersistence().getEmailsForAllUsers();
+    }
+
+    protected SortedSet<String> getGroupEmails(String group) throws TransientException, GroupNotFoundException {
+        return this.getGroupPersistence().getMemberEmailsForGroup(group);
+    }
+
+    protected List<String> getSkipDomains() {
+        List<String> domains = new ArrayList<>();
+        if (this.mailProps.containsKey(MAIL_SKIP_DOMAINS)) {
+            String prop = this.mailProps.getString(MAIL_SKIP_DOMAINS);
+            if (StringUtil.hasText(prop)) {
+                String[] tokens = prop.split("\\s+");
+                for (String token : tokens) {
+                    if (StringUtil.hasText(token)) {
+                        domains.add(token);
+                    }
+                }
+            }
+        }
+        return domains;
     }
 
 }

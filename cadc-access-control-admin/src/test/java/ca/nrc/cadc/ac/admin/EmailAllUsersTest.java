@@ -70,6 +70,8 @@
 package ca.nrc.cadc.ac.admin;
 
 import ca.nrc.cadc.net.TransientException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -88,8 +90,13 @@ public class EmailAllUsersTest {
             protected void init() throws UsageException {}
 
             @Override
+            protected List<String> getSkipDomains() {
+                return Stream.of("foo.com", "bar.com").collect(Collectors.toList());
+            }
+
+            @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
-                return Stream.of("foo@cadc.nrc.ca", "bar@cadc.nrc.ca", "baz@cadc.nrc.ca")
+                return Stream.of("foo@foo.com", "bar@bar.com", "baz@baz.bar.com")
                     .collect(Collectors.toCollection(TreeSet::new));
             }
         };
@@ -105,6 +112,11 @@ public class EmailAllUsersTest {
                                                       true, null, true) {
             @Override
             protected void init() throws UsageException {}
+
+            @Override
+            protected List<String> getSkipDomains() {
+                return Stream.of("foo.com", "bar.com").collect(Collectors.toList());
+            }
 
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
@@ -127,8 +139,13 @@ public class EmailAllUsersTest {
             protected void init() throws UsageException {}
 
             @Override
+            protected List<String> getSkipDomains() {
+                return Stream.of("foo.com", "bar.com").collect(Collectors.toList());
+            }
+
+            @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
-                return Stream.of("foo@example.com", "bar@cadc.nrc.ca", "baz@example.com")
+                return Stream.of("foo@example.com", "bar@bar.com", "baz@example.com")
                     .collect(Collectors.toCollection(TreeSet::new));
             }
         };
@@ -148,8 +165,13 @@ public class EmailAllUsersTest {
             protected void init() throws UsageException {}
 
             @Override
+            protected List<String> getSkipDomains() {
+                return new ArrayList<>();
+            }
+
+            @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
-                return Stream.of("bar@example.com", "baz@example.com", "foo@example.com")
+                return Stream.of("bar@bar.com", "baz@baz.bar.com", "foo@foo.com")
                     .collect(Collectors.toCollection(TreeSet::new));
             }
         };
@@ -162,6 +184,11 @@ public class EmailAllUsersTest {
                                         true, "baz@example.com", true) {
             @Override
             protected void init() throws UsageException {}
+
+            @Override
+            protected List<String> getSkipDomains() {
+                return new ArrayList<>();
+            }
 
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
@@ -178,6 +205,11 @@ public class EmailAllUsersTest {
                                         true, "foo@example.com", true) {
             @Override
             protected void init() throws UsageException {}
+
+            @Override
+            protected List<String> getSkipDomains() {
+                return new ArrayList<>();
+            }
 
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
