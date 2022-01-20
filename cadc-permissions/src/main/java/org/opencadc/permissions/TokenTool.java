@@ -184,12 +184,13 @@ public class TokenTool {
      * 
      * @param token The token to validate.
      * @param expectedURI The expected artifact URI.
-     * @param expectedGrantClass The expected grant applied to the artifact.
+     * @param expectedGrantClass one or more expected grant types (single match is valid)
      * @return The user contained in the token.
      * @throws AccessControlException If any of the expectations are not met or if the token is invalid.
      * @throws IOException If a processing error occurs.
      */
-    public String validateToken(String token, URI expectedURI, Class<? extends Grant> expectedGrantClass) throws AccessControlException, IOException {
+    public String validateToken(String token, URI expectedURI, Class<? extends Grant>... expectedGrantClass) 
+            throws AccessControlException, IOException {
 
         log.debug("validating token: " + token);
         String[] parts = token.split(TOKEN_DELIM);
@@ -245,8 +246,11 @@ public class TokenTool {
             log.debug("wrong target uri");
             throw new AccessControlException("Invalid auth token");
         }
-        if (!expectedGrantClass.getSimpleName().equals(grant)) {
-            log.debug("wrong http method");
+        boolean grantMatch = false;
+        for (Class<? extends Grant> c : expectedGrantClass) {
+            grantMatch = grantMatch || c.getSimpleName().equals(grant);
+        }
+        if (!grantMatch) {
             throw new AccessControlException("Invalid auth token");
         }
         
