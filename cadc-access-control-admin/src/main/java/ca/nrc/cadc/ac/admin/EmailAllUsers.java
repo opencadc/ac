@@ -108,6 +108,8 @@ public class EmailAllUsers extends AbstractCommand {
         Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO,
                   Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY).collect(Collectors.toList());
 
+    private static final String SKIP_DOMAIN = "nrc.ca";
+
     private final String emailPropsFilename;
     private final String logFilename;
     private final int batchSize;
@@ -255,7 +257,14 @@ public class EmailAllUsers extends AbstractCommand {
 
         SortedSet<String> emails;
         if (this.toAllUsers) {
-            emails = this.getUserPersistence().getEmailsForAllUsers();
+            emails = this.getAllUserEmails();
+            Iterator<String> it = emails.iterator();
+            while (it.hasNext()) {
+                String email = it.next();
+                if (email.endsWith(SKIP_DOMAIN)) {
+                    it.remove();
+                }
+            }
         } else if (this.toGroup != null) {
             emails = this.getGroupPersistence().getMemberEmailsForGroup(this.toGroup);
         } else {
@@ -264,11 +273,17 @@ public class EmailAllUsers extends AbstractCommand {
         }
 
         // Check if resuming from given email
-        if (StringUtil.hasText(this.resumeEmail)) {
+        if (!emails.isEmpty() && StringUtil.hasText(this.resumeEmail)) {
             try {
                 emails = emails.tailSet(this.resumeEmail);
                 emails.remove(this.resumeEmail);
-                this.systemOut.printf("resuming from email %s%n", emails.first());
+                String first;
+                if (emails.size() > 0) {
+                    first = emails.first();
+                } else {
+                    first = "- end of email list";
+                }
+                this.systemOut.printf("resuming from email %s%n", first);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format("--resume email %s not found in email list",
                                                                  this.resumeEmail));
@@ -298,6 +313,10 @@ public class EmailAllUsers extends AbstractCommand {
         mailer.setContentType(Mailer.HTML_CONTENT_TYPE);
 
         mailer.doSend();
+    }
+
+    protected SortedSet<String> getAllUserEmails() throws TransientException {
+        return this.getUserPersistence().getEmailsForAllUsers();
     }
 
 }
