@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2020.                            (c) 2020.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,119 +62,56 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 4 $
+ *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.oidc;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
+package ca.nrc.cadc.ac.admin;
 
-import java.net.URI;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
-import java.security.PrivilegedExceptionAction;
-
-import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
 
 /**
- * 
- * Authenticate username password and redirect to the RelyParty.  This class responds
- * to HTTP POST calls.
- *
- * @author majorb
- *
+ * This class updates the information on a user.  Currently it is just
+ * the email address.
  */
-public class LoginAction extends RestAction {
+public class ModifyUser extends AbstractUserCommand
+{
+    private static final Logger log = Logger.getLogger(ModifyUser.class);
     
-    private static final Logger log = Logger.getLogger(LoginAction.class);
+    private String emailAddress;
 
-    @Override
-    public void doAction() throws Exception {
+    /**
+     * Constructor
+     * @param userID Id of the user to be updated
+     * @param emailAddress The new email address for the user
+     */
+    public ModifyUser(final String userID, final String emailAddress)
+    {
+    	super(userID);
+    	this.emailAddress = emailAddress;
+    }
 
-        String redirectURI = syncInput.getParameter("redirect_uri");
-        String state = syncInput.getParameter("state");
-        String username = syncInput.getParameter("username");
-        String password = syncInput.getParameter("password");
-        String clientID = syncInput.getParameter("clientid");
-        log.debug("redirect_uri: " + redirectURI);
-        log.debug("state: " + state);
-        log.debug("username: " + username);
-        if (redirectURI == null) {
-            throw new IllegalArgumentException("missing required param 'redirect_uri'");
-        }
-        if (username == null) {
-            throw new IllegalArgumentException("missing required param 'username'");
-        }
-        if (password == null) {
-            throw new IllegalArgumentException("missing required param 'password'");
-        }
-        if (clientID == null) {
-            throw new IllegalArgumentException("missing required param 'clientID'");
-        }
-        
-        UserPersistence userPersistence = new LdapUserPersistence();
-        Boolean loginResult = null;
+    protected void execute()
+        throws AccessControlException, UserNotFoundException, TransientException
+    {
         try {
-            loginResult = userPersistence.doLogin(username, password);
-        } catch (AccessControlException e) {
-            throw new AccessControlException("login failed");
-        }
-        if (loginResult == null || !loginResult) {
-            // doLogin() method API is awkward -- don't think loginResult can be null but
-            // check just in case.
-            throw new AccessControlException("login failed");
-        }
-        
-        // check client id
-        RelyParty rp = OIDCUtil.getRelyParty(clientID);
-        if (rp == null) {
-            throw new AccessControlException("login failed, unauthorized client " + clientID);
-        }
 
-        Subject subject = new Subject();
-        subject.getPrincipals().add(new HttpPrincipal(username));
-        subject.getPublicCredentials().add(AuthMethod.PASSWORD);
-        subject = AuthenticationUtil.augmentSubject(subject);
-        Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
-            @Override
-            public Void run() throws Exception {
-                if (!OIDCUtil.accessAllowed(rp)) {
-                    GroupURI accessGroup = rp.getAccessGroup();
-                    String msg = "login failed, not a member of " + accessGroup;
-                    throw new AccessControlException(msg);
-                }
-
-                return null;
-            }
-        });
-        
-        // formulate the authenticate redirect response
-        StringBuilder redirect = new StringBuilder(redirectURI);
-        URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
-        String code = OIDCUtil.getToken(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
-        redirect.append("?code=");
-        redirect.append(code);
-        if (state != null) {
-            redirect.append("&state=");
-            redirect.append(state);
+            User user = this.getUserPersistence().getUser(this.getPrincipal());
+            user.personalDetails.email = emailAddress;
+            
+            this.getUserPersistence().modifyUserPersonalDetails(user);
+            String msg = "User " + this.getPrincipal().getName() + " now has email address " + emailAddress;
+            this.systemOut.println(msg);
         }
-        log.debug("returning redirect URL: " + redirect);
-
-        syncOutput.setCode(200);
-        syncOutput.setHeader("Content-Type", "text/plain");
-        syncOutput.getOutputStream().write(redirect.toString().getBytes());
+        catch (UserNotFoundException u)
+        {
+            String msg = "User " + this.getPrincipal().getName() + ": not found.";
+            this.systemOut.println(msg);
+        }
     }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
-    }
-
 }

@@ -145,7 +145,7 @@ public class ModifyUserActionTest
 
         @SuppressWarnings("unchecked")
         final UserPersistence mockUserPersistence = createMock(UserPersistence.class);
-        expect(mockUserPersistence.modifyUser(testUser)).andReturn(testUser).once();
+        expect(mockUserPersistence.modifyUserPersonalDetails(testUser)).andReturn(testUser).once();
 
         final SyncOutput mockSyncOut = createMock(SyncOutput.class);
         mockSyncOut.setHeader("Location", requestUrl.toString());

@@ -70,13 +70,17 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.Set;
 
 import javax.security.auth.Subject;
@@ -142,8 +146,9 @@ public abstract class AuthorizeAction extends RestAction {
                 return;
             }
             
-            // only openid connect code flow supported
-            if (!OIDC_SCOPE.equals(scope)) {
+            // ensure oidc code flow in scope
+            String[] scopes = scope.split("\\s+");
+            if (!Arrays.asList(scopes).contains(OIDC_SCOPE)) {
                 AuthorizeError error = new AuthorizeError();
                 error.error = "invalid_scope";
                 sendError(error);
@@ -206,9 +211,10 @@ public abstract class AuthorizeAction extends RestAction {
         Subject s = AuthenticationUtil.getCurrentSubject();
         AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
         if (authMethod.equals(AuthMethod.ANON)) {
-            
-            // send redirect to username/password form
-            StringBuilder redirect = new StringBuilder("oidc-login.html#redirect_uri=");
+
+            StringBuilder redirect = new StringBuilder();
+            // TODO: Need a better way of discovering this URL
+            redirect.append("https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/login.html#redirect_uri=");
             redirect.append(redirectURI);
             if (loginHint != null) {
                 redirect.append("&username=");
@@ -218,6 +224,12 @@ public abstract class AuthorizeAction extends RestAction {
                 redirect.append("&state=");
                 redirect.append(state);
             }
+            redirect.append("&clientid=").append(NetUtil.encode(clientID));
+            redirect.append("&client=").append(NetUtil.encode(rp.getClientDescription()));
+            String claimDesc = OIDCUtil.getClaimDescriptionString(rp.getClaims());
+            redirect.append("&claims=").append(NetUtil.encode(claimDesc));
+
+            log.debug("redirecting to " + redirect.toString());
             syncOutput.setCode(302);
             syncOutput.setHeader("Location", redirect);
             
@@ -225,6 +237,14 @@ public abstract class AuthorizeAction extends RestAction {
             
             // if authenticated (only possible by cookie) skip login form
             // formulate the authenticate redirect response
+            
+            // perform group check on rp.accessGroup 
+            if (!OIDCUtil.accessAllowed(rp)) {
+                AuthorizeError authError = new AuthorizeError();
+                authError.error = "login failed, not a member of " + rp.getAccessGroup();
+                sendError(authError);
+                return;
+            }
             
             Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
             String username = useridPrincipals.iterator().next().getName();
@@ -290,8 +310,7 @@ public abstract class AuthorizeAction extends RestAction {
                     return;
                 }
                 
-                // Note: clientID is the 'audience' of the id token
-                String jws = OIDCUtil.buildIDToken(clientID);
+                String jws = OIDCUtil.buildIDToken(rp, false);
                 
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", jws);

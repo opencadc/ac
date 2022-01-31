@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,90 +69,42 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.io.PrintStream;
-import java.security.AccessControlException;
-import java.security.PrivilegedAction;
-
-import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
-
+import java.security.AccessControlException;
+import org.apache.log4j.Logger;
 
 /**
- * Provide attributes and methods that apply to all commands.
- * @author yeunga
+ *  This class enables the specified user (Unlocks the user account in LDAP).
+ * @author jeevesh
  *
  */
-public abstract class AbstractCommand implements PrivilegedAction<Object>
+public class EnableUser extends AbstractUserCommand
 {
-    protected PrintStream systemOut = System.out;
-    protected PrintStream systemErr = System.err;
-
-    private UserPersistence userPersistence;
-    private GroupPersistence groupPersistence;
-
-    protected abstract void doRun()
-            throws AccessControlException, TransientException;
+    private static final Logger log = Logger.getLogger(EnableUser.class);
 
     /**
-     * Set the system out.
-     * @param printStream       The stream to write System.out to .
+     * Constructor
+     * @param userID Id of the user to be disabled (deactivated)
      */
-    public void setSystemOut(PrintStream printStream)
+    public EnableUser(final String userID)
     {
-        this.systemOut = printStream;
+    	super(userID);
     }
 
-    /**
-     * Set the system err.
-     * @param printStream       The stream to write System.err to.
-     */
-    public void setSystemErr(PrintStream printStream)
-    {
-        this.systemErr = printStream;
-    }
-
-    @Override
-    public Object run()
+    protected void execute()
+        throws AccessControlException, UserNotFoundException, TransientException
     {
         try
         {
-            this.doRun();
+            // Use deactivateUser, which will lock the user account in LDAP
+            this.getUserPersistence().reactivateUser(this.getPrincipal());
+            String msg = "User " + this.getPrincipal().getName() + " was enabled successfully.";
+            this.systemOut.println(msg);
         }
-        catch (AccessControlException e)
+        catch (UserNotFoundException u)
         {
-            this.systemErr.println("ERROR: " + e.getMessage());
-            e.printStackTrace(systemErr);
+            this.systemOut.println(u.getLocalizedMessage());
         }
-        catch (TransientException e)
-        {
-            String message = "Internal Transient Error: " + e.getMessage();
-            this.systemErr.println("ERROR: " + message);
-            e.printStackTrace(systemErr);
-        }
-
-        return null;
-    }
-
-    protected void setUserPersistence(
-            final UserPersistence userPersistence)
-    {
-        this.userPersistence = userPersistence;
-    }
-
-    public UserPersistence getUserPersistence()
-    {
-        return this.userPersistence;
-    }
-
-    protected void setGroupPersistence(
-        final GroupPersistence groupPersistence)
-    {
-        this.groupPersistence = groupPersistence;
-    }
-
-    public GroupPersistence getGroupPersistence()
-    {
-        return this.groupPersistence;
     }
 }

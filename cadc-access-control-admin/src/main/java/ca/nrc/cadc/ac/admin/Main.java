@@ -69,6 +69,7 @@
 
 package ca.nrc.cadc.ac.admin;
 
+import ca.nrc.cadc.ac.server.GroupPersistence;
 import java.io.PrintStream;
 import java.security.cert.CertificateException;
 
@@ -151,7 +152,8 @@ public class Main
                 System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
 
                 UserPersistence userPersistence = new PluginFactory().createUserPersistence();
-                final CommandRunner runner =  new CommandRunner(parser, userPersistence);
+                GroupPersistence groupPersistence = new PluginFactory().createGroupPersistence();
+                final CommandRunner runner =  new CommandRunner(parser, userPersistence, groupPersistence);
 
                 runner.run();
             }

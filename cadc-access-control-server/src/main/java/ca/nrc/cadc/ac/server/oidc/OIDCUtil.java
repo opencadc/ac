@@ -67,13 +67,18 @@
 package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
+import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -95,11 +100,14 @@ import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +116,10 @@ import java.util.Set;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
+import org.opencadc.gms.GroupClient;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.GroupUtil;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -151,8 +163,7 @@ public class OIDCUtil {
     
     public static Set<PublicKey> getPublicKeys() {
         if (publicKeys == null) {
-            String configDir = System.getProperty("user.home") + "/config";
-            File pubFile = new File(configDir, PUBLIC_KEY_NAME);
+            File pubFile = FileUtil.getFileFromResource(PUBLIC_KEY_NAME, OIDCUtil.class);
             RsaSignatureVerifier verifier = new RsaSignatureVerifier(pubFile);
             publicKeys = verifier.getPublicKeys();
         }
@@ -168,26 +179,113 @@ public class OIDCUtil {
         return privateKey;
     }
     
+    private static Set<String> getClientIDs(MultiValuedProperties config) {
+        Set<String> clientIDs = new HashSet<String>();
+        Set<String> keys = config.keySet();
+        for (String k : keys) {
+            clientIDs.add(k.split("\\.")[0]);
+        }
+        
+        return clientIDs;
+    }
+    
+    private static void checkKey(MultiValuedProperties config, Set<String> keys, String key) {
+        if (!keys.contains(key)) {
+            throw new IllegalStateException("missing key " + key + " in " + CONFIG);
+        } else if (config.getProperty(key).get(0).isEmpty()) {
+            throw new IllegalStateException("missing value for " + key + " in " + CONFIG);
+        }
+    }
+    
+    private static String getSecret(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String secretKey = clientID + ".secret";
+        checkKey(config, keys, secretKey);
+        return config.getProperty(secretKey).get(0);
+    }
+    
+    private static String getDescription(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String descriptionKey = clientID + ".description";
+        checkKey(config, keys, descriptionKey);
+        return config.getProperty(descriptionKey).get(0);
+    }
+    
+    private static boolean getSignDocuments(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String signDocumentsKey = clientID + ".sign-documents";
+        checkKey(config, keys, signDocumentsKey);
+        return Boolean.valueOf(config.getProperty(signDocumentsKey).get(0));
+    }
+    
+    private static List<Claim> getClaims(MultiValuedProperties config, Set<String> keys, String clientID) {
+        String claimsKey = clientID + ".claims";
+        checkKey(config, keys, claimsKey);
+        List<Claim> claims = new ArrayList<Claim>();
+        final String[] claimsArray = config.getProperty(claimsKey).get(0).split(" ");
+        for (String claim : claimsArray) {
+            claims.add(RelyParty.Claim.getClaim(claim));
+        }
+        
+        return claims;
+    }
+    
+    private static void loadConfig() {
+        log.debug("Reading RelyParties properties from: " + CONFIG);
+        relyParties = new HashMap<String, RelyParty>();
+        PropertiesReader pr = new PropertiesReader(CONFIG);
+        MultiValuedProperties config = pr.getAllProperties();
+        Set<String> keys = config.keySet();
+        if (config == null || keys.isEmpty())
+        {
+            throw new RuntimeException("failed to read any OIDC property ");
+        }
+        
+        Set<String> clientIDs = getClientIDs(config);
+        for (String clientID : clientIDs) {
+            final String secret = getSecret(config, keys, clientID);
+            final String description = getDescription(config, keys, clientID);
+            final boolean signDocuments = getSignDocuments(config, keys, clientID);
+            List<Claim> claims = getClaims(config, keys, clientID);
+
+            RelyParty relyParty = new RelyParty(clientID, secret, description, claims, signDocuments);
+            
+            // access group is optional
+            String accessGroupKey = clientID + ".access-group";
+            if (keys.contains(accessGroupKey)) {
+                final String accessGroupString = config.getProperty(accessGroupKey).get(0);
+                if (!accessGroupString.isEmpty()) {
+                    GroupURI accessGroup = new GroupURI(URI.create(accessGroupString));
+                    relyParty.setAccessGroup(accessGroup);
+                }
+            }
+
+            relyParties.put(clientID, relyParty);
+        }
+
+    }
+    
     public static RelyParty getRelyParty(String clientID) {
         if (relyParties == null) {
             // add all rely parties
-            log.debug("Reading RelyParties properties from: " + CONFIG);
-            relyParties = new HashMap<String, RelyParty>();
-            PropertiesReader pr = new PropertiesReader(CONFIG);
-            MultiValuedProperties config = pr.getAllProperties();
-            if (config == null || config.keySet() == null)
-            {
-                throw new RuntimeException("failed to read any OIDC property ");
-            }
-            
-            Set<String> oidcs = config.keySet();
-            for (String oidc : oidcs) {
-                String secret = config.getProperty(oidc).get(0);
-                relyParties.put(oidc, new RelyParty(oidc, secret));
-            }
+            loadConfig();
         }
 
         return relyParties.get(clientID);
+    }
+    
+    public static boolean accessAllowed(RelyParty rp) 
+        throws AccessControlException, UserNotFoundException, GroupNotFoundException, TransientException {
+        GroupURI accessGroup = rp.getAccessGroup();
+        if (accessGroup == null) {
+            // access group not specified, allow access
+            return true;
+        } else {
+            LdapGroupPersistence ldapGroupPersistence = new LdapGroupPersistence();
+            Collection<Group> groups = ldapGroupPersistence.getGroups(Role.MEMBER, accessGroup.getName());
+            if (groups == null || groups.isEmpty()) {
+                return false;
+            } else {
+                return true;
+            }
+        }
     }
     
     public static String getToken(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {
@@ -219,27 +317,63 @@ public class OIDCUtil {
         return groupNames;
     }
     
-    public static String buildIDToken(String clientID) throws Exception {
+    public static String buildIDToken(RelyParty rp, boolean isUserInfo) throws Exception {
         
         final Subject subject = AuthenticationUtil.getCurrentSubject();
         
         NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
-        
-        JwtBuilder builder = Jwts.builder();
-        builder.claim("iss", getClaimIssuer());
-        builder.claim("sub", numericPrincipal.getName());
         Calendar calendar = Calendar.getInstance();
-        builder.claim("iat", calendar.getTime());
-        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-        builder.claim("exp", calendar.getTime());
-        builder.claim("name", useridPrincipal.getName());
-        builder.claim("email", email);
-        builder.claim("memberOf", getGroupList());
-        builder.claim("aud", clientID);
-        String jws = builder.signWith(OIDCUtil.getPrivateKey()).compact();
-        return jws;
+        
+        if (rp.isSignDocuments() || !isUserInfo) {
+            JwtBuilder builder = Jwts.builder();
+            builder.claim("sub", numericPrincipal.getName());
+            builder.claim("iss", getClaimIssuer());
+            if (rp.getClientID() != null) {
+                builder.claim("aud", rp.getClientID());
+            }
+            builder.claim("iat", calendar.getTime());
+            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+            builder.claim("exp", calendar.getTime());
+            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+                builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+                builder.claim(RelyParty.Claim.EMAIL.getValue(), email);
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+                builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
+            }
+            
+            if (rp.isSignDocuments()) {
+                return builder.signWith(OIDCUtil.getPrivateKey()).compact();
+            } else {
+                return builder.compact();
+            }
+        } else {
+            JSONObject json = new JSONObject();
+            json.put("sub", numericPrincipal.getName());
+            json.put("iss", getClaimIssuer());
+            if (rp.getClientID() != null) {
+                json.put("aud", rp.getClientID());
+            }
+            json.put("iat", calendar.getTime());
+            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+            json.put("exp", calendar.getTime());
+            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+                json.put(RelyParty.Claim.EMAIL.getValue(), email);
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
+            }
+            
+            return json.toString();
+        }
+
     }
     
     /**
@@ -256,6 +390,19 @@ public class OIDCUtil {
         // remove the last path element for the base URL
         int lastSlash = oauthURL.lastIndexOf("/");
         return oauthURL.substring(0, lastSlash);
+    }
+    
+    static String getClaimDescriptionString(List<Claim> claims) {
+        StringBuilder sb = new StringBuilder();
+        int count = 0;
+        for (Claim c : claims) {
+            if (count > 0) {
+                sb.append(", ");
+            }
+            count++;
+            sb.append(c.getDescription());
+        }
+        return sb.toString();
     }
     
 }

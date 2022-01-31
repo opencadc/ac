@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac.server;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.List;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
@@ -78,6 +79,7 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import java.util.SortedSet;
 
 public interface UserPersistence
 {
@@ -148,6 +150,19 @@ public interface UserPersistence
     User getUserByEmailAddress(String emailAddress)
             throws UserNotFoundException, UserAlreadyExistsException,
             TransientException, AccessControlException;
+    
+    /**
+     * Get the users specified by email address exists in the active users tree.
+     *
+     * @param emailAddress The user's email address.
+     *
+     * @return List of Users.
+     *
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    List<User> getUsersByEmailAddress(String emailAddress)
+            throws TransientException, AccessControlException;
 
     /**
      * Get the user with the specified Principal whose account is pending approval.
@@ -177,6 +192,21 @@ public interface UserPersistence
      * @throws AccessControlException If the operation is not permitted.
      */
     User getAugmentedUser(Principal userID, boolean primeGroupCache)
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
+
+    /**
+     * Get the user with the specified Principal whose account is locked (disabled).
+     *
+     * @param userID A Principal of the User.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User getLockedUser(Principal userID)
         throws UserNotFoundException, TransientException,
         AccessControlException;
 
@@ -219,6 +249,21 @@ public interface UserPersistence
     /**
      * Update the user with the specified Principal in the active users tree.
      *
+     * @param user      The user instance with personal details to modify.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    User modifyUserPersonalDetails(User user)
+        throws UserNotFoundException, TransientException,
+               AccessControlException;
+    
+    /**
+     * Update the user with the specified Principal in the active users tree.
+     *
      * @param user      The user instance to modify.
      *
      * @return User instance.
@@ -256,6 +301,20 @@ public interface UserPersistence
     void deactivateUser(Principal userID)
         throws UserNotFoundException, TransientException,
                AccessControlException;
+
+
+    /**
+     * Reactivate the user with the specified Principal in the active users tree.
+     *
+     * @param userID A Principal of the User.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    void reactivateUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException;
 
     /**
      * Delete the user with the specified Principal from the pending users tree.
@@ -310,5 +369,16 @@ public interface UserPersistence
      */
     void resetPassword(HttpPrincipal userID, String newPassword)
         throws UserNotFoundException, TransientException, AccessControlException;
+
+    /**
+     * Get a sorted set of distinct email addresses for all users in the users tree.
+     * Items are sorted in ascending order.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    SortedSet<String> getEmailsForAllUsers()
+        throws TransientException, AccessControlException;
 
 }

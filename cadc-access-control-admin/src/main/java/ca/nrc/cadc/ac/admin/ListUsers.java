@@ -87,10 +87,25 @@ public class ListUsers extends AbstractListUsers
 {
     private static final Logger log = Logger.getLogger(ListUsers.class);
 
+    private String emailAddress;
+    
+    public ListUsers() {
+        super();
+    }
+    
+    public ListUsers(String emailAddress) {
+        super();
+        this.emailAddress = emailAddress;
+    }
+
     protected Collection<User> getUsers()
     		throws AccessControlException, TransientException
     {
-    	return this.getUserPersistence().getUsers();
+        if (emailAddress == null) {
+            return this.getUserPersistence().getUsers();
+        } else {
+            return this.getUserPersistence().getUsersByEmailAddress(emailAddress);
+        }
     }
 
 }

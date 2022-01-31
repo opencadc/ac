@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -85,6 +85,7 @@ import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -352,18 +353,24 @@ public class ResetPasswordServlet extends HttpServlet
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setContentType("text/plain");
+                response.getWriter().write(e.getMessage());
             }
             catch (UserNotFoundException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("text/plain");
+                response.getWriter().write(e.getMessage());
             }
             catch (IllegalArgumentException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType("text/plain");
+                response.getWriter().write(e.getMessage());
             }
             catch (TransientException e)
             {
@@ -374,13 +381,15 @@ public class ResetPasswordServlet extends HttpServlet
                 response.setContentType("text/plain");
                 if (e.getRetryDelay() > 0)
                     response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
-                response.getWriter().write("Transient Error: " + message);
+                
                 response.setStatus(503);
+                response.getWriter().write("Transient Error: " + message);
             }
             catch (AccessControlException | NotAuthenticatedException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
             catch (Throwable t1)
@@ -389,7 +398,10 @@ public class ResetPasswordServlet extends HttpServlet
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
+                
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setContentType("text/plain");
+                response.getWriter().write(message);
             }
         }
         finally
@@ -398,6 +410,7 @@ public class ResetPasswordServlet extends HttpServlet
             log.info(logInfo.end());
         }
     }
+
 
     /**
      * Attempt to change password.
@@ -480,19 +493,35 @@ public class ResetPasswordServlet extends HttpServlet
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                addMessage(response, e);
             }
             catch (IllegalArgumentException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                addMessage(response, e);
+            }
+            catch (NotAuthenticatedException e)
+            {
+                // NotAuthenticatedException is thrown when token passed in is invalid
+                log.debug(e.getMessage(), e);
+                logInfo.setMessage(e.getMessage());
+                
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                addMessage(response, e);
+                
             }
             catch (AccessControlException e)
             {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
+                
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                addMessage(response, e);
             }
             catch (Throwable t1)
             {
@@ -500,6 +529,7 @@ public class ResetPasswordServlet extends HttpServlet
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
+                
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         }
@@ -509,6 +539,24 @@ public class ResetPasswordServlet extends HttpServlet
             log.info(logInfo.end());
         }
      }
+
+    /**
+     * Add an output message to the HttpServletResponse from Exception passed in.
+     * @param response
+     * @param ex
+     * @throws IOException
+     */
+    private void addMessage(HttpServletResponse response, Exception ex) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(ex.getMessage()).append("\n");
+        byte[] out = sb.toString().getBytes();
+        response.setContentType("text/plain");
+        response.setContentLength(out.length);
+        ServletOutputStream sos = response.getOutputStream();
+        sos.write(out);
+        sos.flush();
+        sos.close();
+    }
 
     /**
      * Get and augment the Subject. Tests can override this method.

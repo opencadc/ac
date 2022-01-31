@@ -71,6 +71,7 @@ package org.opencadc.permissions.client;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
@@ -184,7 +185,7 @@ public class PermissionsClient {
      */
     URL getGrantURL(URL serviceURL, Operation op, URI assetID) {
         try {
-            return new URL(serviceURL.toExternalForm() + "?OP=" + op + "&ID=" + assetID.toASCIIString());
+            return new URL(serviceURL.toExternalForm() + "?OP=" + op + "&ID=" + NetUtil.encode(assetID.toASCIIString()));
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("invalid assetID " + assetID + ": " + e.getMessage());
         }

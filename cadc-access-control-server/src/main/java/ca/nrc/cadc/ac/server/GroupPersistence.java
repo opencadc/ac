@@ -77,6 +77,7 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import java.util.SortedSet;
 
 public interface GroupPersistence
 {
@@ -177,4 +178,16 @@ public interface GroupPersistence
         throws UserNotFoundException, GroupNotFoundException,
                TransientException, AccessControlException;
 
+    /**
+     * Get a sorted set of distinct email addresses for all members
+     * of the given group. Emails are sorted in ascending order.
+     *
+     * @param groupName The group name.
+     * @return A sorted set of email address.
+     * @throws GroupNotFoundException If the group was not found.
+     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    SortedSet<String> getMemberEmailsForGroup(String groupName)
+        throws GroupNotFoundException, TransientException, AccessControlException;
 }

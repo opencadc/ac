@@ -67,11 +67,14 @@
 package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
 import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 
@@ -105,12 +108,41 @@ public class UserInfoAction extends RestAction {
             throw new NotAuthenticatedException("unauthorized");
         }
         
-        // TODO: big hack:  "arbutus-harbor" is the clientID and this needs to come from the current subject
-        // instead of being hard-coded.  This needs to be fixed before a second RelyParty can be added.
-        String jws = OIDCUtil.buildIDToken("arbutus-harbor");
+        // validate the scope and extract the client id
+        Set<AuthorizationToken> tokens = subject.getPublicCredentials(AuthorizationToken.class);
+        String clientID = null;
+        for (AuthorizationToken t : tokens) {
+            log.debug("Token: " + t);
+
+            if (t.getScope() != null) {
+                String tScope = t.getScope().toString();
+                if (tScope.startsWith(OIDCUtil.ACCESS_TOKEN_SCOPE) &&
+                    tScope.length() > OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
+                    int slashIndex = tScope.lastIndexOf("/");
+                    if (slashIndex == OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
+                        clientID = tScope.substring(slashIndex + 1);
+                    }
+                }
+            }
+        }
         
+        log.debug("clientID: " + clientID);
+        if (clientID == null) {
+            throw new NotAuthenticatedException("invalid scope");
+        }
+        RelyParty rp = OIDCUtil.getRelyParty(clientID);
+        if (rp == null) {
+            throw new NotAuthenticatedException("invalid scope");
+        }
+        
+        String jws = OIDCUtil.buildIDToken(rp, true);
+
         log.debug("set headers and return json: \n" + jws);
-        syncOutput.setHeader("Content-Type", "application/jwt");
+        
+        // signed
+        //syncOutput.setHeader("Content-Type", "application/jwt");
+        // unsigned
+        syncOutput.setHeader("Content-Type", "application/json");
         syncOutput.setHeader("Cache-Control", "no-store");
         syncOutput.setHeader("Pragma", "no-cache");
       

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2021.                            (c) 2021.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -95,7 +95,7 @@ public class CmdLineParser
 		{"ca.nrc.cadc.ac", "ca.nrc.cadc.auth", "ca.nrc.cadc.util"};
 
     // no need to proceed further if false
-    private Level logLevel = Level.OFF;
+    private Level logLevel = Level.DEBUG;
     private AbstractCommand command;
     private boolean isHelpCommand = false;
     private ArgumentMap am;
@@ -195,8 +195,11 @@ public class CmdLineParser
         // only one command is allowed per command line
     	if (am.isSet("list"))
     	{
-            System.out.println("--list");
-            this.command = new ListUsers();
+    	    if (am.isSet("email")) {
+    	        this.command = new ListUsers(am.getValue("email"));
+    	    } else {
+    	        this.command = new ListUsers();
+    	    }
             count++;
     	}
 
@@ -213,9 +216,23 @@ public class CmdLineParser
     	    {
                 this.command = new ViewUser(userID);
     	    }
-
             count++;
     	}
+    	
+    	userID = am.getValue("set");
+        if (userID != null)
+        {
+            String email = am.getValue("email");
+            if (email != null)
+            {
+                this.command = new ModifyUser(userID, email);
+            }
+            else
+            {
+                throw new UsageException("Missing parameter 'email'");
+            }
+            count++;
+        }
 
         userID = am.getValue("reject");
     	if (userID != null	)
@@ -246,6 +263,88 @@ public class CmdLineParser
 
             count++;
     	}
+
+        userID = am.getValue("disable");
+        if (userID != null)
+        {
+            if (this.hasValue(userID))
+            {
+                this.command = new DisableUser(userID);
+            }
+
+            count++;
+        }
+
+        userID = am.getValue("enable");
+        if (userID != null)
+        {
+            if (this.hasValue(userID))
+            {
+                this.command = new EnableUser(userID);
+            }
+
+            count++;
+        }
+
+        if (am.isSet("send-email")) {
+            StringBuilder sb = new StringBuilder();
+
+            String file = am.getValue("file");
+            if (file == null) {
+                sb.append("\nMissing parameter 'file'");
+            } else if (file.equals("true")) {
+                sb.append("\nParameter 'file' has no value");
+            }
+
+            String outfile = am.getValue("outfile");
+            if (outfile == null) {
+                sb.append("\nMissing parameter 'outfile'");
+            } else if (outfile.equals("true")) {
+                sb.append("\nParameter 'outfile' has no value");
+            }
+
+            int batchSize = -1;
+            String batch = am.getValue("batch-size");
+            if (batch == null) {
+                sb.append("\nMissing parameter 'batch-size'");
+            } else {
+                if (batch.equals("true")) {
+                    sb.append("\nParameter 'batch-size' has no value");
+                } else {
+                    try {
+                        batchSize = Integer.parseInt(batch);
+                    } catch (NumberFormatException e) {
+                        sb.append("\nParameter 'batch-size' must be a number");
+                    }
+                }
+            }
+
+            String toGroup = am.getValue("to");
+            String toAll = am.getValue("to-all");
+            if (toGroup == null && toAll == null) {
+                sb.append("\nOne of '--to' or '--to-all' must be specified");
+            } else if (toGroup != null && toAll != null) {
+                sb.append("\n'--to' and '--to-all' are mutually exclusive options");
+            } else if (toGroup != null && toGroup.equals("true")) {
+                sb.append("\nParameter 'to' has no value");
+            }
+
+            String resume = am.getValue("resume");
+            if (resume != null && resume.equals("true")) {
+                sb.append("\nParameter 'resume' has no value");
+            }
+
+            if (sb.length() > 0) {
+                throw new UsageException(sb.toString());
+            }
+
+            boolean allUsers = toAll != null;
+            boolean dryRun = am.getValue("dry-run") != null;
+            boolean altDryRun = am.getValue("dryrun") != null;
+            this.command = new EmailAllUsers(file, outfile, batchSize, toGroup,
+                                             allUsers, resume, dryRun || altDryRun);
+            count++;
+        }
 
     	if (count == 1)
     	{
@@ -306,19 +405,32 @@ public class CmdLineParser
     	sb.append(CertCmdArgUtil.getCertArgUsage());
     	sb.append("\n");
     	sb.append("Where command is\n");
-    	sb.append("--list                       : List users in the Users tree\n");
-    	sb.append("--list-pending               : List users in the UserRequests tree\n");
-    	sb.append("--view=<userid>              : Print the entire details of the user\n");
-    	sb.append("--approve=<userid> --dn=<dn> : Approve user with userid=<userid> and set the\n");
-    	sb.append("                             : distinguished name to <dn>\n");
-    	sb.append("--reject=<userid>            : Delete this user request\n");
+    	sb.append("--list                         : List users in the Users tree\n");
+        sb.append("--list --email=<email>         : List users with email address <email>\n");
+    	sb.append("--list-pending                 : List users in the UserRequests tree\n");
+    	sb.append("--view=<userid>                : Print the entire details of the user\n");
+    	sb.append("--set=<userid> --email=<email> : Set the email address to <email> for user <userid>\n");
+    	sb.append("--approve=<userid> --dn=<dn>   : Approve user with userid=<userid> and set the\n");
+    	sb.append("                               : distinguished name to <dn>\n");
+    	sb.append("--reject=<userid>              : Delete this user request\n");
+        sb.append("--enable=<userid>              : Enable this user account\n");
+        sb.append("--disable=<userid>             : Disable this user account\n");
+        sb.append("\n");
+        sb.append("--send-email                                   : Send an email to selected users\n");
+        sb.append("    --file=<email-properties-file>             : Config file with email details\n");
+        sb.append("    --outfile=<list-of-successful-sends>       : Log file\n");
+        sb.append("    --batch-size=<num-of-emails-in-bcc>        : Number of emails in the bcc list\n");
+        sb.append("    --to=<group> | --to-all                    : --to - send to all members of a group\n");
+        sb.append("                                               : --to-all - send to all users\n");
+        sb.append("    [--resume=<last-successful-send-address>]  : Resume sending after this email address\n");
+        sb.append("    [--dry-run]                                : Do not send email but log actions\n");
     	sb.append("\n");
-    	sb.append("-v|--verbose                 : Verbose mode print progress and error messages\n");
-    	sb.append("-d|--debug                   : Debug mode print all the logging messages\n");
-    	sb.append("-h|--help                    : Print this message and exit\n");
+    	sb.append("-v|--verbose                   : Verbose mode print progress and error messages\n");
+    	sb.append("-d|--debug                     : Debug mode print all the logging messages\n");
+    	sb.append("-h|--help                      : Print this message and exit\n");
     	sb.append("\n");
         sb.append("Authentication and authorization:\n");
-        sb.append("  - An LdapConfig.properties file must exist in directory ~/config/\n");
+        sb.append("  - An ac-ldap-config.properties file must exist in directory ~/config/\n");
         sb.append("  - The corresponding host entry (devLdap or prodLdap) must exist\n");
         sb.append("    in your ~/.dbrc file.");
 

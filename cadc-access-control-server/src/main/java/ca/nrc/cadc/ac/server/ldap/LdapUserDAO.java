@@ -124,6 +124,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.security.auth.x500.X500Principal;
@@ -145,6 +147,12 @@ public class LdapUserDAO extends LdapDAO
     
     // Map of identity type to LDAP attribute
     private final Map<Class<?>, String> userLdapAttrib = new HashMap<Class<?>, String>();
+
+    // Many of the calls need to filter out LDAP accounts that are locked.
+    // (return user accounts that are not locked.)
+    private final Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+    private final Filter notTrueFilter = Filter.createNOTFilter(Filter.createEqualityFilter(LDAP_NSACCOUNTLOCK,"true"));
+    private final Filter notLockedFilter = Filter.createANDFilter(notFilter, notTrueFilter);
 
     // User cn and sn values for users without a HttpPrincipal
     protected static final String EXTERNAL_USER_CN = "$EXTERNAL-CN";
@@ -344,7 +352,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.error("addUser Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            LdapUserDAO.checkUserLDAPResult(e);
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -380,13 +388,11 @@ public class LdapUserDAO extends LdapDAO
         // check if email address is already in use
         if (email != null)
         {
-            try
-            {
-                getUserByEmailAddress(email, usersDN);
+            List<User> users = getUsersByEmailAddress(email, usersDN);
+            if (users.size() > 0) {
                 final String error = "email address " + email + " for user " + userID.getName() + " found in " + usersDN;
                 throw new UserAlreadyExistsException(error);
             }
-            catch (UserNotFoundException ok) { }
         }
     }
 
@@ -475,7 +481,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.error("addUserRequest Exception: " + e, e);
-            LdapUserDAO.checkUserLDAPResult(e.getResultCode());
+            LdapUserDAO.checkUserLDAPResult(e);
             throw new RuntimeException("Unexpected LDAP exception", e);
         }
     }
@@ -510,7 +516,7 @@ public class LdapUserDAO extends LdapDAO
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
-        return getUser(userID, config.getUsersDN(), ldapConn);
+        return getUser(userID, config.getUsersDN(), ldapConn, false);
     }
 
     /**
@@ -545,7 +551,7 @@ public class LdapUserDAO extends LdapDAO
         throws UserNotFoundException, TransientException,
                AccessControlException
     {
-        return getUser(userID, config.getUserRequestsDN(), ldapConn);
+        return getUser(userID, config.getUserRequestsDN(), ldapConn, false);
     }
 
     /**
@@ -663,11 +669,26 @@ public class LdapUserDAO extends LdapDAO
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
-        return getUser(userID, usersDN, getReadOnlyConnection());
+        return getUser(userID, usersDN, getReadOnlyConnection(), false);
+    }
+
+    // Returns users that are locked (disabled or marked deleted)
+    public User getLockedUser(final Principal userID)
+        throws UserNotFoundException, TransientException
+    {
+        return getLockedUser(userID, config.getUsersDN());
+    }
+
+    // Returns users that are locked (disabled or marked deleted)
+    private User getLockedUser(final Principal userID, final String usersDN)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        return getUser(userID, usersDN, getReadOnlyConnection(), true);
     }
     
     // Replacement getUser that handles a list returned from ldap
-    private User getUser(final Principal userID, final String usersDN, final LDAPConnection ldapConn)
+    private User getUser(final Principal userID, final String usersDN, final LDAPConnection ldapConn, Boolean getLocked)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -686,9 +707,14 @@ public class LdapUserDAO extends LdapDAO
             } else {
                 name = userID.getName();
             }
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
-            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            Filter filter;
+            if (getLocked == false) {
+                filter = Filter.createANDFilter(this.notLockedFilter, equalsFilter);
+            } else {
+                filter = equalsFilter;
+            }
             logger.debug("getUser: search filter = " + filter);
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -746,9 +772,9 @@ public class LdapUserDAO extends LdapDAO
             {
                 name = userID.getName();
             }
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
-            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            Filter filter = Filter.createANDFilter(this.notLockedFilter, equalsFilter);
             logger.debug("getAllUsers: search filter = " + filter);
 
             SearchRequest searchRequest = new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
@@ -782,112 +808,109 @@ public class LdapUserDAO extends LdapDAO
     }
 
     /**
-     * Get the user specified by the email address exists.
+     * Get the users specified by the email address exists.
      *
-     * @param emailAddress The user's email address.
+     * @param emailAddress The email address.
      *
-     * @return User instance.
+     * @return List of users.
      *
-     * @throws UserNotFoundException  when the user is not found in the main tree.
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
-     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    public User getUserByEmailAddress(final String emailAddress)
-        throws UserNotFoundException, TransientException,
-               AccessControlException, UserAlreadyExistsException
+    public List<User> getUsersByEmailAddress(final String emailAddress)
+        throws TransientException, AccessControlException
     {
-        return getUserByEmailAddress(emailAddress, config.getUsersDN());
+        return getUsersByEmailAddress(emailAddress, config.getUsersDN());
     }
 
     /**
-     * Get the user specified by the email address exists.
+     * Get the users specified by the email address exists.
      *
-     * @param emailAddress  The user's email address.
+     * @param emailAddress  The email address.
      * @param usersDN The LDAP tree to search.
-     * @return User ID
-     * @throws UserNotFoundException  when the user is not found.
+     * @return List of users
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
-     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
-    private User getUserByEmailAddress(final String emailAddress, final String usersDN)
-        throws UserNotFoundException, TransientException,
-               AccessControlException
+    private List<User> getUsersByEmailAddress(final String emailAddress, final String usersDN)
+        throws TransientException, AccessControlException
     {
-        SearchResultEntry searchResult = null;
+        SearchResult multiSearchResult = null;
         Filter filter = null;
         try
         {
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter("email", emailAddress);
-            filter = Filter.createANDFilter(notFilter, equalsFilter);
+            filter = Filter.createANDFilter(this.notLockedFilter, equalsFilter);
             logger.debug("search filter: " + filter);
 
             SearchRequest searchRequest =
                     new SearchRequest(usersDN, SearchScope.ONE, filter, userAttribs);
 
-            searchResult = getReadOnlyConnection().searchForEntry(searchRequest);
+            multiSearchResult = getReadOnlyConnection().search(searchRequest);
 
-            if (searchResult == null)
-            {
-                String msg = "getUserByEmailAddress: user with email address " +
-                             emailAddress + " not found";
-                logger.debug(msg);
-                throw new UserNotFoundException(msg);
-            }
         }
         catch (LDAPException e)
         {
             LdapDAO.checkLdapResult(e.getResultCode());
         }
-
-        String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
-
-        User user = new User();
-        // don't add http identities for those with external dns
-        if (!EXTERNAL_USER_CN.equals(userIDString)) {
-            HttpPrincipal userID = new HttpPrincipal(userIDString);
-            user.getIdentities().add(userID);
-        }
-
-        // Set the User's private InternalID field
-        String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
-        InternalID internalID = getInternalID(numericID);
-        ObjectUtil.setField(user, internalID, USER_ID);
-        user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
-
-        String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
-        logger.debug("getUserByEmailAddress: x500principal = " + x500str);
-        if (x500str != null)
-            user.getIdentities().add(new X500Principal(x500str));
-
-        String uidNumberStr = searchResult.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
-        logger.debug("getUserByEmailAddress: posixprincipal = " + uidNumberStr);
-        if (uidNumberStr != null)
-            user.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberStr)));
-
-        String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
-        String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
-        if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName))
-        {
-            user.personalDetails = new PersonalDetails(firstName, lastName);
-            user.personalDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
-            user.personalDetails.city = searchResult.getAttributeValue(LDAP_CITY);
-            user.personalDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
-            user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
-            user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
-            
-            String homeDir = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
-            if (homeDir != null) {
-                // numericID, uidNumber and gidNumber hold the same value
-                int uidNumber = Integer.parseInt(uidNumberStr);
-                user.posixDetails = new PosixDetails(userIDString, uidNumber, uidNumber, homeDir);
-                user.posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
+        
+        logger.debug("Found " + multiSearchResult.getSearchEntries().size() + " users with email: " + emailAddress);
+        
+        List<User> users = new ArrayList<User>();
+        Iterator<SearchResultEntry> it = multiSearchResult.getSearchEntries().iterator();
+        while (it.hasNext()) {
+            SearchResultEntry searchResult = it.next();
+        
+            String userIDString = searchResult.getAttributeValue(LDAP_USER_NAME);
+    
+            User user = new User();
+            // don't add http identities for those with external dns
+            if (!EXTERNAL_USER_CN.equals(userIDString)) {
+                HttpPrincipal userID = new HttpPrincipal(userIDString);
+                user.getIdentities().add(userID);
             }
+    
+            // Set the User's private InternalID field
+            String numericID = searchResult.getAttributeValue(userLdapAttrib.get(NumericPrincipal.class));
+            InternalID internalID = getInternalID(numericID);
+            ObjectUtil.setField(user, internalID, USER_ID);
+            user.getIdentities().add(new NumericPrincipal(internalID.getUUID()));
+    
+            String x500str = searchResult.getAttributeValue(userLdapAttrib.get(X500Principal.class));
+            logger.debug("getUserByEmailAddress: x500principal = " + x500str);
+            if (x500str != null)
+                user.getIdentities().add(new X500Principal(x500str));
+    
+            String uidNumberStr = searchResult.getAttributeValue(userLdapAttrib.get(PosixPrincipal.class));
+            logger.debug("getUserByEmailAddress: posixprincipal = " + uidNumberStr);
+            if (uidNumberStr != null)
+                user.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberStr)));
+    
+            String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
+            String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
+            if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName))
+            {
+                user.personalDetails = new PersonalDetails(firstName, lastName);
+                user.personalDetails.address = searchResult.getAttributeValue(LDAP_ADDRESS);
+                user.personalDetails.city = searchResult.getAttributeValue(LDAP_CITY);
+                user.personalDetails.country = searchResult.getAttributeValue(LDAP_COUNTRY);
+                user.personalDetails.email = searchResult.getAttributeValue(LDAP_EMAIL);
+                user.personalDetails.institute = searchResult.getAttributeValue(LDAP_INSTITUTE);
+                
+                String homeDir = searchResult.getAttributeValue(LDAP_HOME_DIRECTORY);
+                if (homeDir != null) {
+                    // numericID, uidNumber and gidNumber hold the same value
+                    int uidNumber = Integer.parseInt(uidNumberStr);
+                    user.posixDetails = new PosixDetails(userIDString, uidNumber, uidNumber, homeDir);
+                    user.posixDetails.loginShell = searchResult.getAttributeValue(LDAP_LOGIN_SHELL);
+                }
+            }
+
+            users.add(user);
+        
         }
 
-        return user;
+        return users;
     }
 
     public User getAugmentedUser(final Principal userID, final boolean primeGroupCache)
@@ -910,9 +933,8 @@ public class LdapUserDAO extends LdapDAO
                 name = userID.getName();
             }
 
-            Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             Filter equalsFilter = Filter.createEqualityFilter(searchField, name);
-            Filter filter = Filter.createANDFilter(notFilter, equalsFilter);
+            Filter filter = Filter.createANDFilter(this.notLockedFilter, equalsFilter);
 
             profiler.checkpoint("getAugmentedUser.createFilter");
             logger.debug("getAugmentedUser: search filter = " + filter);
@@ -1066,9 +1088,8 @@ public class LdapUserDAO extends LdapDAO
     {
         final Collection<User> users = new ArrayList<User>();
 
-        Filter notFilter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
         Filter presenceFilter = Filter.createPresenceFilter(LDAP_UID);
-        Filter filter = Filter.createANDFilter(notFilter, presenceFilter);
+        Filter filter = Filter.createANDFilter(this.notLockedFilter, presenceFilter);
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
@@ -1124,6 +1145,42 @@ public class LdapUserDAO extends LdapDAO
         }
         logger.debug("getUsers: found " + users.size() + " in " + usersDN);
         return users;
+    }
+
+    public SortedSet<String> getEmailsForAllUsers()
+        throws AccessControlException, TransientException {
+
+        Filter emailFilter = Filter.createPresenceFilter(LDAP_EMAIL);
+        Filter filter = Filter.createANDFilter(this.notLockedFilter, emailFilter);
+        logger.debug("search filter: " + filter);
+
+        final SortedSet<String> emails = new TreeSet<>();
+        final String[] attributes = new String[] { LDAP_EMAIL };
+        final SearchRequest searchRequest = new SearchRequest(config.getUsersDN(), SearchScope.ONE, filter, attributes);
+
+        try
+        {
+            final SearchResult searchResult = getReadOnlyConnection().search(searchRequest);
+
+            LdapDAO.checkLdapResult(searchResult.getResultCode());
+            for (SearchResultEntry next : searchResult.getSearchEntries())
+            {
+                emails.add(next.getAttributeValue(LDAP_EMAIL));
+            }
+        }
+        catch (LDAPSearchException e)
+        {
+            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT)
+            {
+                final String message = "Could not find users root";
+                logger.debug(message, e);
+                throw new IllegalStateException(message);
+            }
+        }
+        logger.debug("getDistinctEmailAddressesForAllUsers: found " + emails.size()
+                         + " distinct emails in " + config.getUsersDN());
+
+        return emails;
     }
 
     /**
@@ -1288,7 +1345,7 @@ public class LdapUserDAO extends LdapDAO
         catch (LDAPException e)
         {
             logger.debug("setPassword Exception: " + e);
-            LdapDAO.checkLdapResult(e.getResultCode());
+            LdapDAO.checkLdapResult(e);
         }
     }
 
@@ -1337,6 +1394,22 @@ public class LdapUserDAO extends LdapDAO
     {
         deleteUser(userID, config.getUsersDN(), markDelete);
     }
+
+    /**
+     * Delete the user specified by userID from the active user tree.
+     *
+     * @param userID The userID.
+     * @throws UserNotFoundException  when the user is not found.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void unlockUser(final Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        unlockUser(userID, config.getUsersDN());
+    }
+
 
     /**
      * Delete the user specified by userID from the pending user tree.
@@ -1393,11 +1466,41 @@ public class LdapUserDAO extends LdapDAO
         {
             try
             {
-                getUser(userID, usersDN, ldapRWConn);
+                getUser(userID, usersDN, ldapRWConn, false);
                 throw new RuntimeException(
                     "BUG: " + userID.getName() + " not deleted in " + usersDN);
             }
             catch (UserNotFoundException ignore) {}
+        }
+    }
+
+    private void unlockUser(final Principal userID, final String usersDN)
+        throws UserNotFoundException, AccessControlException, TransientException
+    {
+        User user2Unlock = getLockedUser(userID, usersDN);
+        LDAPConnection ldapRWConn = getReadWriteConnection();
+        try
+        {
+            long uuid = uuid2long(user2Unlock.getID().getUUID());
+            DN userDN = getUserDN(uuid, usersDN);
+
+            List<Modification> modifs = new ArrayList<Modification>();
+            modifs.add(new Modification(ModificationType.DELETE, LDAP_NSACCOUNTLOCK));
+
+            ModifyRequest modifyRequest = new ModifyRequest(userDN, modifs);
+
+            LDAPResult result = ldapRWConn.modify(modifyRequest);
+            LdapDAO.checkLdapResult(result.getResultCode());
+
+            logger.debug("unlocked " + userID.getName());
+        }
+        catch (LDAPException e1)
+        {
+            logger.debug("UnlockUser Exception: " + e1, e1);
+
+            // If there is no LDAP_NSACCOUNTLOCK attribute, the user is not locked
+            // and for this function it's not an error
+            LdapDAO.checkLdapResult(e1.getResultCode(), true, e1.getMessage());
         }
     }
 
@@ -1530,6 +1633,19 @@ public class LdapUserDAO extends LdapDAO
         else
         {
             LdapDAO.checkLdapResult(code);
+        }
+    }
+    
+    protected static void checkUserLDAPResult(LDAPException e)
+            throws TransientException, UserAlreadyExistsException
+    {
+        if (e.getResultCode() == ResultCode.ENTRY_ALREADY_EXISTS)
+        {
+            throw new UserAlreadyExistsException("User already exists.");
+        }
+        else
+        {
+            LdapDAO.checkLdapResult(e);
         }
     }
 

@@ -81,6 +81,9 @@ import org.junit.Test;
  */
 public class CmdLineParserTest
 {
+	static String TMP_DIR = "build/resources/test";
+	static String USER_HOME = System.getProperty("user.home");
+
     private static PrintStream sysOut = System.out;
     private static PrintStream sysErr = System.err;
 
@@ -272,6 +275,7 @@ public class CmdLineParserTest
     	// case 6: one --approve command
     	try
     	{
+			System.setProperty("user.home", TMP_DIR);
     	    String[] dArgs = {"--approve=jdoe", "--dn=dn", "-d"};
     	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
     	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
@@ -280,7 +284,9 @@ public class CmdLineParserTest
     	catch (Exception e)
     	{
     	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+    	} finally {
+			System.setProperty("user.home", USER_HOME);
+		}
 
     	// case 7: one command with no user ID
     	try

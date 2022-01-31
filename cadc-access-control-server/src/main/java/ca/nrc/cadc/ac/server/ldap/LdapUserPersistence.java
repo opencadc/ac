@@ -72,7 +72,9 @@ import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.List;
 
+import java.util.SortedSet;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
@@ -224,6 +226,37 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
+     * Get the user specified by userID from the active users tree.
+     *
+     * @param userID The userID.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User getLockedUser(Principal userID)
+        throws UserNotFoundException, TransientException, AccessControlException
+    {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if ( !isMatch(caller, userID) )
+            throw new AccessControlException("permission denied: target user does not match current user");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO(conns);
+            return userDAO.getLockedUser(userID);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
+    /**
      * Get the user specified by email address exists in the active users tree.
      *
      * @param emailAddress The user's email address.
@@ -231,25 +264,56 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @return User ID.
      *
      * @throws UserNotFoundException when the user is not found.
+     * @throws UserAlreadyExistsException if more than one account with the email address is found
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
-     * @throws UserAlreadyExistsException A user with the same email address already exists
      */
     public User getUserByEmailAddress(String emailAddress)
-        throws UserNotFoundException, TransientException,
-               AccessControlException, UserAlreadyExistsException
+        throws UserNotFoundException, UserAlreadyExistsException, TransientException, AccessControlException
+    {
+        LdapConnections conns = new LdapConnections(this);
+        try
         {
-            LdapConnections conns = new LdapConnections(this);
-            try
-            {
-                LdapUserDAO userDAO = new LdapUserDAO(conns);
-                return userDAO.getUserByEmailAddress(emailAddress);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            List<User> users = userDAO.getUsersByEmailAddress(emailAddress);
+            if (users.size() == 0) {
+                throw new UserNotFoundException("user with email address " + emailAddress + " not found");
             }
-            finally
-            {
-                conns.releaseConnections();
+            if (users.size() > 1) {
+                throw new UserAlreadyExistsException("more than one account matched email address " + emailAddress);
             }
+            return users.get(0);
         }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+    
+    /**
+     * Admin function to find all accounts with the given email address.
+     *
+     * @param emailAddress The user's email address.
+     *
+     * @return List of users.
+     *
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public List<User> getUsersByEmailAddress(String emailAddress)
+        throws TransientException, AccessControlException
+    {
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            return userDAO.getUsersByEmailAddress(emailAddress);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
 
     /**
     * Get the user specified by userID whose account is pending approval.
@@ -438,7 +502,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User modifyUser(User user)
+    public User modifyUserPersonalDetails(User user)
         throws UserNotFoundException, TransientException,
         AccessControlException
     {
@@ -446,6 +510,40 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if ( !isMatch(caller, user) )
             throw new AccessControlException("permission denied: target user does not match current user");
 
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            // trim out all but personal details
+            user.posixDetails = null;
+            
+            // do the modification
+            userDAO = new LdapUserDAO(conns);
+            return userDAO.modifyUser(user);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+    
+    /**
+     * Admin function to modify a user.
+     *
+     * @param user          The user to update.
+     *
+     * @return User instance.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public User modifyUser(User user)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        // no auth check - admin function
+        
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try
@@ -460,7 +558,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     }
 
     /**
-     * Delete the user specified by userID.
+     * Lock the user account specified by userID.
      *
      * @param userID The userID.
      *
@@ -482,6 +580,36 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         {
             userDAO = new LdapUserDAO(conns);
             userDAO.deleteUser(userID, true);
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
+    /**
+     * Unlock the user account specified by userID.
+     *
+     * @param userID The userID.
+     *
+     * @throws UserNotFoundException when the user is not found.
+     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public void reactivateUser(Principal userID)
+        throws UserNotFoundException, TransientException,
+        AccessControlException
+    {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if ( !isMatch(caller, userID) )
+            throw new AccessControlException("permission denied: target user does not match current user");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO(conns);
+            userDAO.unlockUser(userID);
         }
         finally
         {
@@ -653,7 +781,38 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             conns.releaseConnections();
         }
     }
-    
+
+    /**
+     * Get a sorted set of distinct email addresses for all users in the users tree.
+     * Items are sorted in ascending order.
+     *
+     * @return A collection of strings.
+     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws AccessControlException If the operation is not permitted.
+     */
+    public SortedSet<String> getEmailsForAllUsers()
+        throws TransientException, AccessControlException {
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
+            throw new AccessControlException("Caller is not authenticated");
+
+        // user must also have an approved account
+        if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
+            throw new AccessControlException("Caller does not have authorized account");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try
+        {
+            userDAO = new LdapUserDAO(conns);
+            return userDAO.getEmailsForAllUsers();
+        }
+        finally
+        {
+            conns.releaseConnections();
+        }
+    }
+
     private boolean checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
     	boolean groupExists = false;
         try {

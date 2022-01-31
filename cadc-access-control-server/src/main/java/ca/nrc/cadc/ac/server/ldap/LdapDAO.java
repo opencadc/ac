@@ -72,6 +72,7 @@ import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
 import org.apache.log4j.Logger;
 
@@ -151,10 +152,14 @@ public abstract class LdapDAO
             throws TransientException
     {
     	logger.debug("Ldap result: " + code);
-        checkLdapResult(code, false);
+        checkLdapResult(code, false, null);
     }
     
-    protected static void checkLdapResult(ResultCode code, boolean ignoreNoSuchAttribute)
+    protected static void checkLdapResult(LDAPException e) throws TransientException {
+        checkLdapResult(e.getResultCode(), false, e.getMessage());
+    }
+    
+    protected static void checkLdapResult(ResultCode code, boolean ignoreNoSuchAttribute, String errorMessage)
             throws TransientException
     {
     	if ( code == ResultCode.SUCCESS 
@@ -187,6 +192,14 @@ public abstract class LdapDAO
         else if (code == ResultCode.INVALID_DN_SYNTAX)
         {
             throw new IllegalArgumentException("Invalid DN syntax");
+        }
+        else if (code == ResultCode.CONSTRAINT_VIOLATION)
+        {
+            if (errorMessage != null) {
+                throw new IllegalArgumentException(errorMessage);
+            } else {
+                throw new IllegalArgumentException("Invalid Password Syntax");
+            }
         }
 
         throw new RuntimeException("Ldap error (" + code.getName() + ")");

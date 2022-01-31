@@ -81,7 +81,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opencadc.permissions.xml.GrantReader;
 
 public class TokenToolTest {
 
@@ -167,6 +166,22 @@ public class TokenToolTest {
         String token = gen.generateToken(URI.create(uri), grant, null);
         String actUser = ver.validateToken(token, URI.create(uri), grant);
         Assert.assertEquals("user", null, actUser);
+    }
+    
+    @Test
+    public void testVarArgsValidate() throws Exception {
+        String uri = "cadc:TEST/file.fits";
+        Class<? extends Grant> grant = ReadGrant.class;
+        Class<? extends Grant> otherGrant = WriteGrant.class;
+        TokenTool gen = new TokenTool(pubKeyFile, privateKeyFile);
+        TokenTool ver = new TokenTool(pubKeyFile);
+        String token = gen.generateToken(URI.create(uri), grant, null);
+        
+        String actUser1 = ver.validateToken(token, URI.create(uri), grant, otherGrant);
+        Assert.assertEquals("user", null, actUser1);
+        
+        String actUser2 = ver.validateToken(token, URI.create(uri), otherGrant, grant);
+        Assert.assertEquals("user", null, actUser2);
     }
 
     @Test
