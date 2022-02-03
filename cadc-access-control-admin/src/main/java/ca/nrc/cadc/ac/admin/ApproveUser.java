@@ -95,13 +95,12 @@ public class ApproveUser extends AbstractUserCommand
 {
     private static final Logger log = Logger.getLogger(ApproveUser.class);
 
-    private static final String EMAIL_CONFIG = "ac-admin-email.properties";
-
     private static final List<String> MAIL_PROPS =
-        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT, Mailer.MAIL_FROM, Mailer.MAIL_REPLY_TO,
-                  Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY).collect(Collectors.toList());
+        Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY,
+                  Mailer.SMTP_AUTH_HOST, Mailer.SMTP_AUTH_PORT, Mailer.SMTP_ACCOUNT, Mailer.SMTP_PASSWORD)
+            .collect(Collectors.toList());
 
-    private String dn;
+    private final String dn;
     private final PropertyResourceBundle mailProps;
 
     /**
@@ -113,7 +112,7 @@ public class ApproveUser extends AbstractUserCommand
     {
     	super(userID);
     	this.dn = dn;
-        this.mailProps = AdminUtil.getProperties(EMAIL_CONFIG, MAIL_PROPS);
+        this.mailProps = AdminUtil.getProperties(Mailer.MAIL_CONFIG, MAIL_PROPS);
     }
 
     protected void execute()
@@ -159,7 +158,6 @@ public class ApproveUser extends AbstractUserCommand
         String noWhiteSpaceDN = dn.replaceAll("\\s","");
         this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + noWhiteSpaceDN);
         this.printUser(user);
-
     }
 
     private void emailUser(User  user)
@@ -197,8 +195,10 @@ public class ApproveUser extends AbstractUserCommand
             log.debug("email body populated: " + populatedBody);
 
             Mailer mailer = new Mailer();
-            mailer.setSmtpHost(this.mailProps.getString(Mailer.SMTP_HOST));
-            mailer.setSmtpPort(this.mailProps.getString(Mailer.SMTP_PORT));
+            mailer.setSmtpHost(this.mailProps.getString(Mailer.SMTP_AUTH_HOST));
+            mailer.setSmtpPort(this.mailProps.getString(Mailer.SMTP_AUTH_PORT));
+            mailer.setSmtpAccount(this.mailProps.getString(Mailer.SMTP_ACCOUNT));
+            mailer.setSmtpPassword(this.mailProps.getString(Mailer.SMTP_PASSWORD));
 
             mailer.setToList(new String[] { recipient });
             mailer.setReplyToList(new String[] { mailProps.getString(Mailer.MAIL_REPLY_TO)});
@@ -212,7 +212,8 @@ public class ApproveUser extends AbstractUserCommand
 
             mailer.setContentType(Mailer.HTML_CONTENT_TYPE);
 
-            mailer.doSend();
+            boolean authenticated = true;
+            mailer.doSend(authenticated);
             this.systemOut.println("Emailed approval message to user.");
         }
         catch (Exception e)
