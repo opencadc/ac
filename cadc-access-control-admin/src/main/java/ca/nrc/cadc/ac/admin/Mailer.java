@@ -35,6 +35,9 @@
 package ca.nrc.cadc.ac.admin;
 
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -71,13 +74,19 @@ import org.apache.log4j.Logger;
  * the email messages are not required to be sent out.
  *
  */
-public class Mailer
-{
+public class Mailer {
+    private static Logger logger = Logger.getLogger(Mailer.class);
+
     public static final String DEFAULT_CONTENT_TYPE = "text/plain";
     public static final String HTML_CONTENT_TYPE = "text/html; charset=utf-8";
 
     public static final String SMTP_HOST = "smtp.host";
     public static final String SMTP_PORT = "smtp.port";
+
+    public static final String SMTP_AUTH_HOST = "smtp.auth.host";
+    public static final String SMTP_AUTH_PORT = "smtp.auth.port";
+    public static final String SMTP_ACCOUNT = "smtp.auth.account";
+    public static final String SMTP_PASSWORD = "smtp.auth.password";
 
     public static final String MAIL_FROM = "mail.from";
     public static final String MAIL_TO = "mail.to";
@@ -86,7 +95,11 @@ public class Mailer
     public static final String MAIL_SUBJECT = "mail.subject";
     public static final String MAIL_BODY = "mail.body";
 
-    private static Logger logger = Logger.getLogger(Mailer.class);
+    public static final String MAIL_CONFIG = "ac-admin-email.properties";
+    public static final String MAIL_SKIP_DOMAINS = "mail.skip-domains";
+
+    // sleep time in secs between emails
+    public static final int SLEEP_TIME = 10;
 
     protected Session session; // java mail session object
 
@@ -111,8 +124,10 @@ public class Mailer
 
     protected String smtpHost;
     protected String smtpPort;
+    protected String smtpAccount;
+    protected String smtpPassword;
 
-    public boolean isComplete()
+    public boolean isComplete(boolean authenticated)
     {
         if (from == null || from.length() == 0)
         {
@@ -148,20 +163,31 @@ public class Mailer
             return false;
         }
 
+        if (authenticated) {
+            if (smtpAccount == null || smtpAccount.length() == 0) {
+                logger.error("No SMTP account set in Mailer");
+                return false;
+            }
+
+            if (smtpPassword == null || smtpPassword.length() == 0) {
+                logger.error("No SMTP password set in Mailer");
+                return false;
+            }
+        }
+
         return true;
     }
 
     /**
      * Method to send an email message.
      *
-     * @throws MessagingException
-     *             Email problems
-     * @throws IllegalArgumentException
-     *             when the object is not initialized properly.
+     * @param authenticated Whether to use the auth SMTP server or not.
+     * @throws MessagingException Email problems
+     * @throws IllegalArgumentException when the object is not initialized properly.
      */
-    public synchronized void doSend() throws MessagingException
+    public synchronized void doSend(boolean authenticated) throws MessagingException
     {
-        if (!isComplete())
+        if (!isComplete(authenticated))
         {
             throw new IllegalArgumentException(
                 "doSend called before message was complete");
@@ -170,8 +196,12 @@ public class Mailer
         Properties props = new Properties();
         props.put("mail.smtp.port", smtpPort);
         props.put("mail.smtp.host", smtpHost);
-        //props.put("mail.smtp.auth", "true");
-        //props.put("mail.smtp.starttls.enable", true);
+        if (authenticated) {
+            props.put("mail.smtp.account", smtpAccount);
+            props.put("mail.smtp.password", smtpPassword);
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", true);
+        }
 
         if (session == null)
         {
@@ -236,7 +266,11 @@ public class Mailer
         logger.debug("contentType: " + (StringUtil.hasText(contentType) ? contentType : DEFAULT_CONTENT_TYPE));
 
         logger.debug("sending email");
-        Transport.send(msg);
+        if (authenticated) {
+            Transport.send(msg, smtpAccount, smtpPassword);
+        } else {
+            Transport.send(msg);
+        }
     }
 
     /**
@@ -260,7 +294,7 @@ public class Mailer
      *         message details the cause of the failure).
      */
     public static boolean send(String[] recipient, String[] cc, String[] bcc,
-                               String sender, String[] replyTo, String subject, String message)
+                               String sender, String[] replyTo, String subject, String message, boolean authenticated)
     {
         Mailer mailer = new Mailer();
         mailer.toList = recipient;
@@ -272,7 +306,7 @@ public class Mailer
         mailer.body = message;
         try
         {
-            mailer.doSend();
+            mailer.doSend(authenticated);
         }
         catch (MessagingException e)
         {
@@ -413,5 +447,14 @@ public class Mailer
     public void setSmtpPort(String smtpPort) {
         this.smtpPort = smtpPort;
     }
+
+    public void setSmtpAccount(String smtpAccount) {
+        this.smtpAccount = smtpAccount;
+    }
+
+    public void setSmtpPassword(String smtpPassword) {
+        this.smtpPassword = smtpPassword;
+    }
+
 
 }

@@ -97,18 +97,12 @@ public class EmailAllUsers extends AbstractCommand {
 
     private static final Logger log = Logger.getLogger(EmailAllUsers.class);
 
-    private static final String SMTP_CONFIG = "ac-admin-email.properties";
-    public static final String MAIL_SKIP_DOMAINS = "mail.skip-domains";
-
-    // sleep time in secs between emails
-    private static final int SLEEP_TIME = 10;
-
-    private static final List<String> SMTP_PROPS =
-        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT).collect(Collectors.toList());
-
     private static final List<String> MAIL_PROPS =
-        Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO,
-                  Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY).collect(Collectors.toList());
+        Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY)
+            .collect(Collectors.toList());
+
+    public static final List<String> SMTP_PROPS =
+        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT).collect(Collectors.toList());
 
     private final String emailPropsFilename;
     private final String logFilename;
@@ -213,8 +207,8 @@ public class EmailAllUsers extends AbstractCommand {
             // try to avoid sleeping after last batch of emails
             if (toSend.size() == this.batchSize) {
                 try {
-                    this.systemOut.printf("sleeping for %s secs%n", SLEEP_TIME);
-                    Thread.sleep(SLEEP_TIME * 1000);
+                    this.systemOut.printf("sleeping for %s secs%n", Mailer.SLEEP_TIME);
+                    Thread.sleep(Mailer.SLEEP_TIME * 1000);
                 } catch (InterruptedException e) {
                     throw new IllegalStateException(String.format("Error while sleeping: %s", e.getMessage()));
                 }
@@ -223,6 +217,9 @@ public class EmailAllUsers extends AbstractCommand {
         this.systemOut.printf("  total: %s%n", total);
         this.systemOut.printf("   sent: %s%n", sent);
         this.systemOut.printf("skipped: %s%n", skipped);
+        this.systemOut.printf("WARNING: --send-email does not send email to nrc.ca accounts.%n"
+                                  + "Email to nrc.ca accounts must be send using an email client.%n"
+                                  + "A LDAP query can return the list of nrc.ca accounts.%n");
 
         try {
             this.logWriter.close();
@@ -233,7 +230,7 @@ public class EmailAllUsers extends AbstractCommand {
 
     protected void init()
         throws UsageException {
-        this.smtpProps = AdminUtil.getProperties(SMTP_CONFIG, SMTP_PROPS);
+        this.smtpProps = AdminUtil.getProperties(Mailer.MAIL_CONFIG, SMTP_PROPS);
         this.mailProps = AdminUtil.getProperties(emailPropsFilename, MAIL_PROPS);
         this.logWriter = initLogging(logFilename);
     }
@@ -318,7 +315,8 @@ public class EmailAllUsers extends AbstractCommand {
 
         mailer.setContentType(Mailer.HTML_CONTENT_TYPE);
 
-        mailer.doSend();
+        boolean authenticated = false;
+        mailer.doSend(authenticated);
     }
 
     protected SortedSet<String> getAllUserEmails() throws TransientException {
@@ -331,8 +329,8 @@ public class EmailAllUsers extends AbstractCommand {
 
     protected List<String> getSkipDomains() {
         List<String> domains = new ArrayList<>();
-        if (this.mailProps.containsKey(MAIL_SKIP_DOMAINS)) {
-            String prop = this.mailProps.getString(MAIL_SKIP_DOMAINS);
+        if (this.mailProps.containsKey(Mailer.MAIL_SKIP_DOMAINS)) {
+            String prop = this.mailProps.getString(Mailer.MAIL_SKIP_DOMAINS);
             if (StringUtil.hasText(prop)) {
                 String[] tokens = prop.split("\\s+");
                 for (String token : tokens) {
