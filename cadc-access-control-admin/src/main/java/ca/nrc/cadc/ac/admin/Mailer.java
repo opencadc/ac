@@ -85,8 +85,8 @@ public class Mailer {
 
     public static final String SMTP_AUTH_HOST = "smtp.auth.host";
     public static final String SMTP_AUTH_PORT = "smtp.auth.port";
-    public static final String SMTP_ACCOUNT = "smtp.account";
-    public static final String SMTP_PASSWORD = "smtp.password";
+    public static final String SMTP_ACCOUNT = "smtp.auth.account";
+    public static final String SMTP_PASSWORD = "smtp.auth.password";
 
     public static final String MAIL_FROM = "mail.from";
     public static final String MAIL_TO = "mail.to";
