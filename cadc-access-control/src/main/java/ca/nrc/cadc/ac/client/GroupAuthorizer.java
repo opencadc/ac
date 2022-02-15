@@ -98,13 +98,8 @@ public class GroupAuthorizer implements Authorizer
      * @param uri group identifier for the allow group
      */
     public GroupAuthorizer(String uri) 
-    { 
-        try
-        {
-            this.groupURI = new GroupURI(uri);
-        } catch (URISyntaxException ex) {
-            throw new IllegalArgumentException("invalid group URI: " + uri);
-        }
+    {
+        this.groupURI = new GroupURI(URI.create(uri));
     }
 
     @Override
@@ -129,7 +124,7 @@ public class GroupAuthorizer implements Authorizer
             if ( CredUtil.checkCredentials())
             {
                 GMSClient gms = new GMSClient(groupURI.getServiceID());
-                if ( gms.isMember(groupURI.getName(), Role.MEMBER))
+                if (gms.isMember(groupURI))
                     return;
 
                 throw new AccessControlException("permission denied");
@@ -142,14 +137,12 @@ public class GroupAuthorizer implements Authorizer
         }
         catch (Throwable e)
         {
-            String errorMessage = "Failed to check " + groupURI + " group membership: " + e
-                    .getMessage();
+            String errorMessage = "Failed to check " + groupURI + " group membership: " + e.getMessage();
             log.error(errorMessage, e);
             Throwable cause = e.getCause();
             while (cause != null)
             {
-                log.error("                    reason: "
-                          + cause.getCause());
+                log.error("                    reason: " + cause.getCause());
                 cause = cause.getCause();
             }
             throw new IllegalStateException(errorMessage);
