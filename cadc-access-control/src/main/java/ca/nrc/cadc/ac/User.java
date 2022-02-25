@@ -100,7 +100,7 @@ public class User
     {
         PrincipalComparator p = new PrincipalComparator();
         UserPrincipalComparator u = new UserPrincipalComparator(p);
-        this.identities = new TreeSet<Principal>(u);
+        this.identities = new TreeSet<Principal>(Comparator.nullsLast(u));
     }
 
     public InternalID getID()
