@@ -92,7 +92,6 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.Iterator;
 import java.util.Set;
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
@@ -199,23 +198,6 @@ public class LoginServlet extends HttpServlet
                     ai.augmentSubject(userSubject);
                 }
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
-
-                // Remove principal p added above if userID in request differs in case
-                boolean removePrincipal = false;
-                Principal toBeRemoved = null;
-                for (Iterator<Principal> iterator = userPrincipals.iterator(); iterator.hasNext();) {
-                    Principal princ = iterator.next();
-                    if (princ.getName().equalsIgnoreCase(userID)) {
-                        if (princ.getName().equals(userID)) {
-                          toBeRemoved = princ;
-                        } else {
-                            removePrincipal = true;
-                        }
-                    }
-                }
-                if (removePrincipal && toBeRemoved != null) {
-                    userPrincipals.remove(toBeRemoved);
-                }
 
                 if (scope != null)
                 {

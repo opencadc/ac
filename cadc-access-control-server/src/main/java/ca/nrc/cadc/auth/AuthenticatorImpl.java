@@ -80,6 +80,8 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.Iterator;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -147,6 +149,21 @@ public class AuthenticatorImpl implements Authenticator
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
             Principal ldapPrincipal = getLdapPrincipal(subject);
+
+            // Remove the HttpPrincipal in subject, if any
+            Principal toBeRemoved = null;
+            Set<Principal> principals = subject.getPrincipals();
+            for (Iterator<Principal> iterator = principals.iterator(); iterator.hasNext();) {
+                Principal princ = iterator.next();
+                if (princ instanceof HttpPrincipal) {
+                    toBeRemoved = princ;
+                    break;
+                }
+            }
+            if (toBeRemoved != null) {
+                subject.getPrincipals().remove(toBeRemoved);
+            }
+
             User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
             if (user.getIdentities() != null)
             {
