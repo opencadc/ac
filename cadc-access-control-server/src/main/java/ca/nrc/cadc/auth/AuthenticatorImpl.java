@@ -80,6 +80,9 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -149,7 +152,15 @@ public class AuthenticatorImpl implements Authenticator
             Principal ldapPrincipal = getLdapPrincipal(subject);
 
             // Remove the HttpPrincipal in subject, if any
-            subject.getPrincipals(HttpPrincipal.class).clear();
+            Set<Principal> toBeRemoved = new HashSet<Principal>();
+            subject.getPrincipals().forEach(p -> {
+                if (p instanceof HttpPrincipal) {
+                    toBeRemoved.add(p);
+                }
+            });
+            toBeRemoved.forEach(p -> {
+                subject.getPrincipals().remove(p);
+            });
 
             User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
             if (user.getIdentities() != null)
