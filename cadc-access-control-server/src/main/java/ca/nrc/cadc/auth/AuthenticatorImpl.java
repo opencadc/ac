@@ -80,7 +80,6 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
