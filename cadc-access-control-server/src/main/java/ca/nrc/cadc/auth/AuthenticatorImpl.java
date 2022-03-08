@@ -150,16 +150,15 @@ public class AuthenticatorImpl implements Authenticator
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
             Principal ldapPrincipal = getLdapPrincipal(subject);
 
-            // Remove the HttpPrincipal in subject, if any
+            // CADC-10630 Remove potentially incorrect userID
+            // in HttpPrincipal in subject.
             Set<Principal> toBeRemoved = new HashSet<Principal>();
             subject.getPrincipals().forEach(p -> {
                 if (p instanceof HttpPrincipal) {
                     toBeRemoved.add(p);
                 }
             });
-            toBeRemoved.forEach(p -> {
-                subject.getPrincipals().remove(p);
-            });
+            subject.getPrincipals().removeAll(toBeRemoved);
 
             User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
             if (user.getIdentities() != null)
