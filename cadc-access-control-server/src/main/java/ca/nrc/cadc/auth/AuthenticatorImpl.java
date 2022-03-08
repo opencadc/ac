@@ -152,13 +152,7 @@ public class AuthenticatorImpl implements Authenticator
 
             // CADC-10630 Remove potentially incorrect userID
             // in HttpPrincipal in subject.
-            Set<Principal> toBeRemoved = new HashSet<Principal>();
-            subject.getPrincipals().forEach(p -> {
-                if (p instanceof HttpPrincipal) {
-                    toBeRemoved.add(p);
-                }
-            });
-            subject.getPrincipals().removeAll(toBeRemoved);
+            subject.getPrincipals().removeAll(subject.getPrincipals(HttpPrincipal.class));
 
             User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
             if (user.getIdentities() != null)
