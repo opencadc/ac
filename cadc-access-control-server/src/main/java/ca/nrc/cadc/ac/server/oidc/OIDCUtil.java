@@ -94,8 +94,14 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
+import com.nimbusds.jose.util.BigIntegerUtils;
+
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.impl.lang.LegacyServices;
+import io.jsonwebtoken.io.Serializer;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
@@ -104,8 +110,10 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -113,13 +121,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.security.interfaces.RSAPublicKey;
+
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
-import org.opencadc.gms.GroupClient;
+//import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
+//import org.opencadc.gms.GroupUtil;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -178,7 +188,17 @@ public class OIDCUtil {
         }
         return privateKey;
     }
-    
+
+    private static RsaSignatureGenerator getRsaSignatureGenerator() {
+//        if (privateKey == null) {
+            File privFile = FileUtil.getFileFromResource(PRIVATE_KEY_NAME, OIDCUtil.class);
+            return new RsaSignatureGenerator(privFile);
+//        }
+        // TODO: not sure this is great
+//        return null;
+    }
+
+
     private static Set<String> getClientIDs(MultiValuedProperties config) {
         Set<String> clientIDs = new HashSet<String>();
         Set<String> keys = config.keySet();
@@ -316,6 +336,23 @@ public class OIDCUtil {
         }
         return groupNames;
     }
+
+//    public static String buildToken(RelyParty rp, boolean isUserInfo) throws Exception {
+//
+//        String jwk = generateJWKString(rp, isUserInfo);
+//        if (rp.isSignDocuments() || !isUserInfo) {
+//            // function in here to build the JWS format, base 64 encoding and all
+//            // if isSignDocuments, do extra signing step using base header.payload
+//        } else {
+//            // provided the JWK is all that's needed, ... maybe the call to that function happens elsewhere
+//            // so it's clear that a token isn't being used in that case?
+//        }
+//
+//    }
+
+    // 5/6/22 thought: pilfer DefaultJwtbuilder code, make the Claims object
+    // convertible to JSON, or grabbable, or, and re-write the compact code
+    // so it's contained in there.
     
     public static String buildIDToken(RelyParty rp, boolean isUserInfo) throws Exception {
         
@@ -326,16 +363,42 @@ public class OIDCUtil {
         String email = OIDCUtil.getEmail(useridPrincipal);
         Calendar calendar = Calendar.getInstance();
         
-        if (rp.isSignDocuments() || !isUserInfo) {
-            JwtBuilder builder = Jwts.builder();
+//        if (rp.isSignDocuments() || !isUserInfo) {
+            // This is an implementation of the nimbus JWTBuilder interface
+            // includes logging, ability to get JSON string of claims object (payload)
+            // uses Java Base64 encoding and cadc-util RSASignature* classes
+            // Much of the code is pulled from the DefatulJwtBuilder class
+            RsaSignatureGenerator rsaSigGen = getRsaSignatureGenerator();
+            CadcJWTBuilder builder = new CadcJWTBuilder(rsaSigGen);
+//            builder.claim("sub", numericPrincipal.getName());
+//            builder.claim("iss", getClaimIssuer());
+
+//            if (rp.getClientID() != null) {
+//                builder.claim("aud", rp.getClientID());
+//            }
+
+            // should this be same as iss?
+//            https://developer.okta.com/docs/guides/build-self-signed-jwt/java/main/
+        // TODO: what happens if clientid is null? (apparently it can be.)
+            String clientID = rp.getClientID();
+            builder.setAudience(getClaimIssuer())
+                .setIssuedAt(calendar.getTime())
+                .setIssuer(clientID)
+                .setSubject(clientID)
+                .setHeaderParam("typ", "JWT")
+                .setHeaderParam("alg", "RSA256");
+
             builder.claim("sub", numericPrincipal.getName());
-            builder.claim("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                builder.claim("aud", rp.getClientID());
-            }
-            builder.claim("iat", calendar.getTime());
+            // Set expiry date
             calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            builder.claim("exp", calendar.getTime());
+            builder.setExpiration(calendar.getTime());
+//            builder.claim("aud", getClaimIssuer());
+//            if (rp.getClientID() != null) {
+//                builder.claim("iss", rp.getClientID());
+//            }
+
+//            builder.claim("iat", calendar.getTime());
+//            builder.claim("exp", calendar.getTime());
             if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
                 builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
             }
@@ -345,33 +408,49 @@ public class OIDCUtil {
             if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
                 builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
             }
-            
+
+            // replace this section with functions that use our signing facilities in cadc-util,
+            // replace the 'builder' section above with a function that will construct the JWK format
+            // correctly.
+            // make unit tests for both
+
+        if (rp.isSignDocuments() || !isUserInfo) {
+
+            // Have this in here so a JWT without a signature can still
+            // be generated
             if (rp.isSignDocuments()) {
-                return builder.signWith(OIDCUtil.getPrivateKey()).compact();
-            } else {
-                return builder.compact();
+                // TODO: put our own signing library stuff in here
+                builder.signWith(OIDCUtil.getPrivateKey());
             }
+
+            // Build the base64 encoded JWT string
+            return builder.compact();
+
         } else {
-            JSONObject json = new JSONObject();
-            json.put("sub", numericPrincipal.getName());
-            json.put("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                json.put("aud", rp.getClientID());
-            }
-            json.put("iat", calendar.getTime());
-            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            json.put("exp", calendar.getTime());
-            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
-                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
-                json.put(RelyParty.Claim.EMAIL.getValue(), email);
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
-                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
-            }
-            
-            return json.toString();
+            // this code is builing the payload json
+            // TODO: header json needs to be built as well
+//            JSONObject json = new JSONObject();
+//            json.put("sub", numericPrincipal.getName());
+//            json.put("iss", getClaimIssuer());
+//            if (rp.getClientID() != null) {
+//                json.put("aud", rp.getClientID());
+//            }
+//            json.put("iat", calendar.getTime());
+//            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+//            json.put("exp", calendar.getTime());
+//            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+//                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+//            }
+//            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+//                json.put(RelyParty.Claim.EMAIL.getValue(), email);
+//            }
+//            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+//                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
+//            }
+//
+//            return json.toString();
+
+            return builder.getClaimsJSONStr();
         }
 
     }
@@ -403,6 +482,41 @@ public class OIDCUtil {
             sb.append(c.getDescription());
         }
         return sb.toString();
+    }
+
+    public static String buildJwkJSON(RSAPublicKey key, String keyID) {
+        StringBuilder jwkJSON = new StringBuilder();
+        // {"kty":"RSA","e":"AQAB","use":"sig","kid":"4dc4b6e5-71fc-4e85-9862-5acd1e707d7d","alg":"RS256","n":"sc73IJCnuaob7BB1JlWnDbkwMe7B5VsGKXSXO9HxtI-DaYjwc9LNRpIq-x4N3biN1cknat-ZBjYoWgWpT4KBZvNd1f8hQM-9BqDcEgwoQL8DotYiZJ0trvba_BC8wOwNNbMrUT-mHkba3lqb3jJNgRf5NXmIL1BbmtoB3jepi1q48ZQK-Njt7KFLUjwgsmYvPQ0BYjYE0iU9qD-JwWJrlrjitx4qM_XiWjNNOW_hbIZqtjNh6EN0KytwHWLKsZouPyH3-MzSD6Se7N5JAQ1_J5OFlAB-CHFLbylSd6_6Pi3zSm3t3xXJ-61kDHnscYlbRea0e7-b00z5a2tSvcQ_cQ"}  ]}
+
+        jwkJSON.append("{\"kty\":\"RSA\",\"use\":\"sig\",");
+        jwkJSON.append("\"alg\":\"RSA\"");
+        jwkJSON.append("\"kid\":\"");
+        jwkJSON.append(keyID);
+        jwkJSON.append("\",\"");
+        jwkJSON.append("\"n\":\"");
+
+//        BigInteger a = new BigInteger(key.getModulus());
+
+        byte[] nBytes = Base64.getUrlEncoder().encode(BigIntegerUtils.toBytesUnsigned(key.getModulus()));
+        jwkJSON.append(nBytes.toString());
+        jwkJSON.append("\",\"");
+        byte[] eBytes = Base64.getUrlEncoder().encode(BigIntegerUtils.toBytesUnsigned(key.getPublicExponent()));
+
+
+        jwkJSON.append(keyID);
+        jwkJSON.append("\",\"");
+
+        StringBuilder json = new StringBuilder();
+
+        json.append("{");
+        json.append("  \"keys\": [");
+        json.append(jwkJSON);
+        json.append("  ]");
+        json.append("}");
+
+        log.debug("JWKS:\n" + json.toString());
+        return json.toString();
+
     }
     
 }

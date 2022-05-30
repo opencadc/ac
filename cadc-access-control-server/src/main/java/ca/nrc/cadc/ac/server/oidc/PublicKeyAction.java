@@ -69,15 +69,21 @@ package ca.nrc.cadc.ac.server.oidc;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jose.util.BigIntegerUtils;
 import java.io.OutputStreamWriter;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
+import java.security.KeyFactory;
 
 import org.apache.log4j.Logger;
 
@@ -96,21 +102,66 @@ public class PublicKeyAction extends RestAction {
     @Override
     public void doAction() throws Exception {
         log.debug("returning public key as jwks");
-        
+
         Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
         RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
-        
+
+        // This code uses nimbus library
         JWK jwk = new RSAKey.Builder(key)
             .keyUse(KeyUse.SIGNATURE)
             .keyID(KID)
             .build();
-        
-        String jwkJson = jwk.toPublicJWK().toJSONObject().toJSONString();
+        String jwkJSON = jwk.toPublicJWK().toJSONString();
+
+        // -----------------------------------------------------------------
+        // This code is/was the first attempt to replace nimbus code with CADC code,
+        // in order to use java Base64.encode methods to build the JWK
+//        StringBuilder json = new StringBuilder();
+        //        JWK jwk = new CadcJWKBuilder.Builder(key)
+//            .keyUse(KeyUse.SIGNATURE)
+//            .keyID(KID)
+//            .algorithm(JWSAlgorithm.RS256)
+//            .build();
+
+//        String jwkJson = jwk.toPublicJWK().toJSONString();
+
+//        String jwkJson = buildJWK(key);
+
+        // -----------------------------------------------------------------
+        // This code was a start into building JSON for the key manually.
+        // It's not clear how to encode 'n' properly yet.,
+        // May 30/22: stopped work on this section part way through in order to
+        // revert back to a 'last known good' version using the nimbus library
+        // so draft branch could be checked in.
+//        response: {  "keys": [
+
+//        StringBuilder jwkJSON = new StringBuilder();
+        // {"kty":"RSA","e":"AQAB","use":"sig","kid":"4dc4b6e5-71fc-4e85-9862-5acd1e707d7d","alg":"RS256","n":"sc73IJCnuaob7BB1JlWnDbkwMe7B5VsGKXSXO9HxtI-DaYjwc9LNRpIq-x4N3biN1cknat-ZBjYoWgWpT4KBZvNd1f8hQM-9BqDcEgwoQL8DotYiZJ0trvba_BC8wOwNNbMrUT-mHkba3lqb3jJNgRf5NXmIL1BbmtoB3jepi1q48ZQK-Njt7KFLUjwgsmYvPQ0BYjYE0iU9qD-JwWJrlrjitx4qM_XiWjNNOW_hbIZqtjNh6EN0KytwHWLKsZouPyH3-MzSD6Se7N5JAQ1_J5OFlAB-CHFLbylSd6_6Pi3zSm3t3xXJ-61kDHnscYlbRea0e7-b00z5a2tSvcQ_cQ"}  ]}
+
+//        jwkJSON.append("{\"kty\":\"RSA\",\"use\":\"sig\",");
+//        jwkJSON.append("\"alg\":\"RSA\"");
+//        jwkJSON.append("\"kid\":\"");
+//        jwkJSON.append(KID);
+//        jwkJSON.append("\",\"");
+//        jwkJSON.append("\"n\":\"");
+
+//        byte[] nBytes = Base64.getUrlEncoder().encode(BigIntegerUtils.toBytesUnsigned(key.getModulus()));
+//        jwkJSON.append(nBytes.toString());
+//        jwkJSON.append("\",\"");
+//        byte[] eBytes = Base64.getUrlEncoder().encode(BigIntegerUtils.toBytesUnsigned(key.getPublicExponent()));
+
+
+//        jwkJSON.append(KID);
+//        jwkJSON.append("\",\"");
+
+
+        // -----------------------------------------------------------------
+        // Original return code that builds JSON envelope to return JWKS from service
         StringBuilder json = new StringBuilder();
 
         json.append("{");
         json.append("  \"keys\": [");
-        json.append(jwkJson);
+        json.append(jwkJSON);
         json.append("  ]");
         json.append("}");
 
@@ -120,7 +171,9 @@ public class PublicKeyAction extends RestAction {
         out.write(json.toString());
         out.flush();
     }
-    
+
+
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;

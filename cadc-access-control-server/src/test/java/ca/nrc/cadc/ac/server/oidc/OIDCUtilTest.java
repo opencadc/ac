@@ -30,14 +30,19 @@ package ca.nrc.cadc.ac.server.oidc;
 
 import java.io.File;
 import java.net.URI;
+import java.security.interfaces.RSAPublicKey;
 import java.security.PrivilegedExceptionAction;
+import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opencadc.gms.GroupClient;
@@ -55,9 +60,12 @@ import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 
 
+
+
+
 public class OIDCUtilTest
 {
-
+    private static final Logger log = Logger.getLogger(OIDCUtilTest.class);
     static
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", org.apache.log4j.Level.INFO);
@@ -159,5 +167,22 @@ public class OIDCUtilTest
         // case 1: no access group, should be allowed
         RelyParty noAccessGroupRp = OIDCUtil.getRelyParty("client-id-no-access-group");
         Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed(noAccessGroupRp));
+    }
+
+
+    @Test
+    public void testJwkJSON() throws Exception {
+        System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/config");
+        System.setProperty("user.home", "src/test/config");
+
+//        Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
+//        // generate a random public key
+//        RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
+//
+//        // case 1: no access group, should be allowed
+//       String kid = UUID.randomUUID().toString();
+//        String jwkJSON = OIDCUtil.buildJwkJSON(key, kid);
+//        log.info(jwkJSON);
+//        Assert.assertTrue("should be allowed, i.e. true", OIDCUtil.accessAllowed(noAccessGroupRp));
     }
 }
