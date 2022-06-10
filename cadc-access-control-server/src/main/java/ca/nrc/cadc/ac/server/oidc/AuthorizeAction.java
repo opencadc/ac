@@ -212,9 +212,14 @@ public abstract class AuthorizeAction extends RestAction {
         AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
         if (authMethod.equals(AuthMethod.ANON)) {
 
+            // Use RegistryClient to get URL of login page, as configured in reg-applications.properties
+            // on the server hosting ac.
+            RegistryClient rc = new RegistryClient();
+            URL loginURL = rc.getAccessURL(RegistryClient.Query.APPLICATIONS, new URI("ivo://cadc.nrc.ca/login"));
             StringBuilder redirect = new StringBuilder();
-            // TODO: Need a better way of discovering this URL
-            redirect.append("https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/login.html#redirect_uri=");
+            redirect.append(loginURL.toExternalForm());
+            redirect.append("#redirect_uri=");
+
             redirect.append(redirectURI);
             if (loginHint != null) {
                 redirect.append("&username=");

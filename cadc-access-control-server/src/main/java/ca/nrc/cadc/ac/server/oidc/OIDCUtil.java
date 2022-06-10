@@ -94,6 +94,7 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
+import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -325,17 +326,22 @@ public class OIDCUtil {
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
         Calendar calendar = Calendar.getInstance();
-        
+        String clientID = rp.getClientID();
+
         if (rp.isSignDocuments() || !isUserInfo) {
             JwtBuilder builder = Jwts.builder();
-            builder.claim("sub", numericPrincipal.getName());
-            builder.claim("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                builder.claim("aud", rp.getClientID());
-            }
-            builder.claim("iat", calendar.getTime());
+
+            builder.setAudience(getClaimIssuer())   // aud
+                .setIssuedAt(calendar.getTime())    // iat
+                .setIssuer(clientID)                // iss
+                .setSubject(numericPrincipal.getName()) // sub
+                .setHeaderParam("typ", "JWT")
+                .setHeaderParam("alg", "RSA256");
+
+            // Set expiry date
             calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            builder.claim("exp", calendar.getTime());
+            builder.setExpiration(calendar.getTime());  // exp
+
             if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
                 builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
             }
@@ -345,20 +351,23 @@ public class OIDCUtil {
             if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
                 builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
             }
-            
+
             if (rp.isSignDocuments()) {
-                return builder.signWith(OIDCUtil.getPrivateKey()).compact();
+                return builder.signWith(OIDCUtil.getPrivateKey(), SignatureAlgorithm.RS256).compact();
             } else {
                 return builder.compact();
             }
         } else {
             JSONObject json = new JSONObject();
-            json.put("sub", numericPrincipal.getName());
-            json.put("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                json.put("aud", rp.getClientID());
-            }
+
+            // Note: the apparently same code to build a JWT is here, building
+            // an explicit JSON string. Building the JWT can't be generalized because
+            // the DefaultJWTBuider class doesn't expose any public method of getting a JSON version of the JWT.
+            json.put("aud", getClaimIssuer());
             json.put("iat", calendar.getTime());
+            json.put("iss", clientID);
+            json.put("sub", numericPrincipal.getName());
+
             calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
             json.put("exp", calendar.getTime());
             if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
@@ -370,10 +379,9 @@ public class OIDCUtil {
             if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
                 json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
             }
-            
+
             return json.toString();
         }
-
     }
     
     /**
