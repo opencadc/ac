@@ -375,7 +375,6 @@ public class OIDCUtil {
 
             return json.toString();
         }
-
     }
     
     /**
@@ -384,7 +383,7 @@ public class OIDCUtil {
      * @throws IOException
      * @throws ResourceNotFoundException
      */
-    public static String getClaimIssuer() throws IOException, ResourceNotFoundException {
+    static String getClaimIssuer() throws IOException, ResourceNotFoundException {
         LocalAuthority localAuthority = new LocalAuthority();
         URI serviceURI = localAuthority.getServiceURI(Standards.SECURITY_METHOD_OAUTH.toString());
         RegistryClient regClient = new RegistryClient();
