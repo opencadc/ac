@@ -99,6 +99,7 @@ import com.nimbusds.jose.util.BigIntegerUtils;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.lang.LegacyServices;
 import io.jsonwebtoken.io.Serializer;
+import io.jsonwebtoken.jackson.io.JacksonSerializer;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -337,68 +338,30 @@ public class OIDCUtil {
         return groupNames;
     }
 
-//    public static String buildToken(RelyParty rp, boolean isUserInfo) throws Exception {
-//
-//        String jwk = generateJWKString(rp, isUserInfo);
-//        if (rp.isSignDocuments() || !isUserInfo) {
-//            // function in here to build the JWS format, base 64 encoding and all
-//            // if isSignDocuments, do extra signing step using base header.payload
-//        } else {
-//            // provided the JWK is all that's needed, ... maybe the call to that function happens elsewhere
-//            // so it's clear that a token isn't being used in that case?
-//        }
-//
-//    }
-
-    // 5/6/22 thought: pilfer DefaultJwtbuilder code, make the Claims object
-    // convertible to JSON, or grabbable, or, and re-write the compact code
-    // so it's contained in there.
     
     public static String buildIDToken(RelyParty rp, boolean isUserInfo) throws Exception {
         
         final Subject subject = AuthenticationUtil.getCurrentSubject();
-        
         NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
         Calendar calendar = Calendar.getInstance();
-        
-//        if (rp.isSignDocuments() || !isUserInfo) {
-            // This is an implementation of the nimbus JWTBuilder interface
-            // includes logging, ability to get JSON string of claims object (payload)
-            // uses Java Base64 encoding and cadc-util RSASignature* classes
-            // Much of the code is pulled from the DefatulJwtBuilder class
-            RsaSignatureGenerator rsaSigGen = getRsaSignatureGenerator();
-            CadcJWTBuilder builder = new CadcJWTBuilder(rsaSigGen);
-//            builder.claim("sub", numericPrincipal.getName());
-//            builder.claim("iss", getClaimIssuer());
+        String clientID = rp.getClientID();
 
-//            if (rp.getClientID() != null) {
-//                builder.claim("aud", rp.getClientID());
-//            }
+        if (rp.isSignDocuments() || !isUserInfo) {
+            JwtBuilder builder = Jwts.builder();
 
-            // should this be same as iss?
-//            https://developer.okta.com/docs/guides/build-self-signed-jwt/java/main/
-        // TODO: what happens if clientid is null? (apparently it can be.)
-            String clientID = rp.getClientID();
-            builder.setAudience(getClaimIssuer())
-                .setIssuedAt(calendar.getTime())
-                .setIssuer(clientID)
-                .setSubject(clientID)
+            builder.setAudience(getClaimIssuer())   // aud
+                .setIssuedAt(calendar.getTime())    // iat
+                .setIssuer(clientID)                // iss
+                .setSubject(numericPrincipal.getName()) // sub
                 .setHeaderParam("typ", "JWT")
                 .setHeaderParam("alg", "RSA256");
 
-            builder.claim("sub", numericPrincipal.getName());
             // Set expiry date
             calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            builder.setExpiration(calendar.getTime());
-//            builder.claim("aud", getClaimIssuer());
-//            if (rp.getClientID() != null) {
-//                builder.claim("iss", rp.getClientID());
-//            }
+            builder.setExpiration(calendar.getTime());  // exp
 
-//            builder.claim("iat", calendar.getTime());
-//            builder.claim("exp", calendar.getTime());
             if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
                 builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
             }
@@ -409,48 +372,35 @@ public class OIDCUtil {
                 builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
             }
 
-            // replace this section with functions that use our signing facilities in cadc-util,
-            // replace the 'builder' section above with a function that will construct the JWK format
-            // correctly.
-            // make unit tests for both
-
-        if (rp.isSignDocuments() || !isUserInfo) {
-
-            // Have this in here so a JWT without a signature can still
-            // be generated
             if (rp.isSignDocuments()) {
-                // TODO: put our own signing library stuff in here
-                builder.signWith(OIDCUtil.getPrivateKey());
+                return builder.signWith(OIDCUtil.getPrivateKey(), SignatureAlgorithm.RS256).compact();
+            } else {
+                return builder.compact();
+            }
+        } else {
+            JSONObject json = new JSONObject();
+
+            // Note: the apparently same code to build a JWT is here, building
+            // an explicit JSON string. Building the JWT can't be generalized because
+            // the DefaultJWTBuider class doesn't expose any public method of getting a JSON version of the JWT.
+            json.put("aud", getClaimIssuer());
+            json.put("iat", calendar.getTime());
+            json.put("iss", clientID);
+            json.put("sub", numericPrincipal.getName());
+
+            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+            json.put("exp", calendar.getTime());
+            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+                json.put(RelyParty.Claim.EMAIL.getValue(), email);
+            }
+            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
             }
 
-            // Build the base64 encoded JWT string
-            return builder.compact();
-
-        } else {
-            // this code is builing the payload json
-            // TODO: header json needs to be built as well
-//            JSONObject json = new JSONObject();
-//            json.put("sub", numericPrincipal.getName());
-//            json.put("iss", getClaimIssuer());
-//            if (rp.getClientID() != null) {
-//                json.put("aud", rp.getClientID());
-//            }
-//            json.put("iat", calendar.getTime());
-//            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-//            json.put("exp", calendar.getTime());
-//            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
-//                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
-//            }
-//            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
-//                json.put(RelyParty.Claim.EMAIL.getValue(), email);
-//            }
-//            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
-//                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
-//            }
-//
-//            return json.toString();
-
-            return builder.getClaimsJSONStr();
+            return json.toString();
         }
 
     }
