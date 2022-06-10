@@ -91,8 +91,6 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
-import com.nimbusds.jose.util.BigIntegerUtils;
-
 import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.File;
 import java.io.IOException;
@@ -102,7 +100,6 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -111,8 +108,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import java.security.interfaces.RSAPublicKey;
 
 import javax.security.auth.Subject;
 
