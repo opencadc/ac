@@ -6,27 +6,21 @@ plugins {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
     mavenLocal()
-
-    // Only here until cadcUtil is in jcenter.
-    maven {
-        url  'http://dl.bintray.com/opencadc/software'
-    }
 }
 
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
 group = 'org.opencadc'
 
-version = '1.1.1'
+version = '1.2.0'
 
 dependencies {
-    compile 'log4j:log4j:1.2.+'
     compile 'org.apache.tomcat:tomcat-catalina:7.0.+'
     compile 'org.apache.tomcat:tomcat-coyote:7.0.+'
 
-    compile 'org.opencadc:cadc-util:1.+'
-    compile 'org.opencadc:cadc-registry:1.+'
+    compile 'org.opencadc:cadc-util:[1.6,2.0)'
+    compile 'org.opencadc:cadc-registry:[1.0,2.0)'
 
     testCompile 'junit:junit:4.+'
     testCompile 'javax.servlet:javax.servlet-api:3.1.+'
