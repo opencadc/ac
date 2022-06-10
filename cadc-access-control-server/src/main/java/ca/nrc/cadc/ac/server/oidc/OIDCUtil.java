@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2020.                            (c) 2020.
+ *  (c) 2022.                            (c) 2022.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,14 +71,11 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
-import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -97,24 +94,17 @@ import ca.nrc.cadc.util.RsaSignatureVerifier;
 import com.nimbusds.jose.util.BigIntegerUtils;
 
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.impl.lang.LegacyServices;
-import io.jsonwebtoken.io.Serializer;
-import io.jsonwebtoken.jackson.io.JacksonSerializer;
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -128,9 +118,7 @@ import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
-//import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
-//import org.opencadc.gms.GroupUtil;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -189,16 +177,6 @@ public class OIDCUtil {
         }
         return privateKey;
     }
-
-    private static RsaSignatureGenerator getRsaSignatureGenerator() {
-//        if (privateKey == null) {
-            File privFile = FileUtil.getFileFromResource(PRIVATE_KEY_NAME, OIDCUtil.class);
-            return new RsaSignatureGenerator(privFile);
-//        }
-        // TODO: not sure this is great
-//        return null;
-    }
-
 
     private static Set<String> getClientIDs(MultiValuedProperties config) {
         Set<String> clientIDs = new HashSet<String>();
@@ -411,7 +389,7 @@ public class OIDCUtil {
      * @throws IOException
      * @throws ResourceNotFoundException
      */
-    static String getClaimIssuer() throws IOException, ResourceNotFoundException {
+    public static String getClaimIssuer() throws IOException, ResourceNotFoundException {
         LocalAuthority localAuthority = new LocalAuthority();
         URI serviceURI = localAuthority.getServiceURI(Standards.SECURITY_METHOD_OAUTH.toString());
         RegistryClient regClient = new RegistryClient();
@@ -434,39 +412,4 @@ public class OIDCUtil {
         return sb.toString();
     }
 
-    public static String buildJwkJSON(RSAPublicKey key, String keyID) {
-        StringBuilder jwkJSON = new StringBuilder();
-        // {"kty":"RSA","e":"AQAB","use":"sig","kid":"4dc4b6e5-71fc-4e85-9862-5acd1e707d7d","alg":"RS256","n":"sc73IJCnuaob7BB1JlWnDbkwMe7B5VsGKXSXO9HxtI-DaYjwc9LNRpIq-x4N3biN1cknat-ZBjYoWgWpT4KBZvNd1f8hQM-9BqDcEgwoQL8DotYiZJ0trvba_BC8wOwNNbMrUT-mHkba3lqb3jJNgRf5NXmIL1BbmtoB3jepi1q48ZQK-Njt7KFLUjwgsmYvPQ0BYjYE0iU9qD-JwWJrlrjitx4qM_XiWjNNOW_hbIZqtjNh6EN0KytwHWLKsZouPyH3-MzSD6Se7N5JAQ1_J5OFlAB-CHFLbylSd6_6Pi3zSm3t3xXJ-61kDHnscYlbRea0e7-b00z5a2tSvcQ_cQ"}  ]}
-
-        jwkJSON.append("{\"kty\":\"RSA\",\"use\":\"sig\",");
-        jwkJSON.append("\"alg\":\"RSA\"");
-        jwkJSON.append("\"kid\":\"");
-        jwkJSON.append(keyID);
-        jwkJSON.append("\",\"");
-        jwkJSON.append("\"n\":\"");
-
-//        BigInteger a = new BigInteger(key.getModulus());
-
-        byte[] nBytes = Base64.getUrlEncoder().encode(BigIntegerUtils.toBytesUnsigned(key.getModulus()));
-        jwkJSON.append(nBytes.toString());
-        jwkJSON.append("\",\"");
-        byte[] eBytes = Base64.getUrlEncoder().encode(BigIntegerUtils.toBytesUnsigned(key.getPublicExponent()));
-
-
-        jwkJSON.append(keyID);
-        jwkJSON.append("\",\"");
-
-        StringBuilder json = new StringBuilder();
-
-        json.append("{");
-        json.append("  \"keys\": [");
-        json.append(jwkJSON);
-        json.append("  ]");
-        json.append("}");
-
-        log.debug("JWKS:\n" + json.toString());
-        return json.toString();
-
-    }
-    
 }
