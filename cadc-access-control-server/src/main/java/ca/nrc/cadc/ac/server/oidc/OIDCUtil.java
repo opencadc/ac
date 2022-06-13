@@ -331,9 +331,9 @@ public class OIDCUtil {
         if (rp.isSignDocuments() || !isUserInfo) {
             JwtBuilder builder = Jwts.builder();
 
-            builder.setAudience(getClaimIssuer())   // aud
+            builder.setAudience(clientID)   // aud
                 .setIssuedAt(calendar.getTime())    // iat
-                .setIssuer(clientID)                // iss
+                .setIssuer(getClaimIssuer())                // iss
                 .setSubject(numericPrincipal.getName()) // sub
                 .setHeaderParam("typ", "JWT")
                 .setHeaderParam("alg", "RSA256");
@@ -363,9 +363,9 @@ public class OIDCUtil {
             // Note: the apparently same code to build a JWT is here, building
             // an explicit JSON string. Building the JWT can't be generalized because
             // the DefaultJWTBuider class doesn't expose any public method of getting a JSON version of the JWT.
-            json.put("aud", getClaimIssuer());
+            json.put("aud", clientID);
             json.put("iat", calendar.getTime());
-            json.put("iss", clientID);
+            json.put("iss", getClaimIssuer());
             json.put("sub", numericPrincipal.getName());
 
             calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
