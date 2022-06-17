@@ -315,7 +315,8 @@ public abstract class AuthorizeAction extends RestAction {
                     return;
                 }
                 
-                String jws = OIDCUtil.buildIDToken(rp, false);
+//                String jws = OIDCUtil.buildIDToken(rp, false);
+                String jws = OIDCUtil.buildIDToken(rp);
                 
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", jws);
