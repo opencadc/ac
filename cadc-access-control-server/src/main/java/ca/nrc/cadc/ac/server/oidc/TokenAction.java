@@ -111,16 +111,19 @@ public class TokenAction extends RestAction {
         // (our config makes clients post the secret: "token_endpoint_auth_methods_supported: client_secret_post")
         String clientSecret = syncInput.getParameter("client_secret");
         if (clientID == null || clientSecret == null) {
-            sendError("invalid_client: missing id or secret");
+            log.debug("invalid_client: clientID: " + clientID + " clientSecret: " + clientSecret);
+            sendError("invalid_client");
             return;
         }
         RelyParty rp = OIDCUtil.getRelyParty(clientID);
         if (rp == null) {
-            sendError("invalid_client: reply party not found.");
+            log.debug("invalid_client: rely party not found");
+            sendError("invalid_client");
             return;
         }
         if (!rp.getClientSecret().equals(clientSecret)) {
-            sendError("invalid_client: invalid secret");
+            log.debug("invalid_client: invalid secret");
+            sendError("invalid_client");
             return;
         }
         
