@@ -94,6 +94,11 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jwt.JWTClaimsSet;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.jackson.io.JacksonSerializer;
+import io.jsonwebtoken.lang.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -316,64 +321,70 @@ public class OIDCUtil {
         }
         return groupNames;
     }
-    
-    public static String buildIDToken(RelyParty rp, boolean isUserInfo) throws Exception {
-        
+
+    private static Map<String, Object> buildTokenClaimsSet(RelyParty rp) throws Exception  {
         final Subject subject = AuthenticationUtil.getCurrentSubject();
-        
+
         NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
         Calendar calendar = Calendar.getInstance();
-        
-        if (rp.isSignDocuments() || !isUserInfo) {
-            JwtBuilder builder = Jwts.builder();
-            builder.claim("sub", numericPrincipal.getName());
-            builder.claim("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                builder.claim("aud", rp.getClientID());
-            }
-            builder.claim("iat", calendar.getTime());
-            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            builder.claim("exp", calendar.getTime());
-            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
-                builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
-                builder.claim(RelyParty.Claim.EMAIL.getValue(), email);
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
-                builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
-            }
-            
-            if (rp.isSignDocuments()) {
-                return builder.signWith(OIDCUtil.getPrivateKey()).compact();
-            } else {
-                return builder.compact();
-            }
-        } else {
-            JSONObject json = new JSONObject();
-            json.put("sub", numericPrincipal.getName());
-            json.put("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                json.put("aud", rp.getClientID());
-            }
-            json.put("iat", calendar.getTime());
-            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            json.put("exp", calendar.getTime());
-            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
-                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
-                json.put(RelyParty.Claim.EMAIL.getValue(), email);
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
-                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
-            }
-            
-            return json.toString();
+        String clientID = rp.getClientID();
+
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("aud", clientID);
+        claimsMap.put("iat", calendar.getTime());
+        claimsMap.put("iss", getClaimIssuer());
+        claimsMap.put("sub", numericPrincipal.getName());
+
+        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+        claimsMap.put("exp",calendar.getTime());  // exp
+
+        if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+            claimsMap.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+        }
+        if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+            claimsMap.put(RelyParty.Claim.EMAIL.getValue(), email);
+        }
+        if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+            claimsMap.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
         }
 
+        return claimsMap;
+    }
+
+    /**
+     * Build JSON string with User Info - includes full JWT claims set
+     * @param rp
+     * @return
+     * @throws Exception
+     */
+    public static String buildUserInfoResponse(RelyParty rp) throws Exception {
+
+        Map<String, Object> claimsMap = buildTokenClaimsSet(rp);
+        return new ObjectMapper().writeValueAsString(claimsMap);
+    }
+
+    /**
+     * Build JWT string, sign if the RelyParty is set to require signing
+     * @param rp
+     * @return
+     * @throws Exception
+     */
+    public static String buildIDToken(RelyParty rp) throws Exception {
+
+        Map<String, Object> claimsMap = buildTokenClaimsSet(rp);
+        JwtBuilder builder = Jwts.builder();
+        builder.setClaims(claimsMap);
+
+        builder.setHeaderParam("typ", "JWT")
+            .setHeaderParam("alg", "RSA256");
+
+        if (rp.isSignDocuments()) {
+            return builder.signWith(OIDCUtil.getPrivateKey(), SignatureAlgorithm.RS256).compact();
+        } else {
+            return builder.compact();
+        }
     }
     
     /**

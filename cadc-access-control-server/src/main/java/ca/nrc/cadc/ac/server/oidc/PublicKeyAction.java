@@ -104,13 +104,13 @@ public class PublicKeyAction extends RestAction {
             .keyUse(KeyUse.SIGNATURE)
             .keyID(KID)
             .build();
-        
-        String jwkJson = jwk.toPublicJWK().toJSONObject().toJSONString();
+
+        String jwkJSON = jwk.toPublicJWK().toJSONString();
         StringBuilder json = new StringBuilder();
 
         json.append("{");
         json.append("  \"keys\": [");
-        json.append(jwkJson);
+        json.append(jwkJSON);
         json.append("  ]");
         json.append("}");
 
