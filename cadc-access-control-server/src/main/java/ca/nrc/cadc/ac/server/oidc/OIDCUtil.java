@@ -146,7 +146,7 @@ public class OIDCUtil {
 
     private static final String PUBLIC_KEY_NAME = "oidc-rsa256-pub.key";
     private static final String PRIVATE_KEY_NAME = "oidc-rsa256-priv.key";
-    private static final String KID_CLAIM_VALUE = "oidc-rsa256-kid-val-1.0";
+    public static final String KID_CLAIM_VALUE = "cadc-key-1.0";
 
     private static Set<PublicKey> publicKeys = null;
     private static Key privateKey = null;
@@ -375,7 +375,7 @@ public class OIDCUtil {
         Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
         RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
         // This value is used to retrieve the corresponding RSA key
-        builder.setHeaderParam("kid", getEncodedKID());
+        builder.setHeaderParam("kid", KID_CLAIM_VALUE);
 
         if (rp.isSignDocuments()) {
             return builder.signWith(OIDCUtil.getPrivateKey(), SignatureAlgorithm.RS256).compact();
@@ -411,10 +411,6 @@ public class OIDCUtil {
             sb.append(c.getDescription());
         }
         return sb.toString();
-    }
-
-    public static String getEncodedKID() {
-        return Base64.getUrlEncoder().encodeToString(KID_CLAIM_VALUE.getBytes());
     }
 
 }

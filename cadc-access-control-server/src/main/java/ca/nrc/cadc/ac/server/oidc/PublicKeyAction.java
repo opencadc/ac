@@ -100,7 +100,7 @@ public class PublicKeyAction extends RestAction {
         
         JWK jwk = new RSAKey.Builder(key)
             .keyUse(KeyUse.SIGNATURE)
-            .keyID(OIDCUtil.getEncodedKID())
+            .keyID(OIDCUtil.KID_CLAIM_VALUE)
             .build();
 
         String jwkJSON = jwk.toPublicJWK().toJSONString();
