@@ -71,14 +71,11 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
-import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -95,20 +92,17 @@ import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jwt.JWTClaimsSet;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.jackson.io.JacksonSerializer;
-import io.jsonwebtoken.lang.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -121,10 +115,7 @@ import java.util.Set;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
-import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -155,6 +146,7 @@ public class OIDCUtil {
 
     private static final String PUBLIC_KEY_NAME = "oidc-rsa256-pub.key";
     private static final String PRIVATE_KEY_NAME = "oidc-rsa256-priv.key";
+    private static final String KID_CLAIM_VALUE = "oidc-rsa256-kid-val-1.0";
 
     private static Set<PublicKey> publicKeys = null;
     private static Key privateKey = null;
@@ -380,6 +372,11 @@ public class OIDCUtil {
         builder.setHeaderParam("typ", "JWT")
             .setHeaderParam("alg", "RSA256");
 
+        Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
+        RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
+        // This value is used to retrieve the corresponding RSA key
+        builder.setHeaderParam("kid", getEncodedKID());
+
         if (rp.isSignDocuments()) {
             return builder.signWith(OIDCUtil.getPrivateKey(), SignatureAlgorithm.RS256).compact();
         } else {
@@ -414,6 +411,16 @@ public class OIDCUtil {
             sb.append(c.getDescription());
         }
         return sb.toString();
+    }
+
+    public static String getEncodedKID() {
+        return Base64.getUrlEncoder().encodeToString(KID_CLAIM_VALUE.getBytes());
+    }
+
+    public static boolean isRightKIDKey(String encodedKID) {
+        byte[] urlDecodedKIDbytes = Base64.getUrlDecoder().decode(encodedKID.getBytes());
+        String urlDecodedKID = new String(urlDecodedKIDbytes);
+        return KID_CLAIM_VALUE.equals(urlDecodedKID);
     }
     
 }
