@@ -417,10 +417,4 @@ public class OIDCUtil {
         return Base64.getUrlEncoder().encodeToString(KID_CLAIM_VALUE.getBytes());
     }
 
-    public static boolean isRightKIDKey(String encodedKID) {
-        byte[] urlDecodedKIDbytes = Base64.getUrlDecoder().decode(encodedKID.getBytes());
-        String urlDecodedKID = new String(urlDecodedKIDbytes);
-        return KID_CLAIM_VALUE.equals(urlDecodedKID);
-    }
-    
 }

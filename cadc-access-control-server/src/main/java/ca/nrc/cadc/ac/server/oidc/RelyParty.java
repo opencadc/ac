@@ -85,7 +85,6 @@ public class RelyParty {
     
     private String clientID;
     private String clientSecret;
-    private String kidVersion;
     private GroupURI accessGroup = null;   // optional
     private String clientDescription;
     private List<Claim> claims = new ArrayList<Claim>();
@@ -127,14 +126,6 @@ public class RelyParty {
     
     public boolean isSignDocuments() {
         return signDocuments;
-    }
-
-    public String getKidVersion() {
-        return kidVersion;
-    }
-
-    public void setKidVersion(String kidVersion) {
-        this.kidVersion = kidVersion;
     }
 
     @Override
