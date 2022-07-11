@@ -91,18 +91,16 @@ import org.apache.log4j.Logger;
 public class PublicKeyAction extends RestAction {
     
     private static final Logger log = Logger.getLogger(PublicKeyAction.class);
-    private static final String KID = UUID.randomUUID().toString();
 
     @Override
     public void doAction() throws Exception {
         log.debug("returning public key as jwks");
-        
         Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
         RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
         
         JWK jwk = new RSAKey.Builder(key)
             .keyUse(KeyUse.SIGNATURE)
-            .keyID(KID)
+            .keyID(OIDCUtil.KID_CLAIM_VALUE)
             .build();
 
         String jwkJSON = jwk.toPublicJWK().toJSONString();
