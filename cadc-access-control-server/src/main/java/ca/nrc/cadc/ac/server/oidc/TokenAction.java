@@ -111,11 +111,18 @@ public class TokenAction extends RestAction {
         // (our config makes clients post the secret: "token_endpoint_auth_methods_supported: client_secret_post")
         String clientSecret = syncInput.getParameter("client_secret");
         if (clientID == null || clientSecret == null) {
+            log.debug("invalid_client: clientID: " + clientID + " clientSecret: " + clientSecret);
             sendError("invalid_client");
             return;
         }
         RelyParty rp = OIDCUtil.getRelyParty(clientID);
-        if (rp == null || !rp.getClientSecret().equals(clientSecret)) {
+        if (rp == null) {
+            log.debug("invalid_client: rely party not found");
+            sendError("invalid_client");
+            return;
+        }
+        if (!rp.getClientSecret().equals(clientSecret)) {
+            log.debug("invalid_client: invalid secret");
             sendError("invalid_client");
             return;
         }
@@ -210,8 +217,7 @@ public class TokenAction extends RestAction {
     private String createJWT(String userid, RelyParty rp) throws Exception {
         
         log.debug("building jwt");
-        
-        String jws = OIDCUtil.buildIDToken(rp, false);
+        String jws = OIDCUtil.buildIDToken(rp);
         
         log.debug("building access token");
         

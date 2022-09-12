@@ -103,7 +103,11 @@ public class UserInfoAction extends RestAction {
         
         final Subject subject = AuthenticationUtil.getCurrentSubject();
         log.debug("Subject: " + subject);
-        
+
+        // Subject is set as part of authentication in cadc-util:
+        // The access token is passed in as an Authorization HTTP header,
+        // the userID is parsed out of that and is set as the principal
+        // of the current subject.
         if (subject == null || subject.getPrincipals().isEmpty()) {
             throw new NotAuthenticatedException("unauthorized");
         }
@@ -125,7 +129,7 @@ public class UserInfoAction extends RestAction {
                 }
             }
         }
-        
+
         log.debug("clientID: " + clientID);
         if (clientID == null) {
             throw new NotAuthenticatedException("invalid scope");
@@ -134,20 +138,20 @@ public class UserInfoAction extends RestAction {
         if (rp == null) {
             throw new NotAuthenticatedException("invalid scope");
         }
-        
-        String jws = OIDCUtil.buildIDToken(rp, true);
 
-        log.debug("set headers and return json: \n" + jws);
+        String jsonJWTClaims = OIDCUtil.buildUserInfoResponse(rp);
+        log.debug("set headers and return json: \n" + jsonJWTClaims);
         
         // signed
         //syncOutput.setHeader("Content-Type", "application/jwt");
+
         // unsigned
         syncOutput.setHeader("Content-Type", "application/json");
         syncOutput.setHeader("Cache-Control", "no-store");
         syncOutput.setHeader("Pragma", "no-cache");
       
         OutputStreamWriter writer = new OutputStreamWriter(syncOutput.getOutputStream());
-        writer.write(jws);
+        writer.write(jsonJWTClaims);
         writer.flush();
         
     }

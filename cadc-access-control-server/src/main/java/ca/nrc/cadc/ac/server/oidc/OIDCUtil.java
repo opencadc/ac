@@ -71,14 +71,11 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
-import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
@@ -94,16 +91,18 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -116,10 +115,7 @@ import java.util.Set;
 import javax.security.auth.Subject;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
-import org.opencadc.gms.GroupClient;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -150,6 +146,7 @@ public class OIDCUtil {
 
     private static final String PUBLIC_KEY_NAME = "oidc-rsa256-pub.key";
     private static final String PRIVATE_KEY_NAME = "oidc-rsa256-priv.key";
+    public static final String KID_CLAIM_VALUE = "cadc-key-1.0";
 
     private static Set<PublicKey> publicKeys = null;
     private static Key privateKey = null;
@@ -316,64 +313,75 @@ public class OIDCUtil {
         }
         return groupNames;
     }
-    
-    public static String buildIDToken(RelyParty rp, boolean isUserInfo) throws Exception {
-        
+
+    private static Map<String, Object> buildTokenClaimsSet(RelyParty rp) throws Exception  {
         final Subject subject = AuthenticationUtil.getCurrentSubject();
-        
+
         NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
         Calendar calendar = Calendar.getInstance();
-        
-        if (rp.isSignDocuments() || !isUserInfo) {
-            JwtBuilder builder = Jwts.builder();
-            builder.claim("sub", numericPrincipal.getName());
-            builder.claim("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                builder.claim("aud", rp.getClientID());
-            }
-            builder.claim("iat", calendar.getTime());
-            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            builder.claim("exp", calendar.getTime());
-            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
-                builder.claim(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
-                builder.claim(RelyParty.Claim.EMAIL.getValue(), email);
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
-                builder.claim(RelyParty.Claim.GROUPS.getValue(), getGroupList());
-            }
-            
-            if (rp.isSignDocuments()) {
-                return builder.signWith(OIDCUtil.getPrivateKey()).compact();
-            } else {
-                return builder.compact();
-            }
-        } else {
-            JSONObject json = new JSONObject();
-            json.put("sub", numericPrincipal.getName());
-            json.put("iss", getClaimIssuer());
-            if (rp.getClientID() != null) {
-                json.put("aud", rp.getClientID());
-            }
-            json.put("iat", calendar.getTime());
-            calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-            json.put("exp", calendar.getTime());
-            if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
-                json.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
-                json.put(RelyParty.Claim.EMAIL.getValue(), email);
-            }
-            if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
-                json.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
-            }
-            
-            return json.toString();
+        String clientID = rp.getClientID();
+
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("aud", clientID);
+        claimsMap.put("iat", calendar.getTime());
+        claimsMap.put("iss", getClaimIssuer());
+        claimsMap.put("sub", numericPrincipal.getName());
+
+        calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
+        claimsMap.put("exp",calendar.getTime());  // exp
+
+        if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
+            claimsMap.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+        }
+        if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
+            claimsMap.put(RelyParty.Claim.EMAIL.getValue(), email);
+        }
+        if (rp.getClaims().contains(RelyParty.Claim.GROUPS)) {
+            claimsMap.put(RelyParty.Claim.GROUPS.getValue(), getGroupList());
         }
 
+        return claimsMap;
+    }
+
+    /**
+     * Build JSON string with User Info - includes full JWT claims set
+     * @param rp
+     * @return
+     * @throws Exception
+     */
+    public static String buildUserInfoResponse(RelyParty rp) throws Exception {
+
+        Map<String, Object> claimsMap = buildTokenClaimsSet(rp);
+        return new ObjectMapper().writeValueAsString(claimsMap);
+    }
+
+    /**
+     * Build JWT string, sign if the RelyParty is set to require signing
+     * @param rp
+     * @return
+     * @throws Exception
+     */
+    public static String buildIDToken(RelyParty rp) throws Exception {
+
+        Map<String, Object> claimsMap = buildTokenClaimsSet(rp);
+        JwtBuilder builder = Jwts.builder();
+        builder.setClaims(claimsMap);
+
+        builder.setHeaderParam("typ", "JWT")
+            .setHeaderParam("alg", "RSA256");
+
+        Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
+        RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
+        // This value is used to retrieve the corresponding RSA key
+        builder.setHeaderParam("kid", KID_CLAIM_VALUE);
+
+        if (rp.isSignDocuments()) {
+            return builder.signWith(OIDCUtil.getPrivateKey(), SignatureAlgorithm.RS256).compact();
+        } else {
+            return builder.compact();
+        }
     }
     
     /**
@@ -404,5 +412,5 @@ public class OIDCUtil {
         }
         return sb.toString();
     }
-    
+
 }

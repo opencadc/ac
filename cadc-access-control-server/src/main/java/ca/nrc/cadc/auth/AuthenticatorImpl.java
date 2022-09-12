@@ -80,6 +80,8 @@ import ca.nrc.cadc.profiler.Profiler;
 
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -147,6 +149,11 @@ public class AuthenticatorImpl implements Authenticator
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
             Principal ldapPrincipal = getLdapPrincipal(subject);
+
+            // CADC-10630 Remove potentially incorrect userID
+            // in HttpPrincipal in subject.
+            subject.getPrincipals().removeAll(subject.getPrincipals(HttpPrincipal.class));
+
             User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
             if (user.getIdentities() != null)
             {
