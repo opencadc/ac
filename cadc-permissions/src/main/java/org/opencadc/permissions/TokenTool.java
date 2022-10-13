@@ -196,10 +196,10 @@ public class TokenTool {
     public String validateToken(String token, URI expectedURI, Class<? extends Grant>... expectedGrantClass) 
             throws AccessControlException, IOException {
 
-        log.info("validating token: " + token);
+        log.debug("validating token: " + token);
         String[] parts = token.split(TOKEN_DELIM);
         if (parts.length != 2) {
-            log.info("invalid format, not two parts");
+            log.debug("invalid format, not two parts");
             throw new AccessControlException("Invalid auth token not two parts");
         }
 
@@ -211,11 +211,11 @@ public class TokenTool {
         try {
             verified = sv.verify(new ByteArrayInputStream(metaBytes), sigBytes);
         } catch (InvalidKeyException | RuntimeException e) {
-            log.info("Recieved invalid signature", e);
+            log.debug("Received invalid signature", e);
             throw new AccessControlException("Invalid auth token: invalid signature");
         }
         if (!verified) {
-            log.info("verified==false");
+            log.debug("verified==false");
             throw new AccessControlException("Invalid auth token: verirified false");
         }
 
