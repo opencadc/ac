@@ -14,13 +14,14 @@ sourceCompatibility = 1.8
 
 group = 'org.opencadc'
 
-version = '0.3.3'
+version = '0.4'
 description = 'OpenCADC Permissions API library'
 def git_url = 'https://github.com/opencadc/ac'
 
 dependencies {
     compile 'org.opencadc:cadc-gms:[1.0,)'
     compile 'org.opencadc:cadc-util:[1.6,2.0)'
+    compile 'org.opencadc:cadc-vosi:[1.4.3,)'
 
     testCompile 'junit:junit:[4.0,)'
 }

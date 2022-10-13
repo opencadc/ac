@@ -138,7 +138,11 @@ public class TokenTool {
         if (privateKey == null) {
             throw new IllegalStateException("cannot generate token: no private key");
         }
-        
+
+        log.debug("[TokenTool.generateToken]: uri: " + uri);
+        log.debug("[TokenTool.generateToken]: grant: " + grantClass);
+        log.debug("[TokenTool.generateToken]: subject: " + user);
+
         // create the metadata and signature segments
         StringBuilder metaSb = new StringBuilder();
         metaSb.append(KEY_META_URI).append("=").append(uri.toString());
@@ -192,11 +196,11 @@ public class TokenTool {
     public String validateToken(String token, URI expectedURI, Class<? extends Grant>... expectedGrantClass) 
             throws AccessControlException, IOException {
 
-        log.debug("validating token: " + token);
+        log.info("validating token: " + token);
         String[] parts = token.split(TOKEN_DELIM);
         if (parts.length != 2) {
-            log.debug("invalid format, not two parts");
-            throw new AccessControlException("Invalid auth token");
+            log.info("invalid format, not two parts");
+            throw new AccessControlException("Invalid auth token not two parts");
         }
 
         byte[] metaBytes = Base64.decode(base64URLDecode(parts[0]));
@@ -207,12 +211,12 @@ public class TokenTool {
         try {
             verified = sv.verify(new ByteArrayInputStream(metaBytes), sigBytes);
         } catch (InvalidKeyException | RuntimeException e) {
-            log.debug("Recieved invalid signature", e);
-            throw new AccessControlException("Invalid auth token");
+            log.info("Recieved invalid signature", e);
+            throw new AccessControlException("Invalid auth token: invalid signature");
         }
         if (!verified) {
-            log.debug("verified==false");
-            throw new AccessControlException("Invalid auth token");
+            log.info("verified==false");
+            throw new AccessControlException("Invalid auth token: verirified false");
         }
 
         String[] metaParams = new String(metaBytes).split("&");
@@ -238,20 +242,22 @@ public class TokenTool {
                 user = value;
             }
         }
-        log.debug("uri: " + uri);
-        log.debug("grant: " + grant);
-        log.debug("subject: " + user);
-        
+        log.debug("[TokenTool.validateToken]: uri: " + uri);
+        log.debug("[TokenTool.validateToken]: grant: " + grant);
+        log.debug("[TokenTool.validateToken]: subject: " + user);
+
         if (!expectedURI.toString().equals(uri)) {
-            log.debug("wrong target uri");
-            throw new AccessControlException("Invalid auth token");
+            log.debug("[TokenTool.validateToken]: wrong target uri: " + uri + " - expected URI: " + expectedURI.toString());
+            throw new AccessControlException("Invalid auth token wrong target uri: " + uri);
         }
         boolean grantMatch = false;
         for (Class<? extends Grant> c : expectedGrantClass) {
             grantMatch = grantMatch || c.getSimpleName().equals(grant);
+            log.debug("grant class from token: " + c.getSimpleName());
         }
         if (!grantMatch) {
-            throw new AccessControlException("Invalid auth token");
+            log.debug("[TokenTool.validateToken]: wrong grant class: " + grant);
+            throw new AccessControlException("Invalid auth token wrong grant : " + grant);
         }
         
         // validation passed, return the user for logging
