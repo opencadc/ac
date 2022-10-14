@@ -138,7 +138,11 @@ public class TokenTool {
         if (privateKey == null) {
             throw new IllegalStateException("cannot generate token: no private key");
         }
-        
+
+        log.debug("[TokenTool.generateToken]: uri: " + uri);
+        log.debug("[TokenTool.generateToken]: grant: " + grantClass);
+        log.debug("[TokenTool.generateToken]: subject: " + user);
+
         // create the metadata and signature segments
         StringBuilder metaSb = new StringBuilder();
         metaSb.append(KEY_META_URI).append("=").append(uri.toString());
@@ -207,7 +211,7 @@ public class TokenTool {
         try {
             verified = sv.verify(new ByteArrayInputStream(metaBytes), sigBytes);
         } catch (InvalidKeyException | RuntimeException e) {
-            log.debug("Recieved invalid signature", e);
+            log.debug("Received invalid signature", e);
             throw new AccessControlException("Invalid auth token");
         }
         if (!verified) {
@@ -238,19 +242,21 @@ public class TokenTool {
                 user = value;
             }
         }
-        log.debug("uri: " + uri);
-        log.debug("grant: " + grant);
-        log.debug("subject: " + user);
-        
+        log.debug("[TokenTool.validateToken]: uri: " + uri);
+        log.debug("[TokenTool.validateToken]: grant: " + grant);
+        log.debug("[TokenTool.validateToken]: subject: " + user);
+
         if (!expectedURI.toString().equals(uri)) {
-            log.debug("wrong target uri");
+            log.debug("[TokenTool.validateToken]: wrong target uri: " + uri + " - expected URI: " + expectedURI.toString());
             throw new AccessControlException("Invalid auth token");
         }
         boolean grantMatch = false;
         for (Class<? extends Grant> c : expectedGrantClass) {
             grantMatch = grantMatch || c.getSimpleName().equals(grant);
+            log.debug("grant class from token: " + c.getSimpleName());
         }
         if (!grantMatch) {
+            log.debug("[TokenTool.validateToken]: wrong grant class: " + grant);
             throw new AccessControlException("Invalid auth token");
         }
         
