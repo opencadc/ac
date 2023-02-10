@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2022.                            (c) 2022.
+*  (c) 2023.                            (c) 2023.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -87,11 +87,10 @@ import java.net.URL;
 import java.security.AccessControlException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
@@ -122,7 +121,9 @@ public class IvoaGroupClient {
     public boolean isMember(GroupURI group) throws IOException, InterruptedException,
             ResourceNotFoundException {
         URI resourceID = group.getServiceID();
-        List<GroupURI> mem = getMemberships(resourceID, Arrays.asList(group.getName()));
+        Set<String> names = new TreeSet<>();
+        names.add(group.getName());
+        Set<GroupURI> mem = getMemberships(resourceID, names);
         return !mem.isEmpty();
     }
     
@@ -136,13 +137,13 @@ public class IvoaGroupClient {
      * @throws java.lang.InterruptedException thread interrupted
      * @throws ca.nrc.cadc.net.ResourceNotFoundException specified service not found in registry
      */
-    public List<GroupURI> getMemberships(List<GroupURI> uris) throws IOException, InterruptedException,
+    public Set<GroupURI> getMemberships(Set<GroupURI> uris) throws IOException, InterruptedException,
             ResourceNotFoundException {
         // split uris into groups with same resourceID base
-        Map<URI,List<String>> gmsMap = splitByResourceID(uris);
-        List<GroupURI> ret = new ArrayList<>();
-        for (Map.Entry<URI,List<String>> me : gmsMap.entrySet()) {
-            List<GroupURI> tmp = getMemberships(me.getKey(), me.getValue());
+        Map<URI,Set<String>> gmsMap = splitByResourceID(uris);
+        Set<GroupURI> ret = new TreeSet<>();
+        for (Map.Entry<URI,Set<String>> me : gmsMap.entrySet()) {
+            Set<GroupURI> tmp = getMemberships(me.getKey(), me.getValue());
             ret.addAll(tmp);
         }
         return ret;
@@ -159,7 +160,7 @@ public class IvoaGroupClient {
      * @throws java.lang.InterruptedException thread interrupted
      * @throws ca.nrc.cadc.net.ResourceNotFoundException specified service not found in registry
      */
-    public List<GroupURI> getMemberships(URI resourceID) throws IOException, InterruptedException,
+    public Set<GroupURI> getMemberships(URI resourceID) throws IOException, InterruptedException,
             ResourceNotFoundException {
         return getMemberships(resourceID, null);
     }
@@ -174,7 +175,7 @@ public class IvoaGroupClient {
      * @throws java.lang.InterruptedException thread interrupted
      * @throws ca.nrc.cadc.net.ResourceNotFoundException specified service not found in registry
      */
-    public List<GroupURI> getMemberships(URI resourceID, List<String> groupNames) throws IOException, InterruptedException,
+    public Set<GroupURI> getMemberships(URI resourceID, Set<String> groupNames) throws IOException, InterruptedException,
             ResourceNotFoundException {
         
         Subject cur = AuthenticationUtil.getCurrentSubject();
@@ -223,7 +224,7 @@ public class IvoaGroupClient {
         }
         log.warn("queryURL: " + queryURL);
         
-        List<GroupURI> ret = new ArrayList<>();
+        Set<GroupURI> ret = new TreeSet<>();
         try {
             HttpGet query = new HttpGet(queryURL, true);
             query.prepare();
@@ -244,12 +245,12 @@ public class IvoaGroupClient {
         return ret;
     }
     
-    private Map<URI,List<String>> splitByResourceID(List<GroupURI> uris) {
-        Map<URI,List<String>> ret = new TreeMap<>();
+    private Map<URI,Set<String>> splitByResourceID(Set<GroupURI> uris) {
+        Map<URI,Set<String>> ret = new TreeMap<>();
         for (GroupURI u : uris) {
-            List<String> cur = ret.get(u.getServiceID());
+            Set<String> cur = ret.get(u.getServiceID());
             if (cur == null) {
-                cur = new ArrayList<>();
+                cur = new TreeSet<>();
                 ret.put(u.getServiceID(), cur);
             }
             cur.add(u.getName());

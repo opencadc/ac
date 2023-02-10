@@ -65,64 +65,54 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
-package ca.nrc.cadc.auth;
+package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.util.Log4jInit;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import ca.nrc.cadc.util.Log4jInit;
+/**
+ * 
+ * @author pdowler
+ */
+public class ACIdentityManagerTest {
 
-public class AuthenticatorImplTest
-{
+    private static final Logger log = Logger.getLogger(ACIdentityManagerTest.class);
 
-    private static final Logger log = Logger.getLogger(AuthenticatorImplTest.class);
-
-
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
     }
 
-    public AuthenticatorImplTest() { }
+    public ACIdentityManagerTest() {
+    }
 
     /**
      * A user with only a certificate in the subject should be allowed to
      * continue and be identified as having an auth method of 'cert'.
      */
     @Test
-    public void testCertOnlyUser()
-    {
-        try
-        {
+    public void testCertOnlyUser() {
+        try {
             String dn = "cn=testuser, ou=cadc, o=nrc";
-            AuthenticatorImpl ai = new TestAuthenticatorImpl();
+            IdentityManager ai = new ACIdentityManager();
             Subject subject = new Subject();
             subject.getPrincipals().add(new X500Principal(dn));
             subject.getPublicCredentials().add(AuthMethod.CERT);
             subject = ai.validate(subject);
 
             Assert.assertEquals(AuthMethod.CERT, AuthenticationUtil.getAuthMethod(subject));
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("unexpected throwable", t);
             Assert.fail("Unexpected throwable");
         }
     }
-
-    class TestAuthenticatorImpl extends AuthenticatorImpl
-    {
-        @Override
-        public void augmentSubject(Subject subject)
-        {
-        }
-    }
-
 }

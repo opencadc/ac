@@ -73,8 +73,8 @@ import ca.nrc.cadc.util.Log4jInit;
 import java.io.File;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -105,7 +105,7 @@ public class IvoaGroupClientTest {
         final IvoaGroupClient gms = new IvoaGroupClient();
         final URI resourceID = URI.create("ivo://cadc.nrc.ca/gms");
         
-        List<GroupURI> groups = Subject.doAs(subject, (PrivilegedExceptionAction<List<GroupURI>>) () -> {
+        Set<GroupURI> groups = Subject.doAs(subject, (PrivilegedExceptionAction<Set<GroupURI>>) () -> {
             return gms.getMemberships(resourceID);
         });
         
@@ -124,12 +124,12 @@ public class IvoaGroupClientTest {
         GroupURI g1 = new GroupURI(resourceID, "CADC");
         GroupURI g2 = new GroupURI(resourceID, "no-such-group");
         GroupURI g3 = new GroupURI(resourceID, "CAOM2");
-        final List<GroupURI> in = new ArrayList<>();
+        final Set<GroupURI> in = new TreeSet<>();
         in.add(g1);
         in.add(g2);
         in.add(g3);
         
-        List<GroupURI> groups = Subject.doAs(subject, (PrivilegedExceptionAction<List<GroupURI>>) () -> {
+        Set<GroupURI> groups = Subject.doAs(subject, (PrivilegedExceptionAction<Set<GroupURI>>) () -> {
             return gms.getMemberships(in);
         });
         
