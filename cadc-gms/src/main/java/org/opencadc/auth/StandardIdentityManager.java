@@ -89,6 +89,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
@@ -178,12 +179,19 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public String toDisplayString(Subject subject) {
-        // use HttpPrincipal aka OIDC preferred_username for string output, eg logging
+        // prefer HttpPrincipal aka OIDC preferred_username for string output, eg logging
         Set<HttpPrincipal> ps = subject.getPrincipals(HttpPrincipal.class);
-        if (ps.isEmpty()) {
-            return null;
+        if (!ps.isEmpty()) {
+            return ps.iterator().next().getName(); // kind of ugh
         }
-        return ps.iterator().next().getName(); // kind of ugh
+        
+        // try X509
+        Set<X500Principal> px = subject.getPrincipals(X500Principal.class);
+        if (!px.isEmpty()) {
+            return px.iterator().next().getName(); // kind of ugh
+        }
+        
+        return null;
     }
     
     private void validateOidcAccessToken(Subject s) {
