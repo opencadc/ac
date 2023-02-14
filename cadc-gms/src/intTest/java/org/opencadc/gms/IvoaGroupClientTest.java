@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2017.                            (c) 2017.
+*  (c) 2022.                            (c) 2022.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,67 +62,102 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
-*
 ************************************************************************
 */
 
-package ca.nrc.cadc.auth;
+package org.opencadc.gms;
 
+import ca.nrc.cadc.auth.SSLUtil;
+import ca.nrc.cadc.util.FileUtil;
+import ca.nrc.cadc.util.Log4jInit;
+import java.io.File;
+import java.net.URI;
+import java.security.PrivilegedExceptionAction;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import ca.nrc.cadc.util.Log4jInit;
+/**
+ *
+ * @author pdowler
+ */
+public class IvoaGroupClientTest {
+    private static final Logger log = Logger.getLogger(IvoaGroupClientTest.class);
 
-public class AuthenticatorImplTest
-{
-
-    private static final Logger log = Logger.getLogger(AuthenticatorImplTest.class);
-
-
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
+    static {
+        Log4jInit.setLevel("org.opencadc.gms", Level.INFO);
     }
-
-    public AuthenticatorImplTest() { }
-
-    /**
-     * A user with only a certificate in the subject should be allowed to
-     * continue and be identified as having an auth method of 'cert'.
-     */
+    
+    Subject subject;
+    
+    public IvoaGroupClientTest() throws Exception { 
+        String certFilename = System.getProperty("user.name") + ".pem";
+        File pem = FileUtil.getFileFromResource(certFilename, IvoaGroupClientTest.class);
+        this.subject = SSLUtil.createSubject(pem);
+    }
+    
     @Test
-    public void testCertOnlyUser()
-    {
-        try
-        {
-            String dn = "cn=testuser, ou=cadc, o=nrc";
-            AuthenticatorImpl ai = new TestAuthenticatorImpl();
-            Subject subject = new Subject();
-            subject.getPrincipals().add(new X500Principal(dn));
-            subject.getPublicCredentials().add(AuthMethod.CERT);
-            subject = ai.validate(subject);
-
-            Assert.assertEquals(AuthMethod.CERT, AuthenticationUtil.getAuthMethod(subject));
+    public void testGetMembershipsAll() throws Exception {
+        final IvoaGroupClient gms = new IvoaGroupClient();
+        final URI resourceID = URI.create("ivo://cadc.nrc.ca/gms");
+        
+        Set<GroupURI> groups = Subject.doAs(subject, (PrivilegedExceptionAction<Set<GroupURI>>) () -> {
+            return gms.getMemberships(resourceID);
+        });
+        
+        Assert.assertNotNull(groups);
+        for (GroupURI u : groups) {
+            log.info("member: " + u);
         }
-        catch (Throwable t)
-        {
-            log.error("unexpected throwable", t);
-            Assert.fail("Unexpected throwable");
-        }
+        Assert.assertFalse(groups.isEmpty());
     }
-
-    class TestAuthenticatorImpl extends AuthenticatorImpl
-    {
-        @Override
-        public void augmentSubject(Subject subject)
-        {
+    
+    @Test
+    public void testGetMembershipsSubset() throws Exception {
+        final IvoaGroupClient gms = new IvoaGroupClient();
+        
+        URI resourceID = URI.create("ivo://cadc.nrc.ca/gms");
+        GroupURI g1 = new GroupURI(resourceID, "CADC");
+        GroupURI g2 = new GroupURI(resourceID, "no-such-group");
+        GroupURI g3 = new GroupURI(resourceID, "CAOM2");
+        final Set<GroupURI> in = new TreeSet<>();
+        in.add(g1);
+        in.add(g2);
+        in.add(g3);
+        
+        Set<GroupURI> groups = Subject.doAs(subject, (PrivilegedExceptionAction<Set<GroupURI>>) () -> {
+            return gms.getMemberships(in);
+        });
+        
+        Assert.assertNotNull(groups);
+        for (GroupURI u : groups) {
+            log.info("member: " + u);
         }
+        Assert.assertTrue(groups.contains(g1));
+        Assert.assertFalse(groups.contains(g2));
+        Assert.assertTrue(groups.contains(g3));
+        Assert.assertEquals(2, groups.size());
     }
-
+    
+    @Test
+    public void testIsMember() throws Exception {
+        final IvoaGroupClient gms = new IvoaGroupClient();
+        final URI resourceID = URI.create("ivo://cadc.nrc.ca/gms");
+        GroupURI g1 = new GroupURI(resourceID, "CADC");
+        GroupURI g2 = new GroupURI(resourceID, "no-such-group");
+        
+        boolean m1 = Subject.doAs(subject, (PrivilegedExceptionAction<Boolean>) () -> {
+            return gms.isMember(g1);
+        });
+        Assert.assertTrue("member of " + g1, m1);
+        
+        boolean m2 = Subject.doAs(subject, (PrivilegedExceptionAction<Boolean>) () -> {
+            return gms.isMember(g2);
+        });
+        Assert.assertFalse("member of " + g2, m2);
+    }
 }

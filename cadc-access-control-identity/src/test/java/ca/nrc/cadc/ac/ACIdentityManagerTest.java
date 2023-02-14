@@ -65,92 +65,54 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
-package ca.nrc.cadc.auth;
+package ca.nrc.cadc.ac;
 
-import ca.nrc.cadc.profiler.Profiler;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.vosi.avail.CheckResource;
-import ca.nrc.cadc.vosi.avail.CheckWebService;
-
-import java.net.URI;
-import java.net.URL;
-import java.security.AccessControlException;
-
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.util.Log4jInit;
 import javax.security.auth.Subject;
-
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
- * This class augments the subject with additional identities using the access
- * control library.
- *
+ * 
  * @author pdowler
  */
-public class AuthenticatorImpl implements Authenticator
-{
+public class ACIdentityManagerTest {
 
-    private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
+    private static final Logger log = Logger.getLogger(ACIdentityManagerTest.class);
 
-    public AuthenticatorImpl()
-    {
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
     }
-    
 
-
-    /**
-     * If necessary, validate principals in the subject.
-     * 
-     * @param subject The subject to be validated.
-     * @return The validated subject with added public credentials.
-     */
-    @Override
-    public Subject validate(Subject subject) throws AccessControlException {
-        return TokenValidator.validateTokens(subject);
+    public ACIdentityManagerTest() {
     }
 
     /**
-     * Augment the subject with the missing principals.
-     * 
-     * @param subject The subject to augment.
-     * @return The augmented subject.
+     * A user with only a certificate in the subject should be allowed to
+     * continue and be identified as having an auth method of 'cert'.
      */
-    @Override
-    public Subject augment(Subject subject) {
-        AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
-        if (am == null || AuthMethod.ANON.equals(am))
-        {
-            return subject;
+    @Test
+    public void testCertOnlyUser() {
+        try {
+            String dn = "cn=testuser, ou=cadc, o=nrc";
+            IdentityManager ai = new ACIdentityManager();
+            Subject subject = new Subject();
+            subject.getPrincipals().add(new X500Principal(dn));
+            subject.getPublicCredentials().add(AuthMethod.CERT);
+            subject = ai.validate(subject);
+
+            Assert.assertEquals(AuthMethod.CERT, AuthenticationUtil.getAuthMethod(subject));
+        } catch (Throwable t) {
+            log.error("unexpected throwable", t);
+            Assert.fail("Unexpected throwable");
         }
-
-        if (subject != null && subject.getPrincipals().size() > 0)
-        {
-            Profiler prof = new Profiler(AuthenticatorImpl.class);
-            this.augmentSubject(subject);
-            prof.checkpoint("AuthenticatorImpl.augmentSubject()");
-        }
-
-        return subject;
     }
-
-
-    protected void augmentSubject(Subject subject)
-    {
-        ACIdentityManager identityManager = new ACIdentityManager();
-        identityManager.augmentSubject(subject);
-    }
-
-    public static CheckResource getAvailabilityCheck()
-    {
-        RegistryClient regClient = new RegistryClient();
-        LocalAuthority localAuth = new LocalAuthority();
-        URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
-        URL availURL = regClient.getServiceURL(serviceURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
-        return new CheckWebService(availURL.toExternalForm());
-    }
-    
 }
