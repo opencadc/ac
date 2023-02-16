@@ -1,18 +1,20 @@
 # cadc-gms
 
-## Description
-Group Membership Service client interface.
+## IVOA Group Membership Service
 
-## Usage
-The org.opencadc.gms.GroupUtil provides a static method that will instantiate an implementation of the GMSInterface based on the availability of such a class in the classpath.  If no such implementation is found, a default, no-operation implementation is constructed.  This allows libraries to support group authorization checks but does not require implementors to support GMS. 
+This library provides a client class that supports calls to an IVOA GMS service.
 
-## Build and Test Dependencies
+## OIDC Token Support
 
-### opencadc dependencies:
-- opencadc/core/cadc-util
+This library provides an implementation of `ca.nrc.cadc.auth.IdentityManager` for use with
+a user/group service that implements OpenID Connect (OIDC). The provided IdentityManager is
+configured in services as
+```
+ca.nrc.cadc.auth.IdentityManager=org.opencadc.auth.StandardIdentityManager
+```
+The goal is for this IdentityManager implementation to support integration with
+non-IVOA standard authentication services. The current implementation is a simple
+prototype that is known to work with an Indigo IAM OIDC issuer. 
 
-### external build dependencies
-- compile 'log4j:log4j:'
-
-### external test dependencies
-- junit.jar
+See <a href="https://github.com/opencadc/core/tree/master/cadc-registry">cadc-registry</a>
+for information about configuring an OpenID issuer.
