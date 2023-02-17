@@ -16,5 +16,5 @@ The goal is for this IdentityManager implementation to support integration with
 non-IVOA standard authentication services. The current implementation is a simple
 prototype that is known to work with an Indigo IAM OIDC issuer. 
 
-See <a href="https://github.com/opencadc/core/tree/master/cadc-registry">cadc-registry</a>
+See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-registry</a>
 for information about configuring an OpenID issuer.
