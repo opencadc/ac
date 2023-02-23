@@ -100,7 +100,9 @@ public class LdapConfigTest
 
             LdapConfig c = LdapConfig.loadLdapConfig("testConfig1.properties");
             Assert.assertEquals("devLdap", c.getDbrcHost());
-            Assert.assertEquals(389, c.getPort());
+            Assert.assertEquals(389, c.getReadOnlyPool().getPort());
+            Assert.assertEquals(636, c.getReadWritePool().getPort());
+            Assert.assertEquals(636, c.getUnboundReadOnlyPool().getPort());
             Assert.assertEquals("uid=testuser,ou=testorg,dc=test", c.getProxyUserDN());
             Assert.assertEquals("usersDN", c.getUsersDN());
             Assert.assertEquals("userRequestsDN", c.getUserRequestsDN());
@@ -144,7 +146,9 @@ public class LdapConfigTest
 
             LdapConfig c = LdapConfig.loadLdapConfig("testConfig2.properties");
             Assert.assertEquals("devLdap", c.getDbrcHost());
-            Assert.assertEquals(389, c.getPort());
+            Assert.assertEquals(389, c.getReadOnlyPool().getPort());
+            Assert.assertEquals(636, c.getReadWritePool().getPort());
+            Assert.assertEquals(389, c.getUnboundReadOnlyPool().getPort());
             Assert.assertEquals("uid=testuser,ou=testorg,dc=test", c.getProxyUserDN());
             Assert.assertEquals("usersDN", c.getUsersDN());
             Assert.assertEquals("userRequestsDN", c.getUserRequestsDN());

@@ -206,11 +206,11 @@ public abstract class LdapDAO
     }
 
 
-    static SocketFactory getSocketFactory(LdapConfig config)
+    static SocketFactory getSocketFactory(LdapConfig.LdapPool poolConfig)
     {
         final SocketFactory socketFactory;
 
-        if (config.isSecure())
+        if (poolConfig.isSecure())
         {
             Profiler profiler = new Profiler(LdapDAO.class);
             socketFactory = createSSLSocketFactory();

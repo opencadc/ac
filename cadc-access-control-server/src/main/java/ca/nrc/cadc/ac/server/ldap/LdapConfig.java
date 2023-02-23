@@ -102,11 +102,13 @@ public class LdapConfig
     public static final String POOL_INIT_SIZE = "poolInitSize";
     public static final String POOL_MAX_SIZE = "poolMaxSize";
     public static final String POOL_POLICY = "poolPolicy";
+    public static final String POOL_PORT = "port";
     public static final String MAX_WAIT = "maxWait";
     public static final String CREATE_IF_NEEDED = "createIfNeeded";
 
     public static final String LDAP_DBRC_ENTRY = "dbrcHost";
-    public static final String LDAP_PORT = "port";
+
+    public static final String DEFAULT_LDAP_PORT = "port";
     public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
     public static final String LDAP_USERS_DN = "usersDN";
     public static final String LDAP_USER_REQUESTS_DN = "userRequestsDN";
@@ -134,6 +136,7 @@ public class LdapConfig
         private List<String> servers;
         private int initSize;
         private int maxSize;
+        private int port;
         private PoolPolicy policy;
         private long maxWait;
         private boolean createIfNeeded;
@@ -154,6 +157,14 @@ public class LdapConfig
         {
             return policy;
         }
+        public int getPort() {
+            return port;
+        }
+
+        public boolean isSecure()
+        {
+            return getPort() == SECURE_PORT;
+        }
         public long getMaxWait()
         {
             return maxWait;
@@ -172,6 +183,7 @@ public class LdapConfig
             {
                 sb.append(" [" + server + "]");
             }
+            sb.append(" port: " + port);
             sb.append(" initSize: " + initSize);
             sb.append(" maxSize: " + maxSize);
             sb.append(" policy: " + policy);
@@ -187,6 +199,9 @@ public class LdapConfig
                 return false;
 
             LdapPool l = (LdapPool) other;
+
+            if (l.port != port)
+                return false;
 
             if (! l.servers.equals(servers))
                 return false;
@@ -213,7 +228,7 @@ public class LdapConfig
     private LdapPool readOnlyPool = new LdapPool();
     private LdapPool readWritePool = new LdapPool();
     private LdapPool unboundReadOnlyPool = new LdapPool();
-    private int port;
+    private int defaultPort = -1;
     private String usersDN;
     private String userRequestsDN;
     private String groupsDN;
@@ -256,7 +271,10 @@ public class LdapConfig
         loadPoolConfig(ldapConfig.unboundReadOnlyPool, pr, UB_READONLY_PREFIX);
 
         ldapConfig.dbrcHost = getProperty(pr, LDAP_DBRC_ENTRY);
-        ldapConfig.port = Integer.valueOf(getProperty(pr, LDAP_PORT));
+        List<String> defaultPortList = pr.getAllProperties().getProperty(DEFAULT_LDAP_PORT);
+        if (!defaultPortList.isEmpty()) {
+            ldapConfig.defaultPort = Integer.parseInt(defaultPortList.get(0));
+        }
         ldapConfig.proxyUserDN = getProperty(pr, LDAP_SERVER_PROXY_USER);
         ldapConfig.usersDN = getProperty(pr, LDAP_USERS_DN);
         ldapConfig.userRequestsDN = getProperty(pr, LDAP_USER_REQUESTS_DN);
@@ -293,8 +311,23 @@ public class LdapConfig
         pool.initSize = Integer.valueOf(getProperty(pr, prefix + POOL_INIT_SIZE));
         pool.maxSize = Integer.valueOf(getProperty(pr, prefix + POOL_MAX_SIZE));
         pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
+
+        // Set the port to use for this pool's servers.  Default to the parent port config so that the isSecure()
+        // method still works.  Throw an Exception if no port found.
+        List<String> portList = pr.getAllProperties().getProperty(prefix + POOL_PORT);
+        if (!portList.isEmpty()) {
+            pool.port = Integer.parseInt(portList.get(0));
+        } else {
+            portList = pr.getAllProperties().getProperty(DEFAULT_LDAP_PORT);
+            if (portList.isEmpty()) {
+                throw new ServiceConfigurationError("No port specified for " + prefix
+                                                    + " and no default port specified at " + DEFAULT_LDAP_PORT);
+            } else {
+                pool.port = Integer.parseInt(portList.get(0));
+            }
+        }
         if (pool.policy == PoolPolicy.fastestConnect && !prefix.equals(READONLY_PREFIX)) {
-            throw new ServiceConfigurationError(PoolPolicy.fastestConnect.toString() + 
+            throw new ServiceConfigurationError(PoolPolicy.fastestConnect.toString() +
                 " pool policy cannot be applied to " + 
                 prefix.substring(0, prefix.length() - 1) + " pool servers.");
         }
@@ -352,7 +385,7 @@ public class LdapConfig
 
         LdapConfig l = (LdapConfig) other;
 
-        if (l.port != port)
+        if ( !(l.defaultPort == defaultPort))
             return false;
 
         if ( !(l.usersDN.equals(usersDN)))
@@ -403,6 +436,9 @@ public class LdapConfig
     {
         return unboundReadOnlyPool;
     }
+    public int getDefaultPort() {
+        return defaultPort;
+    }
 
     public String getUsersDN()
     {
@@ -427,16 +463,6 @@ public class LdapConfig
     public String getDbrcHost()
     {
         return this.dbrcHost;
-    }
-
-    public int getPort()
-    {
-        return this.port;
-    }
-
-    public boolean isSecure()
-    {
-        return getPort() == SECURE_PORT;
     }
 
     public String getAdminUserDN()
@@ -466,7 +492,7 @@ public class LdapConfig
         sb.append(" ReadOnlyPool: [" + readOnlyPool + "]");
         sb.append(" ReadWritePool: [" + readWritePool + "]");
         sb.append(" UnboundReadOnlyPool: [" + unboundReadOnlyPool + "]");
-        sb.append(" Port: " + port);
+        sb.append(" Default Port: " + defaultPort);
         sb.append(" dbrcHost: " + dbrcHost);
         sb.append(" proxyUserDN: " + proxyUserDN);
 

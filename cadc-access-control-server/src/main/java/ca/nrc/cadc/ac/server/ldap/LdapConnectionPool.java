@@ -87,6 +87,8 @@ import com.unboundid.ldap.sdk.RoundRobinServerSet;
 import com.unboundid.ldap.sdk.ServerSet;
 import com.unboundid.ldap.sdk.SimpleBindRequest;
 
+import java.util.Arrays;
+
 /**
  * This object is designed to be shared between the DAO classes
  * for access to LDAP.  There should only be a single instance.
@@ -247,23 +249,20 @@ public class LdapConnectionPool
             logger.debug("LDAP Config: " + config);
             String[] hosts = poolConfig.getServers().toArray(new String[0]);
             int[] ports = new int[poolConfig.getServers().size()];
-            for (int i=0; i<poolConfig.getServers().size(); i++)
-            {
-                ports[i] = config.getPort();
-            }
+            Arrays.fill(ports, poolConfig.getPort());
 
             ServerSet serverSet = null;
             if (poolConfig.getPolicy().equals(PoolPolicy.roundRobin))
             {
-                serverSet = new RoundRobinServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
+                serverSet = new RoundRobinServerSet(hosts, ports, LdapDAO.getSocketFactory(poolConfig));
             }
             else if (poolConfig.getPolicy().equals(PoolPolicy.fewestConnections))
             {
-                serverSet = new FewestConnectionsServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
+                serverSet = new FewestConnectionsServerSet(hosts, ports, LdapDAO.getSocketFactory(poolConfig));
             }
             else if (poolConfig.getPolicy().equals(PoolPolicy.fastestConnect))
             {
-                serverSet = new FastestConnectServerSet(hosts, ports, LdapDAO.getSocketFactory(config));
+                serverSet = new FastestConnectServerSet(hosts, ports, LdapDAO.getSocketFactory(poolConfig));
             }
             else
             {
