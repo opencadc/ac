@@ -223,7 +223,7 @@ public class WhoAmIServlet extends HttpServlet
 
         log.debug("redirecting to " + redirectURI.toASCIIString());
 
-        response.sendRedirect(redirectURI.getPath() + "?" + redirectURI.getQuery());
+        response.sendRedirect(redirectURI.toASCIIString());
     }
 
     /**

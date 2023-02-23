@@ -183,7 +183,7 @@ public class WhoAmIServletTest
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
 //        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
-        String redirect = "/ac/users/" + restUserid + "?idType=" + restType;
+        String redirect = "http://mysite.com/ac/users/" + restUserid + "?idType=" + restType;
         log.debug("expected redirect: " + redirect);
         mockResponse.sendRedirect(redirect);
         expectLastCall().once();
