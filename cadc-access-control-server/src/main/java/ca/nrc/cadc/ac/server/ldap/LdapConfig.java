@@ -314,16 +314,16 @@ public class LdapConfig
 
         // Set the port to use for this pool's servers.  Default to the parent port config so that the isSecure()
         // method still works.  Throw an Exception if no port found.
-        List<String> portList = pr.getProperty(prefix + POOL_PORT);
-        if (!portList.isEmpty()) {
-            pool.port = Integer.parseInt(portList.get(0));
+        String port = pr.getFirstPropertyValue(prefix + POOL_PORT);
+        if (port != null) {
+            pool.port = Integer.parseInt(port);
         } else {
-            portList = pr.getProperty(DEFAULT_LDAP_PORT);
-            if (portList.isEmpty()) {
+            port = pr.getFirstPropertyValue(DEFAULT_LDAP_PORT);
+            if (port == null) {
                 throw new ServiceConfigurationError("No port specified for " + prefix
                                                     + " and no default port specified at " + DEFAULT_LDAP_PORT);
             } else {
-                pool.port = Integer.parseInt(portList.get(0));
+                pool.port = Integer.parseInt(port);
             }
         }
         if (pool.policy == PoolPolicy.fastestConnect && !prefix.equals(READONLY_PREFIX)) {
