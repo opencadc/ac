@@ -271,9 +271,9 @@ public class LdapConfig
         loadPoolConfig(ldapConfig.unboundReadOnlyPool, pr, UB_READONLY_PREFIX);
 
         ldapConfig.dbrcHost = getProperty(pr, LDAP_DBRC_ENTRY);
-        List<String> defaultPortList = pr.getAllProperties().getProperty(DEFAULT_LDAP_PORT);
-        if (!defaultPortList.isEmpty()) {
-            ldapConfig.defaultPort = Integer.parseInt(defaultPortList.get(0));
+        String defaultPort = config.getFirstPropertyValue(DEFAULT_LDAP_PORT);
+        if (defaultPort != null) {
+            ldapConfig.defaultPort = Integer.parseInt(defaultPort);
         }
         ldapConfig.proxyUserDN = getProperty(pr, LDAP_SERVER_PROXY_USER);
         ldapConfig.usersDN = getProperty(pr, LDAP_USERS_DN);
