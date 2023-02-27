@@ -266,20 +266,20 @@ public class LdapConfig
 
         LdapConfig ldapConfig = new LdapConfig();
 
-        loadPoolConfig(ldapConfig.readOnlyPool, pr, READONLY_PREFIX);
-        loadPoolConfig(ldapConfig.readWritePool, pr, READWRITE_PREFIX);
-        loadPoolConfig(ldapConfig.unboundReadOnlyPool, pr, UB_READONLY_PREFIX);
+        loadPoolConfig(ldapConfig.readOnlyPool, config, READONLY_PREFIX);
+        loadPoolConfig(ldapConfig.readWritePool, config, READWRITE_PREFIX);
+        loadPoolConfig(ldapConfig.unboundReadOnlyPool, config, UB_READONLY_PREFIX);
 
-        ldapConfig.dbrcHost = getProperty(pr, LDAP_DBRC_ENTRY);
+        ldapConfig.dbrcHost = getProperty(config, LDAP_DBRC_ENTRY);
         String defaultPort = config.getFirstPropertyValue(DEFAULT_LDAP_PORT);
         if (defaultPort != null) {
             ldapConfig.defaultPort = Integer.parseInt(defaultPort);
         }
-        ldapConfig.proxyUserDN = getProperty(pr, LDAP_SERVER_PROXY_USER);
-        ldapConfig.usersDN = getProperty(pr, LDAP_USERS_DN);
-        ldapConfig.userRequestsDN = getProperty(pr, LDAP_USER_REQUESTS_DN);
-        ldapConfig.groupsDN = getProperty(pr, LDAP_GROUPS_DN);
-        ldapConfig.adminGroupsDN = getProperty(pr, LDAP_ADMIN_GROUPS_DN);
+        ldapConfig.proxyUserDN = getProperty(config, LDAP_SERVER_PROXY_USER);
+        ldapConfig.usersDN = getProperty(config, LDAP_USERS_DN);
+        ldapConfig.userRequestsDN = getProperty(config, LDAP_USER_REQUESTS_DN);
+        ldapConfig.groupsDN = getProperty(config, LDAP_GROUPS_DN);
+        ldapConfig.adminGroupsDN = getProperty(config, LDAP_ADMIN_GROUPS_DN);
 
         ldapConfig.systemState = getSystemState(ldapConfig);
 
@@ -305,20 +305,20 @@ public class LdapConfig
         return ldapConfig;
     }
 
-    private static void loadPoolConfig(LdapPool pool, PropertiesReader pr, String prefix)
+    private static void loadPoolConfig(LdapPool pool, MultiValuedProperties pr, String prefix)
     {
         pool.servers = getMultiProperty(pr, prefix + POOL_SERVERS);
-        pool.initSize = Integer.valueOf(getProperty(pr, prefix + POOL_INIT_SIZE));
-        pool.maxSize = Integer.valueOf(getProperty(pr, prefix + POOL_MAX_SIZE));
+        pool.initSize = Integer.parseInt(getProperty(pr, prefix + POOL_INIT_SIZE));
+        pool.maxSize = Integer.parseInt(getProperty(pr, prefix + POOL_MAX_SIZE));
         pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
 
         // Set the port to use for this pool's servers.  Default to the parent port config so that the isSecure()
         // method still works.  Throw an Exception if no port found.
-        List<String> portList = pr.getAllProperties().getProperty(prefix + POOL_PORT);
+        List<String> portList = pr.getProperty(prefix + POOL_PORT);
         if (!portList.isEmpty()) {
             pool.port = Integer.parseInt(portList.get(0));
         } else {
-            portList = pr.getAllProperties().getProperty(DEFAULT_LDAP_PORT);
+            portList = pr.getProperty(DEFAULT_LDAP_PORT);
             if (portList.isEmpty()) {
                 throw new ServiceConfigurationError("No port specified for " + prefix
                                                     + " and no default port specified at " + DEFAULT_LDAP_PORT);
@@ -331,11 +331,11 @@ public class LdapConfig
                 " pool policy cannot be applied to " + 
                 prefix.substring(0, prefix.length() - 1) + " pool servers.");
         }
-        pool.maxWait = Long.valueOf(getProperty(pr, prefix + MAX_WAIT));
-        pool.createIfNeeded = Boolean.valueOf(getProperty(pr, prefix + CREATE_IF_NEEDED));
+        pool.maxWait = Long.parseLong(getProperty(pr, prefix + MAX_WAIT));
+        pool.createIfNeeded = Boolean.parseBoolean(getProperty(pr, prefix + CREATE_IF_NEEDED));
     }
 
-    private static String getProperty(PropertiesReader properties, String key)
+    private static String getProperty(MultiValuedProperties properties, String key)
     {
         String prop = properties.getFirstPropertyValue(key);
         if (prop == null)
@@ -345,12 +345,13 @@ public class LdapConfig
         return prop;
     }
 
-    private static List<String> getMultiProperty(PropertiesReader properties, String key)
+    private static List<String> getMultiProperty(MultiValuedProperties properties, String key)
     {
         String prop = getProperty(properties, key);
 
-        if (prop == null)
+        if (prop.trim().equals("")) {
             throw new RuntimeException("failed to read property " + key);
+        }
 
         String[] props = prop.split(" ");
         return Arrays.asList(props);
