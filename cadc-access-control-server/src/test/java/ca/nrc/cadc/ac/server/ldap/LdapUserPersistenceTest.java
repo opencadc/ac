@@ -75,7 +75,7 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.UserSet;
-import ca.nrc.cadc.auth.AuthenticatorImpl;
+import ca.nrc.cadc.ac.server.IdentityManagerImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.db.StandaloneContextFactory;

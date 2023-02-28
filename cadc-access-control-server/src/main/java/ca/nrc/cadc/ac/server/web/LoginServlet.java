@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2023.                            (c) 2023.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -78,7 +78,7 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.AuthenticatorImpl;
+import ca.nrc.cadc.ac.server.IdentityManagerImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.log.ServletLogInfo;
@@ -194,7 +194,7 @@ public class LoginServlet extends HttpServlet
                 if (addPrincipalsToCookie) {
                     // Get set of all principals that apply to the user.
                     // Cookie will have all principals added to it.
-                    AuthenticatorImpl ai = new AuthenticatorImpl();
+                    IdentityManagerImpl ai = new IdentityManagerImpl();
                     ai.augmentSubject(userSubject);
                 }
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
@@ -294,7 +294,7 @@ public class LoginServlet extends HttpServlet
         // at this point so in order to make the calls to check their group
         // membership we need to create corresponding subjects and run the
         // get groups command in the corresponding subject context.
-        AuthenticatorImpl ai = new AuthenticatorImpl();
+        IdentityManagerImpl ai = new IdentityManagerImpl();
         Subject proxySubject = new Subject();
         proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
         ai.augmentSubject(proxySubject);
