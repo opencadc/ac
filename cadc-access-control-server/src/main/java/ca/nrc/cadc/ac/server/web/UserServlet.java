@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2015.                            (c) 2015.
+ *  (c) 2023.                            (c) 2023.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,8 +66,10 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.server.IdentityManagerImpl;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.Principal;
@@ -97,6 +99,7 @@ import ca.nrc.cadc.ac.server.web.users.UserActionFactory;
 import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
@@ -107,6 +110,11 @@ public class UserServlet extends HttpServlet
     private static final long serialVersionUID = 5289130885807305288L;
     private static final Logger log = Logger.getLogger(UserServlet.class);
 
+    static {
+        // hard code use of internal IM
+        System.setProperty(IdentityManager.class.getName(), IdentityManagerImpl.class.getName());
+    }
+    
     protected List<Subject> privilegedSubjects;
 
     private UserPersistence userPersistence;

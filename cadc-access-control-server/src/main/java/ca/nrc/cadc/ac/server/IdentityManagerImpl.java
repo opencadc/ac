@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2023.                            (c) 2023.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.auth;
+package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
@@ -76,6 +76,14 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.profiler.Profiler;
 
 import java.security.AccessControlException;
@@ -89,18 +97,17 @@ import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
 /**
- * Implementation of default Authenticator for AuthenticationUtil in cadcUtil.
- * This class augments the subject with additional identities using the
- * access control library.
+ * Internal implementation of IdentityManager for AuthenticationUtil in cadc-util.
  *
  * @author pdowler
  */
-public class AuthenticatorImpl implements Authenticator
-{
-    private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
+public class IdentityManagerImpl implements IdentityManager {
 
-    public AuthenticatorImpl() { }
-    
+    private static final Logger log = Logger.getLogger(IdentityManagerImpl.class);
+
+    public IdentityManagerImpl() {
+    }
+
     @Override
     public Subject validate(Subject subject) throws AccessControlException {
         return TokenValidator.validateTokens(subject);
@@ -111,26 +118,23 @@ public class AuthenticatorImpl implements Authenticator
      * @return the possibly modified subject
      */
     @Override
-    public Subject augment(Subject subject)
-    {
-        Profiler profiler = new Profiler(AuthenticatorImpl.class);
+    public Subject augment(Subject subject) {
+        final Profiler profiler = new Profiler(IdentityManagerImpl.class);
         log.debug("ac augment subject: " + subject);
         AuthMethod am = AuthenticationUtil.getAuthMethod(subject);
-        if (am == null || AuthMethod.ANON.equals(am))
-        {
+        if (am == null || AuthMethod.ANON.equals(am)) {
             log.debug("returning anon subject");
             return subject;
         }
 
-        if (subject != null && subject.getPrincipals().size() > 0)
-        {
-            Profiler prof = new Profiler(AuthenticatorImpl.class);
+        if (subject != null && subject.getPrincipals().size() > 0) {
+            Profiler prof = new Profiler(IdentityManagerImpl.class);
             this.augmentSubject(subject);
             prof.checkpoint("userDAO.augmentSubject()");
 
             // if the caller had an invalid or forged CADC_SSO cookie, we could get
             // in here and then not match any known identity: drop to anon
-            if ( subject.getPrincipals(NumericPrincipal.class).isEmpty() ) // no matching internal account
+            if (subject.getPrincipals(NumericPrincipal.class).isEmpty()) // no matching internal account
             {
                 log.debug("NumericPrincipal not found - dropping to anon: " + subject);
                 subject = AuthenticationUtil.getAnonSubject();
@@ -141,11 +145,9 @@ public class AuthenticatorImpl implements Authenticator
         return subject;
     }
 
-    public void augmentSubject(final Subject subject)
-    {
-        try
-        {
-            Profiler profiler = new Profiler(AuthenticatorImpl.class);
+    public void augmentSubject(final Subject subject) {
+        try {
+            final Profiler profiler = new Profiler(IdentityManagerImpl.class);
             PluginFactory pluginFactory = new PluginFactory();
             UserPersistence userPersistence = pluginFactory.createUserPersistence();
             Principal ldapPrincipal = getLdapPrincipal(subject);
@@ -155,30 +157,25 @@ public class AuthenticatorImpl implements Authenticator
             subject.getPrincipals().removeAll(subject.getPrincipals(HttpPrincipal.class));
 
             User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
-            if (user.getIdentities() != null)
-            {
+            if (user.getIdentities() != null) {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");
-            }
-            else
-            {
+            } else {
                 log.debug("Null identities after augment");
             }
             subject.getPrincipals().addAll(user.getIdentities());
-            
-            if (user.appData != null)
-            {
+
+            if (user.appData != null) {
                 log.debug("found: " + user.appData.getClass().getName());
-                try
-                {
+                try {
                     GroupMemberships gms = (GroupMemberships) user.appData;
-                    for (Group g : gms.getMemberships(Role.ADMIN))
+                    for (Group g : gms.getMemberships(Role.ADMIN)) {
                         log.debug("GroupMemberships admin: " + g.getID());
-                    for (Group g : gms.getMemberships(Role.MEMBER))
+                    }
+                    for (Group g : gms.getMemberships(Role.MEMBER)) {
                         log.debug("GroupMemberships member: " + g.getID());
+                    }
                     subject.getPrivateCredentials().add(gms);
-                }
-                catch(Exception bug)
-                {
+                } catch (Exception bug) {
                     throw new RuntimeException("BUG: found User.appData but could not store in Subject as GroupMemberships cache", bug);
 
                 }
@@ -187,16 +184,38 @@ public class AuthenticatorImpl implements Authenticator
             }
             user.appData = null; // avoid loop that prevents GC???
             profiler.checkpoint("augmentSubject");
-        }
-        catch (UserNotFoundException e)
-        {
+        } catch (UserNotFoundException e) {
             // ignore, could be an anonymous user
             log.debug("could not find user for augmenting", e);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new IllegalStateException("Internal error", e);
         }
+    }
+
+    @Override
+    public Subject toSubject(Object owner) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object toOwner(Subject subject) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toDisplayString(Subject subject) {
+        if (subject != null) {
+            Set<HttpPrincipal> up = subject.getPrincipals(HttpPrincipal.class);
+            if (!up.isEmpty()) {
+                return up.iterator().next().getName();
+            }
+            // default
+            Set<Principal> ps2 = subject.getPrincipals();
+            if (!ps2.isEmpty()) {
+                return ps2.iterator().next().getName();
+            }
+        }
+        return null;
     }
     
     // prefer principals that map to ldap attributes
@@ -204,9 +223,9 @@ public class AuthenticatorImpl implements Authenticator
         Principal ret = null;
         for (Principal p : s.getPrincipals()) {
             ret = p;
-            if ((p instanceof HttpPrincipal) || (p instanceof X500Principal) ||
-                (p instanceof NumericPrincipal) || (p instanceof DNPrincipal) ||
-                (p instanceof PosixPrincipal)) {
+            if ((p instanceof HttpPrincipal) || (p instanceof X500Principal)
+                    || (p instanceof NumericPrincipal) || (p instanceof DNPrincipal)
+                    || (p instanceof PosixPrincipal)) {
                 return ret;
             }
         }

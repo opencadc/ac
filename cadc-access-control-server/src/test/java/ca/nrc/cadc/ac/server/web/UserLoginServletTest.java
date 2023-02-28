@@ -24,7 +24,7 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.auth.AuthenticatorImpl;
+import ca.nrc.cadc.ac.server.IdentityManagerImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 
 public class UserLoginServletTest
@@ -41,8 +41,8 @@ public class UserLoginServletTest
     //@Test
     public void getCheckCanImpersonate() throws Throwable
     {
-        final AuthenticatorImpl mockAuthenticatorImpl =
-            EasyMock.createNiceMock(AuthenticatorImpl.class);
+        final IdentityManagerImpl mockAuthenticatorImpl =
+            EasyMock.createNiceMock(IdentityManagerImpl.class);
 
         Subject userSubject = new Subject();
         userSubject.getPrincipals().add(new HttpPrincipal("user"));
