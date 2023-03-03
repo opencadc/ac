@@ -137,33 +137,11 @@ public class WhoAmIServletTest
         final RegistryClient mockRegistry = createNiceMock(RegistryClient.class);
         final WhoAmIServlet testSubject = new WhoAmIServlet()
         {
-            /**
-             * Tests will need to override this method so as not to rely on the
-             * environment.
-             *
-             * @return Registry Client instance.
-             */
-            /*
-            @Override
-            RegistryClient getRegistryClient()
-            {
-                return mockRegistry;
-            }
-            */
-
             @Override
             Subject getSubject(final HttpServletRequest request)
             {
                 return subject;
             }
-
-            /*
-            @Override
-            public URI getServiceURI(URI standard)
-            {
-                return URI.create("ivo://example.org/ums");
-            }
-            */
 
             @Override
             public AuthMethod getAuthMethod(Subject subject)
