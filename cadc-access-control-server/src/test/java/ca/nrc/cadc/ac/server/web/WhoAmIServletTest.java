@@ -90,6 +90,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.ac.server.EndpointConstants;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.Standards;
@@ -161,13 +162,13 @@ public class WhoAmIServletTest
                 createNiceMock(HttpServletResponse.class);
 
         String baseURL = "http://mysite.com/ac";
-        expect(mockRequest.getRequestURL()).andReturn(new StringBuffer(baseURL + "/whoami")).once();
+        expect(mockRequest.getRequestURL()).andReturn(new StringBuffer(baseURL + EndpointConstants.WHOAMI)).once();
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
 //        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
-        String redirect = baseURL + "/users/" + restUserid + "?idType=" + restType;
+        String redirect = baseURL + EndpointConstants.USERS + "/" + restUserid + "?idType=" + restType;
         log.debug("expected redirect: " + redirect);
         mockResponse.sendRedirect(redirect);
         expectLastCall().once();

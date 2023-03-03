@@ -82,6 +82,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.EndpointConstants;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -204,7 +205,7 @@ public class WhoAmIServlet extends HttpServlet
     {
         // TODO: Look for a flexible way (vs currently hardcoded) to append '/users' to the baseServiceURL
         String baseServiceURL = requestURL.substring(0, requestURL.lastIndexOf("/"));
-        String serviceURL = baseServiceURL  + "/users";
+        String serviceURL = baseServiceURL  + EndpointConstants.USERS;
         final URL redirectURL = new URL(serviceURL + USER_GET_PATH);
 
         // Take the first one.
