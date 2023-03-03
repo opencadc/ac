@@ -143,11 +143,13 @@ public class WhoAmIServletTest
              *
              * @return Registry Client instance.
              */
+            /*
             @Override
             RegistryClient getRegistryClient()
             {
                 return mockRegistry;
             }
+            */
 
             @Override
             Subject getSubject(final HttpServletRequest request)
@@ -155,11 +157,13 @@ public class WhoAmIServletTest
                 return subject;
             }
 
+            /*
             @Override
             public URI getServiceURI(URI standard)
             {
                 return URI.create("ivo://example.org/ums");
             }
+            */
 
             @Override
             public AuthMethod getAuthMethod(Subject subject)
@@ -178,24 +182,21 @@ public class WhoAmIServletTest
         final HttpServletResponse mockResponse =
                 createNiceMock(HttpServletResponse.class);
 
+        String baseURL = "http://mysite.com/ac";
+        expect(mockRequest.getRequestURL()).andReturn(new StringBuffer(baseURL + "/whoami")).once();
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
 //        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
-        String redirect = "http://mysite.com/ac/users/" + restUserid + "?idType=" + restType;
+        String redirect = baseURL + "/users/" + restUserid + "?idType=" + restType;
         log.debug("expected redirect: " + redirect);
         mockResponse.sendRedirect(redirect);
         expectLastCall().once();
 
-        URI umsServiceURI = URI.create("ivo://example.org/ums");
-
 //        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
 //                                          "http", "/%s?idType=HTTP")).
 //                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
-
-        expect(mockRegistry.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, authMethod))
-            .andReturn(new URL("http://mysite.com/ac/users")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);
 
