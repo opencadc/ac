@@ -203,7 +203,7 @@ public class WhoAmIServlet extends HttpServlet
      */
     void redirect(StringBuffer requestURL, HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
     {
-        String baseServiceURL = requestURL.substring(0, requestURL.lastIndexOf("/"));
+        String baseServiceURL = requestURL.substring(0, requestURL.indexOf(EndpointConstants.WHOAMI));
         String serviceURL = baseServiceURL  + EndpointConstants.USERS;
         final URL redirectURL = new URL(serviceURL + USER_GET_PATH);
 

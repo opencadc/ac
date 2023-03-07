@@ -162,7 +162,7 @@ public class WhoAmIServletTest
                 createNiceMock(HttpServletResponse.class);
 
         String baseURL = "http://mysite.com/ac";
-        expect(mockRequest.getRequestURL()).andReturn(new StringBuffer(baseURL + EndpointConstants.USERS)).once();
+        expect(mockRequest.getRequestURL()).andReturn(new StringBuffer(baseURL + EndpointConstants.WHOAMI)).once();
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
