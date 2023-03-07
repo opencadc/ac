@@ -203,7 +203,6 @@ public class WhoAmIServlet extends HttpServlet
      */
     void redirect(StringBuffer requestURL, HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
     {
-        // TODO: Look for a flexible way (vs currently hardcoded) to append '/users' to the baseServiceURL
         String baseServiceURL = requestURL.substring(0, requestURL.lastIndexOf("/"));
         String serviceURL = baseServiceURL  + EndpointConstants.USERS;
         final URL redirectURL = new URL(serviceURL + USER_GET_PATH);

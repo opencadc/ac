@@ -78,13 +78,9 @@ package ca.nrc.cadc.ac.server;
 public class EndpointConstants {
 
     // standardID values
-    public static final String CAPABILITIES = "/capabilities";
-    public static final String AVAILABILITIES = "/availabilities";
-    public static final String LOG_CONTROL = "/logControl";
     public static final String USERS = "/users";
     public static final String USER_REQUESTS = "/userRequests";
     public static final String REQUEST_PASSWORD = "/requestPassword";
-    public static final String WHOAMI = "/whoami";
     public static final String GROUPS = "/groups";
     public static final String SEARCH = "/search";
     public static final String OAUTH = "/authorize";
