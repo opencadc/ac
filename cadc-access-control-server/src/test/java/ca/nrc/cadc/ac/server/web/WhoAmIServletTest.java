@@ -90,6 +90,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ca.nrc.cadc.ac.server.EndpointConstants;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.Standards;
@@ -137,28 +138,10 @@ public class WhoAmIServletTest
         final RegistryClient mockRegistry = createNiceMock(RegistryClient.class);
         final WhoAmIServlet testSubject = new WhoAmIServlet()
         {
-            /**
-             * Tests will need to override this method so as not to rely on the
-             * environment.
-             *
-             * @return Registry Client instance.
-             */
-            @Override
-            RegistryClient getRegistryClient()
-            {
-                return mockRegistry;
-            }
-
             @Override
             Subject getSubject(final HttpServletRequest request)
             {
                 return subject;
-            }
-
-            @Override
-            public URI getServiceURI(URI standard)
-            {
-                return URI.create("ivo://example.org/ums");
             }
 
             @Override
@@ -178,24 +161,21 @@ public class WhoAmIServletTest
         final HttpServletResponse mockResponse =
                 createNiceMock(HttpServletResponse.class);
 
+        String baseURL = "http://mysite.com/ac";
+        expect(mockRequest.getRequestURL()).andReturn(new StringBuffer(baseURL + EndpointConstants.WHOAMI)).once();
         expect(mockRequest.getPathInfo()).andReturn("users/CADCtest").once();
         expect(mockRequest.getMethod()).andReturn("GET").once();
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
 //        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
-        String redirect = "http://mysite.com/ac/users/" + restUserid + "?idType=" + restType;
+        String redirect = baseURL + EndpointConstants.USERS + "/" + restUserid + "?idType=" + restType;
         log.debug("expected redirect: " + redirect);
         mockResponse.sendRedirect(redirect);
         expectLastCall().once();
 
-        URI umsServiceURI = URI.create("ivo://example.org/ums");
-
 //        expect(mockRegistry.getServiceURL(URI.create(umsServiceURI.toString() + "#users"),
 //                                          "http", "/%s?idType=HTTP")).
 //                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
-
-        expect(mockRegistry.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, authMethod))
-            .andReturn(new URL("http://mysite.com/ac/users")).once();
 
         replay(mockRequest, mockResponse, mockRegistry);
 

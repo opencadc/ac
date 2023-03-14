@@ -80,11 +80,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SignedToken;
-import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
@@ -102,7 +98,6 @@ import java.security.Key;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -314,9 +309,10 @@ public class OIDCUtil {
         return groupNames;
     }
 
-    private static Map<String, Object> buildTokenClaimsSet(RelyParty rp) throws Exception  {
+    private static Map<String, Object> buildTokenClaimsSet(RelyParty rp, String requestURI) throws Exception  {
         final Subject subject = AuthenticationUtil.getCurrentSubject();
 
+        String claimIssuer = requestURI.substring(0, requestURI.lastIndexOf("/"));
         NumericPrincipal numericPrincipal = subject.getPrincipals(NumericPrincipal.class).iterator().next();
         HttpPrincipal useridPrincipal = subject.getPrincipals(HttpPrincipal.class).iterator().next();
         String email = OIDCUtil.getEmail(useridPrincipal);
@@ -326,7 +322,7 @@ public class OIDCUtil {
         Map<String, Object> claimsMap = new HashMap<>();
         claimsMap.put("aud", clientID);
         claimsMap.put("iat", calendar.getTime());
-        claimsMap.put("iss", getClaimIssuer());
+        claimsMap.put("iss", claimIssuer);
         claimsMap.put("sub", numericPrincipal.getName());
 
         calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
@@ -351,9 +347,9 @@ public class OIDCUtil {
      * @return
      * @throws Exception
      */
-    public static String buildUserInfoResponse(RelyParty rp) throws Exception {
+    public static String buildUserInfoResponse(RelyParty rp, String requestURI) throws Exception {
 
-        Map<String, Object> claimsMap = buildTokenClaimsSet(rp);
+        Map<String, Object> claimsMap = buildTokenClaimsSet(rp, requestURI);
         return new ObjectMapper().writeValueAsString(claimsMap);
     }
 
@@ -363,9 +359,9 @@ public class OIDCUtil {
      * @return
      * @throws Exception
      */
-    public static String buildIDToken(RelyParty rp) throws Exception {
+    public static String buildIDToken(RelyParty rp, String requestURI) throws Exception {
 
-        Map<String, Object> claimsMap = buildTokenClaimsSet(rp);
+        Map<String, Object> claimsMap = buildTokenClaimsSet(rp, requestURI);
         JwtBuilder builder = Jwts.builder();
         builder.setClaims(claimsMap);
 
@@ -382,22 +378,6 @@ public class OIDCUtil {
         } else {
             return builder.compact();
         }
-    }
-    
-    /**
-     * Return the baseURL to the service (this service) running OAuth.
-     * @return The baseURL of the OAuth service.
-     * @throws IOException
-     * @throws ResourceNotFoundException
-     */
-    static String getClaimIssuer() throws IOException, ResourceNotFoundException {
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI serviceURI = localAuthority.getServiceURI(Standards.SECURITY_METHOD_OAUTH.toString());
-        RegistryClient regClient = new RegistryClient();
-        String oauthURL = regClient.getAccessURL(serviceURI).toString();
-        // remove the last path element for the base URL
-        int lastSlash = oauthURL.lastIndexOf("/");
-        return oauthURL.substring(0, lastSlash);
     }
     
     static String getClaimDescriptionString(List<Claim> claims) {

@@ -82,6 +82,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import ca.nrc.cadc.ac.server.EndpointConstants;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -138,7 +139,7 @@ public class WhoAmIServlet extends HttpServlet
                 return;
             }
 
-            redirect(response, principal, authMethod);
+            redirect(request.getRequestURL(), response, principal, authMethod);
         }
         catch (IllegalArgumentException e)
         {
@@ -188,12 +189,6 @@ public class WhoAmIServlet extends HttpServlet
         return null;
     }
 
-    public URI getServiceURI(URI standard)
-    {
-        LocalAuthority localAuthority = new LocalAuthority();
-        return localAuthority.getServiceURI(standard.toString());
-    }
-
     public AuthMethod getAuthMethod(Subject subject)
     {
         return AuthenticationUtil.getAuthMethod(subject);
@@ -206,15 +201,11 @@ public class WhoAmIServlet extends HttpServlet
      * @param principal     The HttpPrincipal instance.
      * @param authMethod    The authMethod
      */
-    void redirect(HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
+    void redirect(StringBuffer requestURL, HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
     {
-        final RegistryClient registryClient = getRegistryClient();
-
-        URI umsServiceURI = getServiceURI(Standards.UMS_WHOAMI_01);
-        log.debug("ums service uri: " + umsServiceURI);
-
-        final URL serviceURL = registryClient.getServiceURL(umsServiceURI, Standards.UMS_USERS_01, authMethod);
-        final URL redirectURL = new URL(serviceURL.toExternalForm() + USER_GET_PATH);
+        String baseServiceURL = requestURL.substring(0, requestURL.indexOf(EndpointConstants.WHOAMI));
+        String serviceURL = baseServiceURL  + EndpointConstants.USERS;
+        final URL redirectURL = new URL(serviceURL + USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =
