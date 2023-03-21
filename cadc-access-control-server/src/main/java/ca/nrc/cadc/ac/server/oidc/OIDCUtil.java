@@ -155,7 +155,7 @@ public class OIDCUtil {
     
     public static Set<PublicKey> getPublicKeys() {
         if (publicKeys == null) {
-            File pubFile = FileUtil.getFileFromResource(PUBLIC_KEY_NAME, OIDCUtil.class);
+            File pubFile = new File(System.getProperty("user.home") + "/config/" + PUBLIC_KEY_NAME);
             RsaSignatureVerifier verifier = new RsaSignatureVerifier(pubFile);
             publicKeys = verifier.getPublicKeys();
         }
@@ -164,7 +164,7 @@ public class OIDCUtil {
     
     private static Key getPrivateKey() {
         if (privateKey == null) {
-            File privFile = FileUtil.getFileFromResource(PRIVATE_KEY_NAME, OIDCUtil.class);
+            File privFile = new File(System.getProperty("user.home") + "/config/" + PRIVATE_KEY_NAME);
             RsaSignatureGenerator generator = new RsaSignatureGenerator(privFile);
             privateKey = generator.getPrivateKey();
         }
