@@ -81,6 +81,7 @@ public class EndpointConstants {
     public static final String USERS = "/users";
     public static final String USER_REQUESTS = "/userRequests";
     public static final String REQUEST_PASSWORD = "/requestPassword";
+    public static final String RESET_PASSWORD = "/resetPassword";
     public static final String WHOAMI = "/whoami";
     public static final String GROUPS = "/groups";
     public static final String SEARCH = "/search";

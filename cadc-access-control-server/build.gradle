@@ -35,8 +35,6 @@ dependencies {
     compile 'org.opencadc:cadc-uws:[1.0,)'
     compile 'org.opencadc:cadc-uws-server:[1.2.4,)'
 
-    runtime 'org.opencadc:cadc-registry:[1.6,2.0)'
-
     testCompile 'junit:junit:[4.0,)'
     testCompile 'org.easymock:easymock:3.6'
     testCompile 'org.skyscreamer:jsonassert:[1.0,)'
