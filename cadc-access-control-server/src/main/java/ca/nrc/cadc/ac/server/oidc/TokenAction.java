@@ -217,7 +217,7 @@ public class TokenAction extends RestAction {
     private String createJWT(String userid, RelyParty rp) throws Exception {
         
         log.debug("building jwt");
-        String jws = OIDCUtil.buildIDToken(rp);
+        String jws = OIDCUtil.buildIDToken(rp, syncInput.getRequestURI());
         
         log.debug("building access token");
         

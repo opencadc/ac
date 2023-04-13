@@ -139,7 +139,7 @@ public class UserInfoAction extends RestAction {
             throw new NotAuthenticatedException("invalid scope");
         }
 
-        String jsonJWTClaims = OIDCUtil.buildUserInfoResponse(rp);
+        String jsonJWTClaims = OIDCUtil.buildUserInfoResponse(rp, syncInput.getRequestURI());
         log.debug("set headers and return json: \n" + jsonJWTClaims);
         
         // signed

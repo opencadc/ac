@@ -68,16 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ServiceConfigurationError;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.db.ConnectionConfig;
-import ca.nrc.cadc.db.DBConfig;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 
@@ -110,6 +106,7 @@ public class LdapConfig
 
     public static final String DEFAULT_LDAP_PORT = "port";
     public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
+    public static final String LDAP_SERVER_PROXY_PASSWORD= "proxyPassword";
     public static final String LDAP_USERS_DN = "usersDN";
     public static final String LDAP_USER_REQUESTS_DN = "userRequestsDN";
     public static final String LDAP_GROUPS_DN = "groupsDN";
@@ -276,31 +273,13 @@ public class LdapConfig
             ldapConfig.defaultPort = Integer.parseInt(defaultPort);
         }
         ldapConfig.proxyUserDN = getProperty(config, LDAP_SERVER_PROXY_USER);
+        ldapConfig.proxyPasswd = getProperty(config, LDAP_SERVER_PROXY_PASSWORD);
         ldapConfig.usersDN = getProperty(config, LDAP_USERS_DN);
         ldapConfig.userRequestsDN = getProperty(config, LDAP_USER_REQUESTS_DN);
         ldapConfig.groupsDN = getProperty(config, LDAP_GROUPS_DN);
         ldapConfig.adminGroupsDN = getProperty(config, LDAP_ADMIN_GROUPS_DN);
 
         ldapConfig.systemState = getSystemState(ldapConfig);
-
-        try
-        {
-            DBConfig dbConfig = new DBConfig();
-            ConnectionConfig cc = dbConfig.getConnectionConfig(ldapConfig.dbrcHost, ldapConfig.proxyUserDN);
-            if ( (cc == null) || (cc.getUsername() == null) || (cc.getPassword() == null))
-            {
-                throw new RuntimeException("failed to find connection info in ~/.dbrc");
-            }
-            ldapConfig.proxyPasswd = cc.getPassword();
-        }
-        catch (FileNotFoundException e)
-        {
-            throw new RuntimeException("failed to find .dbrc file ");
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException("failed to read .dbrc file ");
-        }
 
         return ldapConfig;
     }

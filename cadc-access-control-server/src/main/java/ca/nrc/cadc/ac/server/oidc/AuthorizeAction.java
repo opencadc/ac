@@ -167,8 +167,6 @@ public abstract class AuthorizeAction extends RestAction {
             sendError(error);
             return;
         }
-
-
     }
     
     private void doOpenIDCodeFlow() throws Exception {
@@ -316,7 +314,7 @@ public abstract class AuthorizeAction extends RestAction {
                 }
                 
 //                String jws = OIDCUtil.buildIDToken(rp, false);
-                String jws = OIDCUtil.buildIDToken(rp);
+                String jws = OIDCUtil.buildIDToken(rp, syncInput.getRequestURI());
                 
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", jws);
