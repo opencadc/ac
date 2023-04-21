@@ -80,11 +80,14 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.util.PropertiesReader;
 import org.apache.log4j.Logger;
 
 /**
@@ -107,6 +110,8 @@ public abstract class AuthorizeAction extends RestAction {
     
     private static final String OIDC_SCOPE = "openid";
     private static final String VO_SINGLESIGNON_SCOPE = "vo-sso";
+
+    public static final String DOMAINS_PROP_FILE = "ac-domains.properties";
     
     protected String scope;
     protected String responseType;
@@ -293,7 +298,17 @@ public abstract class AuthorizeAction extends RestAction {
                 }
                 
                 URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
-                String token = OIDCUtil.getToken(username, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
+                PropertiesReader propReader = new PropertiesReader(AuthorizeAction.DOMAINS_PROP_FILE);
+                List<String> domainValues = propReader.getAllProperties().getProperty("domains");
+
+                final List<String> domainList;
+                if (domainValues != null && (domainValues.size() > 0)) {
+                    domainList = Arrays.asList(domainValues.get(0).split(" "));
+                } else {
+                    domainList = null;
+                }
+
+                String token = OIDCUtil.getToken(username, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES, domainList);
                 
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", token);
