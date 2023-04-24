@@ -281,10 +281,15 @@ public class OIDCUtil {
     }
     
     public static String getToken(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {
+        return OIDCUtil.getToken(username, scope, expiryMinutes, null);
+    }
+
+    public static String getToken(String username, URI scope, int expiryMinutes, List<String> domains)
+            throws InvalidKeyException, IOException {
         HttpPrincipal p = new HttpPrincipal(username);
         Calendar c = Calendar.getInstance();
         c.add(Calendar.MINUTE, expiryMinutes);
-        SignedToken token = new SignedToken(p, scope, c.getTime(), null);
+        SignedToken token = new SignedToken(p, scope, c.getTime(), domains);
         return SignedToken.format(token);
     }
     
