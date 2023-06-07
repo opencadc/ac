@@ -79,6 +79,7 @@ import java.util.List;
  * @author majorb
  *
  */
+@Deprecated
 public interface GroupClient {
     
     /**
