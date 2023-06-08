@@ -77,6 +77,7 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import org.opencadc.gms.GroupURI;
 
 public class CreateGroupAction extends AbstractGroupAction
 {
@@ -92,6 +93,14 @@ public class CreateGroupAction extends AbstractGroupAction
     {
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
+        
+        // restriction: prevent hierarchical group names now that GroupURI allows it
+        GroupURI gid = group.getID();
+        String name = gid.getName();
+        String[] ss = name.split("/");
+        if (ss.length > 1) {
+            throw new IllegalArgumentException("invalid group name (/ not permitted): " + name);
+        }
         Group returnGroup = groupPersistence.addGroup(group);
         syncOut.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();

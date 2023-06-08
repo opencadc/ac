@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2023.                            (c) 2023.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,16 +66,15 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.ldap;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.ServiceConfigurationError;
-
-import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ServiceConfigurationError;
+import org.apache.log4j.Logger;
 
 /**
  * Reads and stores the LDAP configuration information.
@@ -102,11 +101,9 @@ public class LdapConfig
     public static final String MAX_WAIT = "maxWait";
     public static final String CREATE_IF_NEEDED = "createIfNeeded";
 
-    public static final String LDAP_DBRC_ENTRY = "dbrcHost";
-
     public static final String DEFAULT_LDAP_PORT = "port";
     public static final String LDAP_SERVER_PROXY_USER = "proxyUser";
-    public static final String LDAP_SERVER_PROXY_PASSWORD= "proxyPassword";
+    public static final String LDAP_SERVER_PROXY_PASSWORD = "proxyPassword";
     public static final String LDAP_USERS_DN = "usersDN";
     public static final String LDAP_USER_REQUESTS_DN = "userRequestsDN";
     public static final String LDAP_GROUPS_DN = "groupsDN";
@@ -232,7 +229,6 @@ public class LdapConfig
     private String adminGroupsDN;
     private String proxyUserDN;
     private String proxyPasswd;
-    private String dbrcHost;
     private SystemState systemState;
 
     public String getProxyUserDN()
@@ -267,7 +263,6 @@ public class LdapConfig
         loadPoolConfig(ldapConfig.readWritePool, config, READWRITE_PREFIX);
         loadPoolConfig(ldapConfig.unboundReadOnlyPool, config, UB_READONLY_PREFIX);
 
-        ldapConfig.dbrcHost = getProperty(config, LDAP_DBRC_ENTRY);
         String defaultPort = config.getFirstPropertyValue(DEFAULT_LDAP_PORT);
         if (defaultPort != null) {
             ldapConfig.defaultPort = Integer.parseInt(defaultPort);
@@ -383,9 +378,6 @@ public class LdapConfig
         if ( !(l.proxyUserDN.equals(proxyUserDN)))
             return false;
 
-        if ( !(l.dbrcHost.equals(dbrcHost)))
-            return false;
-
         if ( !(l.readOnlyPool.equals(readOnlyPool)))
             return false;
 
@@ -440,11 +432,6 @@ public class LdapConfig
         return this.adminGroupsDN;
     }
 
-    public String getDbrcHost()
-    {
-        return this.dbrcHost;
-    }
-
     public String getAdminUserDN()
     {
         return this.proxyUserDN;
@@ -473,7 +460,6 @@ public class LdapConfig
         sb.append(" ReadWritePool: [" + readWritePool + "]");
         sb.append(" UnboundReadOnlyPool: [" + unboundReadOnlyPool + "]");
         sb.append(" Default Port: " + defaultPort);
-        sb.append(" dbrcHost: " + dbrcHost);
         sb.append(" proxyUserDN: " + proxyUserDN);
 
         return sb.toString();
