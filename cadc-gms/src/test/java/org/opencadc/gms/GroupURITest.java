@@ -24,10 +24,6 @@ public class GroupURITest {
         GroupURI uri1 = new GroupURI(URI.create("ivo://example.org/gms?name"));
         GroupURI uri2 = new GroupURI(URI.create("ivo://example.org/gms?name"));
         Assert.assertTrue(uri1.equals(uri2));
-
-        uri1 = new GroupURI(URI.create("ivo://example.org/gms?name"));
-        uri2 = new GroupURI(URI.create("ivo://example.org/gms#name")); // backwards compat only
-        Assert.assertTrue(uri1.equals(uri2));
     }
 
     @Test
@@ -44,6 +40,13 @@ public class GroupURITest {
 
             // no path
             assertIllegalArgument("ivo://example.org/gname", "name");
+            
+            // group name in fragment no longer allowed
+            assertIllegalArgument("ivo://my.authority/gms#name", "name");
+            
+            // fragment not allowed
+            assertIllegalArgument("ivo://my.authority/gms?name#name", "fragment");
+            
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -51,7 +54,7 @@ public class GroupURITest {
     }
 
     @Test
-    public void testCorrect1() {
+    public void testSimpleGroupName() {
         try {
             GroupURI g = new GroupURI("ivo://my.authority/gms?name");
             Assert.assertEquals("ivo", g.getURI().getScheme());
@@ -66,14 +69,15 @@ public class GroupURITest {
     }
 
     @Test
-    public void testCorrect2() {
+    public void testHierarchicalGroupName() {
         try {
-            GroupURI g = new GroupURI("ivo://my.authority/gms#name");
+            String name = "hierachical/group/structure";
+            GroupURI g = new GroupURI("ivo://my.authority/gms?" + name);
             Assert.assertEquals("ivo", g.getURI().getScheme());
             Assert.assertEquals("/gms", g.getURI().getPath());
-            Assert.assertEquals("name", g.getName());
+            Assert.assertEquals(name, g.getName());
             Assert.assertEquals("ivo://my.authority/gms", g.getServiceID().toASCIIString());
-            Assert.assertEquals("ivo://my.authority/gms?name", g.getURI().toASCIIString());
+            Assert.assertEquals("ivo://my.authority/gms?" + name, g.getURI().toASCIIString());
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);

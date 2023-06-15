@@ -81,7 +81,7 @@ public class GroupURI implements Comparable<GroupURI> {
     private static final Logger log = Logger.getLogger(GroupURI.class);
     
     private URI uri;
-    private static String GROUP_NAME_ERRORMSG = "Group Name contains illegal characters (only alphanumeric, '-', '.', '_', '~' allowed";
+    private static String GROUP_NAME_ERRORMSG = "Group Name contains illegal characters (only alphanumeric, '/', -', '.', '_', '~' allowed";
 
     /**
      * Attempts to create a URI using the specified uri.
@@ -111,17 +111,7 @@ public class GroupURI implements Comparable<GroupURI> {
         String query = uri.getQuery();
         String name = null;
         if (query == null) {
-            if (fragment != null) {
-                // allow the fragment to define the group name (old style)
-                if (isValidGroupName(fragment)) {
-                    name = fragment;
-                } else {
-                    throw new IllegalArgumentException(GROUP_NAME_ERRORMSG);
-                }
-
-            } else {
-                throw new IllegalArgumentException("Group name is required.");
-            }
+            throw new IllegalArgumentException("Group name is required.");
         } else {
             if (fragment != null) {
                 throw new IllegalArgumentException("Fragment not allowed in group URIs");
@@ -134,8 +124,7 @@ public class GroupURI implements Comparable<GroupURI> {
             }
         }
 
-        this.uri = URI.create(
-                uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
+        this.uri = URI.create(uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
     }
 
     /**
@@ -247,7 +236,7 @@ public class GroupURI implements Comparable<GroupURI> {
     private boolean isValidGroupName(String groupName) {
         boolean isValid = false;
 
-        if (groupName.matches("^[a-zA-Z0-9_\\-\\.~]+$")) {
+        if (groupName.matches("^[a-zA-Z0-9/_\\-\\.~]+$")) {
             isValid = true;
         }
 

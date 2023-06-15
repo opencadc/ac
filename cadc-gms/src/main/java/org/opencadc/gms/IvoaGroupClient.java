@@ -222,7 +222,7 @@ public class IvoaGroupClient {
             }
             queryURL = new URL(sb.toString());
         }
-        log.warn("queryURL: " + queryURL);
+        log.debug("queryURL: " + queryURL);
         
         Set<GroupURI> ret = new TreeSet<>();
         try {

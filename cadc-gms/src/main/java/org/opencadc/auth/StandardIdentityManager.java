@@ -67,6 +67,7 @@
 
 package org.opencadc.auth;
 
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
@@ -77,6 +78,7 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.InputStream;
@@ -86,6 +88,7 @@ import java.net.URL;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import javax.security.auth.Subject;
@@ -94,7 +97,9 @@ import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
 /**
- * Prototype IdentityManager for a standards-based system.
+ * Prototype IdentityManager for a standards-based system. This currently supports
+ * validating tokens using a configured OIDC issuer, but the intent is to support
+ * the range of IVOA-sanctioned authentication mechanisms.
  * 
  * @author pdowler
  */
@@ -103,8 +108,9 @@ public class StandardIdentityManager implements IdentityManager {
 
     private final URI oidcIssuer;
     
-    // TODO: need these to contruct an AuthorizationToken
-    private List<String> oidcDomains = new ArrayList<>();
+    // need these to contruct an AuthorizationToken
+    private RegistryClient reg = new RegistryClient();
+    private final List<String> oidcDomains = new ArrayList<>();
     private URI oidcScope;
     
     public StandardIdentityManager() {
@@ -114,9 +120,35 @@ public class StandardIdentityManager implements IdentityManager {
         try {
             URL u = oidcIssuer.toURL();
             oidcDomains.add(u.getHost());
+            
+            // add known and assume trusted A&A services
+            String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
+            if (host != null) {
+                oidcDomains.add(host);
+            }
         } catch (MalformedURLException ex) {
             throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
         }
+        for (String dom : oidcDomains) {
+            log.debug("OIDC domain: " + dom);
+        }
+    }
+    
+    // lookup the local/trusted provider of an API and extract the hostname
+    private String getProviderHostname(LocalAuthority loc, URI standardID) {
+        try {
+            URI resourceID = loc.getServiceURI(standardID.toASCIIString());
+            if (resourceID != null) {
+                URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
+                if (srv != null) {
+                    return srv.getHost();
+                }
+                log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
+            }
+        } catch (NoSuchElementException ignore) {
+            log.debug("not found: " + standardID);
+        }
+        return null;
     }
 
     @Override

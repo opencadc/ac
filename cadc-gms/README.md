@@ -17,4 +17,10 @@ non-IVOA standard authentication services. The current implementation is a simpl
 prototype that is known to work with an Indigo IAM OIDC issuer. 
 
 See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-registry</a>
-for information about configuring an OpenID issuer.
+for information about configuring an OpenID issuer. In addition, if a service also configures
+a "trusted" GMS service in the cadc-registry config file, for example:
+```
+ivo://ivoa.net/std/GMS#search-1.0 = {my GSM service}
+```
+then the StandardIdentityManager will ensure that valid access tokens are tagged so they will
+be used in calls to that GMS service.
