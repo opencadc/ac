@@ -101,20 +101,22 @@ public class PermissionsCheck {
     private final boolean authenticateOnly;
     private final WebServiceLogInfo logInfo;
     
+    private transient Subject opsSubject;
+    
     private static void assertNotNull(Class caller, String name, Object test) {
         if (test == null) {
             throw new IllegalArgumentException("invalid " + caller.getSimpleName() + "." + name + ": null");
         }
     }
-
-    // ctor for use outside a rest action context
-    public PermissionsCheck(URI artifactURI, boolean authenticateOnly) {
-        assertNotNull(PermissionsCheck.class, "artifactURI", artifactURI);
-        this.artifactURI = artifactURI;
-        this.authenticateOnly = authenticateOnly;
+    
+    // ctor for a short-lived but reusable checker outside rest context
+    // use case: datalink calls to predict permissions for a set of links (artifacts/files)
+    public PermissionsCheck() {
+        this.artifactURI = null;
+        this.authenticateOnly = false;
         this.logInfo = new DummyLogInfo();
     }
-    
+
     // ctor for use in a rest action context
     public PermissionsCheck(URI artifactURI, boolean authenticateOnly, WebServiceLogInfo logInfo) {
         assertNotNull(PermissionsCheck.class, "artifactURI", artifactURI);
@@ -147,14 +149,16 @@ public class PermissionsCheck {
      * @param readGrantServices list of granting services
      * @return list of read grants
      */
-    public List<ReadGrant> getReadGrants(List<URI> readGrantServices) {
+    public List<ReadGrant> getReadGrants(URI asset, List<URI> readGrantServices) {
         if (readGrantServices == null || readGrantServices.isEmpty()) {
             return new ArrayList<>();
         }
         
         try {
-            Subject ops = createOpsSubject();
-            return Subject.doAs(ops, new GetReadGrantsAction(this.artifactURI, readGrantServices));
+            if (opsSubject == null) {
+                this.opsSubject = createOpsSubject();
+            }
+            return Subject.doAs(opsSubject, new GetReadGrantsAction(asset, readGrantServices));
         } catch (TransientException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -183,7 +187,7 @@ public class PermissionsCheck {
         Set<GroupURI> granted = new TreeSet<>();
         if (!readGrantServices.isEmpty()) {
             try {
-                List<ReadGrant> grants = getReadGrants(readGrantServices);
+                List<ReadGrant> grants = getReadGrants(artifactURI, readGrantServices);
                 for (ReadGrant g : grants) {
                     if (g.isAnonymousAccess()) {
                         logInfo.setGrant("read: anonymous");
