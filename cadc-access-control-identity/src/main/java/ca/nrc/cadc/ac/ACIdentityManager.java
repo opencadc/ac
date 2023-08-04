@@ -242,22 +242,24 @@ public class ACIdentityManager implements IdentityManager {
             return null;
         }
         try {
-            Integer i = null;
+            Long n = null;
             if (o instanceof String) {
-                i = Integer.valueOf((String) o);
+                n = Long.valueOf((String) o);
             } else if (o instanceof Integer) {
-                i = (Integer) o;
+                n = ((Integer) o).longValue();
+            } else if (o instanceof Long) {
+                n = (Long) o;
             } else {
                 throw new IllegalStateException("cannot reconstruct Subject from a "
                         + o.getClass().getName());
             }
             
-            if (i <= 0) {
+            if (n <= 0) {
                 // identities <= 0 are internal
                 return new Subject();
             }
 
-            UUID uuid = new UUID(0L, (long) i);
+            UUID uuid = new UUID(0L, n);
             NumericPrincipal p = new NumericPrincipal(uuid);
 
             Subject s = AuthenticationUtil.getCurrentSubject();
