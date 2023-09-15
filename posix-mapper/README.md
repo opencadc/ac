@@ -33,7 +33,7 @@ org.opencadc.posix.mapper.url=jdbc:postgresql://{server}/{database}
 ```
 The `mapping` account owns and manages (create, alter, drop) database objects and manages
 all the content (insert, update, delete). The database is specified in the JDBC URL and the schema name is specified 
-in the [posix-mapper.properties](#posix-mapper.properties) (below). Failure to connect or initialize the database will show up in logs and in the 
+in the [posix-mapper.properties](#posix-mapperproperties) (below). Failure to connect or initialize the database will show up in logs and in the 
 VOSI-availability output.
 
 ### cadc-registry.properties
