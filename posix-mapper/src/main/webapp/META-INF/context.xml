@@ -3,8 +3,7 @@
 
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
 
-    <!--
-    <Resource name="jdbc/inventory"
+    <Resource name="jdbc/posix-mapping"
         auth="Container"
         type="javax.sql.DataSource"
         factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" closeMethod="close"
@@ -15,6 +14,5 @@
         driverClassName="org.postgresql.Driver" url="${org.opencadc.science-platform.mapping.url}"
         removeAbandoned="false"
         testOnBorrow="true" validationQuery="select 123" />
-        -->
-    
+
 </Context>
