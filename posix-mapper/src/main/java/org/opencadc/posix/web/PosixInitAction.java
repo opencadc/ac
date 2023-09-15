@@ -91,6 +91,7 @@ public class PosixInitAction extends InitAction {
     private static final String POSIX_KEY = "org.opencadc.science-platform.posix";
     static final String SCHEMA_KEY = PosixInitAction.POSIX_KEY + ".mapping.schema";
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
+    static final String HOME_DIR_ROOT_KEY = PosixInitAction.POSIX_KEY + ".homeDirRoot";
 
     MultiValuedProperties props;
     private final Map<String, Object> daoConfig = new HashMap<>();

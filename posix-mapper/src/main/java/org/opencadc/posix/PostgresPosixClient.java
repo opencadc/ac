@@ -68,6 +68,7 @@
 package org.opencadc.posix;
 
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,5 +121,10 @@ public class PostgresPosixClient implements PosixClient {
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("gid", gid);
         return postgres.findAll(User.class, "findAllUsersForGroupId", criteria);
+    }
+
+    @Override
+    public List<User> getUsers() {
+        return postgres.inTransaction(session -> session.createQuery("from Users u", User.class).list());
     }
 }

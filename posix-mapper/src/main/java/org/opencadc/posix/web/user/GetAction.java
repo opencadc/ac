@@ -69,12 +69,24 @@
 package org.opencadc.posix.web.user;
 
 
+import org.opencadc.posix.PostgresPosixUtil;
+import org.opencadc.posix.User;
 import org.opencadc.posix.web.PosixMapperAction;
+
+import java.nio.charset.StandardCharsets;
 
 public class GetAction extends PosixMapperAction {
 
     @Override
     public void doAction() throws Exception {
-
+        for (final User user : posixClient.getUsers()) {
+            syncOutput.getOutputStream().write(new PostgresPosixUtil()
+                                                       .homeDir(getHomeDirRoot())
+                                                       .user(user)
+                                                       .userName(user.getUsername())
+                                                       .posixEntry().getBytes(StandardCharsets.UTF_8));
+            syncOutput.getOutputStream().write("\n".getBytes(StandardCharsets.UTF_8));
+        }
+        syncOutput.getOutputStream().flush();
     }
 }

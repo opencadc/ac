@@ -7,6 +7,8 @@ public interface PosixUtil {
 
     PosixUtil userName(String userName);
 
+    PosixUtil user(User user);
+
     PosixUtil homeDir(String homeDir);
 
     PosixUtil groupNames(List<String> groupNames);

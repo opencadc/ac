@@ -48,6 +48,10 @@
             <param-name>post</param-name>
             <param-value>org.opencadc.posix.web.user.PostAction</param-value>
         </init-param>
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>org.opencadc.posix.web.user.GetAction</param-value>
+        </init-param>
         <load-on-startup>2</load-on-startup>
     </servlet>
 

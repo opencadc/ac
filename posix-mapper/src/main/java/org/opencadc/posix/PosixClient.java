@@ -20,4 +20,6 @@ public interface PosixClient {
     boolean groupExist(String groupMame) throws Exception;
 
     List<User> getUsersForGroup(int gid) throws Exception;
+
+    List<User> getUsers() throws Exception;
 }

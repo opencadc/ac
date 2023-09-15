@@ -80,14 +80,19 @@ import org.opencadc.posix.User;
 public abstract class PosixMapperAction extends RestAction {
 
     protected PosixClient posixClient;
+    protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
 
 
     protected PosixMapperAction() {
-        final MultiValuedProperties configuration = PosixInitAction.getConfig();
-        final Postgres postgres = Postgres.instance(configuration.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
+        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
+                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
                                           .entityClass(User.class, Group.class)
                                           .build();
         this.posixClient = new PostgresPosixClient(postgres);
+    }
+
+    protected String getHomeDirRoot() {
+        return PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.HOME_DIR_ROOT_KEY);
     }
 
     /**

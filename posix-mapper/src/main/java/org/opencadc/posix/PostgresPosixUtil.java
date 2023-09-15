@@ -25,6 +25,12 @@ public class PostgresPosixUtil implements PosixUtil {
     }
 
     @Override
+    public PosixUtil user(User user) {
+        this.user = user;
+        return this;
+    }
+
+    @Override
     public PosixUtil homeDir(String homeDir) {
         this.homeDir = homeDir;
         return this;
@@ -73,7 +79,7 @@ public class PostgresPosixUtil implements PosixUtil {
     @Override
     public String posixEntry() {
         String posixId = posixId();
-        return format("%s:x:%s:%s::%s/%s:/bin/bash", this.userName, posixId, posixId, homeDir, this.userName);
+        return format("%s:x:%s:%s::%s/%s:/sbin/nologin", this.userName, posixId, posixId, homeDir, this.userName);
     }
 
     @Override
