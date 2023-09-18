@@ -89,41 +89,47 @@ public class PosixMapperClient {
         this.resourceID = resourceID;
     }
     
+    // use case: cavern does this when caller tried to set group permissions
     // if we have multiple, this is convenience
+    // intent: this may create and persist a local GID as a side effect
     public Integer getGID(GroupURI guri) {
         throw new UnsupportedOperationException();
     }
     
-    // check multiple??
+    // or check multiple in one call??
     public List<PosixGroup> getGID(List<GroupURI> groups) {
         throw new UnsupportedOperationException();
     }
     
+    // use case: cavern does this when reading a node from disk and output the node doc
     // if we have multiple, this is convenience
     public GroupURI getURI(Integer gid) {
         throw new UnsupportedOperationException();
     }
     
-    // check multiple??
+    // or check multiple in one call??
     public List<PosixGroup> getURI(List<GroupURI> groups) {
         throw new UnsupportedOperationException();
     }
     
-    // user stuff is all in the subject
+    // use case: cavern needs PosixPrincipal in the subject
+    // use case: StandardIdentityManager calls this to add local identity
     public void augment(Subject s) {
         throw new UnsupportedOperationException();
     }
     
-    // skaha needs to complete username-uid map for user containers
+    // use case: skaha needs to complete username-uid map for user containers
     public Iterator<PosixPrincipal> getUserMap() {
         throw new UnsupportedOperationException();
     }
     
-    // skaha needs the complete groupname-gid map for user containers
+    // use case: skaha needs the complete groupname-gid map for user containers
     public Iterator<PosixGroup> getGroupMap() {
         throw new UnsupportedOperationException();
     }
     
+    // use case: skaha getGroupMap response - probably extracted into a normal class
+    // depending on where/how we deal with user default group
     public static class PosixGroup {
         private final Integer gid;
         private final GroupURI uri;
