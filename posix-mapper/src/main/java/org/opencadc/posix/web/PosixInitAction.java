@@ -85,11 +85,11 @@ public class PosixInitAction extends InitAction {
     private static final Logger LOGGER = Logger.getLogger(PosixInitAction.class.getName());
 
     // config keys
-    public static final String JNDI_DATASOURCE = "jdbc/posix-mapping"; // context.xml
+    public static final String JNDI_DATASOURCE = "jdbc/posix-mapper"; // context.xml
 
     // config keys
-    private static final String POSIX_KEY = "org.opencadc.science-platform.posix";
-    static final String SCHEMA_KEY = PosixInitAction.POSIX_KEY + ".mapping.schema";
+    private static final String POSIX_KEY = "org.opencadc.posix.mapper";
+    static final String SCHEMA_KEY = PosixInitAction.POSIX_KEY + ".schema";
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
     static final String HOME_DIR_ROOT_KEY = PosixInitAction.POSIX_KEY + ".homeDirRoot";
 
@@ -109,7 +109,7 @@ public class PosixInitAction extends InitAction {
      * @throws IllegalStateException if required config items are missing
      */
     static MultiValuedProperties getConfig() {
-        final PropertiesReader propertiesReader = new PropertiesReader("posix.properties");
+        final PropertiesReader propertiesReader = new PropertiesReader("posix-mapper.properties");
         final MultiValuedProperties multiValuedProperties = propertiesReader.getAllProperties();
 
         final StringBuilder errorReportMessage = new StringBuilder();
