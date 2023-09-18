@@ -13,6 +13,7 @@ import java.util.function.Function;
 
 public class Postgres {
 
+    final Logger LOGGER = Logger.getLogger(Postgres.class);
     private static final String DEFAULT_JNDI = "java:comp/env/" + PosixInitAction.JNDI_DATASOURCE;
 
     private final List<Class<?>> entityClasses = new ArrayList<>();
@@ -30,7 +31,7 @@ public class Postgres {
         if (this.defaultSchema != null) {
             properties.put("hibernate.default_schema", this.defaultSchema);
         }
-        properties.put("hibernate.show_sql", "true");
+        properties.put("hibernate.show_sql", Boolean.toString(LOGGER.isDebugEnabled()));
         properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.hbm2ddl.auto", "validate");
         properties.put("hibernate.current_session_context_class",
