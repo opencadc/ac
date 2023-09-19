@@ -92,12 +92,12 @@ public class PosixMapperClient {
     // use case: cavern needs PosixPrincipal added to the caller subject for create node
     // use case: cavern needs to recreate Subject from PosixPrincipal to output node
     // detail: StandardIdentityManager calls this to add local posix identity for caller
-    // proposal: add defaultGroup to PosixPrincipal
+    // proposal: add defaultGroup to PosixPrincipal, would be returned here
     public Subject augment(Subject s) {
         throw new UnsupportedOperationException();
     }
     
-    // use case: cavern does this when caller tried to set group permissions
+    // use case: cavern does this when caller tries to set group permissions
     // detail: this may create and persist a local GID as a side effect
     public List<PosixGroup> getGID(List<GroupURI> groups) {
         throw new UnsupportedOperationException();
@@ -109,18 +109,23 @@ public class PosixMapperClient {
     }
     
     // use case: skaha needs to complete username-uid map for user containers
-    // proposal: add username to PosixPrincipal (see above)
+    // proposal: add defaultGroup and username to PosixPrincipal (see above), would be returned here
+    // note: Iterator allows the client to consume the stream and process it without having to
+    // store it in memory... scalable but sometimes awkward
     public Iterator<PosixPrincipal> getUserMap() {
         throw new UnsupportedOperationException();
     }
     
     // use case: skaha needs the complete groupname-gid map for user containers
+    // note: Iterator allows the client to consume the stream and process it without having to
+    // store it in memory... scalable but sometimes awkward
     public Iterator<PosixGroup> getGroupMap() {
         throw new UnsupportedOperationException();
     }
     
     // use case: skaha getGroupMap response
-    // detail: probably extract this to a normal class
+    // question: does this need a local group name that might differ from uri.getName()???
+    // note: probably extract this to a normal class
     public static class PosixGroup {
         private final Integer gid;
         private final GroupURI uri;
