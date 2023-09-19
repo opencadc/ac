@@ -92,7 +92,7 @@ public class PosixMapperClient {
     // use case: cavern needs PosixPrincipal added to the caller subject for create node
     // use case: cavern needs to recreate Subject from PosixPrincipal to output node
     // detail: StandardIdentityManager calls this to add local posix identity for caller
-    // proposal: add defaultGroup and PosixPrincipal
+    // proposal: add defaultGroup to PosixPrincipal
     public Subject augment(Subject s) {
         throw new UnsupportedOperationException();
     }
