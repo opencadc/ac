@@ -89,36 +89,27 @@ public class PosixMapperClient {
         this.resourceID = resourceID;
     }
     
-    // use case: cavern does this when caller tried to set group permissions
-    // if we have multiple, this is convenience
-    // intent: this may create and persist a local GID as a side effect
-    public Integer getGID(GroupURI guri) {
+    // use case: cavern needs PosixPrincipal added to the caller subject for create node
+    // use case: cavern needs to recreate Subject from PosixPrincipal to output node
+    // detail: StandardIdentityManager calls this to add local posix identity for caller
+    // proposal: add defaultGroup and PosixPrincipal
+    public Subject augment(Subject s) {
         throw new UnsupportedOperationException();
     }
     
-    // or check multiple in one call??
+    // use case: cavern does this when caller tried to set group permissions
+    // detail: this may create and persist a local GID as a side effect
     public List<PosixGroup> getGID(List<GroupURI> groups) {
         throw new UnsupportedOperationException();
     }
     
     // use case: cavern does this when reading a node from disk and output the node doc
-    // if we have multiple, this is convenience
-    public GroupURI getURI(Integer gid) {
-        throw new UnsupportedOperationException();
-    }
-    
-    // or check multiple in one call??
-    public List<PosixGroup> getURI(List<GroupURI> groups) {
-        throw new UnsupportedOperationException();
-    }
-    
-    // use case: cavern needs PosixPrincipal in the subject
-    // use case: StandardIdentityManager calls this to add local identity
-    public void augment(Subject s) {
+    public List<GroupURI> getURI(List<Integer> groups) {
         throw new UnsupportedOperationException();
     }
     
     // use case: skaha needs to complete username-uid map for user containers
+    // proposal: add username to PosixPrincipal (see above)
     public Iterator<PosixPrincipal> getUserMap() {
         throw new UnsupportedOperationException();
     }
@@ -128,8 +119,8 @@ public class PosixMapperClient {
         throw new UnsupportedOperationException();
     }
     
-    // use case: skaha getGroupMap response - probably extracted into a normal class
-    // depending on where/how we deal with user default group
+    // use case: skaha getGroupMap response
+    // detail: probably extract this to a normal class
     public static class PosixGroup {
         private final Integer gid;
         private final GroupURI uri;
