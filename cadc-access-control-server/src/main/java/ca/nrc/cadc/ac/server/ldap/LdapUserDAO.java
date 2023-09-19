@@ -999,7 +999,11 @@ public class LdapUserDAO extends LdapDAO
             if (uidNumberString != null)
             {
                 user.getIdentities().add(new PosixPrincipal(Integer.valueOf(uidNumberString)));
-            }         
+                // HACK by pdowler: add posix details to augment
+                int uidNumber = Integer.parseInt(uidNumberString);
+                // home dir hack because it's required but not used
+                user.posixDetails = new PosixDetails(username, uidNumber, uidNumber, "/home/" + uidNumber);
+            }
 
             // cache memberOf values in the user
             LocalAuthority localAuthority = new LocalAuthority();

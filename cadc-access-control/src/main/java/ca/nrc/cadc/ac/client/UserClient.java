@@ -148,7 +148,7 @@ public class UserClient
 
             String userID = principal.getName();
             String path = "/" + NetUtil.encode(userID) + "?idType=" + this
-                    .getIdType(principal) + "&detail=identity";
+                    .getIdType(principal); // "&detail=identity";
 
             // augment subject calls are always https with client certs
             URL usersURL = getRegistryClient()
@@ -408,6 +408,16 @@ public class UserClient
             log.debug("userXML Input to getPrincipals(): " + userXML);
 
             User user = new UserReader().read(userXML);
+            
+            // PROTO: include minimal posiz info in PosixPrincipal
+            if (user.posixDetails != null) {
+                for (PosixPrincipal pp : user.getIdentities(PosixPrincipal.class)) {
+                    if (pp.getUidNumber() == user.posixDetails.getUid()) {
+                        pp.defaultGroup = user.posixDetails.getGid();
+                        pp.username = user.posixDetails.getUsername();
+                    }
+                }
+            }
             return user.getIdentities();
         }
         catch (Exception e)
