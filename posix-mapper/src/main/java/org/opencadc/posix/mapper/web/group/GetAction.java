@@ -69,7 +69,6 @@
 package org.opencadc.posix.mapper.web.group;
 
 import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.web.PosixMapperAction;
 
 import java.net.URI;
@@ -115,9 +114,5 @@ public class GetAction extends PosixMapperAction {
         }
 
         return gidConstraints;
-    }
-
-    Group persist(final Group posixGroup) throws Exception {
-        return posixClient.saveGroup(posixGroup);
     }
 }

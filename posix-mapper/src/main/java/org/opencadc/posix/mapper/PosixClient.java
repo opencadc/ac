@@ -33,7 +33,9 @@ public interface PosixClient {
     void writeUsers(UserWriter writer) throws Exception;
 
     /**
-     * Write out all the Group mappings to the given writer.
+     * Write out all the Group mappings to the given writer.  It is the responsibility of the implementation to
+     * ensure Groups exist if so desired.
+     * 
      * @param writer        The Writer to write to.
      * @param groupURIConstraints     Constrain the results to the provided groupURIs.
      * @param gidConstraints     Constrain the results to the provided groupURIs.
