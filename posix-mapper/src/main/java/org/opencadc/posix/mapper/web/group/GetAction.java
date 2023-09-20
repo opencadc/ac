@@ -66,58 +66,58 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web;
+package org.opencadc.posix.mapper.web.group;
 
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.util.MultiValuedProperties;
-import org.opencadc.posix.Group;
-import org.opencadc.posix.PosixClient;
-import org.opencadc.posix.Postgres;
-import org.opencadc.posix.PostgresPosixClient;
-import org.opencadc.posix.User;
-import org.opencadc.posix.web.group.AsciiGroupWriter;
-import org.opencadc.posix.web.group.GroupWriter;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.Group;
+import org.opencadc.posix.mapper.web.PosixMapperAction;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-
-public abstract class PosixMapperAction extends RestAction {
-
-    protected PosixClient posixClient;
-    protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
-    protected static final String JSON_CONTENT_TYPE = "application/json";
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
-    protected PosixMapperAction() {
-        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
-                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                          .entityClass(User.class, Group.class)
-                                          .build();
-        this.posixClient = new PostgresPosixClient(postgres);
-    }
-
-    protected String getHomeDirRoot() {
-        return PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.HOME_DIR_ROOT_KEY);
-    }
-
-    protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            return null;
-        } else {
-            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
-            return new AsciiGroupWriter(writer);
-        }
-    }
-
-    /**
-     * Never used.
-     * @return  null
-     */
+public class GetAction extends PosixMapperAction {
     @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
+    public void doAction() throws Exception {
+        final GroupWriter groupWriter = getGroupWriter();
+        this.posixClient.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
+                                     gidParameters().toArray(new Integer[0]));
+
+        syncOutput.getOutputStream().flush();
+    }
+
+    private List<GroupURI> groupParameters() {
+        final List<String> groupURIStringParameters = syncInput.getParameters("group");
+        final List<GroupURI> groupURIConstraints;
+        if (groupURIStringParameters == null) {
+            groupURIConstraints = Collections.emptyList();
+        } else {
+            groupURIConstraints = groupURIStringParameters.stream()
+                                                          .map(URI::create)
+                                                          .map(GroupURI::new)
+                                                          .collect(Collectors.toList());
+        }
+
+        return groupURIConstraints;
+    }
+
+    private List<Integer> gidParameters() {
+        final List<String> gidStringParameters = syncInput.getParameters("gid");
+        final List<Integer> gidConstraints;
+        if (gidStringParameters == null) {
+            gidConstraints = Collections.emptyList();
+        } else {
+            gidConstraints = gidStringParameters.stream()
+                                                          .map(Integer::parseInt)
+                                                          .collect(Collectors.toList());
+        }
+
+        return gidConstraints;
+    }
+
+    Group persist(final Group posixGroup) throws Exception {
+        return posixClient.saveGroup(posixGroup);
     }
 }

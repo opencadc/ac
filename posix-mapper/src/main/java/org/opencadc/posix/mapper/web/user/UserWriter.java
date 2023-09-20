@@ -66,38 +66,12 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web.group;
+package org.opencadc.posix.mapper.web.user;
 
-import org.opencadc.posix.Group;
+import org.opencadc.posix.mapper.User;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.io.Writer;
 
-/**
- * Write out a plain listing of Group ID to Group URIs.
- */
-public class AsciiGroupWriter implements GroupWriter, Closeable {
-
-    private final Writer writer;
-
-    public AsciiGroupWriter(final Writer writer) {
-        this.writer = writer;
-    }
-
-    @Override
-    public void write(final Group group) throws IOException {
-        this.writer.write(String.join(" ", Integer.toString(group.getGid()),
-                                      group.getGroupURI().getURI().toString()));
-        this.writer.write("\n");
-        this.writer.flush();
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (this.writer != null) {
-            this.writer.flush();
-            this.writer.close();
-        }
-    }
+public interface UserWriter {
+    void write(final User user) throws IOException;
 }

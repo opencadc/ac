@@ -66,16 +66,38 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web.group;
+package org.opencadc.posix.mapper.web.group;
 
-import org.opencadc.posix.web.PosixMapperAction;
+import org.opencadc.posix.mapper.Group;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.Writer;
 
-public class GetAction extends PosixMapperAction {
+/**
+ * Write out a plain listing of Group ID to Group URIs.
+ */
+public class AsciiGroupWriter implements GroupWriter, Closeable {
+
+    private final Writer writer;
+
+    public AsciiGroupWriter(final Writer writer) {
+        this.writer = writer;
+    }
+
     @Override
-    public void doAction() throws Exception {
-        final GroupWriter groupWriter = getGroupWriter();
-        this.posixClient.writeGroups(groupWriter);
-        syncOutput.getOutputStream().flush();
+    public void write(final Group group) throws IOException {
+        this.writer.write(String.join(" ", Integer.toString(group.getGid()),
+                                      group.getGroupURI().getURI().toString()));
+        this.writer.write("\n");
+        this.writer.flush();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (this.writer != null) {
+            this.writer.flush();
+            this.writer.close();
+        }
     }
 }

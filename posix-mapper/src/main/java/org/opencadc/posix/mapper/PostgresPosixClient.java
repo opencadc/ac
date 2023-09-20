@@ -65,28 +65,129 @@
  *
  ************************************************************************
  */
+package org.opencadc.posix.mapper;
 
-package org.opencadc.posix.web.user;
+
+import org.hibernate.ScrollableResults;
+import org.hibernate.query.Query;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.web.group.GroupWriter;
+import org.opencadc.posix.mapper.web.user.UserWriter;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
-import org.opencadc.posix.PostgresPosixUtil;
-import org.opencadc.posix.User;
-import org.opencadc.posix.web.PosixMapperAction;
+public class PostgresPosixClient implements PosixClient {
 
-import java.nio.charset.StandardCharsets;
+    private final Postgres postgres;
 
-public class GetAction extends PosixMapperAction {
+    public PostgresPosixClient(Postgres postgres) {
+        this.postgres = postgres;
+    }
 
     @Override
-    public void doAction() throws Exception {
-        for (final User user : posixClient.getUsers()) {
-            syncOutput.getOutputStream().write(new PostgresPosixUtil()
-                                                       .homeDir(getHomeDirRoot())
-                                                       .user(user)
-                                                       .userName(user.getUsername())
-                                                       .posixEntry().getBytes(StandardCharsets.UTF_8));
-            syncOutput.getOutputStream().write("\n".getBytes(StandardCharsets.UTF_8));
-        }
-        syncOutput.getOutputStream().flush();
+    public User getUser(String userId) {
+        Map<String, Object> criteria = new HashMap<>();
+        criteria.put("username", userId);
+        return postgres.find(User.class, "findUserByUsername", criteria);
+    }
+
+    @Override
+    public User saveUser(User user) {
+        return postgres.save(user);
+    }
+
+    @Override
+    public User updateUser(User user) {
+        return postgres.update(user);
+    }
+
+    @Override
+    public Group getGroup(GroupURI groupURI) {
+        Map<String, Object> criteria = new HashMap<>();
+        criteria.put("groupURI", groupURI);
+        return postgres.find(Group.class, "findGroupByURI", criteria);
+    }
+
+    @Override
+    public Group saveGroup(Group group) {
+        return postgres.save(group);
+    }
+
+    @Override
+    public boolean groupExist(GroupURI groupURI) {
+        return getGroup(groupURI) != null;
+    }
+
+    @Override
+    public List<User> getUsers() {
+        return postgres.inTransaction(session -> session.createQuery("from Users u", User.class).list());
+    }
+
+    @Override
+    public void writeUsers(UserWriter writer) {
+        postgres.inSession(session -> {
+            try (final ScrollableResults<User> results =
+                         session.createQuery("from Users u", User.class).scroll()) {
+                while (results.next()) {
+                    writer.write(results.get());
+                }
+            } catch (IOException ioException) {
+                return Boolean.FALSE;
+            }
+
+            return Boolean.TRUE;
+        });
+    }
+
+    @Override
+    public void writeGroups(GroupWriter writer, GroupURI[] groupURIConstraints, Integer[] gidConstraints) {
+
+        // Ensure GroupURIs are all persisted.
+        Arrays.stream(groupURIConstraints).forEach(groupURI -> {
+            final Group g = getGroup(groupURI);
+            if (g == null) {
+                saveGroup(new Group(groupURI));
+            }
+        });
+
+        final Map<String, Object[]> queryParameters = new HashMap<>();
+
+        postgres.inSession(session -> {
+            final StringBuilder queryBuilder = new StringBuilder("from Groups g");
+
+            if (groupURIConstraints.length > 0) {
+                queryBuilder.append(" where (g.groupURI in (:groupURIs))");
+                queryParameters.put("groupURIs", groupURIConstraints);
+            }
+
+            if (gidConstraints.length > 0) {
+                if (queryBuilder.indexOf("where") > 0 ) {
+                    queryBuilder.append(" or");
+                } else {
+                    queryBuilder.append(" where");
+                }
+
+                queryBuilder.append(" (g.gid in (:gids))");
+                queryParameters.put("gids", gidConstraints);
+            }
+
+            final Query<Group> groupQuery = session.createQuery(queryBuilder.toString(), Group.class);
+            queryParameters.forEach(groupQuery::setParameterList);
+
+            try (final ScrollableResults<Group> results = groupQuery.scroll()) {
+                while (results.next()) {
+                    writer.write(results.get());
+                }
+            } catch (IOException ioException) {
+                return Boolean.FALSE;
+            }
+
+            return Boolean.TRUE;
+        });
     }
 }

@@ -1,4 +1,4 @@
-package org.opencadc.posix;
+package org.opencadc.posix.mapper;
 
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;

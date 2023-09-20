@@ -66,43 +66,27 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web.user;
+package org.opencadc.posix.mapper.web.user;
 
 
-import org.opencadc.posix.PosixUtil;
-import org.opencadc.posix.User;
-import org.opencadc.posix.web.PosixMapperAction;
+import org.opencadc.posix.mapper.PostgresPosixUtil;
+import org.opencadc.posix.mapper.User;
+import org.opencadc.posix.mapper.web.PosixMapperAction;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-public class PostAction extends PosixMapperAction {
-    private static final String USERNAME_PARAMETER = "username";
+public class GetAction extends PosixMapperAction {
 
     @Override
     public void doAction() throws Exception {
-        final String username = requireUsernameInput();
-        final User posixUser = new User(username);
-        final User persistedPosixUser = persist(posixUser);
-
-        respond(persistedPosixUser);
-    }
-
-    void respond(final User user) throws IOException {
-        final Integer uid = user.getUid();
-        PosixUtil.assertNotNull(PostAction.class, "User.uid", uid);
-
-        syncOutput.getOutputStream().write(Integer.toString(uid).getBytes(StandardCharsets.UTF_8));
-    }
-
-    String requireUsernameInput() {
-        final String username = syncInput.getParameter(PostAction.USERNAME_PARAMETER);
-        PosixUtil.assertNotNull(PostAction.class, "username", username);
-
-        return username;
-    }
-
-    User persist(final User posixUser) throws Exception {
-        return posixClient.saveUser(posixUser);
+        for (final User user : posixClient.getUsers()) {
+            syncOutput.getOutputStream().write(new PostgresPosixUtil()
+                                                       .homeDir(getHomeDirRoot())
+                                                       .user(user)
+                                                       .userName(user.getUsername())
+                                                       .posixEntry().getBytes(StandardCharsets.UTF_8));
+            syncOutput.getOutputStream().write("\n".getBytes(StandardCharsets.UTF_8));
+        }
+        syncOutput.getOutputStream().flush();
     }
 }

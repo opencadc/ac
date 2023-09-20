@@ -65,7 +65,7 @@
 ************************************************************************
  */
 
-package org.opencadc.posix;
+package org.opencadc.posix.mapper;
 
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.vosi.Availability;

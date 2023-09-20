@@ -1,9 +1,9 @@
-package org.opencadc.posix;
+package org.opencadc.posix.mapper;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.Type;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.db.GroupURIType;
+import org.opencadc.posix.mapper.db.GroupURIType;
 
 
 @NamedQuery(name = "findGroupByURI", query = "SELECT g FROM Groups g WHERE g.groupURI = :groupURI")

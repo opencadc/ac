@@ -1,8 +1,8 @@
-package org.opencadc.posix;
+package org.opencadc.posix.mapper;
 
 import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.web.group.GroupWriter;
-import org.opencadc.posix.web.user.UserWriter;
+import org.opencadc.posix.mapper.web.group.GroupWriter;
+import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import java.util.List;
 
@@ -35,7 +35,10 @@ public interface PosixClient {
     /**
      * Write out all the Group mappings to the given writer.
      * @param writer        The Writer to write to.
+     * @param groupURIConstraints     Constrain the results to the provided groupURIs.
+     * @param gidConstraints     Constrain the results to the provided groupURIs.
      * @throws Exception    If Groups cannot be obtained, or written.
      */
-    void writeGroups(GroupWriter writer) throws Exception;
+    void writeGroups(GroupWriter writer, GroupURI[] groupURIConstraints, Integer[] gidConstraints)
+            throws Exception;
 }

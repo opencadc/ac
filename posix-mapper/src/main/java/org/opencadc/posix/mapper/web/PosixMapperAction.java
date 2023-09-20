@@ -65,96 +65,59 @@
  *
  ************************************************************************
  */
-package org.opencadc.posix;
 
+package org.opencadc.posix.mapper.web;
 
-import org.hibernate.ScrollableResults;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.web.group.GroupWriter;
-import org.opencadc.posix.web.user.UserWriter;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.rest.RestAction;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import org.opencadc.posix.mapper.Group;
+import org.opencadc.posix.mapper.PosixClient;
+import org.opencadc.posix.mapper.Postgres;
+import org.opencadc.posix.mapper.PostgresPosixClient;
+import org.opencadc.posix.mapper.User;
+import org.opencadc.posix.mapper.web.group.AsciiGroupWriter;
+import org.opencadc.posix.mapper.web.group.GroupWriter;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+
+public abstract class PosixMapperAction extends RestAction {
+
+    protected PosixClient posixClient;
+    protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
+    protected static final String JSON_CONTENT_TYPE = "application/json";
 
 
-public class PostgresPosixClient implements PosixClient {
-
-    private final Postgres postgres;
-
-    public PostgresPosixClient(Postgres postgres) {
-        this.postgres = postgres;
+    protected PosixMapperAction() {
+        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
+                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
+                                          .entityClass(User.class, Group.class)
+                                          .build();
+        this.posixClient = new PostgresPosixClient(postgres);
     }
 
-    @Override
-    public User getUser(String userId) {
-        Map<String, Object> criteria = new HashMap<>();
-        criteria.put("username", userId);
-        return postgres.find(User.class, "findUserByUsername", criteria);
+    protected String getHomeDirRoot() {
+        return PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.HOME_DIR_ROOT_KEY);
     }
 
-    @Override
-    public User saveUser(User user) {
-        return postgres.save(user);
+    protected GroupWriter getGroupWriter() throws IOException {
+        final String requestContentType = syncInput.getHeader("accept");
+        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
+            return null;
+        } else {
+            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
+            return new AsciiGroupWriter(writer);
+        }
     }
 
+    /**
+     * Never used.
+     * @return  null
+     */
     @Override
-    public User updateUser(User user) {
-        return postgres.update(user);
-    }
-
-    @Override
-    public Group getGroup(GroupURI groupURI) {
-        Map<String, Object> criteria = new HashMap<>();
-        criteria.put("groupURI", groupURI.getURI().toString());
-        return postgres.find(Group.class, "findGroupByURI", criteria);
-    }
-
-    @Override
-    public Group saveGroup(Group group) {
-        return postgres.save(group);
-    }
-
-    @Override
-    public boolean groupExist(GroupURI groupURI) {
-        return getGroup(groupURI) != null;
-    }
-
-    @Override
-    public List<User> getUsers() {
-        return postgres.inTransaction(session -> session.createQuery("from Users u", User.class).list());
-    }
-
-    @Override
-    public void writeUsers(UserWriter writer) {
-        postgres.inSession(session -> {
-            try (final ScrollableResults<User> results =
-                         session.createQuery("from Users u", User.class).scroll()) {
-                while (results.next()) {
-                    writer.write(results.get());
-                }
-            } catch (IOException ioException) {
-                return Boolean.FALSE;
-            }
-
-            return Boolean.TRUE;
-        });
-    }
-
-    @Override
-    public void writeGroups(GroupWriter writer) {
-        postgres.inSession(session -> {
-            try (final ScrollableResults<Group> results =
-                         session.createQuery("from Groups g", Group.class).scroll()) {
-                while (results.next()) {
-                    writer.write(results.get());
-                }
-            } catch (IOException ioException) {
-                return Boolean.FALSE;
-            }
-
-            return Boolean.TRUE;
-        });
+    protected InlineContentHandler getInlineContentHandler() {
+        return null;
     }
 }

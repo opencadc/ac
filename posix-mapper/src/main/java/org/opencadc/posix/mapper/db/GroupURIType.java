@@ -66,44 +66,68 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web.group;
+package org.opencadc.posix.mapper.db;
 
+import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.hibernate.usertype.UserType;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.Group;
-import org.opencadc.posix.PosixUtil;
-import org.opencadc.posix.web.PosixMapperAction;
 
-import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 
-public class PostAction extends PosixMapperAction {
-    private static final String GROUP_URI_PARAMETER = "uri";
+public class GroupURIType implements UserType<GroupURI> {
 
     @Override
-    public void doAction() throws Exception {
-        final String groupURI = requireGroupURIInput();
-        final Group posixGroup = new Group(new GroupURI(URI.create(groupURI)));
-        final Group persistedPosixGroup = persist(posixGroup);
-
-        respond(persistedPosixGroup);
+    public int getSqlType() {
+        return Types.VARCHAR;
     }
 
-    void respond(final Group group) throws IOException {
-        final Integer gid = group.getGid();
-        PosixUtil.assertNotNull(PostAction.class, "Group.gid", gid);
-
-        syncOutput.getOutputStream().write(Integer.toString(gid).getBytes(StandardCharsets.UTF_8));
+    @Override
+    public Class<GroupURI> returnedClass() {
+        return GroupURI.class;
     }
 
-    String requireGroupURIInput() {
-        final String groupURI = syncInput.getParameter(PostAction.GROUP_URI_PARAMETER);
-        PosixUtil.assertNotNull(PostAction.class, "groupURI", groupURI);
-
-        return groupURI;
+    @Override
+    public boolean equals(GroupURI x, GroupURI y) {
+        return x == y;
     }
 
-    Group persist(final Group posixGroup) throws Exception {
-        return posixClient.saveGroup(posixGroup);
+    @Override
+    public int hashCode(GroupURI x) {
+        return x.hashCode();
+    }
+
+    @Override
+    public GroupURI nullSafeGet(ResultSet rs, int position, SharedSessionContractImplementor session, Object owner) throws SQLException {
+        return new GroupURI(URI.create(rs.getString(position)));
+    }
+
+    @Override
+    public void nullSafeSet(PreparedStatement st, GroupURI value, int index, SharedSessionContractImplementor session) throws SQLException {
+        st.setString(index, value.getURI().toString());
+    }
+
+    @Override
+    public GroupURI deepCopy(GroupURI value) {
+        return new GroupURI(value.getURI());
+    }
+
+    @Override
+    public boolean isMutable() {
+        return false;
+    }
+
+    @Override
+    public Serializable disassemble(GroupURI value) {
+        return null;
+    }
+
+    @Override
+    public GroupURI assemble(Serializable cached, Object owner) {
+        return null;
     }
 }

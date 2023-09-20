@@ -1,4 +1,4 @@
-package org.opencadc.posix;
+package org.opencadc.posix.mapper;
 
 import jakarta.persistence.*;
 

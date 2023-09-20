@@ -66,13 +66,13 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web;
+package org.opencadc.posix.mapper.web;
 
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import org.opencadc.posix.db.InitializeMappingDatabase;
+import org.opencadc.posix.mapper.db.InitializeMappingDatabase;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -90,6 +90,13 @@ public class PosixInitAction extends InitAction {
     // config keys
     private static final String POSIX_KEY = "org.opencadc.posix.mapper";
     static final String SCHEMA_KEY = PosixInitAction.POSIX_KEY + ".schema";
+
+    static final String UID_MIN_KEY = PosixInitAction.POSIX_KEY + ".uid.min";
+    static final String UID_MAX_KEY = PosixInitAction.POSIX_KEY + ".uid.max";
+
+    static final String GID_MIN_KEY = PosixInitAction.POSIX_KEY + ".gid.min";
+    static final String GID_MAX_KEY = PosixInitAction.POSIX_KEY + ".gid.max";
+
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
     static final String HOME_DIR_ROOT_KEY = PosixInitAction.POSIX_KEY + ".homeDirRoot";
 

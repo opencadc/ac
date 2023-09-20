@@ -66,12 +66,39 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web.group;
+package org.opencadc.posix.mapper.db;
 
-import org.opencadc.posix.Group;
+import ca.nrc.cadc.db.version.InitDatabase;
 
-import java.io.IOException;
+import javax.sql.DataSource;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
-public interface GroupWriter {
-    void write(final Group group) throws IOException;
+
+/**
+ * Initialize the underlying database with necessary tables.
+ */
+public class InitializeMappingDatabase extends InitDatabase {
+
+    public static final String MODEL_NAME = "posix-mapping";
+    public static final String MODEL_VERSION = "0.1";
+    public static final String PREV_MODEL_VERSION = "0.0";
+
+    static String[] CREATE_SQL = new String[] {
+            "mapping.modelversion.sql",
+            "mapping.model.sql"
+    };
+
+    public InitializeMappingDatabase(DataSource dataSource, String database, String schema) {
+        super(dataSource, database, schema, InitializeMappingDatabase.MODEL_NAME,
+              InitializeMappingDatabase.MODEL_VERSION, InitializeMappingDatabase.PREV_MODEL_VERSION);
+
+        this.createSQL.addAll(Arrays.stream(InitializeMappingDatabase.CREATE_SQL).collect(Collectors.toList()));
+    }
+
+    @Override
+    protected URL findSQL(String fileName) {
+        return InitializeMappingDatabase.class.getClassLoader().getResource(fileName);
+    }
 }

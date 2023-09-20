@@ -42,15 +42,15 @@
         </init-param>
         <init-param>
             <param-name>init</param-name>
-            <param-value>org.opencadc.posix.web.PosixInitAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.PosixInitAction</param-value>
         </init-param>
         <init-param>
             <param-name>post</param-name>
-            <param-value>org.opencadc.posix.web.user.PostAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.user.PostAction</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
-            <param-value>org.opencadc.posix.web.user.GetAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.user.GetAction</param-value>
         </init-param>
         <load-on-startup>2</load-on-startup>
     </servlet>
@@ -64,15 +64,11 @@
         </init-param>
         <init-param>
             <param-name>init</param-name>
-            <param-value>org.opencadc.posix.web.PosixInitAction</param-value>
-        </init-param>
-        <init-param>
-            <param-name>post</param-name>
-            <param-value>org.opencadc.posix.web.group.PostAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.PosixInitAction</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
-            <param-value>org.opencadc.posix.web.group.GetAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.group.GetAction</param-value>
         </init-param>
         <load-on-startup>2</load-on-startup>
     </servlet>
@@ -106,7 +102,7 @@
         <servlet-class>ca.nrc.cadc.vosi.AvailabilityServlet</servlet-class>
         <init-param>
             <param-name>ca.nrc.cadc.vosi.AvailabilityPlugin</param-name>
-            <param-value>org.opencadc.posix.ServiceAvailability</param-value>
+            <param-value>org.opencadc.posix.mapper.ServiceAvailability</param-value>
         </init-param>
         <init-param>
             <param-name>availabilityProperties</param-name>

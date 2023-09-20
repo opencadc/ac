@@ -1,4 +1,4 @@
-package org.opencadc.posix;
+package org.opencadc.posix.mapper;
 
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
-import org.opencadc.posix.web.PosixInitAction;
+import org.opencadc.posix.mapper.web.PosixInitAction;
 
 import java.util.*;
 import java.util.function.Function;
