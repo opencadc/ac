@@ -1,6 +1,7 @@
 package org.opencadc.posix;
 
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ public class PostgresPosixUtil implements PosixUtil {
 
     private String userName;
     private String homeDir;
-    private List<String> groupNames;
+    private final List<GroupURI> groupURIList = new ArrayList<>();
     private PosixClient posixClient;
     private User user;
 
@@ -37,8 +38,9 @@ public class PostgresPosixUtil implements PosixUtil {
     }
 
     @Override
-    public PosixUtil groupNames(List<String> groupNames) {
-        this.groupNames = null != groupNames ? groupNames : new ArrayList<>();
+    public PosixUtil groupURIs(List<GroupURI> groupURIList) {
+        this.groupURIList.clear();
+        this.groupURIList.addAll(groupURIList);
         return this;
     }
 
@@ -56,18 +58,6 @@ public class PostgresPosixUtil implements PosixUtil {
             user = new User(userName);
             posixClient.saveUser(user);
         }
-        List<Group> groups = new ArrayList<>();
-        for (String groupName : groupNames) {
-            Group group;
-            if (posixClient.groupExist(groupName)) {
-                group = posixClient.getGroup(groupName);
-            } else {
-                group = new Group(groupName);
-                posixClient.saveGroup(group);
-            }
-            groups.add(group);
-        }
-        user.setGroups(groups);
         posixClient.updateUser(user);
     }
 
@@ -82,32 +72,22 @@ public class PostgresPosixUtil implements PosixUtil {
         return format("%s:x:%s:%s::%s/%s:/sbin/nologin", this.userName, posixId, posixId, homeDir, this.userName);
     }
 
-    @Override
-    public String groupEntries() throws Exception {
-        List<Group> groups = user.getGroups();
-        List<String> groupEntries = new ArrayList<>();
-        String userPrivateGroupEntry = user.getUsername() + ":x:" + user.getUid() + ":" + user.getUsername();
-        groupEntries.add(userPrivateGroupEntry);
-        for (Group group : groups) {
-            List<User> userPerGroup = posixClient.getUsersForGroup(group.getGid());
-            String concatenatedUserName = userPerGroup
-                    .stream()
-                    .map(User::getUsername)
-                    .reduce((i, j) -> i + "," + j)
-                    .orElse("");
-            String entry = group.getGroupname() + ":x" + ":" + group.getGid() + ":" + concatenatedUserName;
-            groupEntries.add(entry);
-        }
-        return groupEntries.stream().reduce((i, j) -> i + SEPARATE + j).orElse("");
-    }
-
-    @Override
-    public String userGroupIds() throws Exception {
-        return user.getGroups()
-                .stream()
-                .map(Group::getGid)
-                .map(Object::toString)
-                .reduce((i, j) -> i + "," + j)
-                .orElse("");
-    }
+//    @Override
+//    public String groupEntry() throws Exception {
+//        List<Group> groups = user.getGroups();
+//        List<String> groupEntries = new ArrayList<>();
+//        String userPrivateGroupEntry = user.getUsername() + ":x:" + user.getUid() + ":" + user.getUsername();
+//        groupEntries.add(userPrivateGroupEntry);
+//        for (Group group : groups) {
+//            List<User> userPerGroup = posixClient.getUsersForGroup(group.getGid());
+//            String concatenatedUserName = userPerGroup
+//                    .stream()
+//                    .map(User::getUsername)
+//                    .reduce((i, j) -> i + "," + j)
+//                    .orElse("");
+//            String entry = group.getGroupURI() + ":x" + ":" + group.getGid() + ":" + concatenatedUserName;
+//            groupEntries.add(entry);
+//        }
+//        return groupEntries.stream().reduce((i, j) -> i + SEPARATE + j).orElse("");
+//    }
 }

@@ -68,7 +68,12 @@
 package org.opencadc.posix;
 
 
-import java.util.Collections;
+import org.hibernate.ScrollableResults;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.web.group.GroupWriter;
+import org.opencadc.posix.web.user.UserWriter;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,10 +105,10 @@ public class PostgresPosixClient implements PosixClient {
     }
 
     @Override
-    public Group getGroup(String groupMame) {
+    public Group getGroup(GroupURI groupURI) {
         Map<String, Object> criteria = new HashMap<>();
-        criteria.put("groupname", groupMame);
-        return postgres.find(Group.class, "findGroupByName", criteria);
+        criteria.put("groupURI", groupURI.getURI().toString());
+        return postgres.find(Group.class, "findGroupByURI", criteria);
     }
 
     @Override
@@ -112,19 +117,44 @@ public class PostgresPosixClient implements PosixClient {
     }
 
     @Override
-    public boolean groupExist(String groupMame) {
-        return getGroup(groupMame) != null;
-    }
-
-    @Override
-    public List<User> getUsersForGroup(int gid) {
-        Map<String, Object> criteria = new HashMap<>();
-        criteria.put("gid", gid);
-        return postgres.findAll(User.class, "findAllUsersForGroupId", criteria);
+    public boolean groupExist(GroupURI groupURI) {
+        return getGroup(groupURI) != null;
     }
 
     @Override
     public List<User> getUsers() {
         return postgres.inTransaction(session -> session.createQuery("from Users u", User.class).list());
+    }
+
+    @Override
+    public void writeUsers(UserWriter writer) {
+        postgres.inSession(session -> {
+            try (final ScrollableResults<User> results =
+                         session.createQuery("from Users u", User.class).scroll()) {
+                while (results.next()) {
+                    writer.write(results.get());
+                }
+            } catch (IOException ioException) {
+                return Boolean.FALSE;
+            }
+
+            return Boolean.TRUE;
+        });
+    }
+
+    @Override
+    public void writeGroups(GroupWriter writer) {
+        postgres.inSession(session -> {
+            try (final ScrollableResults<Group> results =
+                         session.createQuery("from Groups g", Group.class).scroll()) {
+                while (results.next()) {
+                    writer.write(results.get());
+                }
+            } catch (IOException ioException) {
+                return Boolean.FALSE;
+            }
+
+            return Boolean.TRUE;
+        });
     }
 }

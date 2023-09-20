@@ -1,9 +1,12 @@
 package org.opencadc.posix;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Type;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.db.GroupURIType;
 
 
-@NamedQuery(name = "findGroupByName", query = "SELECT g FROM Groups g WHERE g.groupname = :groupname")
+@NamedQuery(name = "findGroupByURI", query = "SELECT g FROM Groups g WHERE g.groupURI = :groupURI")
 @Table(name = "Groups")
 @Entity(name = "Groups")
 public class Group {
@@ -11,38 +14,45 @@ public class Group {
     @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "groups_gid_seq1")
     @SequenceGenerator(name = "groups_gid_seq1", sequenceName = "groups_gid_seq1", allocationSize = 1,
             initialValue = 10000)
-    private int gid;
+    private Integer gid;
 
-    private String groupname;
+    @Type(value = GroupURIType.class)
+    private GroupURI groupURI;
 
     public Group() {
     }
 
-    public Group(String groupname) {
-        this.groupname = groupname;
+    public Group(GroupURI groupURI) {
+        this.groupURI = groupURI;
     }
 
-    public int getGid() {
+    public Integer getGid() {
         return gid;
     }
 
-    public void setGid(int gid) {
+    public void setGid(Integer gid) {
         this.gid = gid;
     }
 
-    public String getGroupname() {
-        return groupname;
+    public GroupURI getGroupURI() {
+        return groupURI;
     }
 
-    public void setGroupname(String groupname) {
-        this.groupname = groupname;
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Group)) {
+            return false;
+        } else {
+            final Group g = (Group) obj;
+            return g.groupURI.equals(groupURI);
+        }
     }
 
     @Override
     public String toString() {
         return "Group{" +
                "gid=" + gid +
-               ", groupname='" + groupname + '\'' +
+               ", groupURI='" + groupURI + '\'' +
                '}';
     }
 }

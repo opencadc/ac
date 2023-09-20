@@ -1,6 +1,8 @@
 package org.opencadc.posix;
 
 
+import org.opencadc.gms.GroupURI;
+
 import java.util.List;
 
 public interface PosixUtil {
@@ -11,7 +13,7 @@ public interface PosixUtil {
 
     PosixUtil homeDir(String homeDir);
 
-    PosixUtil groupNames(List<String> groupNames);
+    PosixUtil groupURIs(List<GroupURI> groupURIList);
 
     PosixUtil useClient(PosixClient posixClient);
 
@@ -21,9 +23,7 @@ public interface PosixUtil {
 
     String posixEntry() throws Exception;
 
-    String groupEntries() throws Exception;
-
-    String userGroupIds() throws Exception;
+//    String groupEntry() throws Exception;
 
     /**
      * Utility method so constructors can validate arguments.

@@ -66,58 +66,12 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.web;
+package org.opencadc.posix.web.user;
 
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.util.MultiValuedProperties;
-import org.opencadc.posix.Group;
-import org.opencadc.posix.PosixClient;
-import org.opencadc.posix.Postgres;
-import org.opencadc.posix.PostgresPosixClient;
 import org.opencadc.posix.User;
-import org.opencadc.posix.web.group.AsciiGroupWriter;
-import org.opencadc.posix.web.group.GroupWriter;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 
-public abstract class PosixMapperAction extends RestAction {
-
-    protected PosixClient posixClient;
-    protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
-    protected static final String JSON_CONTENT_TYPE = "application/json";
-
-
-    protected PosixMapperAction() {
-        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
-                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                          .entityClass(User.class, Group.class)
-                                          .build();
-        this.posixClient = new PostgresPosixClient(postgres);
-    }
-
-    protected String getHomeDirRoot() {
-        return PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.HOME_DIR_ROOT_KEY);
-    }
-
-    protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            return null;
-        } else {
-            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
-            return new AsciiGroupWriter(writer);
-        }
-    }
-
-    /**
-     * Never used.
-     * @return  null
-     */
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
-    }
+public interface UserWriter {
+    void write(final User user) throws IOException;
 }
