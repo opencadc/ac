@@ -67,60 +67,41 @@
 
 package org.opencadc.auth;
 
-import ca.nrc.cadc.auth.PosixPrincipal;
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
-import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
 /**
- * Stub to figure out API.
+ * Simple posix group. This just combines a numeric GID and a group identifier.
  * 
  * @author pdowler
  */
-public class PosixMapperClient {
-    private static final Logger log = Logger.getLogger(PosixMapperClient.class);
+public class PosixGroup {
+    private static final Logger log = Logger.getLogger(PosixGroup.class);
 
-    private final URI resourceID;
-    
-    public PosixMapperClient(URI resourceID) {
-        this.resourceID = resourceID;
+    private final Integer gid;
+    private final GroupURI uri;
+    // outstanding question: does this need a local group name that might differ from uri.getName()???
+
+    public PosixGroup(Integer gid, GroupURI uri) {
+        if (gid == null || uri == null) {
+            throw new IllegalArgumentException("gid and uri cannot be null: " + gid + "," + uri);
+        }
+        this.gid = gid;
+        this.uri = uri;
+    }
+
+    public Integer getGID() {
+        return gid;
+    }
+
+    public GroupURI getGroupURI() {
+        return uri;
+    }
+
+    @Override
+    public String toString() {
+        return PosixGroup.class.getSimpleName() + "[" + gid + "," + uri + "]";
     }
     
-    // use case: cavern needs PosixPrincipal added to the caller subject for create node
-    // use case: cavern needs to recreate Subject from PosixPrincipal to output node
-    // detail: StandardIdentityManager calls this to add local posix identity for caller
-    // proposal: add defaultGroup to PosixPrincipal, would be returned here
-    public Subject augment(Subject s) {
-        throw new UnsupportedOperationException();
-    }
     
-    // use case: cavern uses this when caller tries to set group permissions
-    // use case: skaha uses this to generate securityContext for a user container
-    // detail: this may create and persist a local GID as a side effect
-    public List<PosixGroup> getGID(List<GroupURI> groups) {
-        throw new UnsupportedOperationException();
-    }
-    
-    // use case: cavern uses this when reading a node from disk and output the node doc
-    public List<PosixGroup> getURI(List<Integer> groups) {
-        throw new UnsupportedOperationException();
-    }
-    
-    // use case: skaha needs the complete username-uid map for user containers
-    // change: adding defaultGroup and username to PosixPrincipal, all fields would be returned here
-    // note: Iterator allows the client to consume the stream and process it without having to
-    // store it in memory... scalable but sometimes awkward
-    public Iterator<PosixPrincipal> getUserMap() {
-        throw new UnsupportedOperationException();
-    }
-    
-    // use case: skaha needs the complete groupname-gid map for user containers
-    // note: Iterator allows the client to consume the stream and process it without having to
-    // store it in memory... scalable but sometimes awkward
-    public Iterator<PosixGroup> getGroupMap() {
-        throw new UnsupportedOperationException();
-    }
 }
