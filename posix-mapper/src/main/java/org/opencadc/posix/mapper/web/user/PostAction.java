@@ -89,7 +89,7 @@ public class PostAction extends PosixMapperAction {
     }
 
     void respond(final User user) throws IOException {
-        final Integer uid = user.getUid();
+        final int uid = user.getUid();
         PosixUtil.assertNotNull(PostAction.class, "User.uid", uid);
 
         syncOutput.getOutputStream().write(Integer.toString(uid).getBytes(StandardCharsets.UTF_8));

@@ -66,71 +66,36 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.mapper.web;
+package org.opencadc.posix.mapper.web.user;
 
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.util.MultiValuedProperties;
-import org.opencadc.posix.mapper.Group;
-import org.opencadc.posix.mapper.PosixClient;
-import org.opencadc.posix.mapper.Postgres;
-import org.opencadc.posix.mapper.PostgresPosixClient;
+import org.opencadc.posix.mapper.PostgresPosixUtil;
 import org.opencadc.posix.mapper.User;
-import org.opencadc.posix.mapper.web.group.AsciiGroupWriter;
-import org.opencadc.posix.mapper.web.group.GroupWriter;
-import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
-import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
-public abstract class PosixMapperAction extends RestAction {
+public class AsciiUserWriter implements UserWriter {
 
-    protected PosixClient posixClient;
-    protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
-    protected static final String JSON_CONTENT_TYPE = "application/json";
+    private final Writer writer;
+    private final String homeDirRoot;
 
-
-    protected PosixMapperAction() {
-        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
-                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                          .entityClass(User.class, Group.class)
-                                          .build();
-        this.posixClient = new PostgresPosixClient(postgres);
+    public AsciiUserWriter(final Writer writer, final String homeDirRoot) {
+        this.writer = writer;
+        this.homeDirRoot = homeDirRoot;
     }
 
-    protected String getHomeDirRoot() {
-        return PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.HOME_DIR_ROOT_KEY);
-    }
-
-    protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            throw new UnsupportedEncodingException("No JSON support.");
-        } else {
-            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
-            return new AsciiGroupWriter(writer);
-        }
-    }
-
-    protected UserWriter getUserWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            throw new UnsupportedEncodingException("No JSON support.");
-        } else {
-            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
-            return new AsciiUserWriter(writer, getHomeDirRoot());
-        }
-    }
-
-    /**
-     * Never used.
-     * @return  null
-     */
     @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
+    public void write(User user) throws IOException {
+        try {
+            writer.write(new PostgresPosixUtil()
+                                 .homeDir(homeDirRoot)
+                                 .user(user)
+                                 .userName(user.getUsername())
+                                 .posixEntry());
+            writer.write("\n");
+            writer.flush();
+        } catch (Exception exception) {
+            throw new IOException(exception.getMessage(), exception);
+        }
     }
 }

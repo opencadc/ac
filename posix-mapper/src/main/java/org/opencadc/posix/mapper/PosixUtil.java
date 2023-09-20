@@ -23,8 +23,6 @@ public interface PosixUtil {
 
     String posixEntry() throws Exception;
 
-//    String groupEntry() throws Exception;
-
     /**
      * Utility method so constructors can validate arguments.
      *

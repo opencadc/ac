@@ -70,14 +70,13 @@ package org.opencadc.posix.mapper.web.group;
 
 import org.opencadc.posix.mapper.Group;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.Writer;
 
 /**
  * Write out a plain listing of Group ID to Group URIs.
  */
-public class AsciiGroupWriter implements GroupWriter, Closeable {
+public class AsciiGroupWriter implements GroupWriter {
 
     private final Writer writer;
 
@@ -91,13 +90,5 @@ public class AsciiGroupWriter implements GroupWriter, Closeable {
                                       group.getGroupURI().getURI().toString()));
         this.writer.write("\n");
         this.writer.flush();
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (this.writer != null) {
-            this.writer.flush();
-            this.writer.close();
-        }
     }
 }

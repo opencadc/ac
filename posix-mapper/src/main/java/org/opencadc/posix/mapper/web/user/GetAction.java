@@ -79,14 +79,8 @@ public class GetAction extends PosixMapperAction {
 
     @Override
     public void doAction() throws Exception {
-        for (final User user : posixClient.getUsers()) {
-            syncOutput.getOutputStream().write(new PostgresPosixUtil()
-                                                       .homeDir(getHomeDirRoot())
-                                                       .user(user)
-                                                       .userName(user.getUsername())
-                                                       .posixEntry().getBytes(StandardCharsets.UTF_8));
-            syncOutput.getOutputStream().write("\n".getBytes(StandardCharsets.UTF_8));
-        }
+        final UserWriter userWriter = getUserWriter();
+        posixClient.writeUsers(userWriter);
         syncOutput.getOutputStream().flush();
     }
 }
