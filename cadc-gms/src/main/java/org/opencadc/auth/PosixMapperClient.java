@@ -97,19 +97,20 @@ public class PosixMapperClient {
         throw new UnsupportedOperationException();
     }
     
-    // use case: cavern does this when caller tries to set group permissions
+    // use case: cavern uses this when caller tries to set group permissions
+    // use case: skaha uses this to generate securityContext for a user container
     // detail: this may create and persist a local GID as a side effect
     public List<PosixGroup> getGID(List<GroupURI> groups) {
         throw new UnsupportedOperationException();
     }
     
-    // use case: cavern does this when reading a node from disk and output the node doc
-    public List<GroupURI> getURI(List<Integer> groups) {
+    // use case: cavern uses this when reading a node from disk and output the node doc
+    public List<PosixGroup> getURI(List<Integer> groups) {
         throw new UnsupportedOperationException();
     }
     
-    // use case: skaha needs to complete username-uid map for user containers
-    // proposal: add defaultGroup and username to PosixPrincipal (see above), would be returned here
+    // use case: skaha needs the complete username-uid map for user containers
+    // change: adding defaultGroup and username to PosixPrincipal, all fields would be returned here
     // note: Iterator allows the client to consume the stream and process it without having to
     // store it in memory... scalable but sometimes awkward
     public Iterator<PosixPrincipal> getUserMap() {
@@ -123,7 +124,6 @@ public class PosixMapperClient {
         throw new UnsupportedOperationException();
     }
     
-    // use case: skaha getGroupMap response
     // question: does this need a local group name that might differ from uri.getName()???
     // note: probably extract this to a normal class
     public static class PosixGroup {
