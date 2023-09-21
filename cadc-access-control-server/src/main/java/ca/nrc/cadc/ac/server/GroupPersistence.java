@@ -66,10 +66,8 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server;
 
-import java.security.AccessControlException;
-import java.util.Collection;
+package ca.nrc.cadc.ac.server;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
@@ -77,7 +75,10 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import java.util.Collection;
 import java.util.SortedSet;
+import org.opencadc.auth.PosixGroup;
 
 public interface GroupPersistence
 {
@@ -93,7 +94,7 @@ public interface GroupPersistence
      * @throws TransientException If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    Collection<String> getGroupNames()
+    Collection<PosixGroup> getGroupNames()
             throws TransientException, AccessControlException;
 
     /**

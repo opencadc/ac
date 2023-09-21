@@ -91,11 +91,13 @@ import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.ObjectUtil;
+import java.util.ArrayList;
 
 public class LdapUserPersistence extends LdapPersistence implements UserPersistence
 {
@@ -407,6 +409,73 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             conns.releaseConnections();
         }
     }
+    
+    public Collection<PosixPrincipal> getUsers(List<String> usernameSubset, List<Integer> uidSubset)
+        throws TransientException, AccessControlException {
+        // current policy: usernames visible to all authenticated users
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
+            throw new AccessControlException("Caller is not authenticated");
+
+        // user must also have an approved account
+        if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
+            throw new AccessControlException("Caller does not have authorized account");
+
+        LdapUserDAO userDAO = null;
+        LdapConnections conns = new LdapConnections(this);
+        try {
+            userDAO = new LdapUserDAO(conns);
+            boolean all = (usernameSubset == null && uidSubset == null);
+            if (all) {
+                Collection<User> users = userDAO.getUsers();
+                Collection<PosixPrincipal> ret = new ArrayList<>(users.size());
+                for (User u : users) {
+                    if (u.posixDetails != null) {
+                        PosixPrincipal p = new PosixPrincipal(u.posixDetails.getUid());
+                        p.defaultGroup = u.posixDetails.getGid();
+                        p.username = u.posixDetails.getUsername();
+                        ret.add(p);
+                    }
+                }
+                return ret;
+            }
+            Collection<PosixPrincipal> ret = new ArrayList<>();
+            if (usernameSubset != null) {
+                for (String username : usernameSubset) {
+                    try {
+                        User u = userDAO.getAugmentedUser(new HttpPrincipal(username), false);
+                        if (u.posixDetails != null) {
+                            PosixPrincipal p = new PosixPrincipal(u.posixDetails.getUid());
+                            p.defaultGroup = u.posixDetails.getGid();
+                            p.username = u.posixDetails.getUsername();
+                            ret.add(p);
+                        }
+                    } catch (UserNotFoundException skip) {
+                        logger.debug("skip: " + skip);
+                    }
+                }
+            }
+            if (uidSubset != null) {
+                for (Integer uid : uidSubset) {
+                    try {
+                        User u = userDAO.getAugmentedUser(new PosixPrincipal(uid), false);
+                        if (u.posixDetails != null) {
+                            PosixPrincipal p = new PosixPrincipal(u.posixDetails.getUid());
+                            p.defaultGroup = u.posixDetails.getGid();
+                            p.username = u.posixDetails.getUsername();
+                            ret.add(p);
+                        }
+                    } catch (UserNotFoundException skip) {
+                        logger.debug("skip: " + skip);
+                    }
+                }
+            }
+            return ret;
+        } finally {
+            conns.releaseConnections();
+        }
+    }
+    
 
     /**
      * Get all user names from the user requests tree.

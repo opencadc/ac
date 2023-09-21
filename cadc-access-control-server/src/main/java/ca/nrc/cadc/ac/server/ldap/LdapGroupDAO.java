@@ -66,20 +66,8 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.ldap;
-
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
 
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
@@ -101,8 +89,6 @@ import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchResultListener;
 import com.unboundid.ldap.sdk.SearchResultReference;
 import com.unboundid.ldap.sdk.SearchScope;
-
-import ca.nrc.cadc.ac.ActivatedGroup;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -116,6 +102,18 @@ import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.StringUtil;
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.security.AccessControlException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import org.apache.log4j.Logger;
+import org.opencadc.auth.PosixGroup;
+import org.opencadc.gms.GroupURI;
 
 public class LdapGroupDAO extends LdapDAO
 {
@@ -132,7 +130,7 @@ public class LdapGroupDAO extends LdapDAO
 
     private static final String[] PUB_GROUP_ATTRS = new String[]
             {
-                    LDAP_ENTRYDN, LDAP_CN
+                    LDAP_ENTRYDN, LDAP_CN, LDAP_GID_NUMBER
             };
     private static final String[] GROUP_ATTRS = new String[]
             {
@@ -453,16 +451,18 @@ public class LdapGroupDAO extends LdapDAO
      * @return A collection of strings
      * @throws TransientException If an temporary, unexpected problem occurred.
      */
-    public Collection<String> getGroupNames()
+    public Collection<PosixGroup> getGroupNames()
             throws TransientException
     {
         try
         {
+            LocalAuthority loc = new LocalAuthority();
+            URI gmsResourceID = loc.getServiceURI(Standards.GMS_SEARCH_10.toASCIIString());
             Filter filter = Filter
                     .createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             filter = Filter.createANDFilter(filter, Filter.create("(cn=*)"));
 
-            final List<String> groupNames = new LinkedList<String>();
+            final List<PosixGroup> ret = new LinkedList<>();
             SearchRequest searchRequest = new SearchRequest(
                     new SearchResultListener()
                     {
@@ -471,18 +471,21 @@ public class LdapGroupDAO extends LdapDAO
                         public void searchEntryReturned(SearchResultEntry sre)
                         {
                             String gname = sre.getAttributeValue(LDAP_CN);
-                            groupNames.add(gname);
-
+                            String gidstr = sre.getAttributeValue(LDAP_GID_NUMBER);
+                            Integer gid = Integer.valueOf(gidstr);
+                            PosixGroup pg = new PosixGroup(gid, new GroupURI(gmsResourceID, gname));
+                            ret.add(pg);
+                            
                             long t2 = System.currentTimeMillis();
                             long dt = t2 - t1;
-                            if (groupNames.size() == 1)
+                            if (ret.size() == 1)
                             {
                                 logger.debug("first row: " + dt + "ms");
                                 t1 = t2;
                             }
-                            if ((groupNames.size() % 100) == 0)
+                            if ((ret.size() % 100) == 0)
                             {
-                                logger.debug("found: " + groupNames.size() +
+                                logger.debug("found: " + ret.size() +
                                              " " + dt + "ms");
                                 t1 = t2;
                             }
@@ -518,7 +521,7 @@ public class LdapGroupDAO extends LdapDAO
             LdapDAO.checkLdapResult(searchResult.getResultCode());
 //            profiler.checkpoint("checkLdapResult");
 
-            return groupNames;
+            return ret;
         }
         catch (LDAPException e1)
         {
@@ -771,6 +774,37 @@ public class LdapGroupDAO extends LdapDAO
         return getGroup(groupID, complete, getReadOnlyConnection());
     }
     
+    public Group getGroup(final int gid)
+            throws GroupNotFoundException, TransientException, AccessControlException {
+
+        try {
+            LDAPConnection ldapConn = getReadOnlyConnection();
+            Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
+            filter = Filter.createANDFilter(filter,
+                    Filter.createEqualityFilter(LDAP_GID_NUMBER, Integer.toString(gid)));
+        
+            DN base = new DN(config.getGroupsDN());
+            //SearchResultEntry searchEntry = searchForEntry(profiler, base, "gid=" + gid, filter, PUB_GROUP_ATTRS, ldapConn);
+            SearchRequest searchRequest = new SearchRequest(base.toNormalizedString(), SearchScope.ONE, filter, PUB_GROUP_ATTRS);
+            SearchResultEntry searchEntry = ldapConn.searchForEntry(searchRequest);
+
+            if (searchEntry == null) {
+                throw new GroupNotFoundException("gid=" + gid);
+            }
+            if (searchEntry.getAttribute(LDAP_NSACCOUNTLOCK) != null) {
+                throw new RuntimeException("BUG: found group with nsaccountlock set: " + searchEntry.getAttributeValue(LDAP_ENTRYDN));
+            }
+
+            Group ldapGroup = createGroupFromSearchResult(searchEntry, PUB_GROUP_ATTRS, ldapConn);
+            return ldapGroup;
+            
+        } catch (LDAPException e1) {
+            logger.debug("getGroup Exception: " + e1, e1);
+            LdapDAO.checkLdapResult(e1.getResultCode());
+            throw new RuntimeException("BUG: checkLdapResult didn't throw an exception");
+        }
+    }
+    
     private Group getGroup(final String groupID, boolean complete, final LDAPConnection ldapConn)
             throws GroupNotFoundException, TransientException,
                    AccessControlException
@@ -779,7 +813,13 @@ public class LdapGroupDAO extends LdapDAO
         if (complete)
             attrs = GROUP_AND_MEMBER_ATTRS;
 
-        Group group = getGroup(getGroupDN(groupID), groupID, attrs, ldapConn);
+        String loggableID = groupID;
+        
+        DN groupDN = null;
+        if (groupID != null) {
+            groupDN = getGroupDN(groupID);
+        }
+        Group group = getGroup(groupDN, groupID, attrs, ldapConn);
 
         if (complete && !isUserAssociatedGroup(group))
         {
@@ -792,13 +832,13 @@ public class LdapGroupDAO extends LdapDAO
     }
     
     // groupID is here so exceptions and logging have plain groupID instead of DN
-    private Group getGroup(final DN groupDN, final String xgroupID, String[] attributes, 
+    private Group getGroup(final DN groupDN, final String loggableID, String[] attributes, 
             final LDAPConnection ldapConn)
             throws GroupNotFoundException, TransientException,
                    AccessControlException
     {
         logger.debug("getGroup: " + groupDN + " attrs: " + attributes.length);
-        String loggableGroupID = xgroupID;
+        String loggableGroupID = loggableID;
         if (loggableGroupID == null)
         {
             // member or admin group: same name, internal tree
@@ -812,7 +852,6 @@ public class LdapGroupDAO extends LdapDAO
             Filter filter = Filter.createNOTFilter(Filter.createPresenceFilter(LDAP_NSACCOUNTLOCK));
             filter = Filter.createANDFilter(filter,
                     Filter.createEqualityFilter(LDAP_ENTRYDN, groupDN.toNormalizedString()));
-
             SearchResultEntry searchEntry = 
                     searchForEntry(profiler, groupDN, loggableGroupID, filter, attributes, ldapConn);
             if (searchEntry.getAttribute(LDAP_NSACCOUNTLOCK) != null)
@@ -1195,7 +1234,9 @@ public class LdapGroupDAO extends LdapDAO
         if (attributes == PUB_GROUP_ATTRS)
         {
             GroupURI groupID = new GroupURI(gmsServiceID, groupName);
-            return new Group(groupID);
+            Group ret = new Group(groupID);
+            ret.gid = Integer.parseInt(result.getAttributeValue(LDAP_GID_NUMBER));
+            return ret;
         }
 
         String ownerDN = result.getAttributeValue(LDAP_OWNER);

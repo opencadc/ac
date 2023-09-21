@@ -68,20 +68,6 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.security.Principal;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.server.EndpointConstants;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -89,9 +75,17 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.log.ServletLogInfo;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.reg.client.RegistryClient;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.security.Principal;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
 /**
  * Servlet to handle GET requests asking for the current User.  This servlet
@@ -215,17 +209,6 @@ public class WhoAmIServlet extends HttpServlet
         log.debug("redirecting to " + redirectURI.toASCIIString());
 
         response.sendRedirect(redirectURI.toASCIIString());
-    }
-
-    /**
-     * Tests will need to override this method so as not to rely on the
-     * environment.
-     *
-     * @return      Registry Client instance.
-     */
-    RegistryClient getRegistryClient()
-    {
-        return new RegistryClient();
     }
 
     /**

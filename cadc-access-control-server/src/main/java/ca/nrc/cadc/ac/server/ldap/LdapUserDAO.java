@@ -1097,7 +1097,7 @@ public class LdapUserDAO extends LdapDAO
         logger.debug("search filter: " + filter);
 
         final String[] attributes = new String[]
-            { LDAP_USER_NAME, LDAP_FIRST_NAME, LDAP_LAST_NAME };
+            { LDAP_USER_NAME, LDAP_FIRST_NAME, LDAP_LAST_NAME, LDAP_UID_NUMBER, LDAP_HOME_DIRECTORY };
         final SearchRequest searchRequest =
             new SearchRequest(usersDN, SearchScope.ONE, filter, attributes);
 
@@ -1120,18 +1120,16 @@ public class LdapUserDAO extends LdapDAO
                 if (!EXTERNAL_USER_CN.equals(username)) {
                     user.getIdentities().add(new HttpPrincipal(username));
 
-                    // Only add Personal Details if it is relevant.
-                    if (StringUtil.hasLength(firstName) &&
-                        StringUtil.hasLength(lastName))
-                    {
+                    if (StringUtil.hasLength(firstName) && StringUtil.hasLength(lastName)) {
                         user.personalDetails = new PersonalDetails(firstName.trim(), lastName.trim());
-                        String homeDir = next.getAttributeValue(LDAP_HOME_DIRECTORY);
-                        if (homeDir != null) {
-                            // uid, uidNumber and gidNumber hold the same value
-                            int uidNumber = Integer.parseInt(next.getAttributeValue(LDAP_UID_NUMBER));
-                            user.posixDetails = new PosixDetails(username, uidNumber, uidNumber, homeDir);
-                            user.posixDetails.loginShell = next.getAttributeValue(LDAP_LOGIN_SHELL);
-                        }
+                    }
+                    
+                    String homeDir = next.getAttributeValue(LDAP_HOME_DIRECTORY);
+                    if (homeDir != null) {
+                        // uid, uidNumber and gidNumber hold the same value
+                        int uidNumber = Integer.parseInt(next.getAttributeValue(LDAP_UID_NUMBER));
+                        user.posixDetails = new PosixDetails(username, uidNumber, uidNumber, homeDir);
+                        user.posixDetails.loginShell = next.getAttributeValue(LDAP_LOGIN_SHELL);
                     }
 
                     users.add(user);
