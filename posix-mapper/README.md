@@ -47,10 +47,23 @@ org.opencadc.posix.mapper.resourceID=ivo://{authority}/{name}
 
 # Database schema
 org.opencadc.posix.mapper.schema=mapping
+
+# home dir root
+org.opencadc.posix.mapper.homeDirRoot=/storage/home
+
+# ID ranges to allow some customization where administration is necessary
+org.opencadc.posix.mapper.uid.start=10000
+org.opencadc.posix.mapper.gid.start=10000
 ```
 The _resourceID_ is the resourceID of _this_ posix-mapper service.
 
 The _schema_ is the database schema used for interacting with tables in the database.
+
+The _homeDirRoot_ is the path to the root of home folders.  This is used to create entires in the `/etc/passwd` file.
+
+_uid.start_ start of UID range
+
+_gid.start_ start of GID range
 
 ### cadcproxy.pem (optional)
 This client certificate is used to make authenticated server-to-server calls for system-level A&A purposes.
