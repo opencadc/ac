@@ -97,6 +97,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opencadc.auth.PosixGroup;
 import org.opencadc.gms.GroupURI;
 
 public class LdapGroupDAOTest extends AbstractLdapDAOTest
@@ -471,7 +472,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             {
                 try
                 {
-                    Collection<String> groups = getGroupDAO().getGroupNames();
+                    Collection<PosixGroup> groups = getGroupDAO().getGroupNames();
 
                     log.debug("testGetGroupNames groups found: " + groups.size());
                     assertNotNull(groups);
@@ -479,14 +480,14 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
                     boolean found1 = false;
                     boolean found2 = false;
-                    for (String name : groups)
+                    for (PosixGroup name : groups)
                     {
                         log.debug("group: " + name);
-                        if (name.equals(testGroup1ID))
+                        if (name.getGroupURI().getName().equals(testGroup1ID))
                         {
                             found1 = true;
                         }
-                        if (name.equals(testGroup2ID))
+                        if (name.getGroupURI().getName().equals(testGroup2ID))
                         {
                             found2 = true;
                         }

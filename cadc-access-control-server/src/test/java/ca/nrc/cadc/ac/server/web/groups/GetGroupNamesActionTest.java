@@ -73,6 +73,7 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.rest.SyncOutput;
 import ca.nrc.cadc.util.Log4jInit;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import javax.servlet.http.HttpServletResponse;
@@ -84,6 +85,8 @@ import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opencadc.auth.PosixGroup;
+import org.opencadc.gms.GroupURI;
 
 /**
  *
@@ -105,9 +108,11 @@ public class GetGroupNamesActionTest
     {
         try
         {
-            Collection<String> groupNames = new ArrayList<String>();
-            groupNames.add("foo");
-            groupNames.add("bar");
+            PosixGroup pg1 = new PosixGroup(8888, new GroupURI(URI.create("ivo://example.net/gms?foo")));
+            PosixGroup pg2 = new PosixGroup(9999, new GroupURI(URI.create("ivo://example.net/gms?bar")));
+            Collection<PosixGroup> groupNames = new ArrayList<>();
+            groupNames.add(pg1);
+            groupNames.add(pg2);
 
             final GroupPersistence mockPersistence = EasyMock.createMock(GroupPersistence.class);
             EasyMock.expect(mockPersistence.getGroupNames()).andReturn(groupNames).once();

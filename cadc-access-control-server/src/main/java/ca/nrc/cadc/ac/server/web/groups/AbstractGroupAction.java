@@ -66,21 +66,8 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
-
-import java.io.IOException;
-import java.net.URI;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.log4j.Logger;
 
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -93,6 +80,17 @@ import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.reg.client.LocalAuthority;
+import java.io.IOException;
+import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
+import java.util.List;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.log4j.Logger;
 
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
 {

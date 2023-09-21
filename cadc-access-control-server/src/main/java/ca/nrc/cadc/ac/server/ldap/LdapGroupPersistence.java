@@ -99,6 +99,8 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.ObjectUtil;
+import java.net.URI;
+import org.opencadc.auth.PosixGroup;
 
 public class LdapGroupPersistence extends LdapPersistence implements GroupPersistence
 {
@@ -125,25 +127,54 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
     {
     }
 
-    public Collection<String> getGroupNames()
+    public Collection<PosixGroup> getGroupNames()
         throws TransientException, AccessControlException
     {
-        // current policy: group names visible to all authenticated users
+        return getGroupNames(null, null);
+    }
+    
+    public Collection<PosixGroup> getGroupNames(List<String> groupNameSubset, List<Integer> gidSubset)
+        throws TransientException, AccessControlException
+    {
+        // current policy: group names and gids are visible to all authenticated users
         Subject caller = AuthenticationUtil.getCurrentSubject();
         checkAuthenticatedWithAccount(caller);
 
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
+        try {
             userDAO = new LdapUserDAO(conns);
             groupDAO = new LdapGroupDAO(conns, userDAO);
-            Collection<String> ret = groupDAO.getGroupNames();
+            boolean all = (groupNameSubset == null && gidSubset == null);
+            if (all) {
+                return groupDAO.getGroupNames();
+            }
+            Collection<PosixGroup> ret = new ArrayList<>();
+            if (groupNameSubset != null) {
+                for (String groupName : groupNameSubset) {
+                    try {
+                        Group g = groupDAO.getGroup(groupName, false);
+                        PosixGroup pg = new PosixGroup(g.gid, g.getID());
+                        ret.add(pg);
+                    } catch (GroupNotFoundException skip) {
+                        log.debug("skip: " + skip);
+                    }
+                }
+            }
+            if (gidSubset != null) {
+                for (Integer gid : gidSubset) {
+                    try {
+                        Group g = groupDAO.getGroup(gid);
+                        PosixGroup pg = new PosixGroup(g.gid, g.getID());
+                        ret.add(pg);
+                    } catch (GroupNotFoundException skip) {
+                        log.warn("skip: " + skip);
+                    }
+                }
+            }
             return ret;
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }

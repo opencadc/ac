@@ -94,7 +94,6 @@ import ca.nrc.cadc.ac.server.EndpointConstants;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
 
@@ -135,7 +134,6 @@ public class WhoAmIServletTest
     public void doGet(final Subject subject, final AuthMethod authMethod, final String restUserid, final String restType) throws Exception
     {
 
-        final RegistryClient mockRegistry = createNiceMock(RegistryClient.class);
         final WhoAmIServlet testSubject = new WhoAmIServlet()
         {
             @Override
@@ -177,7 +175,7 @@ public class WhoAmIServletTest
 //                                          "http", "/%s?idType=HTTP")).
 //                andReturn(new URL("http://mysite.com/ac/users/CADCtest?idType=HTTP")).once();
 
-        replay(mockRequest, mockResponse, mockRegistry);
+        replay(mockRequest, mockResponse);
 
 
         Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
@@ -190,6 +188,6 @@ public class WhoAmIServletTest
             }
         });
 
-        verify(mockRequest, mockResponse, mockRegistry);
+        verify(mockRequest, mockResponse);
     }
 }

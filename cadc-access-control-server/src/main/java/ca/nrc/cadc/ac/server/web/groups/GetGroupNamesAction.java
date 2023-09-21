@@ -71,10 +71,8 @@ package ca.nrc.cadc.ac.server.web.groups;
 
 import java.io.Writer;
 import java.util.Collection;
-
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.GroupPersistence;
+import org.opencadc.auth.PosixGroup;
 
 public class GetGroupNamesAction extends AbstractGroupAction
 {
@@ -88,19 +86,19 @@ public class GetGroupNamesAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        Collection<String> groups = groupPersistence.getGroupNames();
+        Collection<PosixGroup> groups = groupPersistence.getGroupNames();
         log.debug("Found " + groups.size() + " group names");
         syncOut.setHeader("Content-Type", "text/plain");
         log.debug("Set content-type to text/plain");
         Writer writer = syncOut.getWriter();
         boolean start = true;
-        for (final String group : groups)
+        for (final PosixGroup group : groups)
         {
             if (!start)
             {
                 writer.write("\r\n");
             }
-            writer.write(group);
+            writer.write(group.getGroupURI().getName());
             start = false;
         }
     }

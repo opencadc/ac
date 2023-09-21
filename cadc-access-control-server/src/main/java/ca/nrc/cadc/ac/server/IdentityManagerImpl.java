@@ -74,8 +74,6 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.client.GroupMemberships;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.DNPrincipal;
@@ -85,15 +83,11 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.profiler.Profiler;
-
 import java.security.AccessControlException;
 import java.security.Principal;
-import java.util.HashSet;
 import java.util.Set;
-
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Logger;
 
 /**
