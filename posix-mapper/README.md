@@ -62,7 +62,6 @@ The _schema_ is the database schema used for interacting with tables in the data
 The _homeDirRoot_ is the path to the root of home folders.  This is used to create entires in the `/etc/passwd` file.
 
 _uid.start_ start of UID range
-
 _gid.start_ start of GID range
 
 ### cadcproxy.pem (optional)

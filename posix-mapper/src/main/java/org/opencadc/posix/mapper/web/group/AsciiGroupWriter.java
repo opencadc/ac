@@ -72,6 +72,7 @@ import org.opencadc.posix.mapper.Group;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Iterator;
 
 /**
  * Write out a plain listing of Group ID to Group URIs.
@@ -85,10 +86,14 @@ public class AsciiGroupWriter implements GroupWriter {
     }
 
     @Override
-    public void write(final Group group) throws IOException {
-        this.writer.write(String.join(" ", Integer.toString(group.getGid()),
-                                      group.getGroupURI().getURI().toString()));
-        this.writer.write("\n");
-        this.writer.flush();
+    public void write(final Iterator<Group> groupIterator) throws IOException {
+        while (groupIterator.hasNext()) {
+            final Group group = groupIterator.next();
+            final String gidOutput = group.getGid() == null ? "(Not yet persisted)" : Integer.toString(group.getGid());
+
+            this.writer.write(String.join(" ", group.getGroupURI().getURI().toString(), gidOutput));
+            this.writer.write("\n");
+            this.writer.flush();
+        }
     }
 }

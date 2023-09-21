@@ -74,6 +74,7 @@ import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import org.opencadc.posix.mapper.db.InitializeMappingDatabase;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -91,14 +92,16 @@ public class PosixInitAction extends InitAction {
     private static final String POSIX_KEY = "org.opencadc.posix.mapper";
     static final String SCHEMA_KEY = PosixInitAction.POSIX_KEY + ".schema";
 
-    static final String UID_MIN_KEY = PosixInitAction.POSIX_KEY + ".uid.min";
-    static final String UID_MAX_KEY = PosixInitAction.POSIX_KEY + ".uid.max";
-
-    static final String GID_MIN_KEY = PosixInitAction.POSIX_KEY + ".gid.min";
-    static final String GID_MAX_KEY = PosixInitAction.POSIX_KEY + ".gid.max";
+    public static final String UID_START_KEY = PosixInitAction.POSIX_KEY + ".uid.start";
+    public static final String GID_START_KEY = PosixInitAction.POSIX_KEY + ".gid.start";
 
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
     static final String HOME_DIR_ROOT_KEY = PosixInitAction.POSIX_KEY + ".homeDirRoot";
+
+    static final String[] CHECK_CONFIG_KEYS = new String[] {
+            PosixInitAction.SCHEMA_KEY, PosixInitAction.RESOURCE_ID_KEY, PosixInitAction.HOME_DIR_ROOT_KEY,
+            PosixInitAction.UID_START_KEY, PosixInitAction.GID_START_KEY
+    };
 
     MultiValuedProperties props;
     private final Map<String, Object> daoConfig = new HashMap<>();
@@ -115,38 +118,32 @@ public class PosixInitAction extends InitAction {
      * @return MultiValuedProperties containing the application config
      * @throws IllegalStateException if required config items are missing
      */
-    static MultiValuedProperties getConfig() {
+    public static MultiValuedProperties getConfig() {
         final PropertiesReader propertiesReader = new PropertiesReader("posix-mapper.properties");
         final MultiValuedProperties multiValuedProperties = propertiesReader.getAllProperties();
 
         final StringBuilder errorReportMessage = new StringBuilder();
         errorReportMessage.append("incomplete config: ");
 
-        boolean ok = true;
+        Arrays.stream(PosixInitAction.CHECK_CONFIG_KEYS)
+              .forEach(key -> PosixInitAction.checkConfigProperty(key, multiValuedProperties, errorReportMessage));
 
-        final String resourceID = multiValuedProperties.getFirstPropertyValue(PosixInitAction.RESOURCE_ID_KEY);
-        errorReportMessage.append("\n\t" + PosixInitAction.RESOURCE_ID_KEY + ": ");
-        if (resourceID == null) {
-            errorReportMessage.append("MISSING");
-            ok = false;
-        } else {
-            errorReportMessage.append("OK");
-        }
-
-        String schema = multiValuedProperties.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY);
-        errorReportMessage.append("\n\t").append(PosixInitAction.SCHEMA_KEY).append(": ");
-        if (schema == null) {
-            errorReportMessage.append("MISSING");
-            ok = false;
-        } else {
-            errorReportMessage.append("OK");
-        }
-
-        if (!ok) {
+        if (errorReportMessage.indexOf("MISSING") > 0) {
             throw new IllegalStateException(errorReportMessage.toString());
         }
 
         return multiValuedProperties;
+    }
+
+    static void checkConfigProperty(final String key, final MultiValuedProperties multiValuedProperties,
+                                    final StringBuilder errorReportMessage) {
+        final String configPropertyValue = multiValuedProperties.getFirstPropertyValue(key);
+        errorReportMessage.append("\n\t").append(key).append(": ");
+        if (configPropertyValue == null) {
+            errorReportMessage.append("MISSING");
+        } else {
+            errorReportMessage.append("OK");
+        }
     }
 
     private void initConfig() {

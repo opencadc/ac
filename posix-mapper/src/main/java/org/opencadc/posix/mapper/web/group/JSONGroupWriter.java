@@ -66,13 +66,44 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.mapper.web.user;
+package org.opencadc.posix.mapper.web.group;
 
-import org.opencadc.posix.mapper.User;
+import org.json.JSONException;
+import org.json.JSONWriter;
+import org.opencadc.posix.mapper.Group;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.Iterator;
 
-public interface UserWriter {
-    void write(final Iterator<User> userIterator) throws IOException;
+public class JSONGroupWriter implements GroupWriter {
+
+    private final Writer writer;
+
+    public JSONGroupWriter(final Writer writer) {
+        this.writer = writer;
+    }
+
+    @Override
+    public void write(Iterator<Group> groupIterator) throws IOException {
+        final JSONWriter jsonWriter = new JSONWriter(writer);
+        try {
+            jsonWriter.array();
+            while (groupIterator.hasNext()) {
+                final Group group = groupIterator.next();
+                jsonWriter.object();
+                jsonWriter.key(group.getGid() == null ? "(Not yet persisted)" : Integer.toString(group.getGid()));
+                jsonWriter.object();
+                jsonWriter.key("uri").value(group.getGroupURI().getURI().toASCIIString());
+                jsonWriter.key("name").value(group.getGroupURI().getURI().getQuery());
+                jsonWriter.endObject();
+                jsonWriter.endObject();
+            }
+            jsonWriter.endArray();
+        } catch (JSONException jsonException) {
+            throw new IOException(jsonException.getMessage(), jsonException);
+        } finally {
+            writer.flush();
+        }
+    }
 }

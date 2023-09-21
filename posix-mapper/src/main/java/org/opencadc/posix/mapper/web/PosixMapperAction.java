@@ -78,9 +78,12 @@ import org.opencadc.posix.mapper.PostgresPosixClient;
 import org.opencadc.posix.mapper.User;
 import org.opencadc.posix.mapper.web.group.AsciiGroupWriter;
 import org.opencadc.posix.mapper.web.group.GroupWriter;
+import org.opencadc.posix.mapper.web.group.JSONGroupWriter;
 import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
+import org.opencadc.posix.mapper.web.user.JSONUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
@@ -107,20 +110,20 @@ public abstract class PosixMapperAction extends RestAction {
 
     protected GroupWriter getGroupWriter() throws IOException {
         final String requestContentType = syncInput.getHeader("accept");
+        final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            throw new UnsupportedEncodingException("No JSON support.");
+            return new JSONGroupWriter(writer);
         } else {
-            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
             return new AsciiGroupWriter(writer);
         }
     }
 
     protected UserWriter getUserWriter() throws IOException {
         final String requestContentType = syncInput.getHeader("accept");
+        final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            throw new UnsupportedEncodingException("No JSON support.");
+            return new JSONUserWriter(writer, getHomeDirRoot());
         } else {
-            final Writer writer = new OutputStreamWriter(this.syncOutput.getOutputStream());
             return new AsciiUserWriter(writer, getHomeDirRoot());
         }
     }

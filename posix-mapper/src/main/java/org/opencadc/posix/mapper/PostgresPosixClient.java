@@ -68,7 +68,6 @@
 package org.opencadc.posix.mapper;
 
 
-import org.hibernate.ScrollableResults;
 import org.hibernate.query.Query;
 import org.opencadc.gms.GroupURI;
 import org.opencadc.posix.mapper.web.group.GroupWriter;
@@ -131,11 +130,8 @@ public class PostgresPosixClient implements PosixClient {
     @Override
     public void writeUsers(UserWriter writer) {
         postgres.inSession(session -> {
-            try (final ScrollableResults<User> results =
-                         session.createQuery("from Users u", User.class).scroll()) {
-                while (results.next()) {
-                    writer.write(results.get());
-                }
+            try {
+                writer.write(session.createQuery("from Users u", User.class).stream().iterator());
             } catch (IOException ioException) {
                 return Boolean.FALSE;
             }
@@ -179,10 +175,8 @@ public class PostgresPosixClient implements PosixClient {
             final Query<Group> groupQuery = session.createQuery(queryBuilder.toString(), Group.class);
             queryParameters.forEach(groupQuery::setParameterList);
 
-            try (final ScrollableResults<Group> results = groupQuery.scroll()) {
-                while (results.next()) {
-                    writer.write(results.get());
-                }
+            try {
+                writer.write(groupQuery.stream().iterator());
             } catch (IOException ioException) {
                 return Boolean.FALSE;
             }

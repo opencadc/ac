@@ -73,6 +73,7 @@ import org.opencadc.posix.mapper.User;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Iterator;
 
 public class AsciiUserWriter implements UserWriter {
 
@@ -85,15 +86,18 @@ public class AsciiUserWriter implements UserWriter {
     }
 
     @Override
-    public void write(User user) throws IOException {
+    public void write(Iterator<User> userIterator) throws IOException {
         try {
-            writer.write(new PostgresPosixUtil()
-                                 .homeDir(homeDirRoot)
-                                 .user(user)
-                                 .userName(user.getUsername())
-                                 .posixEntry());
-            writer.write("\n");
-            writer.flush();
+            while (userIterator.hasNext()) {
+                final User user = userIterator.next();
+                writer.write(new PostgresPosixUtil()
+                                     .homeDir(homeDirRoot)
+                                     .user(user)
+                                     .userName(user.getUsername())
+                                     .posixEntry());
+                writer.write("\n");
+                writer.flush();
+            }
         } catch (Exception exception) {
             throw new IOException(exception.getMessage(), exception);
         }

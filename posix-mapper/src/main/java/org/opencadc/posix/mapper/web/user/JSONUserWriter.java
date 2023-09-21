@@ -68,11 +68,46 @@
 
 package org.opencadc.posix.mapper.web.user;
 
+import org.json.JSONException;
+import org.json.JSONWriter;
 import org.opencadc.posix.mapper.User;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.Iterator;
 
-public interface UserWriter {
-    void write(final Iterator<User> userIterator) throws IOException;
+public class JSONUserWriter implements UserWriter {
+
+    private final Writer writer;
+
+    private final String homeDirRoot;
+
+    public JSONUserWriter(final Writer writer, final String homeDirRoot) {
+        this.writer = writer;
+        this.homeDirRoot = homeDirRoot;
+    }
+
+    @Override
+    public void write(Iterator<User> userIterator) throws IOException {
+        final JSONWriter jsonWriter = new JSONWriter(writer);
+        try {
+            jsonWriter.array();
+            while (userIterator.hasNext()) {
+                final User user = userIterator.next();
+                jsonWriter.object();
+                jsonWriter.key(Integer.toString(user.getUid()));
+                jsonWriter.object();
+                jsonWriter.key("username").value(user.getUsername());
+                jsonWriter.key("homeDir").value(homeDirRoot + "/" + user.getUsername());
+                jsonWriter.key("shell").value("/sbin/nologin");
+                jsonWriter.endObject();
+                jsonWriter.endObject();
+            }
+            jsonWriter.endArray();
+        } catch (JSONException jsonException) {
+            throw new IOException(jsonException.getMessage(), jsonException);
+        } finally {
+            writer.flush();
+        }
+    }
 }
