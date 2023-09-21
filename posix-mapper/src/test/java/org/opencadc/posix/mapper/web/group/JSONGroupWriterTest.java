@@ -66,39 +66,41 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.mapper.web.user;
+package org.opencadc.posix.mapper.web.group;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.opencadc.posix.mapper.User;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.Group;
 
 import java.io.StringWriter;
 import java.io.Writer;
+import java.net.URI;
 import java.util.List;
 
-public class JSONUserWriterTest {
+public class JSONGroupWriterTest {
     @Test
     public void writeNoUID() throws Exception {
         final Writer writer = new StringWriter();
-        final JSONUserWriter testSubject = new JSONUserWriter(writer, "/tmp/home");
+        final JSONGroupWriter testSubject = new JSONGroupWriter(writer);
 
-        final User testUser = new User("TESTUSER1");
-        testSubject.write(List.of(testUser).iterator());
+        final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP1")));
+        testSubject.write(List.of(testGroup).iterator());
 
-        final String expectedJSON = "[{\"0\":{\"username\":\"TESTUSER1\",\"homeDir\":\"/tmp/home/TESTUSER1\",\"shell\":\"/sbin/nologin\"}}]";
+        final String expectedJSON = "[{\"(Not yet persisted)\":{\"uri\":\"ivo://test.org/groups?TESTGROUP1\",\"name\":\"TESTGROUP1\"}}]";
         Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
     }
 
     @Test
     public void writeFull() throws Exception {
         final Writer writer = new StringWriter();
-        final JSONUserWriter testSubject = new JSONUserWriter(writer, "/tmp/home");
+        final JSONGroupWriter testSubject = new JSONGroupWriter(writer);
 
-        final User testUser = new User("TESTUSER4");
-        testUser.setUid(899);
-        testSubject.write(List.of(testUser).iterator());
+        final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP4")));
+        testGroup.setGid(7765);
+        testSubject.write(List.of(testGroup).iterator());
 
-        Assert.assertEquals("Wrong output", "[{\"899\":{\"username\":\"TESTUSER4\",\"homeDir\":\"/tmp/home/TESTUSER4\",\"shell\":\"/sbin/nologin\"}}]",
-                            writer.toString());
+        final String expectedJSON = "[{\"7765\":{\"uri\":\"ivo://test.org/groups?TESTGROUP4\",\"name\":\"TESTGROUP4\"}}]";
+        Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
     }
 }
