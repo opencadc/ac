@@ -68,6 +68,9 @@
 
 package org.opencadc.posix.mapper.web;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
@@ -83,6 +86,7 @@ import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
 import org.opencadc.posix.mapper.web.user.JSONUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
+import javax.security.auth.Subject;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -106,6 +110,19 @@ public abstract class PosixMapperAction extends RestAction {
 
     protected String getHomeDirRoot() {
         return PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.HOME_DIR_ROOT_KEY);
+    }
+
+    @Override
+    public void initAction() throws Exception {
+        super.initAction();
+        checkAuthorization();
+    }
+
+    private void checkAuthorization() {
+        final Subject currentUser = AuthenticationUtil.getCurrentSubject();
+        if (currentUser.getPublicCredentials(AuthMethod.class).contains(AuthMethod.ANON)) {
+            throw new NotAuthenticatedException("Caller is not authenticated.");
+        }
     }
 
     protected GroupWriter getGroupWriter() throws IOException {
