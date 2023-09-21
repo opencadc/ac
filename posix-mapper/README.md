@@ -52,11 +52,8 @@ org.opencadc.posix.mapper.schema=mapping
 org.opencadc.posix.mapper.homeDirRoot=/storage/home
 
 # ID ranges to allow some customization where administration is necessary
-org.opencadc.posix.mapper.uid.min=10000
-org.opencadc.posix.mapper.uid.max=100000
-
-org.opencadc.posix.mapper.gid.min=10000
-org.opencadc.posix.mapper.gid.max=100000
+org.opencadc.posix.mapper.uid.start=10000
+org.opencadc.posix.mapper.gid.start=10000
 ```
 The _resourceID_ is the resourceID of _this_ posix-mapper service.
 
