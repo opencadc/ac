@@ -11,10 +11,6 @@ public interface PosixUtil {
 
     PosixUtil user(User user);
 
-    PosixUtil homeDir(String homeDir);
-
-    PosixUtil groupURIs(List<GroupURI> groupURIList);
-
     PosixUtil useClient(PosixClient posixClient);
 
     void load() throws Exception;

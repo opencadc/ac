@@ -68,37 +68,33 @@
 
 package org.opencadc.posix.mapper.web.user;
 
-import org.junit.Assert;
-import org.junit.Test;
 import org.opencadc.posix.mapper.User;
 
-import java.io.StringWriter;
+import java.io.IOException;
 import java.io.Writer;
-import java.util.List;
+import java.util.Iterator;
 
-public class JSONUserWriterTest {
-    @Test
-    public void writeNoUID() throws Exception {
-        final Writer writer = new StringWriter();
-        final JSONUserWriter testSubject = new JSONUserWriter(writer, "/tmp/home");
+public class TSVUserWriter implements UserWriter {
 
-        final User testUser = new User("TESTUSER1");
-        testSubject.write(List.of(testUser).iterator());
+    private static final String DELIMITER = "\t";
 
-        final String expectedJSON = "[{\"0\":{\"username\":\"TESTUSER1\",\"homeDir\":\"/tmp/home/TESTUSER1\",\"shell\":\"/sbin/nologin\"}}]";
-        Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
+    private final Writer writer;
+
+    public TSVUserWriter(final Writer writer) {
+        this.writer = writer;
     }
 
-    @Test
-    public void writeFull() throws Exception {
-        final Writer writer = new StringWriter();
-        final JSONUserWriter testSubject = new JSONUserWriter(writer, "/tmp/home");
-
-        final User testUser = new User("TESTUSER4");
-        testUser.setUid(899);
-        testSubject.write(List.of(testUser).iterator());
-
-        Assert.assertEquals("Wrong output", "[{\"899\":{\"username\":\"TESTUSER4\",\"homeDir\":\"/tmp/home/TESTUSER4\",\"shell\":\"/sbin/nologin\"}}]",
-                            writer.toString());
+    @Override
+    public void write(Iterator<User> userIterator) throws IOException {
+        while (userIterator.hasNext()) {
+            final User user = userIterator.next();
+            writer.write(user.getUsername());
+            writer.write(TSVUserWriter.DELIMITER);
+            writer.write(Integer.toString(user.getUid()));
+            writer.write(TSVUserWriter.DELIMITER);
+            writer.write(Integer.toString(user.getUid()));
+            writer.write("\n");
+        }
+        writer.flush();
     }
 }

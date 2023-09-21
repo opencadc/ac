@@ -1,21 +1,11 @@
 package org.opencadc.posix.mapper;
 
-import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 
 public class PostgresPosixUtil implements PosixUtil {
-    private static final Logger log = Logger.getLogger(PostgresPosixUtil.class);
-    private static final String SEPARATE = ";";
-
     private String userName;
-    private String homeDir;
-    private final List<GroupURI> groupURIList = new ArrayList<>();
     private PosixClient posixClient;
     private User user;
 
@@ -28,19 +18,6 @@ public class PostgresPosixUtil implements PosixUtil {
     @Override
     public PosixUtil user(User user) {
         this.user = user;
-        return this;
-    }
-
-    @Override
-    public PosixUtil homeDir(String homeDir) {
-        this.homeDir = homeDir;
-        return this;
-    }
-
-    @Override
-    public PosixUtil groupURIs(List<GroupURI> groupURIList) {
-        this.groupURIList.clear();
-        this.groupURIList.addAll(groupURIList);
         return this;
     }
 
@@ -69,25 +46,6 @@ public class PostgresPosixUtil implements PosixUtil {
     @Override
     public String posixEntry() {
         String posixId = posixId();
-        return format("%s:x:%s:%s::%s/%s:/sbin/nologin", this.userName, posixId, posixId, homeDir, this.userName);
+        return format("%s:x:%s:%s:::", this.userName, posixId, posixId);
     }
-
-//    @Override
-//    public String groupEntry() throws Exception {
-//        List<Group> groups = user.getGroups();
-//        List<String> groupEntries = new ArrayList<>();
-//        String userPrivateGroupEntry = user.getUsername() + ":x:" + user.getUid() + ":" + user.getUsername();
-//        groupEntries.add(userPrivateGroupEntry);
-//        for (Group group : groups) {
-//            List<User> userPerGroup = posixClient.getUsersForGroup(group.getGid());
-//            String concatenatedUserName = userPerGroup
-//                    .stream()
-//                    .map(User::getUsername)
-//                    .reduce((i, j) -> i + "," + j)
-//                    .orElse("");
-//            String entry = group.getGroupURI() + ":x" + ":" + group.getGid() + ":" + concatenatedUserName;
-//            groupEntries.add(entry);
-//        }
-//        return groupEntries.stream().reduce((i, j) -> i + SEPARATE + j).orElse("");
-//    }
 }

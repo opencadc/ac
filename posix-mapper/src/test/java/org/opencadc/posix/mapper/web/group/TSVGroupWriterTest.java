@@ -68,42 +68,39 @@
 
 package org.opencadc.posix.mapper.web.group;
 
-import org.json.JSONException;
-import org.json.JSONWriter;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 import org.opencadc.posix.mapper.Group;
 
-import java.io.IOException;
+import java.io.StringWriter;
 import java.io.Writer;
-import java.util.Iterator;
+import java.net.URI;
+import java.util.List;
 
-public class JSONGroupWriter implements GroupWriter {
+public class TSVGroupWriterTest {
+    @Test
+    public void writeNoUID() throws Exception {
+        final Writer writer = new StringWriter();
+        final TSVGroupWriter testSubject = new TSVGroupWriter(writer);
 
-    private final Writer writer;
+        final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP1")));
+        testSubject.write(List.of(testGroup).iterator());
 
-    public JSONGroupWriter(final Writer writer) {
-        this.writer = writer;
+        final String expectedJSON = "ivo://test.org/groups?TESTGROUP1\t(Not yet persisted)\n";
+        Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
     }
 
-    @Override
-    public void write(Iterator<Group> groupIterator) throws IOException {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
-        try {
-            jsonWriter.array();
-            while (groupIterator.hasNext()) {
-                final Group group = groupIterator.next();
-                jsonWriter.object();
-                jsonWriter.key(group.getGid() == null ? "(Not yet persisted)" : Integer.toString(group.getGid()));
-                jsonWriter.object();
-                jsonWriter.key("uri").value(group.getGroupURI().getURI().toASCIIString());
-                jsonWriter.key("name").value(group.getGroupURI().getURI().getQuery());
-                jsonWriter.endObject();
-                jsonWriter.endObject();
-            }
-            jsonWriter.endArray();
-        } catch (JSONException jsonException) {
-            throw new IOException(jsonException.getMessage(), jsonException);
-        } finally {
-            writer.flush();
-        }
+    @Test
+    public void writeFull() throws Exception {
+        final Writer writer = new StringWriter();
+        final TSVGroupWriter testSubject = new TSVGroupWriter(writer);
+
+        final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP4")));
+        testGroup.setGid(7765);
+        testSubject.write(List.of(testGroup).iterator());
+
+        final String expectedJSON = "ivo://test.org/groups?TESTGROUP4\t7765\n";
+        Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
     }
 }

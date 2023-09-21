@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.exception.ConstraintViolationException;
 import org.opencadc.posix.mapper.web.PosixInitAction;
 
 import java.util.*;
@@ -90,7 +91,7 @@ public class Postgres {
         try {
             session = open();
             return function.apply(session);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             log.error(e);
             throw e;
         } finally {
@@ -102,27 +103,36 @@ public class Postgres {
         try {
             return inSession(session -> {
                 session.beginTransaction();
-                R val = null;
+                final R val;
                 try {
                     val = function.apply(session);
                 } catch (Exception e) {
                     session.getTransaction().rollback();
-                    throw new RuntimeException(e);
+                    throw e;
                 }
                 session.getTransaction().commit();
                 return val;
             });
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             log.error(e);
             throw e;
         }
     }
 
     public <T> T save(T entity) {
-        return inTransaction(session -> {
-            session.persist(entity);
-            return entity;
-        });
+        try {
+            return inTransaction(session -> {
+                session.persist(entity);
+                return entity;
+            });
+        } catch (ConstraintViolationException constraintViolationException) {
+            final String message = constraintViolationException.getMessage();
+            if (message.contains("unique constraint")) {
+                throw new IllegalArgumentException(entity.getClass().getSimpleName() + " already exists.");
+            } else {
+                throw constraintViolationException;
+            }
+        }
     }
 
     public <T> T update(T entity) {

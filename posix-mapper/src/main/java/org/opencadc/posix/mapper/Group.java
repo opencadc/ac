@@ -16,6 +16,7 @@ public class Group {
             initialValue = 10000)
     private Integer gid;
 
+    @Column(unique = true)
     @Type(value = GroupURIType.class)
     private GroupURI groupURI;
 

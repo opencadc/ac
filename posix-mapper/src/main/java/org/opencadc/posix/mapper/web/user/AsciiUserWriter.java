@@ -78,11 +78,9 @@ import java.util.Iterator;
 public class AsciiUserWriter implements UserWriter {
 
     private final Writer writer;
-    private final String homeDirRoot;
 
-    public AsciiUserWriter(final Writer writer, final String homeDirRoot) {
+    public AsciiUserWriter(final Writer writer) {
         this.writer = writer;
-        this.homeDirRoot = homeDirRoot;
     }
 
     @Override
@@ -91,7 +89,6 @@ public class AsciiUserWriter implements UserWriter {
             while (userIterator.hasNext()) {
                 final User user = userIterator.next();
                 writer.write(new PostgresPosixUtil()
-                                     .homeDir(homeDirRoot)
                                      .user(user)
                                      .userName(user.getUsername())
                                      .posixEntry());

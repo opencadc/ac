@@ -80,25 +80,25 @@ public class AsciiUserWriterTest {
     @Test
     public void writeNoUID() throws Exception {
         final Writer writer = new StringWriter();
-        final AsciiUserWriter testSubject = new AsciiUserWriter(writer, "/tmp/home");
+        final AsciiUserWriter testSubject = new AsciiUserWriter(writer);
 
         final User testUser = new User("TESTUSER1");
         testSubject.write(List.of(testUser).iterator());
 
-        Assert.assertEquals("Wrong output", "TESTUSER1:x:0:0::/tmp/home/TESTUSER1:/sbin/nologin\n",
+        Assert.assertEquals("Wrong output", "TESTUSER1:x:0:0:::\n",
                             writer.toString());
     }
 
     @Test
     public void writeFull() throws Exception {
         final Writer writer = new StringWriter();
-        final AsciiUserWriter testSubject = new AsciiUserWriter(writer, "/tmp/home");
+        final AsciiUserWriter testSubject = new AsciiUserWriter(writer);
 
         final User testUser = new User("TESTUSER4");
         testUser.setUid(899);
         testSubject.write(List.of(testUser).iterator());
 
-        Assert.assertEquals("Wrong output", "TESTUSER4:x:899:899::/tmp/home/TESTUSER4:/sbin/nologin\n",
+        Assert.assertEquals("Wrong output", "TESTUSER4:x:899:899:::\n",
                             writer.toString());
     }
 }

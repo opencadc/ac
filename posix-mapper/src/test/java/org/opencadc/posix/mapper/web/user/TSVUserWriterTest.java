@@ -66,41 +66,39 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.mapper.web.group;
+package org.opencadc.posix.mapper.web.user;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.Group;
+import org.opencadc.posix.mapper.User;
 
 import java.io.StringWriter;
 import java.io.Writer;
-import java.net.URI;
 import java.util.List;
 
-public class JSONGroupWriterTest {
+public class TSVUserWriterTest {
     @Test
     public void writeNoUID() throws Exception {
         final Writer writer = new StringWriter();
-        final JSONGroupWriter testSubject = new JSONGroupWriter(writer);
+        final TSVUserWriter testSubject = new TSVUserWriter(writer);
 
-        final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP1")));
-        testSubject.write(List.of(testGroup).iterator());
+        final User testUser = new User("TESTUSER1");
+        testSubject.write(List.of(testUser).iterator());
 
-        final String expectedJSON = "[{\"(Not yet persisted)\":{\"uri\":\"ivo://test.org/groups?TESTGROUP1\",\"name\":\"TESTGROUP1\"}}]";
-        Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
+        final String expectedTSV = "TESTUSER1\t0\t0\n";
+        Assert.assertEquals("Wrong output", expectedTSV, writer.toString());
     }
 
     @Test
     public void writeFull() throws Exception {
         final Writer writer = new StringWriter();
-        final JSONGroupWriter testSubject = new JSONGroupWriter(writer);
+        final TSVUserWriter testSubject = new TSVUserWriter(writer);
 
-        final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP4")));
-        testGroup.setGid(7765);
-        testSubject.write(List.of(testGroup).iterator());
+        final User testUser = new User("TESTUSER4");
+        testUser.setUid(899);
+        testSubject.write(List.of(testUser).iterator());
 
-        final String expectedJSON = "[{\"7765\":{\"uri\":\"ivo://test.org/groups?TESTGROUP4\",\"name\":\"TESTGROUP4\"}}]";
-        Assert.assertEquals("Wrong output", expectedJSON, writer.toString());
+        Assert.assertEquals("Wrong output", "TESTUSER4\t899\t899\n",
+                            writer.toString());
     }
 }

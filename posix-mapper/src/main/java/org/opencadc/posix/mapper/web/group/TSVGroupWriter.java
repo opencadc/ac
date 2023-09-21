@@ -66,48 +66,34 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.mapper.web.user;
+package org.opencadc.posix.mapper.web.group;
 
-import org.json.JSONException;
-import org.json.JSONWriter;
-import org.opencadc.posix.mapper.User;
+import org.opencadc.posix.mapper.Group;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
 
-public class JSONUserWriter implements UserWriter {
+public class TSVGroupWriter implements GroupWriter {
+
+    private static final String DELIMITER = "\t";
 
     private final Writer writer;
 
-    private final String homeDirRoot;
-
-    public JSONUserWriter(final Writer writer, final String homeDirRoot) {
+    public TSVGroupWriter(final Writer writer) {
         this.writer = writer;
-        this.homeDirRoot = homeDirRoot;
     }
 
     @Override
-    public void write(Iterator<User> userIterator) throws IOException {
-        final JSONWriter jsonWriter = new JSONWriter(writer);
-        try {
-            jsonWriter.array();
-            while (userIterator.hasNext()) {
-                final User user = userIterator.next();
-                jsonWriter.object();
-                jsonWriter.key(Integer.toString(user.getUid()));
-                jsonWriter.object();
-                jsonWriter.key("username").value(user.getUsername());
-                jsonWriter.key("homeDir").value(homeDirRoot + "/" + user.getUsername());
-                jsonWriter.key("shell").value("/sbin/nologin");
-                jsonWriter.endObject();
-                jsonWriter.endObject();
-            }
-            jsonWriter.endArray();
-        } catch (JSONException jsonException) {
-            throw new IOException(jsonException.getMessage(), jsonException);
-        } finally {
-            writer.flush();
+    public void write(Iterator<Group> groupIterator) throws IOException {
+        while (groupIterator.hasNext()) {
+            final Group group = groupIterator.next();
+            writer.write(group.getGroupURI().getURI().toASCIIString());
+            writer.write(TSVGroupWriter.DELIMITER);
+            writer.write(group.getGid() == null ? "(Not yet persisted)" : Integer.toString(group.getGid()));
+            writer.write("\n");
         }
+
+        writer.flush();
     }
 }

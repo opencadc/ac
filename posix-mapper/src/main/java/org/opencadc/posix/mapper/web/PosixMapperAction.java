@@ -81,23 +81,22 @@ import org.opencadc.posix.mapper.PostgresPosixClient;
 import org.opencadc.posix.mapper.User;
 import org.opencadc.posix.mapper.web.group.AsciiGroupWriter;
 import org.opencadc.posix.mapper.web.group.GroupWriter;
-import org.opencadc.posix.mapper.web.group.JSONGroupWriter;
+import org.opencadc.posix.mapper.web.group.TSVGroupWriter;
 import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
-import org.opencadc.posix.mapper.web.user.JSONUserWriter;
+import org.opencadc.posix.mapper.web.user.TSVUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import javax.security.auth.Subject;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
 public abstract class PosixMapperAction extends RestAction {
 
     protected PosixClient posixClient;
     protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
-    protected static final String JSON_CONTENT_TYPE = "application/json";
+    protected static final String TSV_CONTENT_TYPE = "text/tab-separated-values";
 
 
     protected PosixMapperAction() {
@@ -128,8 +127,8 @@ public abstract class PosixMapperAction extends RestAction {
     protected GroupWriter getGroupWriter() throws IOException {
         final String requestContentType = syncInput.getHeader("accept");
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
-        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            return new JSONGroupWriter(writer);
+        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)) {
+            return new TSVGroupWriter(writer);
         } else {
             return new AsciiGroupWriter(writer);
         }
@@ -138,10 +137,10 @@ public abstract class PosixMapperAction extends RestAction {
     protected UserWriter getUserWriter() throws IOException {
         final String requestContentType = syncInput.getHeader("accept");
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
-        if (PosixMapperAction.JSON_CONTENT_TYPE.equals(requestContentType)) {
-            return new JSONUserWriter(writer, getHomeDirRoot());
+        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)) {
+            return new TSVUserWriter(writer);
         } else {
-            return new AsciiUserWriter(writer, getHomeDirRoot());
+            return new AsciiUserWriter(writer);
         }
     }
 
