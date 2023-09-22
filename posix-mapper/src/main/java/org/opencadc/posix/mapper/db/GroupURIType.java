@@ -79,6 +79,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
+/**
+ * Hibernate mapping type to marshal and unmarshal a GroupURI.
+ */
 public class GroupURIType implements UserType<GroupURI> {
 
     @Override
