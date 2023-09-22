@@ -45,10 +45,6 @@
             <param-value>org.opencadc.posix.mapper.web.PosixInitAction</param-value>
         </init-param>
         <init-param>
-            <param-name>post</param-name>
-            <param-value>org.opencadc.posix.mapper.web.user.PostAction</param-value>
-        </init-param>
-        <init-param>
             <param-name>get</param-name>
             <param-value>org.opencadc.posix.mapper.web.user.GetAction</param-value>
         </init-param>

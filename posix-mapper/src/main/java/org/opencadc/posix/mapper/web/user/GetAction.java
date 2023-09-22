@@ -69,18 +69,23 @@
 package org.opencadc.posix.mapper.web.user;
 
 
-import org.opencadc.posix.mapper.PostgresPosixUtil;
-import org.opencadc.posix.mapper.User;
 import org.opencadc.posix.mapper.web.PosixMapperAction;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 public class GetAction extends PosixMapperAction {
 
     @Override
     public void doAction() throws Exception {
         final UserWriter userWriter = getUserWriter();
-        posixClient.writeUsers(userWriter);
+        posixClient.writeUsers(userWriter, getUsernameParameters().toArray(new String[0]));
         syncOutput.getOutputStream().flush();
+    }
+
+    List<String> getUsernameParameters() {
+        final List<String> usernameStringParameters = syncInput.getParameters("username");
+        return Objects.requireNonNullElse(usernameStringParameters, Collections.emptyList());
     }
 }

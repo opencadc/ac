@@ -72,9 +72,9 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.net.HttpGet;
-import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
@@ -87,14 +87,13 @@ import org.junit.Test;
 import javax.security.auth.Subject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 
 public class UserManagementIntTest {
     private static final Logger log = Logger.getLogger(UserManagementIntTest.class);
@@ -104,9 +103,8 @@ public class UserManagementIntTest {
         Log4jInit.setLevel("org.opencadc.posix.mapper", Level.DEBUG);
     }
 
-    private static final String TEXT_PLAIN_CONTENT_PLAIN = "text/plain";
-    private static final String TSV_CONTENT_PLAIN = "text/tab-separated-values";
-    private static final URI USER_MAPPER_STANDARD_ID = URI.create("http://www.opencadc.org/std/posix#user-mapping-1.0");
+    private static final String TEXT_PLAIN_CONTENT_TYPE = "text/plain";
+    private static final String TSV_CONTENT_TYPE = "text/tab-separated-values";
 
     protected URL userMapperURL;
     protected Subject userSubject;
@@ -114,7 +112,7 @@ public class UserManagementIntTest {
     public UserManagementIntTest() throws Exception {
         RegistryClient regClient = new RegistryClient();
         userMapperURL = regClient.getServiceURL(UserManagementIntTest.POSIX_MAPPER_SERVICE_ID,
-                                                UserManagementIntTest.USER_MAPPER_STANDARD_ID, AuthMethod.TOKEN);
+                                                Standards.POSIX_USERMAP, AuthMethod.TOKEN);
         log.info("User Mapping URL: " + userMapperURL);
 
         File bearerTokenFile = FileUtil.getFileFromResource("posix-mapper-test.token",
@@ -133,7 +131,8 @@ public class UserManagementIntTest {
     @Test
     public void testNotAuthenticated() throws Exception {
         try {
-            createUser(randomUsername());
+            final OutputStream outputStream = new ByteArrayOutputStream();
+            getUsers(outputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0]);
             Assert.fail("Should throw NotAuthenticatedException");
         } catch (NotAuthenticatedException notAuthenticatedException) {
             // Good
@@ -147,13 +146,15 @@ public class UserManagementIntTest {
         Subject.doAs(userSubject, (PrivilegedExceptionAction<Void>) () -> {
             final String username = randomUsername();
             try {
-                final int uid = createUser(username);
-                final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_PLAIN);
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[]{username});
                 String output = byteArrayOutputStream.toString();
+                final int uid = Integer.parseInt(output.trim().split(":")[2]);
+
                 Assert.assertTrue("Wrong output",
                                   output.contains(String.format("%s:x:%d:%d:::", username, uid, uid)));
-                getUsers(byteArrayOutputStream, UserManagementIntTest.TSV_CONTENT_PLAIN);
+                byteArrayOutputStream = new ByteArrayOutputStream();
+                getUsers(byteArrayOutputStream, UserManagementIntTest.TSV_CONTENT_TYPE, new String[]{username});
                 output = byteArrayOutputStream.toString();
                 Assert.assertTrue("Wrong TSV output",
                                   output.contains(String.format("%s\t%d", username, uid)));
@@ -165,30 +166,26 @@ public class UserManagementIntTest {
         });
     }
 
-    private int createUser(final String username) throws Throwable {
-        final Map<String, Object> payload = new HashMap<>();
+    private void getUsers(final OutputStream outputStream, final String contentType, final String[] usernames)
+            throws Throwable {
+        final InputStreamWrapper inputStreamWrapper = inputStream -> outputStream.write(inputStream.readAllBytes());
+        final StringBuilder urlBuilder = new StringBuilder(userMapperURL.toString());
 
-        payload.put("username", username);
-
-        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        final HttpPost httpPost = new HttpPost(userMapperURL, payload, byteArrayOutputStream);
-        httpPost.run();
-
-        if (httpPost.getThrowable() != null) {
-            throw httpPost.getThrowable();
+        if (usernames.length > 0) {
+            urlBuilder.append("?");
+            urlBuilder.append("username=");
+            urlBuilder.append(String.join("&username=", usernames));
         }
 
-        return Integer.parseInt(byteArrayOutputStream.toString());
-    }
-
-    private void getUsers(final OutputStream outputStream, final String contentType) throws Throwable {
-        final InputStreamWrapper inputStreamWrapper = inputStream -> outputStream.write(inputStream.readAllBytes());
-        final HttpGet httpGet = new HttpGet(userMapperURL, inputStreamWrapper);
+        final HttpGet httpGet = new HttpGet(new URL(urlBuilder.toString()), inputStreamWrapper);
         httpGet.setRequestProperty("accept", contentType);
-        httpGet.run();
+        httpGet.prepare();
 
-        if (httpGet.getThrowable() != null) {
-            throw httpGet.getThrowable();
+        final byte[] buffer = new byte[8192];
+        final InputStream inputStream = httpGet.getInputStream();
+        int bytesRead = 0;
+        while (((bytesRead = inputStream.read(buffer)) > 0)) {
+            outputStream.write(buffer, 0, bytesRead);
         }
     }
 }

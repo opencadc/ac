@@ -4,7 +4,7 @@ This is a mapping service that supports GET, and POST operations.  The GET opera
 for a given UID or GID, and a POST will add a new entry.
 
 ### deployment
-The `posix` war file can be renamed at deployment time in order to support an alternate service name, including introducing 
+The `posix-mapper.war` WAR file can be renamed at deployment time in order to support an alternate service name, including introducing 
 additional path elements (see war-rename.conf).
 
 ### configuration

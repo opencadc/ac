@@ -128,10 +128,31 @@ public class PostgresPosixClient implements PosixClient {
     }
 
     @Override
-    public void writeUsers(UserWriter writer) {
+    public void writeUsers(UserWriter writer, String[] usernames) {
+
+        // Ensure GroupURIs are all persisted.
+        Arrays.stream(usernames).forEach(username -> {
+            final User u = getUser(username);
+            if (u == null) {
+                saveUser(new User(username));
+            }
+        });
+
+        final Map<String, Object[]> queryParameters = new HashMap<>();
+
         postgres.inSession(session -> {
+            final StringBuilder queryBuilder = new StringBuilder("from Users u");
+
+            if (usernames.length > 0) {
+                queryBuilder.append(" where (u.username in (:usernames))");
+                queryParameters.put("usernames", usernames);
+            }
+
+            final Query<User> userQuery = session.createQuery(queryBuilder.toString(), User.class);
+            queryParameters.forEach(userQuery::setParameterList);
+
             try {
-                writer.write(session.createQuery("from Users u", User.class).stream().iterator());
+                writer.write(userQuery.stream().iterator());
             } catch (IOException ioException) {
                 return Boolean.FALSE;
             }

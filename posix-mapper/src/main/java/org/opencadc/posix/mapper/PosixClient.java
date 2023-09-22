@@ -26,11 +26,13 @@ public interface PosixClient {
     List<User> getUsers() throws Exception;
 
     /**
-     * Write out all the User mappings to the given writer.
+     * Write out all the User mappings to the given writer.  It is the responsibility of the implementation to
+     * ensure Users are created.
      * @param writer        The Writer to write to.
+     * @param usernames     Usernames to constrain.
      * @throws Exception    If Users cannot be obtained, or written.
      */
-    void writeUsers(UserWriter writer) throws Exception;
+    void writeUsers(UserWriter writer, String[] usernames) throws Exception;
 
     /**
      * Write out all the Group mappings to the given writer.  It is the responsibility of the implementation to

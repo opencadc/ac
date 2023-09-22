@@ -73,9 +73,11 @@ import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.InputStreamWrapper;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -84,6 +86,7 @@ import org.junit.Test;
 import javax.security.auth.Subject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
@@ -100,10 +103,8 @@ public class GroupManagementIntTest {
         Log4jInit.setLevel("org.opencadc.posix.mapper", Level.DEBUG);
     }
 
-    private static final String TEXT_PLAIN_CONTENT_PLAIN = "text/plain";
-    private static final String TSV_CONTENT_PLAIN = "text/tab-separated-values";
-    private static final URI GROUP_MAPPER_STANDARD_ID =
-            URI.create("http://www.opencadc.org/std/posix#group-mapping-1.0");
+    private static final String TEXT_PLAIN_CONTENT_TYPE = "text/plain";
+    private static final String TSV_CONTENT_TYPE = "text/tab-separated-values";
 
     protected URL groupMapperURL;
     protected Subject userSubject;
@@ -111,7 +112,7 @@ public class GroupManagementIntTest {
     public GroupManagementIntTest() throws Exception {
         RegistryClient regClient = new RegistryClient();
         groupMapperURL = regClient.getServiceURL(GroupManagementIntTest.POSIX_MAPPER_SERVICE_ID,
-                                                 GroupManagementIntTest.GROUP_MAPPER_STANDARD_ID, AuthMethod.TOKEN);
+                                                 Standards.POSIX_GROUPMAP, AuthMethod.TOKEN);
         log.info("Group Mapping URL: " + groupMapperURL);
 
         File bearerTokenFile = FileUtil.getFileFromResource("posix-mapper-test.token",
@@ -126,19 +127,20 @@ public class GroupManagementIntTest {
     @Test
     public void testGroupAdd() throws Exception {
         Subject.doAs(userSubject, (PrivilegedExceptionAction<Void>) () -> {
+            final String groupName = randomGroupName();
             try {
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_PLAIN,
-                          new String[]{"ivo://test.org/groups?TESTGROUP1"}, new int[0]);
+                getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_TYPE,
+                          new String[]{"ivo://test.org/groups?" + groupName}, new int[0]);
                 final String output = byteArrayOutputStream.toString();
                 final int gid = Integer.parseInt(output.trim().split(" ")[1]);
                 byteArrayOutputStream = new ByteArrayOutputStream();
-                getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_PLAIN, new String[0],
+                getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0],
                           new int[]{gid});
                 Assert.assertEquals("Wrong output", output, byteArrayOutputStream.toString());
 
                 byteArrayOutputStream = new ByteArrayOutputStream();
-                getGroups(byteArrayOutputStream, GroupManagementIntTest.TSV_CONTENT_PLAIN, new String[0],
+                getGroups(byteArrayOutputStream, GroupManagementIntTest.TSV_CONTENT_TYPE, new String[0],
                           new int[]{gid});
                 Assert.assertEquals("Wrong output", output.replaceAll(" ", "\t"),
                                     byteArrayOutputStream.toString());
@@ -148,6 +150,10 @@ public class GroupManagementIntTest {
 
             return null;
         });
+    }
+
+    final String randomGroupName() {
+        return RandomStringUtils.randomAlphabetic(4, 12);
     }
 
     private void getGroups(final OutputStream outputStream, final String contentType, final String[] groupURIs,
@@ -172,10 +178,13 @@ public class GroupManagementIntTest {
 
         final HttpGet httpGet = new HttpGet(new URL(urlBuilder.toString()), inputStreamWrapper);
         httpGet.setRequestProperty("accept", contentType);
-        httpGet.run();
+        httpGet.prepare();
 
-        if (httpGet.getThrowable() != null) {
-            throw httpGet.getThrowable();
+        final byte[] buffer = new byte[8192];
+        final InputStream inputStream = httpGet.getInputStream();
+        int bytesRead = 0;
+        while (((bytesRead = inputStream.read(buffer)) > 0)) {
+            outputStream.write(buffer, 0, bytesRead);
         }
     }
 }
