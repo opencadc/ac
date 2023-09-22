@@ -113,6 +113,20 @@ public interface GroupPersistence
                AccessControlException;
 
     /**
+     * Get the group with the given Group ID and optional permission check.
+     * Normal usage should do permission checks but if the caller has priviledged 
+     * access (see GroupServlet) then permission check can be disabled.
+     * 
+     * @param groupName the group ID
+     * @param doPermissionCheck normally true, false for priviledged caller
+     * @return the target group
+     * @throws GroupNotFoundException
+     * @throws TransientException
+     * @throws AccessControlException 
+     */
+    Group getGroup(String groupName, boolean doPermissionCheck) 
+        throws GroupNotFoundException, TransientException, AccessControlException;
+    /**
      * Creates the group.
      *
      * @param group The group to create

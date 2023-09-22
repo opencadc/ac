@@ -95,6 +95,8 @@ import org.apache.log4j.Logger;
 public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
 {
     private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
+    
+    protected boolean isPrivilegedUser = false;
     protected GroupLogInfo logInfo;
     protected HttpServletRequest request;
     protected SyncOutput syncOut;
@@ -105,6 +107,16 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
     }
 
     abstract void doAction() throws Exception;
+
+    public void setIsPrivilegedUser(boolean isPrivilegedUser)
+    {
+    	this.isPrivilegedUser = isPrivilegedUser;
+    }
+
+    public boolean isPrivilegedUser()
+    {
+    	return this.isPrivilegedUser;
+    }
 
     public void setLogInfo(GroupLogInfo logInfo)
     {
