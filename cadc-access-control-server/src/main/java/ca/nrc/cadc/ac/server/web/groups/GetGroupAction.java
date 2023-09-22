@@ -82,7 +82,12 @@ public class GetGroupAction extends AbstractGroupAction
 
     public void doAction() throws Exception
     {
-        Group group = groupPersistence.getGroup(this.groupName);
+        Group group;
+        if (isPrivilegedUser) {
+             group = groupPersistence.getGroup(this.groupName, false);
+        } else {
+             group = groupPersistence.getGroup(this.groupName);
+        }
         syncOut.setHeader("Content-Type", "application/xml; charset=utf-8");
         GroupWriter groupWriter = new GroupWriter();
         groupWriter.write(group, syncOut.getWriter());

@@ -181,11 +181,17 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
 
     public Group getGroup(String groupName)
         throws GroupNotFoundException, TransientException,
+               AccessControlException {
+        return getGroup(groupName, true);
+    }
+            
+    public Group getGroup(String groupName, boolean doPermissionCheck)
+        throws GroupNotFoundException, TransientException,
                AccessControlException
     {
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
-        boolean allowed = isMember(callerSubject, groupName) || isAdmin(callerSubject, groupName);
-
+        boolean allowed = !doPermissionCheck || isMember(callerSubject, groupName) || isAdmin(callerSubject, groupName);
+        
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
