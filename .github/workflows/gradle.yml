@@ -36,3 +36,6 @@ jobs:
       
     - name: build and test cadc-access-control
       run: cd cadc-access-control && ../gradlew --info clean build javadoc install
+
+    - name: build and test posix-mapper
+      run: cd posix-mapper && ../gradlew --info clean build javadoc
