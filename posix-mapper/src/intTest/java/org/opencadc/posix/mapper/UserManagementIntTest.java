@@ -71,7 +71,6 @@ package org.opencadc.posix.mapper;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.InputStreamWrapper;
