@@ -72,10 +72,10 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.StringUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -87,6 +87,7 @@ import java.io.File;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
@@ -106,27 +107,20 @@ public class GroupManagementIntTest {
 
     protected URL groupMapperURL;
     protected Subject userSubject;
-    protected String bearerToken = System.getenv("BEARER_TOKEN");
 
-    public GroupManagementIntTest() {
-        try {
-            RegistryClient regClient = new RegistryClient();
-            final String overrideTargetURL = System.getenv("POSIX_MAPPER_URL");
-            groupMapperURL = StringUtil.hasText(overrideTargetURL)
-                            ? new URL(overrideTargetURL + "/gid")
-                            : regClient.getServiceURL(GroupManagementIntTest.POSIX_MAPPER_SERVICE_ID,
-                                                      GroupManagementIntTest.GROUP_MAPPER_STANDARD_ID, AuthMethod.TOKEN);
-            log.info("User Mapping URL: " + groupMapperURL);
+    public GroupManagementIntTest() throws Exception {
+        RegistryClient regClient = new RegistryClient();
+        groupMapperURL = regClient.getServiceURL(GroupManagementIntTest.POSIX_MAPPER_SERVICE_ID,
+                                                 GroupManagementIntTest.GROUP_MAPPER_STANDARD_ID, AuthMethod.TOKEN);
+        log.info("Group Mapping URL: " + groupMapperURL);
 
-            File cert = FileUtil.getFileFromResource("posix-mapper-test.pem", UserManagementIntTest.class);
-            userSubject = new Subject();
-            userSubject.getPublicCredentials().add(new AuthorizationToken("Bearer", bearerToken,
-                                                                          List.of("cadc.dao.nrc.ca")));
-            log.debug("userSubject: " + userSubject);
-        } catch (Exception e) {
-            log.error("init exception", e);
-            throw new RuntimeException("init exception", e);
-        }
+        File bearerTokenFile = FileUtil.getFileFromResource("posix-mapper-test.token",
+                                                            UserManagementIntTest.class);
+        final String bearerToken = new String(Files.readAllBytes(bearerTokenFile.toPath()));
+        userSubject = new Subject();
+        userSubject.getPublicCredentials().add(
+                new AuthorizationToken("bearer", bearerToken, List.of(NetUtil.getDomainName(groupMapperURL))));
+        log.debug("userSubject: " + userSubject);
     }
 
     @Test

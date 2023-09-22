@@ -71,13 +71,14 @@ package org.opencadc.posix.mapper;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.InputStreamWrapper;
+import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.StringUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -90,9 +91,10 @@ import java.io.File;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 import java.security.PrivilegedExceptionAction;
-import java.util.HashMap;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 public class UserManagementIntTest {
@@ -109,27 +111,20 @@ public class UserManagementIntTest {
 
     protected URL userMapperURL;
     protected Subject userSubject;
-    protected String bearerToken = System.getenv("BEARER_TOKEN");
 
-    public UserManagementIntTest() {
-        try {
-            RegistryClient regClient = new RegistryClient();
-            final String overrideTargetURL = System.getenv("POSIX_MAPPER_URL");
-            userMapperURL = StringUtil.hasText(overrideTargetURL)
-                            ? new URL(overrideTargetURL + "/uid")
-                            : regClient.getServiceURL(UserManagementIntTest.POSIX_MAPPER_SERVICE_ID,
-                                                      UserManagementIntTest.USER_MAPPER_STANDARD_ID, AuthMethod.TOKEN);
-            log.info("User Mapping URL: " + userMapperURL);
+    public UserManagementIntTest() throws Exception {
+        RegistryClient regClient = new RegistryClient();
+        userMapperURL = regClient.getServiceURL(UserManagementIntTest.POSIX_MAPPER_SERVICE_ID,
+                                                UserManagementIntTest.USER_MAPPER_STANDARD_ID, AuthMethod.TOKEN);
+        log.info("User Mapping URL: " + userMapperURL);
 
-            File cert = FileUtil.getFileFromResource("posix-mapper-test.pem", UserManagementIntTest.class);
-            userSubject = new Subject();
-            userSubject.getPublicCredentials().add(new AuthorizationToken("Bearer", bearerToken,
-                                                                          List.of("cadc.dao.nrc.ca")));
-            log.debug("userSubject: " + userSubject);
-        } catch (Exception e) {
-            log.error("init exception", e);
-            throw new RuntimeException("init exception", e);
-        }
+        File bearerTokenFile = FileUtil.getFileFromResource("posix-mapper-test.token",
+                                                            UserManagementIntTest.class);
+        final String bearerToken = new String(Files.readAllBytes(bearerTokenFile.toPath()));
+        userSubject = new Subject();
+        userSubject.getPublicCredentials().add(
+                new AuthorizationToken("bearer", bearerToken, List.of(NetUtil.getDomainName(userMapperURL))));
+        log.debug("userSubject: " + userSubject);
     }
 
     final String randomUsername() {
