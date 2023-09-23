@@ -5,7 +5,7 @@ for a given UID or GID, and a POST will add a new entry.
 
 ### deployment
 The `posix-mapper.war` WAR file can be renamed at deployment time in order to support an alternate service name, including introducing 
-additional path elements (see war-rename.conf).
+additional path elements (see [war-rename.conf](https://github.com/opencadc/docker-base/tree/master/cadc-tomcat#war-renameconf)).
 
 ### configuration
 The following runtime configuration must be made available via the `/config` directory.
