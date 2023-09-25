@@ -86,7 +86,16 @@ import ca.nrc.cadc.ac.server.web.groups.AbstractGroupAction;
 import ca.nrc.cadc.ac.server.web.groups.GroupLogInfo;
 import ca.nrc.cadc.ac.server.web.groups.GroupsActionFactory;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Servlet for handling all requests to /groups
@@ -99,6 +108,8 @@ public class GroupServlet extends HttpServlet
     private static final Logger log = Logger.getLogger(GroupServlet.class);
 
     private GroupPersistence groupPersistence;
+    
+    protected List<Subject> privilegedSubjects;
 
     @Override
     public void init(ServletConfig config) throws ServletException
@@ -107,6 +118,52 @@ public class GroupServlet extends HttpServlet
 
         try
         {
+            String x500Users = config.getInitParameter(GroupServlet.class.getName() + ".PrivilegedX500Principals");
+            log.debug("PrivilegedX500Users: " + x500Users);
+
+            String httpUsers = config.getInitParameter(GroupServlet.class.getName() + ".PrivilegedHttpPrincipals");
+            log.debug("PrivilegedHttpUsers: " + httpUsers);
+
+            List<String> x500List = new ArrayList<String>();
+            List<String> httpList = new ArrayList<String>();
+            if (x500Users != null && httpUsers != null)
+            {
+                Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
+                Matcher x500Matcher = pattern.matcher(x500Users);
+                Matcher httpMatcher = pattern.matcher(httpUsers);
+
+                while (x500Matcher.find())
+                {
+                    String next = x500Matcher.group(1);
+                    x500List.add(next.replace("\"", ""));
+                }
+
+                while (httpMatcher.find())
+                {
+                    String next = httpMatcher.group(1);
+                    httpList.add(next.replace("\"", ""));
+                }
+
+                if (x500List.size() != httpList.size())
+                {
+                    throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+                }
+
+                privilegedSubjects = new ArrayList<Subject>(x500Users.length());
+                for (int i=0; i<x500List.size(); i++)
+                {
+                    Subject s = new Subject();
+                    s.getPrincipals().add(new X500Principal(x500List.get(i)));
+                    s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
+                    privilegedSubjects.add(s);
+                }
+
+            }
+            else
+            {
+                log.warn("No Privileged users configured.");
+            }
+            
             PluginFactory pluginFactory = new PluginFactory();
             groupPersistence = pluginFactory.createGroupPersistence();
         }
@@ -134,6 +191,7 @@ public class GroupServlet extends HttpServlet
 
         try
         {
+            
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
@@ -146,6 +204,14 @@ public class GroupServlet extends HttpServlet
             action.setSyncOut(syncOut);
             action.setGroupPersistence(groupPersistence);
 
+            Subject privilegedSubject = getPrivilegedSubject(request);
+            log.debug("privileged subject: " + privilegedSubject);
+            if (privilegedSubject != null)
+            {
+                action.setIsPrivilegedUser(true);
+                logInfo.setMessage("privileged access");
+            }
+            
             try
             {
                 if (subject == null)
@@ -237,4 +303,49 @@ public class GroupServlet extends HttpServlet
         doAction(GroupsActionFactory.httpHeadFactory(), request, response);
     }
 
+    protected Subject getPrivilegedSubject(HttpServletRequest request)
+    {
+        if (privilegedSubjects == null || privilegedSubjects.isEmpty())
+        {
+            return null;
+        }
+
+        ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
+        Set<Principal> principals = extractor.getPrincipals();
+
+        for (Principal principal : principals)
+        {
+            if (principal instanceof X500Principal)
+            {
+                for (Subject s : privilegedSubjects)
+                {
+                    Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
+                    for (X500Principal p2 : x500Principals)
+                    {
+                        if (p2.getName().equalsIgnoreCase(principal.getName()))
+                        {
+                            return s;
+                        }
+                    }
+                }
+            }
+
+            if (principal instanceof HttpPrincipal)
+            {
+                for (Subject s : privilegedSubjects)
+                {
+                    Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
+                    for (HttpPrincipal p2 : httpPrincipals)
+                    {
+                        if (p2.getName().equalsIgnoreCase(principal.getName()))
+                        {
+                            return s;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
 }
