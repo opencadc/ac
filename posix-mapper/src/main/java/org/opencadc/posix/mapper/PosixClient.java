@@ -7,6 +7,9 @@ import org.opencadc.posix.mapper.web.user.UserWriter;
 import java.util.List;
 
 public interface PosixClient {
+    // Dummy scheme and authority for default groups.
+    String DEFAULT_GROUP_AUTHORITY = "ivo://default-group-should-be-ignored.opencadc.org/default-group";
+
     default boolean userExists(String userId) throws Exception {
         return getUser(userId) != null;
     }

@@ -74,6 +74,7 @@ import org.opencadc.posix.mapper.web.group.GroupWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -134,7 +135,17 @@ public class PostgresPosixClient implements PosixClient {
         Arrays.stream(usernames).forEach(username -> {
             final User u = getUser(username);
             if (u == null) {
-                saveUser(new User(username));
+                postgres.inTransaction(session -> {
+                    final User toBePersisted = new User(username);
+                    session.persist(toBePersisted);
+
+                    final Group defaultGroup = new Group(new GroupURI(URI.create(PosixClient.DEFAULT_GROUP_AUTHORITY
+                                                                                 + "?"
+                                                                                 + toBePersisted.getUsername())));
+                    defaultGroup.setGid(toBePersisted.getUid());
+                    session.merge(defaultGroup);
+                    return Boolean.TRUE;
+                });
             }
         });
 

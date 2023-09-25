@@ -96,10 +96,9 @@ public class PosixInitAction extends InitAction {
     public static final String GID_START_KEY = PosixInitAction.POSIX_KEY + ".gid.start";
 
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
-    static final String HOME_DIR_ROOT_KEY = PosixInitAction.POSIX_KEY + ".homeDirRoot";
 
     static final String[] CHECK_CONFIG_KEYS = new String[] {
-            PosixInitAction.SCHEMA_KEY, PosixInitAction.RESOURCE_ID_KEY, PosixInitAction.HOME_DIR_ROOT_KEY,
+            PosixInitAction.SCHEMA_KEY, PosixInitAction.RESOURCE_ID_KEY,
             PosixInitAction.UID_START_KEY, PosixInitAction.GID_START_KEY
     };
 
