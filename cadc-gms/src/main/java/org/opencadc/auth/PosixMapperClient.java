@@ -180,9 +180,16 @@ public class PosixMapperClient {
                                     tokens.length, line));
                 }
                 // format - username uid gid
+                String username = tokens[0];
+                int userID = Integer.parseInt(tokens[1]);
+                int groupID = Integer.parseInt(tokens[2]);
+                
                 Set<Principal> principals = new HashSet<>();
-                principals.add(new HttpPrincipal(tokens[0]));
-                principals.add(new PosixPrincipal(Integer.parseInt(tokens[1])));
+                PosixPrincipal posixPrincipal = new PosixPrincipal(userID);
+                posixPrincipal.username = username;
+                posixPrincipal.defaultGroup = groupID;
+                principals.add(posixPrincipal);
+                principals.add(new HttpPrincipal(username));
                 for (Principal p : subject.getPrincipals()) {
                     if (!(p instanceof HttpPrincipal) && !(p instanceof PosixPrincipal)) {
                         principals.add(p);
@@ -240,7 +247,7 @@ public class PosixMapperClient {
                                         tokens.length, line));
                     }
                     GroupURI groupURI = new GroupURI(URI.create(tokens[0]));
-                    Integer gid = Integer.getInteger(tokens[1]);
+                    Integer gid = Integer.parseInt(tokens[1]);
                     posixGroups.add(new PosixGroup(gid, groupURI));
                 }
             }
@@ -292,7 +299,7 @@ public class PosixMapperClient {
                                 String.format("error parsing query results, expected 2 values, found %s: %s",
                                         tokens.length, line));
                     }
-                    Integer gid = Integer.getInteger(tokens[0]);
+                    Integer gid = Integer.parseInt(tokens[0]);
                     GroupURI groupURI = new GroupURI(URI.create(tokens[1]));
                     posixGroups.add(new PosixGroup(gid, groupURI));
                 }
