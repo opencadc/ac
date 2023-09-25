@@ -27,6 +27,7 @@ sourceSets {
         }
         resources.srcDir file('src/intTest/resources')
         resources.srcDirs += new File(System.getenv('A') + '/test-certificates/')
+        resources.srcDirs += new File(System.getenv('A') + '/test-tokens/')
     }
 }
 

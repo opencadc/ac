@@ -1,0 +1,188 @@
+swagger: '2.0'
+info:
+  version: '0.1'
+  title: 'POSIX Mapper for UIDs and GIDs (Name: TBD)'
+  description: |
+    This service will provide POSIX UID and GID mappings from a user database.
+basePath: '/posix'
+schemes:
+  - https
+paths:
+  '/uid':
+    get:
+      description: Obtain the username to UID mapping in the database, in POSIX (/etc/passwd) format.
+      summary: List all known UIDs and usernames in the database, as a text/plain POSIX listing.
+      produces:
+        - text/plain
+      tags:
+        - User Management
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          description: 'bearer token (authorization: bearer <TOKEN>)'
+          required: true
+        - name: accept
+          in: header
+          type: string
+          description: 'text/plain for default POSIX output, or text/tab-separated-values for TSV output'
+          required: false
+      responses:
+        '200':
+          description: Successful response.
+          headers:
+            Content-Disposition:
+              description: Contains suggested output filename
+              type: string
+            Content-Encoding:
+              description: The content encoding of the file
+              type: string
+            Content-Type:
+              description: The content type of the file
+              type: string
+            Digest:
+              description: The content checksum (MD5) of the file
+              type: string
+            Content-Length:
+              description: The length of the file in bytes
+              type: integer
+            Last-Modified:
+              description: Timestamp when data was modified
+              type: string
+        '401':
+          description: If the client does not provide credentials and anonymous access is disallowed
+        '403':
+          description: If the client does not have permission
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+    post:
+      description: |
+        Update the user database with a new entry
+      tags:
+        - User Management
+      summary: Add a new user
+      schemes:
+        - https
+      parameters:
+        - name: username
+          in: query
+          type: string
+          description: The username of the new user
+          required: true
+        - name: authorization
+          in: header
+          type: string
+          description: 'bearer token (authorization: bearer <TOKEN>)'
+          required: true
+      responses:
+        '201':
+          description: Accepted (successful user database update)
+          headers:
+            authorization:
+              description: 'Bearer token (authorization: bearer <token>)'
+              type: string
+        '401':
+          description: If the client does not provide credentials and anonymous access is disallowed.
+        '403':
+          description: If the client does not have permission.
+        '404':
+          description: If there is no User with the given UID
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+  '/gid':
+    get:
+      description: Obtain the group name to GID mapping in the database, in POSIX (/etc/group) format.
+      summary: List all known GIDs and group names in the database, as a text/plain POSIX listing.
+      produces:
+        - text/plain
+      tags:
+        - Group Management
+      parameters:
+        - name: gid
+          in: query
+          type: string
+          description: 'GID to search for'
+          required: false
+        - name: group
+          in: query
+          type: string
+          description: 'Group URI to search for.  Will be created if it does not exist.'
+          required: false
+        - name: authorization
+          in: header
+          type: string
+          description: 'bearer token (authorization: bearer <TOKEN>)'
+          required: true
+        - name: accept
+          in: header
+          type: string
+          description: 'text/plain for default POSIX output, or text/tab-separated-values for TSV output'
+          required: false
+      responses:
+        '200':
+          description: Successful response.  May have added a groups.
+          headers:
+            Content-Disposition:
+              description: Contains suggested output filename
+              type: string
+            Content-Encoding:
+              description: The content encoding of the file
+              type: string
+            Content-Type:
+              description: The content type of the file
+              type: string
+            Digest:
+              description: The content checksum (MD5) of the file
+              type: string
+            Content-Length:
+              description: The length of the file in bytes
+              type: integer
+            Last-Modified:
+              description: Timestamp when data was modified
+              type: string
+        '401':
+          description: If the client does not provide credentials and anonymous access is disallowed
+        '403':
+          description: If the client does not have permission
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+  /availability:
+    get:
+      tags:
+        - Support Interfaces
+      summary: VOSI Availability
+      description: 'Indicates whether the service is operable and shows the reliability of the service for extended and scheduled requests. If the query parameter ''detail=min'' is used, a light weight heart beat test will be performed. The heart beat test returns status 200 if the service is available.'
+      parameters:
+        - name: detail
+          in: query
+          description: 'Specifies heart beat to be used to check for availability of this service, the value ''min'' must be used, otherwise the full availability test will be performed'
+          required: false
+          type: string
+      responses:
+        '200':
+          description: A VOSI availability document in XML.
+  /capabilities:
+    get:
+      summary: VOSI Capabilities
+      tags:
+        - Support Interfaces
+      description: |
+        Provides the service metadata in the form of a list of Capability descriptions.  Each of these descriptions is an XML element that:
+        <ul>
+        <li>states that the service provides a particular, IVOA-standard function;</li>
+        <li>lists the interfaces for invoking that function;</li>
+        <li>records any details of the implementation of the function that are not defined as default or constant in the standard for that function.</li>
+        </ul>
+      responses:
+        '200':
+          description: A VOSI Capabilities document in XML.
+        '500':
+          description: Internal server error
+        '503':
+          description: Service too busy
