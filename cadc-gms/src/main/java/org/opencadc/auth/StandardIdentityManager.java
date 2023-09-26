@@ -76,11 +76,13 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.reg.Capabilities;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -126,6 +128,10 @@ public class StandardIdentityManager implements IdentityManager {
             if (host != null) {
                 oidcDomains.add(host);
             }
+            String localPosixMap = getProviderHostname(loc, Standards.POSIX_USERMAP);
+            if (localPosixMap != null) {
+                oidcDomains.add(localPosixMap);
+            }
         } catch (MalformedURLException ex) {
             throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
         }
@@ -162,6 +168,20 @@ public class StandardIdentityManager implements IdentityManager {
         // TODO: if X500Principal && servops && UMS we could augment CADC-style
         // oidc tokens: validate gets HttpPrincipal and NumericPrincial
         // cadc signed cookies/tokens: validate gets all identities
+        if (!subject.getPrincipals().isEmpty()) {
+            LocalAuthority loc = new LocalAuthority();
+            try {
+                URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
+                RegistryClient reg = new RegistryClient();
+                PosixMapperClient pmc = new PosixMapperClient(posixUserMap);
+                pmc.augment(subject);
+            } catch (NoSuchElementException ex) {
+                log.warn("no service configured to provide " + Standards.POSIX_USERMAP.toASCIIString());
+            } catch (Exception ex) {
+                log.error("failed to augment using PosixMapperClient", ex);
+            }
+        }
+        
         return subject;
     }
 
@@ -211,16 +231,18 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public String toDisplayString(Subject subject) {
-        // prefer HttpPrincipal aka OIDC preferred_username for string output, eg logging
-        Set<HttpPrincipal> ps = subject.getPrincipals(HttpPrincipal.class);
-        if (!ps.isEmpty()) {
-            return ps.iterator().next().getName(); // kind of ugh
-        }
+        if (subject != null) {
+            // prefer HttpPrincipal aka OIDC preferred_username for string output, eg logging
+            Set<HttpPrincipal> ps = subject.getPrincipals(HttpPrincipal.class);
+            if (!ps.isEmpty()) {
+                return ps.iterator().next().getName(); // kind of ugh
+            }
         
-        // try X509
-        Set<X500Principal> px = subject.getPrincipals(X500Principal.class);
-        if (!px.isEmpty()) {
-            return px.iterator().next().getName(); // kind of ugh
+            // default
+            Set<Principal> ps2 = subject.getPrincipals();
+            if (!ps2.isEmpty()) {
+                return ps2.iterator().next().getName();
+            }
         }
         
         return null;
