@@ -6,7 +6,7 @@
 
   <capability standardID="http://www.opencadc.org/std/posix#user-mapping-0.1">
     <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="base">https://replace.com/posix/uid</accessURL>
+      <accessURL use="base">https://replace.com/posix-mapper/uid</accessURL>
       <securityMethod />
       <securityMethod standardID="ivo://ivoa.net/sso#cookie" />
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate" />
@@ -16,7 +16,7 @@
 
   <capability standardID="http://www.opencadc.org/std/posix#group-mapping-0.1">
     <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="base">https://replace.com/posix/gid</accessURL>
+      <accessURL use="base">https://replace.com/posix-mapper/gid</accessURL>
       <securityMethod />
       <securityMethod standardID="ivo://ivoa.net/sso#cookie" />
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate" />
@@ -26,13 +26,13 @@
 
   <capability standardID="ivo://ivoa.net/std/VOSI#capabilities">
     <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="full">https://replace.com/posix/capabilities</accessURL>
+      <accessURL use="full">https://replace.com/posix-mapper/capabilities</accessURL>
     </interface>
   </capability>
 
   <capability standardID="ivo://ivoa.net/std/VOSI#availability">
     <interface xsi:type="vs:ParamHTTP" role="std">
-      <accessURL use="full">https://replace.com/posix/availability</accessURL>
+      <accessURL use="full">https://replace.com/posix-mapper/availability</accessURL>
       <securityMethod />
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate" />
     </interface>
@@ -40,7 +40,7 @@
   
   <capability standardID="vos://cadc.nrc.ca~vospace/CADC/std/LOGGING#logControl-1.0">
     <interface xsi:type="vs:ParamHTTP" role="std" version="1.0">
-      <accessURL use="full">https://replace.com/posix/logControl</accessURL>
+      <accessURL use="full">https://replace.com/posix-mapper/logControl</accessURL>
       <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate" />
     </interface>
   </capability>

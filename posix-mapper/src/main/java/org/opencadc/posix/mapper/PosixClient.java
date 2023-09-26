@@ -33,9 +33,10 @@ public interface PosixClient {
      * ensure Users are created.
      * @param writer        The Writer to write to.
      * @param usernames     Usernames to constrain.
+     * @param uidConstraints    UID values to constrain against
      * @throws Exception    If Users cannot be obtained, or written.
      */
-    void writeUsers(UserWriter writer, String[] usernames) throws Exception;
+    void writeUsers(UserWriter writer, String[] usernames, Integer[] uidConstraints) throws Exception;
 
     /**
      * Write out all the Group mappings to the given writer.  It is the responsibility of the implementation to

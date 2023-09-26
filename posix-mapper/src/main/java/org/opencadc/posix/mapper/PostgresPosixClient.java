@@ -129,7 +129,7 @@ public class PostgresPosixClient implements PosixClient {
     }
 
     @Override
-    public void writeUsers(UserWriter writer, String[] usernames) {
+    public void writeUsers(UserWriter writer, String[] usernames, Integer[] uidConstraints) {
 
         // Ensure GroupURIs are all persisted.
         Arrays.stream(usernames).forEach(username -> {
@@ -157,6 +157,17 @@ public class PostgresPosixClient implements PosixClient {
             if (usernames.length > 0) {
                 queryBuilder.append(" where (u.username in (:usernames))");
                 queryParameters.put("usernames", usernames);
+            }
+
+            if (uidConstraints.length > 0) {
+                if (queryBuilder.indexOf("where") > 0 ) {
+                    queryBuilder.append(" or");
+                } else {
+                    queryBuilder.append(" where");
+                }
+
+                queryBuilder.append(" (u.uid in (:uids))");
+                queryParameters.put("uids", uidConstraints);
             }
 
             final Query<User> userQuery = session.createQuery(queryBuilder.toString(), User.class);
