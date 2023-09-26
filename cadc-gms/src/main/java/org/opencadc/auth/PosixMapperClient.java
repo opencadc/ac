@@ -285,20 +285,9 @@ public class PosixMapperClient {
             throw new UnsupportedOperationException(String.format("service %s does not implement %s",
                     resourceID, standardID));
         }
-        try {
-            if (!CredUtil.checkCredentials()) {
-                throw new AccessControlException("delegated credentials not found");
-            }
-        } catch (CertificateExpiredException | CertificateNotYetValidException e) {
-            throw new AccessControlException("invalid delegated credentials: " + e);
-        }
 
         Subject subject = AuthenticationUtil.getCurrentSubject();
         AuthMethod amc = AuthenticationUtil.getAuthMethodFromCredentials(subject);
-        if (amc == null || AuthMethod.ANON.equals(amc)) {
-            throw new RuntimeException("BUG: subject has credentials but type unknown");
-        }
-
         URI securityMethod = Standards.getSecurityMethod(amc);
         Interface iface = capability.findInterface(securityMethod);
         if (iface == null) {
