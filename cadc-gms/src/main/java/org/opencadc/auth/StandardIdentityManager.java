@@ -187,8 +187,9 @@ public class StandardIdentityManager implements IdentityManager {
                 }
                 throw new RuntimeException("BUG: did not call PosixMapperClient.augment(Subject)");
             } catch (NoSuchElementException ex) {
-                // yeah - currently warn
-                log.warn("no service configured to provide " + Standards.POSIX_USERMAP.toASCIIString());
+                // this is probably OK as most services do not need/use PosixPrincipal
+                log.debug("did not call PosixMapperClient.augment(Subject): no service configured to provide " 
+                        + Standards.POSIX_USERMAP.toASCIIString());
             } catch (Exception ex) {
                 throw new RuntimeException("FAIL: PosixMapperClient.augment(Subject)", ex);
             }
