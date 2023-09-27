@@ -75,26 +75,25 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpGet;
-import ca.nrc.cadc.reg.Capabilities;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.StringUtil;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
@@ -165,23 +164,39 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public Subject augment(Subject subject) {
-        // TODO: if X500Principal && servops && UMS we could augment CADC-style
-        // oidc tokens: validate gets HttpPrincipal and NumericPrincial
+        // oidc tokens: validate gets HttpPrincipal and NumericPrincipal
         // cadc signed cookies/tokens: validate gets all identities
-        if (!subject.getPrincipals().isEmpty()) {
-            LocalAuthority loc = new LocalAuthority();
+        boolean hasPP = !subject.getPrincipals(PosixPrincipal.class).isEmpty();
+        boolean hasHP = !subject.getPrincipals(HttpPrincipal.class).isEmpty();
+        boolean needAugment = (hasHP && !hasPP) || (hasPP && !hasHP);
+        if (needAugment) {
             try {
+                LocalAuthority loc = new LocalAuthority();
                 URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
-                RegistryClient reg = new RegistryClient();
                 PosixMapperClient pmc = new PosixMapperClient(posixUserMap);
-                pmc.augment(subject);
+                Subject cur = AuthenticationUtil.getCurrentSubject();
+                if (cur == null && hasHP && !hasPP) {
+                    // not in a Subject.doAs
+                    // use case: augment authenticated user after validate at start of request
+                    return Subject.doAs(subject, (PrivilegedExceptionAction<Subject>) () -> pmc.augment(subject));
+                }
+                if (cur != null) {
+                    // already inside a Subject.doAs
+                    // use case: augment from a persistently stored identity (eg uws job or vospace node)
+                    return pmc.augment(subject);
+                }
+                throw new RuntimeException("BUG: did not call PosixMapperClient.augment(Subject)");
             } catch (NoSuchElementException ex) {
+                // yeah - currently warn
                 log.warn("no service configured to provide " + Standards.POSIX_USERMAP.toASCIIString());
             } catch (Exception ex) {
-                log.error("failed to augment using PosixMapperClient", ex);
+                throw new RuntimeException("FAIL: PosixMapperClient.augment(Subject)", ex);
             }
         }
+
+        // TODO: if X500Principal && CDP && privileged credentials we could augment CADC-style
         
+        // default: cannot augment
         return subject;
     }
 
@@ -213,8 +228,8 @@ public class StandardIdentityManager implements IdentityManager {
             }
             
             ret.getPrincipals().add(p);
-            // TODO: this is sufficient for some purposes, but not for output using toDisplayString
-            // a real augment would require system credentials to implement
+            // this is sufficient for some purposes, but not for output using toDisplayString (eg vospace node owner)
+            // TODO: use PosixMapperClient.augment() to try to add a PosixPrincipal and infer an HttpPrincipal?
         }
         return ret;
     }
