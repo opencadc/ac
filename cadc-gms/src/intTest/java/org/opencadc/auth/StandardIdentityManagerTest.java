@@ -78,11 +78,13 @@ import ca.nrc.cadc.auth.X509CertificateChain;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 import javax.security.auth.Subject;
@@ -106,6 +108,8 @@ public class StandardIdentityManagerTest {
     
     private X509CertificateChain chain;
     
+    private String origHomeDir = System.getProperty("user.home");
+    
     public StandardIdentityManagerTest() throws Exception {
         String certFilename = System.getProperty("user.name") + ".pem";
         File pem = FileUtil.getFileFromResource(certFilename, StandardIdentityManagerTest.class);
@@ -117,6 +121,7 @@ public class StandardIdentityManagerTest {
     @Test
     public void testAnon() {
         try {
+            System.setProperty("user.home", "build/resources/intTest"); // contains config dir
             Subject s = AuthenticationUtil.getAnonSubject();
             log.info("orig: " + s);
             final StandardIdentityManager im = new StandardIdentityManager();
@@ -131,12 +136,15 @@ public class StandardIdentityManagerTest {
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
+        } finally {
+            System.setProperty("user.home", origHomeDir);
         }
     }
     
     @Test
     public void testX509() {
         try {
+            System.setProperty("user.home", "build/resources/intTest"); // contains config dir
             Subject validated = AuthenticationUtil.getSubject(new DummyPrincipalExtractor(true, false), false);
             final StandardIdentityManager im = new StandardIdentityManager();
             log.info("validated: " + validated);
@@ -148,12 +156,15 @@ public class StandardIdentityManagerTest {
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
+        } finally {
+            System.setProperty("user.home", origHomeDir);
         }
     }
     
     @Test
     public void testAccessToken() {
         try {
+            System.setProperty("user.home", "build/resources/intTest"); // contains config dir
             Subject validated = AuthenticationUtil.getSubject(new DummyPrincipalExtractor(false, true), false);
             final StandardIdentityManager im = new StandardIdentityManager();
             log.info("validated: " + validated);
@@ -182,6 +193,8 @@ public class StandardIdentityManagerTest {
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
+        } finally {
+            System.setProperty("user.home", origHomeDir);
         }
     }
     
@@ -223,5 +236,23 @@ public class StandardIdentityManagerTest {
             return null;
         }
         
+    }
+    
+    @Test
+    public void testParseToken() throws Exception {
+        File tt = new File("test-access-token.txt");
+        String st = StringUtil.readFromInputStream(new FileInputStream(tt), "UTF-8").trim();
+        
+        Base64.Decoder dec = Base64.getUrlDecoder();
+        String[] parts = st.split("[.]");
+        
+        String header = StringUtil.readFromInputStream(new ByteArrayInputStream(dec.decode(parts[0])), "UTF-8");
+        log.info("header: " + header);
+        
+        String payload = StringUtil.readFromInputStream(new ByteArrayInputStream(dec.decode(parts[1])), "UTF-8");
+        log.info("payload: " + payload);
+        
+        byte[] sig = dec.decode(parts[2]);
+        log.info("sig: " + sig.length + " bytes");
     }
 }
