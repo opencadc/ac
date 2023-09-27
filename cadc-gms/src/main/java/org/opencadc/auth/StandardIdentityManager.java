@@ -89,6 +89,7 @@ import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -127,10 +128,7 @@ public class StandardIdentityManager implements IdentityManager {
             if (host != null) {
                 oidcDomains.add(host);
             }
-            String localPosixMap = getProviderHostname(loc, Standards.POSIX_USERMAP);
-            if (localPosixMap != null) {
-                oidcDomains.add(localPosixMap);
-            }
+           
         } catch (MalformedURLException ex) {
             throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
         }
@@ -178,6 +176,13 @@ public class StandardIdentityManager implements IdentityManager {
                 if (cur == null && hasHP && !hasPP) {
                     // not in a Subject.doAs
                     // use case: augment authenticated user after validate at start of request
+                    Set<AuthorizationToken> ats = subject.getPublicCredentials(AuthorizationToken.class);
+                    Iterator<AuthorizationToken> i = ats.iterator();
+                    if (i.hasNext()) {
+                        AuthorizationToken at = i.next();
+                        String host = getProviderHostname(loc, Standards.POSIX_USERMAP);
+                        at.getDomains().add(host); // not sure if this should work
+                    }
                     return Subject.doAs(subject, (PrivilegedExceptionAction<Subject>) () -> pmc.augment(subject));
                 }
                 if (cur != null) {
