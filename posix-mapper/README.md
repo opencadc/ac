@@ -84,14 +84,13 @@ docker run --rm --user tomcat:tomcat --volume=/path/to/external/config:/config:r
 ```
 
 ## using it
-Using `cURL` is possible with `posix-mapper` to POST a user for testing.
+Using `cURL` is possible with `posix-mapper` to GET a user for testing, which will create the user if it's not found.
 
-**Note:** The `username` field is required.
+**Note:** The `user` field is required to create a new User entry.
 ```bash
 $ curl --verbose \
-  --data "username=testuser" \
   --header "authorization: bearer <mytoken>" 
-  https://myhost.com/posix/uid
+  "https://myhost.com/posix/uid?user=testuser"
 
 1001
 ```

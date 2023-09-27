@@ -74,6 +74,7 @@ import org.opencadc.posix.mapper.web.group.GroupWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -128,13 +129,23 @@ public class PostgresPosixClient implements PosixClient {
     }
 
     @Override
-    public void writeUsers(UserWriter writer, String[] usernames) {
+    public void writeUsers(UserWriter writer, String[] usernames, Integer[] uidConstraints) {
 
         // Ensure GroupURIs are all persisted.
         Arrays.stream(usernames).forEach(username -> {
             final User u = getUser(username);
             if (u == null) {
-                saveUser(new User(username));
+                postgres.inTransaction(session -> {
+                    final User toBePersisted = new User(username);
+                    session.persist(toBePersisted);
+
+                    final Group defaultGroup = new Group(new GroupURI(URI.create(PosixClient.DEFAULT_GROUP_AUTHORITY
+                                                                                 + "?"
+                                                                                 + toBePersisted.getUsername())));
+                    defaultGroup.setGid(toBePersisted.getUid());
+                    session.merge(defaultGroup);
+                    return Boolean.TRUE;
+                });
             }
         });
 
@@ -146,6 +157,17 @@ public class PostgresPosixClient implements PosixClient {
             if (usernames.length > 0) {
                 queryBuilder.append(" where (u.username in (:usernames))");
                 queryParameters.put("usernames", usernames);
+            }
+
+            if (uidConstraints.length > 0) {
+                if (queryBuilder.indexOf("where") > 0 ) {
+                    queryBuilder.append(" or");
+                } else {
+                    queryBuilder.append(" where");
+                }
+
+                queryBuilder.append(" (u.uid in (:uids))");
+                queryParameters.put("uids", uidConstraints);
             }
 
             final Query<User> userQuery = session.createQuery(queryBuilder.toString(), User.class);

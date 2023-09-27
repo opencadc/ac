@@ -1,8 +1,10 @@
 package org.opencadc.posix.mapper;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
 import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.db.GroupIDSequenceGenerator;
 import org.opencadc.posix.mapper.db.GroupURIType;
 
 
@@ -12,8 +14,13 @@ import org.opencadc.posix.mapper.db.GroupURIType;
 public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "groups_gid_seq1")
-    @SequenceGenerator(name = "groups_gid_seq1", sequenceName = "groups_gid_seq1", allocationSize = 1,
-            initialValue = 10000)
+    @GenericGenerator(name = "groups_gid_seq1", type = GroupIDSequenceGenerator.class,
+    parameters = {
+            @org.hibernate.annotations.Parameter(name = GroupIDSequenceGenerator.SEQUENCE_PARAM,
+                    value = "groups_gid_seq1"),
+            @org.hibernate.annotations.Parameter(name = GroupIDSequenceGenerator.INCREMENT_PARAM, value = "1"),
+            @org.hibernate.annotations.Parameter(name = GroupIDSequenceGenerator.INITIAL_PARAM, value = "900000")
+    })
     private Integer gid;
 
     @Column(unique = true)
