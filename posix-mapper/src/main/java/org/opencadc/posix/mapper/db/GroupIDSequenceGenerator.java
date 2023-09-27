@@ -66,86 +66,34 @@
  ************************************************************************
  */
 
-package org.opencadc.posix.mapper.web;
+package org.opencadc.posix.mapper.db;
 
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import ca.nrc.cadc.util.MultiValuedProperties;
+import org.hibernate.MappingException;
+import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.hibernate.id.enhanced.SequenceStyleGenerator;
+import org.hibernate.service.ServiceRegistry;
+import org.hibernate.type.Type;
 import org.opencadc.posix.mapper.Group;
-import org.opencadc.posix.mapper.PosixClient;
-import org.opencadc.posix.mapper.Postgres;
-import org.opencadc.posix.mapper.PostgresPosixClient;
-import org.opencadc.posix.mapper.User;
-import org.opencadc.posix.mapper.web.group.AsciiGroupWriter;
-import org.opencadc.posix.mapper.web.group.GroupWriter;
-import org.opencadc.posix.mapper.web.group.TSVGroupWriter;
-import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
-import org.opencadc.posix.mapper.web.user.TSVUserWriter;
-import org.opencadc.posix.mapper.web.user.UserWriter;
 
-import javax.security.auth.Subject;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.util.Properties;
 
-public abstract class PosixMapperAction extends RestAction {
-
-    protected PosixClient posixClient;
-    protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
-    protected static final String TSV_CONTENT_TYPE = "text/tab-separated-values";
-
-
-    protected PosixMapperAction() {
-        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
-                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                          .entityClass(User.class, Group.class)
-                                          .build();
-        this.posixClient = new PostgresPosixClient(postgres);
+public class GroupIDSequenceGenerator extends SequenceStyleGenerator {
+    @Override
+    public Object generate(SharedSessionContractImplementor session, Object object) {
+        if (object instanceof Group) {
+            final Integer existingGID = ((Group) object).getGid();
+            if (existingGID == null) {
+                return super.generate(session, object);
+            } else {
+                return existingGID;
+            }
+        } else {
+            return super.generate(session, object);
+        }
     }
 
     @Override
-    public void initAction() throws Exception {
-        super.initAction();
-        checkAuthorization();
-    }
-
-    private void checkAuthorization() {
-        final Subject currentUser = AuthenticationUtil.getCurrentSubject();
-        if (currentUser.getPublicCredentials(AuthMethod.class).contains(AuthMethod.ANON)) {
-            throw new NotAuthenticatedException("Caller is not authenticated.");
-        }
-    }
-
-    protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
-        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)) {
-            return new TSVGroupWriter(writer);
-        } else {
-            return new AsciiGroupWriter(writer);
-        }
-    }
-
-    protected UserWriter getUserWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
-        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)) {
-            return new TSVUserWriter(writer);
-        } else {
-            return new AsciiUserWriter(writer);
-        }
-    }
-
-    /**
-     * Never used.
-     * @return  null
-     */
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
+    public void configure(Type type, Properties parameters, ServiceRegistry serviceRegistry) throws MappingException {
+        super.configure(type, parameters, serviceRegistry);
     }
 }

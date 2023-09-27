@@ -7,6 +7,9 @@ import org.opencadc.posix.mapper.web.user.UserWriter;
 import java.util.List;
 
 public interface PosixClient {
+    // Dummy scheme and authority for default groups.
+    String DEFAULT_GROUP_AUTHORITY = "ivo://default-group-should-be-ignored.opencadc.org/default-group";
+
     default boolean userExists(String userId) throws Exception {
         return getUser(userId) != null;
     }
@@ -30,9 +33,10 @@ public interface PosixClient {
      * ensure Users are created.
      * @param writer        The Writer to write to.
      * @param usernames     Usernames to constrain.
+     * @param uidConstraints    UID values to constrain against
      * @throws Exception    If Users cannot be obtained, or written.
      */
-    void writeUsers(UserWriter writer, String[] usernames) throws Exception;
+    void writeUsers(UserWriter writer, String[] usernames, Integer[] uidConstraints) throws Exception;
 
     /**
      * Write out all the Group mappings to the given writer.  It is the responsibility of the implementation to

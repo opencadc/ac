@@ -74,18 +74,34 @@ import org.opencadc.posix.mapper.web.PosixMapperAction;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class GetAction extends PosixMapperAction {
 
     @Override
     public void doAction() throws Exception {
         final UserWriter userWriter = getUserWriter();
-        posixClient.writeUsers(userWriter, getUsernameParameters().toArray(new String[0]));
+        posixClient.writeUsers(userWriter, usernameParameters().toArray(new String[0]),
+                               uidParameters().toArray(new Integer[0]));
         syncOutput.getOutputStream().flush();
     }
 
-    List<String> getUsernameParameters() {
-        final List<String> usernameStringParameters = syncInput.getParameters("username");
+    List<String> usernameParameters() {
+        final List<String> usernameStringParameters = syncInput.getParameters("user");
         return Objects.requireNonNullElse(usernameStringParameters, Collections.emptyList());
+    }
+
+    private List<Integer> uidParameters() {
+        final List<String> uidStringParameters = syncInput.getParameters("uid");
+        final List<Integer> uidConstraints;
+        if (uidStringParameters == null) {
+            uidConstraints = Collections.emptyList();
+        } else {
+            uidConstraints = uidStringParameters.stream()
+                                                .map(Integer::parseInt)
+                                                .collect(Collectors.toList());
+        }
+
+        return uidConstraints;
     }
 }
