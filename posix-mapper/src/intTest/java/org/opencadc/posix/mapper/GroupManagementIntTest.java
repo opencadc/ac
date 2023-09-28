@@ -120,7 +120,8 @@ public class GroupManagementIntTest {
         final String bearerToken = new String(Files.readAllBytes(bearerTokenFile.toPath()));
         userSubject = new Subject();
         userSubject.getPublicCredentials().add(
-                new AuthorizationToken("bearer", bearerToken, List.of(NetUtil.getDomainName(groupMapperURL))));
+                new AuthorizationToken("Bearer", bearerToken.replaceAll("\n", ""),
+                                       List.of(NetUtil.getDomainName(groupMapperURL))));
         log.debug("userSubject: " + userSubject);
     }
 
@@ -133,7 +134,7 @@ public class GroupManagementIntTest {
                 getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_TYPE,
                           new String[]{"ivo://test.org/groups?" + groupName}, new int[0]);
                 final String output = byteArrayOutputStream.toString();
-                final int gid = Integer.parseInt(output.trim().split(" ")[1]);
+                final int gid = Integer.parseInt(output.trim().split(":")[2]);
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0],
                           new int[]{gid});
@@ -142,8 +143,8 @@ public class GroupManagementIntTest {
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 getGroups(byteArrayOutputStream, GroupManagementIntTest.TSV_CONTENT_TYPE, new String[0],
                           new int[]{gid});
-                Assert.assertEquals("Wrong output", output.replaceAll(" ", "\t"),
-                                    byteArrayOutputStream.toString());
+                Assert.assertEquals("Wrong output", "ivo://test.org/groups?" + groupName + "\t" + gid,
+                                    byteArrayOutputStream.toString().trim());
             } catch (Throwable throwable) {
                 throw new Exception(throwable.getMessage(), throwable);
             }
