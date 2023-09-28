@@ -87,7 +87,7 @@ public class AsciiGroupWriterTest {
         final Group testGroup = new Group(new GroupURI(URI.create("ivo://test.org/groups?TESTGROUP1")));
         testSubject.write(List.of(testGroup).iterator());
 
-        Assert.assertEquals("Wrong output", "ivo://test.org/groups?TESTGROUP1 (Not yet persisted)\n",
+        Assert.assertEquals("Wrong output", "TESTGROUP1:x:(Not yet persisted):\n",
                             writer.toString());
     }
 
@@ -100,7 +100,7 @@ public class AsciiGroupWriterTest {
         testGroup.setGid(441);
         testSubject.write(List.of(testGroup).iterator());
 
-        Assert.assertEquals("Wrong output", "ivo://test.org/groups?TESTGROUP4 441\n",
+        Assert.assertEquals("Wrong output", "TESTGROUP4:x:441:\n",
                             writer.toString());
     }
 }

@@ -91,8 +91,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 public class UserManagementIntTest {
@@ -120,8 +123,9 @@ public class UserManagementIntTest {
         final String bearerToken = new String(Files.readAllBytes(bearerTokenFile.toPath()));
         userSubject = new Subject();
         userSubject.getPublicCredentials().add(
-                new AuthorizationToken("bearer", bearerToken, List.of(NetUtil.getDomainName(userMapperURL))));
-        log.debug("userSubject: " + userSubject);
+                new AuthorizationToken("Bearer", bearerToken.replaceAll("\n", ""),
+                                       List.of(NetUtil.getDomainName(userMapperURL))));
+        log.debug("bearer token: " + bearerToken);
     }
 
     final String randomUsername() {
@@ -132,7 +136,7 @@ public class UserManagementIntTest {
     public void testNotAuthenticated() throws Exception {
         try {
             final OutputStream outputStream = new ByteArrayOutputStream();
-            getUsers(outputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0]);
+            getUsers(outputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0], new int[0]);
             Assert.fail("Should throw NotAuthenticatedException");
         } catch (NotAuthenticatedException notAuthenticatedException) {
             // Good
@@ -147,17 +151,22 @@ public class UserManagementIntTest {
             final String username = randomUsername();
             try {
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[]{username});
+                getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[]{username},
+                         new int[0]);
                 String output = byteArrayOutputStream.toString();
                 final int uid = Integer.parseInt(output.trim().split(":")[2]);
+                byteArrayOutputStream = new ByteArrayOutputStream();
+                getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0],
+                          new int[]{uid});
+                Assert.assertEquals("Wrong output", output, byteArrayOutputStream.toString());
 
                 Assert.assertTrue("Wrong output",
                                   output.contains(String.format("%s:x:%d:%d:::", username, uid, uid)));
                 byteArrayOutputStream = new ByteArrayOutputStream();
-                getUsers(byteArrayOutputStream, UserManagementIntTest.TSV_CONTENT_TYPE, new String[]{username});
+                getUsers(byteArrayOutputStream, UserManagementIntTest.TSV_CONTENT_TYPE, new String[0], new int[]{uid});
                 output = byteArrayOutputStream.toString();
-                Assert.assertTrue("Wrong TSV output",
-                                  output.contains(String.format("%s\t%d", username, uid)));
+                Assert.assertEquals("Wrong TSV output", username + "\t" + uid + "\t" + uid,
+                                    output.trim());
             } catch (Throwable throwable) {
                 throw new Exception(throwable.getMessage(), throwable);
             }
@@ -166,15 +175,25 @@ public class UserManagementIntTest {
         });
     }
 
-    private void getUsers(final OutputStream outputStream, final String contentType, final String[] usernames)
+    private void getUsers(final OutputStream outputStream, final String contentType, final String[] usernames,
+                          final int[] uids)
             throws Throwable {
         final InputStreamWrapper inputStreamWrapper = inputStream -> outputStream.write(inputStream.readAllBytes());
         final StringBuilder urlBuilder = new StringBuilder(userMapperURL.toString());
 
-        if (usernames.length > 0) {
+        if (usernames.length > 0 || uids.length > 0) {
             urlBuilder.append("?");
-            urlBuilder.append("username=");
-            urlBuilder.append(String.join("&username=", usernames));
+        }
+
+        if (usernames.length > 0) {
+            urlBuilder.append("user=");
+            urlBuilder.append(String.join("&user=", usernames));
+        }
+
+        if (uids.length > 0) {
+            urlBuilder.append("uid=");
+            urlBuilder.append(String.join("&uid=",
+                                          Arrays.stream(uids).mapToObj(Integer::toString).toArray(String[]::new)));
         }
 
         final HttpGet httpGet = new HttpGet(new URL(urlBuilder.toString()), inputStreamWrapper);

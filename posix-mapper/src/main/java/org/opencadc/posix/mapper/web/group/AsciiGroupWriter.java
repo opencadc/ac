@@ -91,7 +91,8 @@ public class AsciiGroupWriter implements GroupWriter {
             final Group group = groupIterator.next();
             final String gidOutput = group.getGid() == null ? "(Not yet persisted)" : Integer.toString(group.getGid());
 
-            this.writer.write(String.join(" ", group.getGroupURI().getURI().toString(), gidOutput));
+            // Group name is in the query parameter
+            this.writer.write(String.format("%s:x:%s:", group.getGroupURI().getURI().getQuery(), gidOutput));
             this.writer.write("\n");
             this.writer.flush();
         }

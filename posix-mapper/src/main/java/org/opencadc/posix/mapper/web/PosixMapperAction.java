@@ -122,8 +122,11 @@ public abstract class PosixMapperAction extends RestAction {
 
     protected GroupWriter getGroupWriter() throws IOException {
         final String requestContentType = syncInput.getHeader("accept");
+        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
+                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
+        this.syncOutput.addHeader("content-type", writeContentType);
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
-        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)) {
+        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVGroupWriter(writer);
         } else {
             return new AsciiGroupWriter(writer);
@@ -132,8 +135,11 @@ public abstract class PosixMapperAction extends RestAction {
 
     protected UserWriter getUserWriter() throws IOException {
         final String requestContentType = syncInput.getHeader("accept");
+        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
+                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
+        this.syncOutput.addHeader("content-type", writeContentType);
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
-        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)) {
+        if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVUserWriter(writer);
         } else {
             return new AsciiUserWriter(writer);
