@@ -171,26 +171,45 @@ public class StandardIdentityManager implements IdentityManager {
             try {
                 LocalAuthority loc = new LocalAuthority();
                 URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
-                PosixMapperClient pmc = new PosixMapperClient(posixUserMap);
-                Subject cur = AuthenticationUtil.getCurrentSubject();
-                if (cur == null && hasHP && !hasPP) {
-                    // not in a Subject.doAs
-                    // use case: augment authenticated user after validate at start of request
-                    Set<AuthorizationToken> ats = subject.getPublicCredentials(AuthorizationToken.class);
-                    Iterator<AuthorizationToken> i = ats.iterator();
-                    if (i.hasNext()) {
-                        AuthorizationToken at = i.next();
-                        String host = getProviderHostname(loc, Standards.POSIX_USERMAP);
-                        at.getDomains().add(host); // not sure if this should work
+                // LocalAuthority currently throws NoSuchElementException but let's be cautious
+                if (posixUserMap != null) {
+                    PosixMapperClient pmc;
+                    String host = null;
+                    if ("ivo".equals(posixUserMap.getScheme())) {
+                        pmc = new PosixMapperClient(posixUserMap);
+                    } else if ("https".equals(posixUserMap.getScheme()) || "http".equals(posixUserMap.getScheme())) {
+                        URL url = posixUserMap.toURL();
+                        host = url.getHost();
+                        pmc = new PosixMapperClient(url);
+                    } else {
+                        throw new RuntimeException("CONFIG: unsupported posix-mapping identifier scheme: " + posixUserMap);
                     }
-                    return Subject.doAs(subject, (PrivilegedExceptionAction<Subject>) () -> pmc.augment(subject));
+                    Subject cur = AuthenticationUtil.getCurrentSubject();
+                    if (cur == null && hasHP && !hasPP) {
+                        // not in a Subject.doAs
+                        // use case: augment authenticated user after validate at start of request
+                        Set<AuthorizationToken> ats = subject.getPublicCredentials(AuthorizationToken.class);
+                        Iterator<AuthorizationToken> i = ats.iterator();
+                        if (i.hasNext()) {
+                            AuthorizationToken at = i.next();
+                            if (host == null) {
+                                host = getProviderHostname(loc, Standards.POSIX_USERMAP);
+                            }
+                            at.getDomains().add(host); // not sure if this should work
+                        }
+                        return Subject.doAs(subject, (PrivilegedExceptionAction<Subject>) () -> pmc.augment(subject));
+                    }
+                    if (cur != null) {
+                        // already inside a Subject.doAs
+                        // use case: augment from a persistently stored identity (eg uws job or vospace node)
+                        return pmc.augment(subject);
+                    }
+                    throw new RuntimeException("BUG: did not call PosixMapperClient.augment(Subject)");
+                } else {
+                    // this is probably OK as most services do not need/use PosixPrincipal
+                    log.debug("did not call PosixMapperClient.augment(Subject): no service configured to provide " 
+                        + Standards.POSIX_USERMAP.toASCIIString());
                 }
-                if (cur != null) {
-                    // already inside a Subject.doAs
-                    // use case: augment from a persistently stored identity (eg uws job or vospace node)
-                    return pmc.augment(subject);
-                }
-                throw new RuntimeException("BUG: did not call PosixMapperClient.augment(Subject)");
             } catch (NoSuchElementException ex) {
                 // this is probably OK as most services do not need/use PosixPrincipal
                 log.debug("did not call PosixMapperClient.augment(Subject): no service configured to provide " 

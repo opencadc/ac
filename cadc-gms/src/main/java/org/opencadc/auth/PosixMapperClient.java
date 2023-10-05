@@ -76,6 +76,7 @@ import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Capabilities;
+import ca.nrc.cadc.reg.CapabilitiesReader;
 import ca.nrc.cadc.reg.Capability;
 import ca.nrc.cadc.reg.Interface;
 import ca.nrc.cadc.reg.Standards;
@@ -106,15 +107,37 @@ import org.opencadc.gms.GroupURI;
 public class PosixMapperClient {
     private static final Logger log = Logger.getLogger(PosixMapperClient.class);
 
-    private final URI resourceID;
-    private URL userMapURL;
-    private URL groupMapURL;
+    private final String service;
+    private final Capabilities capabilities;
     private final RegistryClient regClient = new RegistryClient();
 
     public PosixMapperClient(URI resourceID) {
-        this.resourceID = resourceID;
         if (resourceID == null) {
             throw new IllegalArgumentException("resourceID cannot be null");
+        }
+        this.service = resourceID.toASCIIString();
+        try {
+            this.capabilities = regClient.getCapabilities(resourceID);
+        } catch (ResourceNotFoundException | IOException ex) {
+            throw new RuntimeException("failed to read capabilities for " + service, ex);
+        }
+    }
+    
+    public PosixMapperClient(URL baseURL) {
+        if (baseURL == null) {
+            throw new IllegalArgumentException("baseURL cannot be null");
+        }
+        this.service = baseURL.toExternalForm();
+        try {
+            URL capURL = new URL(baseURL.toExternalForm() + "/capabilities");
+            HttpGet get = new HttpGet(capURL, true);
+            get.prepare();
+            CapabilitiesReader r = new CapabilitiesReader();
+            this.capabilities = r.read(get.getInputStream());
+        } catch (ResourceAlreadyExistsException bug) {
+            throw new RuntimeException("BUG: unexpected fail", bug);
+        } catch (ResourceNotFoundException | IOException | InterruptedException ex) {
+            throw new RuntimeException("failed to read capabilities from " + service, ex);
         }
     }
 
@@ -138,9 +161,7 @@ public class PosixMapperClient {
             throw new IllegalArgumentException("Subject must contain either a HttpPrincipal or a PosixPrincipal");
         }
 
-        if (this.userMapURL == null) {
-            this.userMapURL = getServiceURL(Standards.POSIX_USERMAP);
-        }
+        URL userMapURL = getServiceURL(Standards.POSIX_USERMAP);
 
         String user = null;
         Integer uid = null;
@@ -230,9 +251,7 @@ public class PosixMapperClient {
     private List<PosixGroup> getPosixGroups(List<GroupURI> groupURIs, List<Integer> groupGIDs)
             throws IOException, InterruptedException,ResourceNotFoundException, ResourceAlreadyExistsException {
 
-        if (this.groupMapURL == null) {
-            this.groupMapURL = getServiceURL(Standards.POSIX_GROUPMAP);
-        }
+        URL groupMapURL = getServiceURL(Standards.POSIX_GROUPMAP);
 
         StringBuilder query = new StringBuilder(groupMapURL.toExternalForm());
         String sep = "?";
@@ -274,16 +293,15 @@ public class PosixMapperClient {
 
     private URL getServiceURL(URI standardID)
             throws IOException, ResourceNotFoundException {
-
-        Capabilities capabilities = regClient.getCapabilities(resourceID);
+        // this probably failed in ctor already
         if (capabilities == null) {
-            throw new ResourceNotFoundException("service not found in registry: " + resourceID);
+            throw new RuntimeException("BUG: capabilities not found and went undetected");
         }
 
         Capability capability = capabilities.findCapability(standardID);
         if (capability == null) {
             throw new UnsupportedOperationException(String.format("service %s does not implement %s",
-                    resourceID, standardID));
+                    service, standardID));
         }
 
         Subject subject = AuthenticationUtil.getCurrentSubject();
@@ -292,7 +310,7 @@ public class PosixMapperClient {
         Interface iface = capability.findInterface(securityMethod);
         if (iface == null) {
             throw new UnsupportedOperationException(String.format("service %s %s does not support auth via %s",
-                    resourceID, standardID, securityMethod));
+                    service, standardID, securityMethod));
         }
         return iface.getAccessURL().getURL();
     }
