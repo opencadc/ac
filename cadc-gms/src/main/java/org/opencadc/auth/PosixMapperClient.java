@@ -71,7 +71,6 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
-import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
@@ -86,10 +85,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
-import java.security.AccessControlException;
 import java.security.Principal;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -109,7 +105,8 @@ public class PosixMapperClient {
 
     private final String service;
     private final Capabilities capabilities;
-    private final RegistryClient regClient = new RegistryClient();
+    private final TSVPosixGroupParser posixGroupMarshaller = new TSVPosixGroupParser();
+    private final TSVPosixPrincipalParser posixPrincipalMarshaller = new TSVPosixPrincipalParser();
 
     public PosixMapperClient(URI resourceID) {
         if (resourceID == null) {
@@ -117,6 +114,7 @@ public class PosixMapperClient {
         }
         this.service = resourceID.toASCIIString();
         try {
+            final RegistryClient regClient = new RegistryClient();
             this.capabilities = regClient.getCapabilities(resourceID);
         } catch (ResourceNotFoundException | IOException ex) {
             throw new RuntimeException("failed to read capabilities for " + service, ex);
@@ -186,23 +184,11 @@ public class PosixMapperClient {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()))) {
             String line = reader.readLine();
-            String[] tokens = line.split("\\s");
-            if (tokens.length != 3) {
-                throw new IllegalStateException(
-                        String.format("error parsing query results, expected 3 values, found %s: %s",
-                                tokens.length, line));
-            }
-            // format - username uid gid
-            String username = tokens[0];
-            int userID = Integer.parseInt(tokens[1]);
-            int groupID = Integer.parseInt(tokens[2]);
+            final PosixPrincipal posixPrincipal = posixPrincipalMarshaller.parse(line);
 
             Set<Principal> principals = new HashSet<>();
-            PosixPrincipal posixPrincipal = new PosixPrincipal(userID);
-            posixPrincipal.username = username;
-            posixPrincipal.defaultGroup = groupID;
             principals.add(posixPrincipal);
-            principals.add(new HttpPrincipal(username));
+            principals.add(new HttpPrincipal(posixPrincipal.username));
             for (Principal p : subject.getPrincipals()) {
                 if (!(p instanceof HttpPrincipal) && !(p instanceof PosixPrincipal)) {
                     principals.add(p);
@@ -233,19 +219,80 @@ public class PosixMapperClient {
         return getPosixGroups(null, groups);
     }
 
-    // use case: skaha needs the complete username-uid map for user containers
-    // change: adding defaultGroup and username to PosixPrincipal, all fields would be returned here
-    // note: Iterator allows the client to consume the stream and process it without having to
-    // store it in memory... scalable but sometimes awkward
-    public Iterator<PosixPrincipal> getUserMap() {
-        throw new UnsupportedOperationException();
+    /**
+     * Obtain the full mapping of Username -> UID mapping to populate the POSIX system mappings.  It is assumed
+     * the underlying API supports writing TSV output.
+     * <p></p>
+     * use case: skaha needs the complete username-uid map for user containers
+     * change: adding defaultGroup and username to PosixPrincipal, all fields would be returned here
+     * note: Iterator allows the client to consume the stream and process it without having to
+     * store it in memory... scalable but sometimes awkward
+     *
+     * @return Iterator over POSIX principals
+     */
+    public Iterator<PosixPrincipal> getUserMap() throws IOException, ResourceNotFoundException,
+                                                        ResourceAlreadyExistsException, InterruptedException {
+        final URL userMapURL = getServiceURL(Standards.POSIX_USERMAP);
+        final HttpGet get = new HttpGet(userMapURL, true);
+        get.setRequestProperty("accept", "text/tab-separated-values");
+        get.prepare();
+
+        return new Iterator<PosixPrincipal>() {
+            private final BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()));
+            private String line;
+
+            @Override
+            public boolean hasNext() {
+                try {
+                    return reader.ready() && (line = reader.readLine()) != null;
+                } catch (IOException ioException) {
+                    throw new RuntimeException(ioException.getMessage(), ioException);
+                }
+            }
+
+            @Override
+            public PosixPrincipal next() {
+                final PosixPrincipal nextPrincipal = posixPrincipalMarshaller.parse(line);
+                line = null;
+                return nextPrincipal;
+            }
+        };
     }
 
-    // use case: skaha needs the complete groupname-gid map for user containers
-    // note: Iterator allows the client to consume the stream and process it without having to
-    // store it in memory... scalable but sometimes awkward
-    public Iterator<PosixGroup> getGroupMap() {
-        throw new UnsupportedOperationException();
+    /**
+     * Obtain the full Group Name -> GID Mapping.  It is assumed the underlying API supports writing TSV output.
+     * <p></p>
+     * use case: skaha needs the complete groupname-gid map for user containers
+     * note: Iterator allows the client to consume the stream and process it without having to
+     * store it in memory... scalable but sometimes awkward
+     * @return @return Iterator over POSIX Groups
+     */
+    public Iterator<PosixGroup> getGroupMap() throws IOException, ResourceNotFoundException,
+                                                     ResourceAlreadyExistsException, InterruptedException  {
+        final URL userMapURL = getServiceURL(Standards.POSIX_GROUPMAP);
+        final HttpGet get = new HttpGet(userMapURL, true);
+        get.setRequestProperty("accept", "text/tab-separated-values");
+        get.prepare();
+
+        return new Iterator<PosixGroup>() {
+            private final BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()));
+            private String line;
+            @Override
+            public boolean hasNext() {
+                try {
+                    return reader.ready() && (line = reader.readLine()) != null;
+                } catch (IOException ioException) {
+                    throw new RuntimeException(ioException.getMessage(), ioException);
+                }
+            }
+
+            @Override
+            public PosixGroup next() {
+                final PosixGroup posixGroup = posixGroupMarshaller.parse(line);
+                line = null;
+                return posixGroup;
+            }
+        };
     }
 
     private List<PosixGroup> getPosixGroups(List<GroupURI> groupURIs, List<Integer> groupGIDs)
@@ -276,23 +323,13 @@ public class PosixMapperClient {
             List<PosixGroup> posixGroups = new ArrayList<>();
             while (reader.ready()) {
                 String line = reader.readLine();
-                log.debug("line: " + line);
-                String[] tokens = line.split("\\s+");
-                if (tokens.length != 2) {
-                    throw new IllegalStateException(
-                            String.format("error parsing query results, expected 2 values, found %s: %s",
-                                    tokens.length, line));
-                }
-                GroupURI groupURI = new GroupURI(URI.create(tokens[0]));
-                Integer gid = Integer.parseInt(tokens[1]);
-                posixGroups.add(new PosixGroup(gid, groupURI));
+                posixGroups.add(posixGroupMarshaller.parse(line));
             }
             return posixGroups;
         }
     }
 
-    private URL getServiceURL(URI standardID)
-            throws IOException, ResourceNotFoundException {
+    private URL getServiceURL(URI standardID) {
         // this probably failed in ctor already
         if (capabilities == null) {
             throw new RuntimeException("BUG: capabilities not found and went undetected");
@@ -315,4 +352,36 @@ public class PosixMapperClient {
         return iface.getAccessURL().getURL();
     }
 
+    private static class TSVPosixGroupParser {
+        final PosixGroup parse(final String line) {
+            log.debug("line: " + line);
+            final String[] tokens = line.split("\\s+");
+            if (tokens.length != 2) {
+                throw new IllegalStateException(
+                        String.format("error parsing query results, expected 2 values, found %s: %s",
+                                      tokens.length, line));
+            }
+
+            final GroupURI groupURI = new GroupURI(URI.create(tokens[0]));
+            final Integer gid = Integer.parseInt(tokens[1]);
+
+            return new PosixGroup(gid, groupURI);
+        }
+    }
+
+    private static class TSVPosixPrincipalParser {
+        final PosixPrincipal parse(final String line) {
+            log.debug("line: " + line);
+            final String[] tokens = line.split("\\s+");
+            if (tokens.length != 3) {
+                throw new IllegalStateException(
+                        String.format("error parsing query results, expected 3 values, found %s: %s",
+                                      tokens.length, line));
+            }
+            final PosixPrincipal posixPrincipal = new PosixPrincipal(Integer.parseInt(tokens[1]));
+            posixPrincipal.username = tokens[0];
+            posixPrincipal.defaultGroup = Integer.parseInt(tokens[2]);
+            return posixPrincipal;
+        }
+    }
 }
