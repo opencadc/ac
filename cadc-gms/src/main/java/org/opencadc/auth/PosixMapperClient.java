@@ -220,7 +220,7 @@ public class PosixMapperClient {
     }
 
     /**
-     * Obtain the full mapping of Username -> UID mapping to populate the POSIX system mappings.  It is assumed
+     * Obtain the full mapping of Username to UID mapping to populate the POSIX system mappings.  It is assumed
      * the underlying API supports writing TSV output.
      * <p></p>
      * use case: skaha needs the complete username-uid map for user containers
@@ -229,6 +229,10 @@ public class PosixMapperClient {
      * store it in memory... scalable but sometimes awkward
      *
      * @return Iterator over POSIX principals
+     * @throws IOException      Any I/O related (catch-all) errors.
+     * @throws ResourceNotFoundException    If the UID POSIX Mapping service cannot be found.
+     * @throws ResourceAlreadyExistsException   Not used.
+     * @throws InterruptedException Should not ever happen.
      */
     public Iterator<PosixPrincipal> getUserMap() throws IOException, ResourceNotFoundException,
                                                         ResourceAlreadyExistsException, InterruptedException {
@@ -260,12 +264,16 @@ public class PosixMapperClient {
     }
 
     /**
-     * Obtain the full Group Name -> GID Mapping.  It is assumed the underlying API supports writing TSV output.
+     * Obtain the full Group Name to GID Mapping.  It is assumed the underlying API supports writing TSV output.
      * <p></p>
      * use case: skaha needs the complete groupname-gid map for user containers
      * note: Iterator allows the client to consume the stream and process it without having to
      * store it in memory... scalable but sometimes awkward
      * @return @return Iterator over POSIX Groups
+     * @throws IOException      Any I/O related (catch-all) errors.
+     * @throws ResourceNotFoundException    If the GID POSIX Mapping service cannot be found.
+     * @throws ResourceAlreadyExistsException   Not used.
+     * @throws InterruptedException Should not ever happen.
      */
     public Iterator<PosixGroup> getGroupMap() throws IOException, ResourceNotFoundException,
                                                      ResourceAlreadyExistsException, InterruptedException  {
