@@ -81,7 +81,6 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
@@ -335,6 +334,7 @@ public class OIDCUtil {
 
         if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
             claimsMap.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
+            claimsMap.put(RelyParty.Claim.PREFERRED_USERNAME.getValue(), useridPrincipal.getName());
         }
         if (rp.getClaims().contains(RelyParty.Claim.EMAIL)) {
             claimsMap.put(RelyParty.Claim.EMAIL.getValue(), email);

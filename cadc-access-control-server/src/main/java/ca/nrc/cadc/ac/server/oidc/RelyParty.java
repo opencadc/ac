@@ -138,6 +138,7 @@ public class RelyParty {
     
     public enum Claim {
         NAME("name", "Name"),
+        PREFERRED_USERNAME("preferred_username", "Username"),
         EMAIL("email", "Email Address"),
         GROUPS("memberOf", "Group Memberships");
         
