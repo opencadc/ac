@@ -797,7 +797,9 @@ public class LdapGroupDAO extends LdapDAO
 
             Group ldapGroup = createGroupFromSearchResult(searchEntry, PUB_GROUP_ATTRS, ldapConn);
             return ldapGroup;
-            
+        } catch (IllegalArgumentException ex) {
+            // invalid group name
+            throw new GroupNotFoundException("porobably invalid group name: " + ex);
         } catch (LDAPException e1) {
             logger.debug("getGroup Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
@@ -867,9 +869,10 @@ public class LdapGroupDAO extends LdapDAO
             profiler.checkpoint("getGroup.addMembers");
 
             return ldapGroup;
-        }
-        catch (LDAPException e1)
-        {
+        } catch (IllegalArgumentException ex) {
+            // invalid group name
+            throw new GroupNotFoundException("porobably invalid group name: " + ex);
+        } catch (LDAPException e1) {
             logger.debug("getGroup Exception: " + e1, e1);
             LdapDAO.checkLdapResult(e1.getResultCode());
             throw new RuntimeException("BUG: checkLdapResult didn't throw an exception");
