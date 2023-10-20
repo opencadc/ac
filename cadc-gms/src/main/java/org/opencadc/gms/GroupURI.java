@@ -91,40 +91,37 @@ public class GroupURI implements Comparable<GroupURI> {
      */
     public GroupURI(URI uri) throws IllegalArgumentException {
         if (uri == null) {
-            throw new IllegalArgumentException("Null URI");
+            throw new IllegalArgumentException("null URI");
         }
 
         // Ensure the scheme is correct
         if (uri.getScheme() == null || !"ivo".equals(uri.getScheme())) {
-            throw new IllegalArgumentException("GroupURI scheme must be 'ivo'.");
+            throw new IllegalArgumentException("scheme must be 'ivo' in resourceID: " + uri);
         }
 
         if (uri.getAuthority() == null) {
-            throw new IllegalArgumentException("Group authority is required.");
+            throw new IllegalArgumentException("authority is required in resourceID: " + uri);
         }
 
         if (uri.getPath() == null || uri.getPath().length() == 0) {
-            throw new IllegalArgumentException("Missing authority and/or path.");
+            throw new IllegalArgumentException("path is required in resourceID: " + uri);
+        }
+        
+        if (uri.getFragment() != null) {
+            throw new IllegalArgumentException("fragment not allowed in uri: " + uri);
+        }
+        
+        if (uri.getQuery() == null) {
+            throw new IllegalArgumentException("query (group name) required in uri: " + uri);
         }
 
-        String fragment = uri.getFragment();
-        String query = uri.getQuery();
-        String name = null;
-        if (query == null) {
-            throw new IllegalArgumentException("Group name is required.");
-        } else {
-            if (fragment != null) {
-                throw new IllegalArgumentException("Fragment not allowed in group URIs");
-            }
-
-            if (isValidGroupName(query)) {
-                name = query;
-            } else {
-                throw new IllegalArgumentException(GROUP_NAME_ERRORMSG);
-            }
+        String name = uri.getQuery();
+        if (!isValidGroupName(name)) {
+            throw new IllegalArgumentException("invalid group name: " + name + " reason: " + GROUP_NAME_ERRORMSG);
+            
         }
 
-        this.uri = URI.create(uri.getScheme() + "://" + uri.getAuthority() + uri.getPath() + "?" + name);
+        this.uri = uri;
     }
 
     /**
@@ -142,7 +139,10 @@ public class GroupURI implements Comparable<GroupURI> {
 
     public GroupURI(URI resourceID, String name) {
         if (resourceID == null) {
-            throw new IllegalArgumentException("Null URI");
+            throw new IllegalArgumentException("null GMS resourceID");
+        }
+        if (name == null) {
+            throw new IllegalArgumentException("null group name");
         }
 
         // Ensure the scheme is correct
@@ -157,9 +157,19 @@ public class GroupURI implements Comparable<GroupURI> {
         if (resourceID.getPath() == null || resourceID.getPath().length() == 0) {
             throw new IllegalArgumentException("path is required in resourceID: " + resourceID);
         }
-        if (resourceID.getFragment() != null) {
-            throw new IllegalArgumentException("fragment not allowed in resourceID: " + resourceID.getFragment());
+        
+        if (resourceID.getQuery() != null) {
+            throw new IllegalArgumentException("query not allowed in resourceID: " + resourceID);
         }
+        
+        if (resourceID.getFragment() != null) {
+            throw new IllegalArgumentException("fragment not allowed in resourceID: " + resourceID);
+        }
+        
+        if (!isValidGroupName(name)) {
+            throw new IllegalArgumentException("invalid group name: " + name + " reason: " + GROUP_NAME_ERRORMSG);
+        }
+        
         this.uri = URI.create(resourceID.toASCIIString() + "?" + name);
     }
     
