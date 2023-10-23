@@ -87,11 +87,11 @@ public class GroupUtil {
      * Construct a GMS Client from the classpath or fallback to
      * the default, no-op implementation if a GMS Client has not
      * been configured.  Classpath loaded implementations
-     * must provide a contructor that takes the service URI as
+     * must provide a constructor that takes the service URI as
      * an argument.
-     * 
+     * <p></p>
      * @param serviceID GMS Service ID.  If null, the default no-op
-     * implementation of GMS Client is returned.
+     *      implementation of GMS Client is returned.
      * 
      * @return A GMSClient instance.
      */

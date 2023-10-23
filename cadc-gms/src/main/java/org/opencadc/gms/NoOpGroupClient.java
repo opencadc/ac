@@ -73,11 +73,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 
  * This is the default implementation of GroupClient that performs no group membership
  * operations.  It allows libraries to use the GroupClient without requiring a
  * Groups or a GMS implementation.
- * 
+ * <p></p>
  * This client will be created by GroupClient.getGroupClient() when another implementation
  * is not discovered in the classpath.
  * 
