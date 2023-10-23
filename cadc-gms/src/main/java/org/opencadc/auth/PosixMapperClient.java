@@ -71,6 +71,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.io.ResourceIterator;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.ResourceAlreadyExistsException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
@@ -88,7 +89,6 @@ import java.net.URL;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.security.auth.Subject;
@@ -234,14 +234,14 @@ public class PosixMapperClient {
      * @throws ResourceAlreadyExistsException   Not used.
      * @throws InterruptedException Should not ever happen.
      */
-    public Iterator<PosixPrincipal> getUserMap() throws IOException, ResourceNotFoundException,
-                                                        ResourceAlreadyExistsException, InterruptedException {
+    public ResourceIterator<PosixPrincipal> getUserMap() throws IOException, ResourceNotFoundException,
+                                                                ResourceAlreadyExistsException, InterruptedException {
         final URL userMapURL = getServiceURL(Standards.POSIX_USERMAP);
         final HttpGet get = new HttpGet(userMapURL, true);
         get.setRequestProperty("accept", "text/tab-separated-values");
         get.prepare();
 
-        return new Iterator<PosixPrincipal>() {
+        return new ResourceIterator<PosixPrincipal>() {
             private final BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()));
             private String line;
 
@@ -260,6 +260,11 @@ public class PosixMapperClient {
                 line = null;
                 return nextPrincipal;
             }
+
+            @Override
+            public void close() throws IOException {
+                reader.close();
+            }
         };
     }
 
@@ -275,14 +280,14 @@ public class PosixMapperClient {
      * @throws ResourceAlreadyExistsException   Not used.
      * @throws InterruptedException Should not ever happen.
      */
-    public Iterator<PosixGroup> getGroupMap() throws IOException, ResourceNotFoundException,
+    public ResourceIterator<PosixGroup> getGroupMap() throws IOException, ResourceNotFoundException,
                                                      ResourceAlreadyExistsException, InterruptedException  {
         final URL userMapURL = getServiceURL(Standards.POSIX_GROUPMAP);
         final HttpGet get = new HttpGet(userMapURL, true);
         get.setRequestProperty("accept", "text/tab-separated-values");
         get.prepare();
 
-        return new Iterator<PosixGroup>() {
+        return new ResourceIterator<PosixGroup>() {
             private final BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()));
             private String line;
             @Override
@@ -299,6 +304,11 @@ public class PosixMapperClient {
                 final PosixGroup posixGroup = posixGroupMarshaller.parse(line);
                 line = null;
                 return posixGroup;
+            }
+
+            @Override
+            public void close() throws IOException {
+                reader.close();
             }
         };
     }
