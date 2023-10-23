@@ -16,7 +16,7 @@ public class GroupURITest {
     private static Logger log = Logger.getLogger(GroupURITest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("org.opencadc.gms", Level.INFO);
     }
 
     @Test
@@ -28,24 +28,39 @@ public class GroupURITest {
 
     @Test
     public void testMalformed() {
+        
         try {
+            
+            assertIllegalArgument(URI.create("ivo://example.org/gms?first.last@idp.com"));
+            assertIllegalArgument(URI.create("ivo://example.org/gms"), "first.last@idp.com");
+            
             // no scheme
-            assertIllegalArgument("example.org/gms?gname", "scheme");
+            assertIllegalArgument(URI.create("example.org/gms?gname"));
+            assertIllegalArgument(URI.create("example.org/gms"), "gname");
 
             // wrong scheme
-            assertIllegalArgument("gms://example.org/gms?gname", "scheme");
+            assertIllegalArgument(URI.create("gms://example.org/gms?gname"));
+            assertIllegalArgument(URI.create("gms://example.org/gms"), "gname");
 
             // no authority
-            assertIllegalArgument("ivo://gms?gname", "authority");
+            assertIllegalArgument(URI.create("ivo://gms?gname"));
+            assertIllegalArgument(URI.create("ivo://gms"), "gname");
 
             // no path
-            assertIllegalArgument("ivo://example.org/gname", "name");
+            assertIllegalArgument(URI.create("ivo://example.org?gname"));
+            assertIllegalArgument(URI.create("ivo://example.org"), "gname");
             
-            // group name in fragment no longer allowed
-            assertIllegalArgument("ivo://my.authority/gms#name", "name");
+            // no group name
+            assertIllegalArgument(URI.create("ivo://example.org/gms"));
+            assertIllegalArgument(URI.create("ivo://example.org/gms"), null);
+            assertIllegalArgument(URI.create("ivo://example.org/gms"), "");
+            assertIllegalArgument(URI.create("ivo://example.org/gms"), " ");
             
             // fragment not allowed
-            assertIllegalArgument("ivo://my.authority/gms?name#name", "fragment");
+            assertIllegalArgument(URI.create("ivo://my.authority/gms#name"));
+            assertIllegalArgument(URI.create("ivo://my.authority/gms#name"), null);
+            assertIllegalArgument(URI.create("ivo://my.authority/gms?name#name"));
+            assertIllegalArgument(URI.create("ivo://my.authority/gms?name#name"));
             
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
@@ -56,7 +71,7 @@ public class GroupURITest {
     @Test
     public void testSimpleGroupName() {
         try {
-            GroupURI g = new GroupURI("ivo://my.authority/gms?name");
+            GroupURI g = new GroupURI(URI.create("ivo://my.authority/gms?name"));
             Assert.assertEquals("ivo", g.getURI().getScheme());
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals("name", g.getName());
@@ -72,7 +87,7 @@ public class GroupURITest {
     public void testHierarchicalGroupName() {
         try {
             String name = "hierachical/group/structure";
-            GroupURI g = new GroupURI("ivo://my.authority/gms?" + name);
+            GroupURI g = new GroupURI(URI.create("ivo://my.authority/gms?" + name));
             Assert.assertEquals("ivo", g.getURI().getScheme());
             Assert.assertEquals("/gms", g.getURI().getPath());
             Assert.assertEquals(name, g.getName());
@@ -84,14 +99,24 @@ public class GroupURITest {
         }
     }
 
-    private void assertIllegalArgument(String uri, String message) throws URISyntaxException {
+    private void assertIllegalArgument(URI uri) {
         try {
-            new GroupURI(uri);
-            Assert.fail("expected IllegalArgumentException, got: " + uri);
+            GroupURI gu = new GroupURI(uri);
+            Assert.fail("expected IllegalArgumentException, got: " + gu);
         } catch (IllegalArgumentException e) {
-            // expected
-            log.debug("Checking if message '" + e.getMessage() + "' contains '" + message + "'");
-            Assert.assertTrue(e.getMessage().toLowerCase().contains(message));
+            log.info("caught expected: " + e);
+        } catch (Exception unexpected) {
+            log.error("unexpected exception", unexpected);
+            Assert.fail("unexpected exception: " + unexpected);
+        }
+    }
+    
+    private void assertIllegalArgument(URI resourceID, String name) {
+        try {
+            GroupURI gu = new GroupURI(resourceID, name);
+            Assert.fail("expected IllegalArgumentException, got: " + gu);
+        } catch (IllegalArgumentException e) {
+            log.info("caught expected: " + e);
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
