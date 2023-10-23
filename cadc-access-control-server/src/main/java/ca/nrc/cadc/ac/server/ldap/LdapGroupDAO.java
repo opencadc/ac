@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2023.                            (c) 2023.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -473,8 +473,12 @@ public class LdapGroupDAO extends LdapDAO
                             String gname = sre.getAttributeValue(LDAP_CN);
                             String gidstr = sre.getAttributeValue(LDAP_GID_NUMBER);
                             Integer gid = Integer.valueOf(gidstr);
-                            PosixGroup pg = new PosixGroup(gid, new GroupURI(gmsResourceID, gname));
-                            ret.add(pg);
+                            try {
+                                PosixGroup pg = new PosixGroup(gid, new GroupURI(gmsResourceID, gname));
+                                ret.add(pg);
+                            } catch (IllegalArgumentException ex) {
+                                logger.warn("invalid group name: " + gname + " -- SKIP");
+                            }
                             
                             long t2 = System.currentTimeMillis();
                             long dt = t2 - t1;
