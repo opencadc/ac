@@ -105,8 +105,8 @@ public class PosixMapperClient {
 
     private final String service;
     private final Capabilities capabilities;
-    private final TSVPosixGroupParser posixGroupMarshaller = new TSVPosixGroupParser();
-    private final TSVPosixPrincipalParser posixPrincipalMarshaller = new TSVPosixPrincipalParser();
+    private final TSVPosixGroupParser tsvPosixGroupParser = new TSVPosixGroupParser();
+    private final TSVPosixPrincipalParser tsvPosixPrincipalParser = new TSVPosixPrincipalParser();
 
     public PosixMapperClient(URI resourceID) {
         if (resourceID == null) {
@@ -184,7 +184,7 @@ public class PosixMapperClient {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()))) {
             String line = reader.readLine();
-            final PosixPrincipal posixPrincipal = posixPrincipalMarshaller.parse(line);
+            final PosixPrincipal posixPrincipal = tsvPosixPrincipalParser.parse(line);
 
             Set<Principal> principals = new HashSet<>();
             principals.add(posixPrincipal);
@@ -256,7 +256,7 @@ public class PosixMapperClient {
 
             @Override
             public PosixPrincipal next() {
-                final PosixPrincipal nextPrincipal = posixPrincipalMarshaller.parse(line);
+                final PosixPrincipal nextPrincipal = tsvPosixPrincipalParser.parse(line);
                 line = null;
                 return nextPrincipal;
             }
@@ -301,7 +301,7 @@ public class PosixMapperClient {
 
             @Override
             public PosixGroup next() {
-                final PosixGroup posixGroup = posixGroupMarshaller.parse(line);
+                final PosixGroup posixGroup = tsvPosixGroupParser.parse(line);
                 line = null;
                 return posixGroup;
             }
@@ -341,7 +341,7 @@ public class PosixMapperClient {
             List<PosixGroup> posixGroups = new ArrayList<>();
             while (reader.ready()) {
                 String line = reader.readLine();
-                posixGroups.add(posixGroupMarshaller.parse(line));
+                posixGroups.add(tsvPosixGroupParser.parse(line));
             }
             return posixGroups;
         }
