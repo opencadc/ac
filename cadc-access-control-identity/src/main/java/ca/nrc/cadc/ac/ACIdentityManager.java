@@ -84,8 +84,10 @@ import java.net.URI;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -100,8 +102,24 @@ import org.apache.log4j.Logger;
 public class ACIdentityManager implements IdentityManager {
 
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
-
+    
+    private static final Set<URI> SEC_METHODS;
+    
+    static {
+        Set<URI> tmp = new TreeSet<>();
+        tmp.add(Standards.SECURITY_METHOD_ANON);
+        tmp.add(Standards.SECURITY_METHOD_CERT);
+        tmp.add(Standards.SECURITY_METHOD_COOKIE);
+        tmp.add(Standards.SECURITY_METHOD_TOKEN);
+        SEC_METHODS = Collections.unmodifiableSet(tmp);
+    }
+    
     public ACIdentityManager() {
+    }
+
+    @Override
+    public Set<URI> getSecurityMethods() {
+        return SEC_METHODS;
     }
 
     @Override
