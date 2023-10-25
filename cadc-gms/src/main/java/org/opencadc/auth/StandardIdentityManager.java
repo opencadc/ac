@@ -338,6 +338,19 @@ public class StandardIdentityManager implements IdentityManager {
 
                         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
                         s.getPublicCredentials().add(authToken);
+                    } catch (NotAuthenticatedException ex) {
+                        JSONObject json = new JSONObject(ex.getMessage());
+                        String error = json.getString("error");
+                        String details = json.getString("error_description");
+                        // details usually includes the invalid access token: truncate
+                        StringBuilder sb = new StringBuilder(error);
+                        sb.append(" reason: ");
+                        int max = Math.min(details.length(), 32);
+                        sb.append(details.subSequence(0, max));
+                        if (max < details.length()) {
+                            sb.append("...");
+                        }
+                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
                     } catch (Exception ex) {
                         throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
                     }
