@@ -89,10 +89,12 @@ import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
@@ -108,6 +110,15 @@ import org.json.JSONObject;
 public class StandardIdentityManager implements IdentityManager {
     private static final Logger log = Logger.getLogger(StandardIdentityManager.class);
 
+    private static final Set<URI> SEC_METHODS;
+    
+    static {
+        Set<URI> tmp = new TreeSet<>();
+        tmp.add(Standards.SECURITY_METHOD_ANON);
+        tmp.add(Standards.SECURITY_METHOD_TOKEN);
+        SEC_METHODS = Collections.unmodifiableSet(tmp);
+    }
+    
     private final URI oidcIssuer;
     
     // need these to contruct an AuthorizationToken
@@ -135,6 +146,11 @@ public class StandardIdentityManager implements IdentityManager {
         for (String dom : oidcDomains) {
             log.debug("OIDC domain: " + dom);
         }
+    }
+
+    @Override
+    public Set<URI> getSecurityMethods() {
+        return SEC_METHODS;
     }
     
     // lookup the local/trusted provider of an API and extract the hostname
@@ -338,6 +354,19 @@ public class StandardIdentityManager implements IdentityManager {
 
                         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
                         s.getPublicCredentials().add(authToken);
+                    } catch (NotAuthenticatedException ex) {
+                        JSONObject json = new JSONObject(ex.getMessage());
+                        String error = json.getString("error");
+                        String details = json.getString("error_description");
+                        // details usually includes the invalid access token: truncate
+                        StringBuilder sb = new StringBuilder(error);
+                        sb.append(" reason: ");
+                        int max = Math.min(details.length(), 32);
+                        sb.append(details.subSequence(0, max));
+                        if (max < details.length()) {
+                            sb.append("...");
+                        }
+                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
                     } catch (Exception ex) {
                         throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
                     }

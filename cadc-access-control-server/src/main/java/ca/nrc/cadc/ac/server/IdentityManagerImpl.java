@@ -83,9 +83,13 @@ import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.reg.Standards;
+import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
@@ -99,7 +103,23 @@ public class IdentityManagerImpl implements IdentityManager {
 
     private static final Logger log = Logger.getLogger(IdentityManagerImpl.class);
 
+    private static final Set<URI> SEC_METHODS;
+    
+    static {
+        Set<URI> tmp = new TreeSet<>();
+        tmp.add(Standards.SECURITY_METHOD_ANON);
+        tmp.add(Standards.SECURITY_METHOD_CERT);
+        tmp.add(Standards.SECURITY_METHOD_COOKIE);
+        tmp.add(Standards.SECURITY_METHOD_TOKEN);
+        SEC_METHODS = Collections.unmodifiableSet(tmp);
+    }
+    
     public IdentityManagerImpl() {
+    }
+
+    @Override
+    public Set<URI> getSecurityMethods() {
+        return SEC_METHODS;
     }
 
     @Override

@@ -30,6 +30,9 @@ jobs:
       
     - name: build and test cadc-access-control
       run: cd cadc-access-control && ../gradlew --info clean build javadoc install
+    
+    - name: build and test cadc-access-control-identity
+      run: cd cadc-access-control-identity && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-access-control-server
       run: cd cadc-access-control-server && ../gradlew --info clean build javadoc install
