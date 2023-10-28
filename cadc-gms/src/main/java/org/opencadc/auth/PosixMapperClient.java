@@ -248,7 +248,7 @@ public class PosixMapperClient {
             @Override
             public boolean hasNext() {
                 try {
-                    return reader.ready() && (line = reader.readLine()) != null;
+                    return (line = reader.readLine()) != null;
                 } catch (IOException ioException) {
                     throw new RuntimeException(ioException.getMessage(), ioException);
                 }
@@ -293,7 +293,7 @@ public class PosixMapperClient {
             @Override
             public boolean hasNext() {
                 try {
-                    return reader.ready() && (line = reader.readLine()) != null;
+                    return (line = reader.readLine()) != null;
                 } catch (IOException ioException) {
                     throw new RuntimeException(ioException.getMessage(), ioException);
                 }
