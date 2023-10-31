@@ -53,7 +53,7 @@ org.opencadc.posix.mapper.homeDirRoot=/storage/home
 
 # ID ranges to allow some customization where administration is necessary
 org.opencadc.posix.mapper.uid.start=10000
-org.opencadc.posix.mapper.gid.start=10000
+org.opencadc.posix.mapper.gid.start=90000
 ```
 The _resourceID_ is the resourceID of _this_ posix-mapper service.
 
@@ -63,9 +63,6 @@ The _homeDirRoot_ is the path to the root of home folders.  This is used to crea
 
 _uid.start_ start of UID range
 _gid.start_ start of GID range
-
-### cadcproxy.pem (optional)
-This client certificate is used to make authenticated server-to-server calls for system-level A&A purposes.
 
 ## building it
 ```
@@ -81,6 +78,15 @@ docker run --rm -it posix-mapper:latest /bin/bash
 ## running it
 ```
 docker run --rm --user tomcat:tomcat --volume=/path/to/external/config:/config:ro --name posix-mapper posix-mapper:latest
+```
+
+## testing it
+Integration tests can be run using Gradle, with a file containing a Token value.  Create (or modify) the `src/intTest/resources/posix-mapper-test.token`
+file with the value of a Bearer Token, and it will be used by tests.  Set the Registry location containing the
+POSIX Mapper location of your API.
+
+```shell
+gradle --info -Dca.nrc.cadc.reg.client.RegistryClient.host=example.com clean build intTest
 ```
 
 ## using it
