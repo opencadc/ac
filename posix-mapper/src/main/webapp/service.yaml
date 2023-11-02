@@ -4,7 +4,7 @@ info:
   title: 'POSIX Mapper for UIDs and GIDs (Name: TBD)'
   description: |
     This service will provide POSIX UID and GID mappings from a user database.
-basePath: '/posix'
+basePath: '/posix-mapper'
 schemes:
   - https
 paths:
