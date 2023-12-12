@@ -93,8 +93,8 @@ public class TokenTool {
     private static final String KEY_META_GRANT = "gnt";
     private static final String KEY_META_SUBJECT = "sub";
     
-    private final File publicKey;
-    private final File privateKey;
+    private final RsaSignatureGenerator sg;
+    private final RsaSignatureVerifier sv;
     
     private static final String TOKEN_DELIM = "~";
     
@@ -106,8 +106,8 @@ public class TokenTool {
         if (publicKey == null) {
             throw new IllegalArgumentException("publicKey cannot be null");
         }
-        this.publicKey = publicKey;
-        this.privateKey = null;
+        this.sv = new RsaSignatureVerifier(publicKey);
+        this.sg = null;
     }
     
     /**
@@ -123,9 +123,21 @@ public class TokenTool {
         if (privateKey == null) {
             throw new IllegalArgumentException("privateKey cannot be null");
         }
-        this.publicKey = publicKey;
-        this.privateKey = privateKey;
+        this.sv = new RsaSignatureVerifier(publicKey);;
+        this.sg = new RsaSignatureGenerator(privateKey);
     }
+
+    public TokenTool(byte[] publicKey) {
+        this.sv = new RsaSignatureVerifier(publicKey);
+        this.sg = null;
+    }
+
+    public TokenTool(byte[] publicKey, byte[] privateKey) {
+        this.sv = new RsaSignatureVerifier(publicKey);;
+        this.sg = new RsaSignatureGenerator(privateKey);
+    }
+
+
 
     /**
      * Generate an artifact token given the input parameters.
@@ -135,7 +147,7 @@ public class TokenTool {
      * @return A pre-authorized signed token.
      */
     public String generateToken(URI uri, Class<? extends Grant> grantClass, String user) {
-        if (privateKey == null) {
+        if (sg == null) {
             throw new IllegalStateException("cannot generate token: no private key");
         }
 
@@ -154,7 +166,7 @@ public class TokenTool {
         }
         byte[] metaBytes = metaSb.toString().getBytes();
 
-        RsaSignatureGenerator sg = new RsaSignatureGenerator(privateKey);
+
         String sig;
         try {
             byte[] sigBytes = sg.sign(new ByteArrayInputStream(metaBytes));
@@ -206,7 +218,6 @@ public class TokenTool {
         byte[] metaBytes = Base64.decode(base64URLDecode(parts[0]));
         byte[] sigBytes = Base64.decode(base64URLDecode(parts[1]));
 
-        RsaSignatureVerifier sv = new RsaSignatureVerifier(publicKey);
         boolean verified;
         try {
             verified = sv.verify(new ByteArrayInputStream(metaBytes), sigBytes);
