@@ -69,9 +69,13 @@ package org.opencadc.permissions;
 
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
+import ca.nrc.cadc.util.RsaSignatureVerifier;
 import java.io.File;
 import java.net.URI;
 import java.security.AccessControlException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Level;
@@ -140,8 +144,14 @@ public class TokenToolTest {
                 "C=CA, O=Grid, OU=nrc-cnrc.gc.ca, CN=Brian Major",
                 "C=CA, O=Grid, OU=nrc-cnrc.gc.ca, CN=Brian Major",};
 
+            // keys in file
             TokenTool gen = new TokenTool(pubKeyFile, privateKeyFile);
             TokenTool ver = new TokenTool(pubKeyFile);
+            // keys in memory
+            KeyPair keyPair = RsaSignatureGenerator.getKeyPair(4096);
+            TokenTool memGen = new TokenTool(keyPair.getPublic().getEncoded(), keyPair.getPrivate().getEncoded());
+            TokenTool memVer = new TokenTool(keyPair.getPublic().getEncoded());
+
             for (int i = 0; i < uris.length; i++) {
                 String uri = uris[i];
                 Class<? extends Grant> grant = grants.get(i);
@@ -149,6 +159,9 @@ public class TokenToolTest {
                 String token = gen.generateToken(URI.create(uri), grant, user);
                 String actUser = ver.validateToken(token, URI.create(uri), grant);
                 Assert.assertEquals("user", user, actUser);
+                String token2 = memGen.generateToken(URI.create(uri), grant, user);
+                String actUser2 = memVer.validateToken(token2, URI.create(uri), grant);
+                Assert.assertEquals("user", actUser, actUser2);
             }
 
         } catch (Exception unexpected) {
