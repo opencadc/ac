@@ -148,16 +148,7 @@ public class TokenToolTest {
             TokenTool gen = new TokenTool(pubKeyFile, privateKeyFile);
             TokenTool ver = new TokenTool(pubKeyFile);
             // keys in memory
-            KeyPairGenerator kpg;
-            String alg = "RSA";
-            try {
-                kpg = KeyPairGenerator.getInstance(alg);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(
-                        "BUG: illegal key algorithm - " + alg, e);
-            }
-            kpg.initialize(2048);
-            KeyPair keyPair = kpg.genKeyPair();
+            KeyPair keyPair = RsaSignatureGenerator.getKeyPair(4096);
             TokenTool memGen = new TokenTool(keyPair.getPublic().getEncoded(), keyPair.getPrivate().getEncoded());
             TokenTool memVer = new TokenTool(keyPair.getPublic().getEncoded());
 
