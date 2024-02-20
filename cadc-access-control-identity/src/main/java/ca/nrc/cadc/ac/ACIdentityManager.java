@@ -141,7 +141,7 @@ public class ACIdentityManager implements IdentityManager {
         boolean needAugment = np == null;
 
         PosixPrincipal pp = getPosixPrincipal(subject);
-        needAugment = needAugment || (pp == null || pp.defaultGroup != null || pp.username != null); // missing or incomplete
+        needAugment = needAugment || (pp == null || pp.defaultGroup == null || pp.username == null); // missing or incomplete
 
         if (!needAugment) {
             return subject;
