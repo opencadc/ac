@@ -75,6 +75,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.profiler.Profiler;
@@ -132,12 +133,17 @@ public class ACIdentityManager implements IdentityManager {
         if (subject == null) {
             return subject;
         }
+        if (subject.getPrincipals().isEmpty()) {
+            return subject;
+        }
 
-        // If the principal list is in the subject has aNumeric Principal
-        // AND the list is greater than 1, then subject has already been augmented
-        Set<Principal> principalSet = subject.getPrincipals();
-        Set<NumericPrincipal> nps = subject.getPrincipals(NumericPrincipal.class);
-        if (principalSet.size() > 1 && !nps.isEmpty()) {
+        NumericPrincipal np = getNumericPrincipal(subject);
+        boolean needAugment = np == null;
+
+        PosixPrincipal pp = getPosixPrincipal(subject);
+        needAugment = needAugment || (pp == null || pp.defaultGroup != null || pp.username != null); // missing or incomplete
+
+        if (!needAugment) {
             return subject;
         }
 
@@ -162,6 +168,27 @@ public class ACIdentityManager implements IdentityManager {
         }
     }
 
+    private NumericPrincipal getNumericPrincipal(Subject subject) {
+        if (subject == null) {
+            return null;
+        }
+        Set<NumericPrincipal> nps = subject.getPrincipals(NumericPrincipal.class);
+        if (!nps.isEmpty()) {
+            return nps.iterator().next();
+        }
+        return null;
+    }
+    
+    private PosixPrincipal getPosixPrincipal(Subject subject) {
+        if (subject == null) {
+            return null;
+        }
+        Set<PosixPrincipal> nps = subject.getPrincipals(PosixPrincipal.class);
+        if (!nps.isEmpty()) {
+            return nps.iterator().next();
+        }
+        return null;
+    }
     
     /**
      * @param subject
