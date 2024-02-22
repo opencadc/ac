@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2023.                            (c) 2023.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -105,6 +105,9 @@ public class ACIdentityManager implements IdentityManager {
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
     
     private static final Set<URI> SEC_METHODS;
+    private static final String PP_PROP = ACIdentityManager.class.getName() + "requireCompletePosixPrincipal";
+    
+    private final boolean requireCompletePosixPrincipal;
     
     static {
         Set<URI> tmp = new TreeSet<>();
@@ -116,6 +119,7 @@ public class ACIdentityManager implements IdentityManager {
     }
     
     public ACIdentityManager() {
+        this.requireCompletePosixPrincipal = "true".equals(System.getProperty(PP_PROP));
     }
 
     @Override
@@ -140,8 +144,10 @@ public class ACIdentityManager implements IdentityManager {
         NumericPrincipal np = getNumericPrincipal(subject);
         boolean needAugment = np == null;
 
-        PosixPrincipal pp = getPosixPrincipal(subject);
-        needAugment = needAugment || (pp == null || pp.defaultGroup == null || pp.username == null); // missing or incomplete
+        if (requireCompletePosixPrincipal) {
+            PosixPrincipal pp = getPosixPrincipal(subject);
+            needAugment = needAugment || (pp == null || pp.defaultGroup == null || pp.username == null); // missing or incomplete
+        }
 
         if (!needAugment) {
             return subject;
