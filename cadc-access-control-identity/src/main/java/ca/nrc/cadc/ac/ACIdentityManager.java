@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2023.                            (c) 2023.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -75,6 +75,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.profiler.Profiler;
@@ -104,6 +105,9 @@ public class ACIdentityManager implements IdentityManager {
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
     
     private static final Set<URI> SEC_METHODS;
+    private static final String PP_PROP = ACIdentityManager.class.getName() + "requireCompletePosixPrincipal";
+    
+    private final boolean requireCompletePosixPrincipal;
     
     static {
         Set<URI> tmp = new TreeSet<>();
@@ -115,6 +119,7 @@ public class ACIdentityManager implements IdentityManager {
     }
     
     public ACIdentityManager() {
+        this.requireCompletePosixPrincipal = "true".equals(System.getProperty(PP_PROP));
     }
 
     @Override
@@ -132,12 +137,19 @@ public class ACIdentityManager implements IdentityManager {
         if (subject == null) {
             return subject;
         }
+        if (subject.getPrincipals().isEmpty()) {
+            return subject;
+        }
 
-        // If the principal list is in the subject has aNumeric Principal
-        // AND the list is greater than 1, then subject has already been augmented
-        Set<Principal> principalSet = subject.getPrincipals();
-        Set<NumericPrincipal> nps = subject.getPrincipals(NumericPrincipal.class);
-        if (principalSet.size() > 1 && !nps.isEmpty()) {
+        NumericPrincipal np = getNumericPrincipal(subject);
+        boolean needAugment = np == null;
+
+        if (requireCompletePosixPrincipal) {
+            PosixPrincipal pp = getPosixPrincipal(subject);
+            needAugment = needAugment || (pp == null || pp.defaultGroup == null || pp.username == null); // missing or incomplete
+        }
+
+        if (!needAugment) {
             return subject;
         }
 
@@ -162,6 +174,27 @@ public class ACIdentityManager implements IdentityManager {
         }
     }
 
+    private NumericPrincipal getNumericPrincipal(Subject subject) {
+        if (subject == null) {
+            return null;
+        }
+        Set<NumericPrincipal> nps = subject.getPrincipals(NumericPrincipal.class);
+        if (!nps.isEmpty()) {
+            return nps.iterator().next();
+        }
+        return null;
+    }
+    
+    private PosixPrincipal getPosixPrincipal(Subject subject) {
+        if (subject == null) {
+            return null;
+        }
+        Set<PosixPrincipal> nps = subject.getPrincipals(PosixPrincipal.class);
+        if (!nps.isEmpty()) {
+            return nps.iterator().next();
+        }
+        return null;
+    }
     
     /**
      * @param subject
