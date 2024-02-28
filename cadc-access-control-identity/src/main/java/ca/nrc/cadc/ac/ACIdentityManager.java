@@ -142,7 +142,7 @@ public class ACIdentityManager implements IdentityManager {
         }
 
         NumericPrincipal np = getNumericPrincipal(subject);
-        boolean needAugment = np == null;
+        boolean needAugment = (np == null || subject.getPrincipals().size() == 1);
 
         if (requireCompletePosixPrincipal) {
             PosixPrincipal pp = getPosixPrincipal(subject);
