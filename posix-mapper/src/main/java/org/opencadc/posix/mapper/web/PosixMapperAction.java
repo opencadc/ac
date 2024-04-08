@@ -74,6 +74,7 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
+import org.opencadc.auth.PrincipalVerifier;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -87,10 +88,13 @@ import org.opencadc.posix.mapper.web.user.TSVUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.security.Principal;
+import java.util.List;
 
 public abstract class PosixMapperAction extends RestAction {
 
@@ -115,16 +119,20 @@ public abstract class PosixMapperAction extends RestAction {
 
     private void checkAuthorization() {
         final Subject currentUser = AuthenticationUtil.getCurrentSubject();
-        if (currentUser.getPublicCredentials(AuthMethod.class).contains(AuthMethod.ANON)) {
+        final AuthMethod authMethod = AuthenticationUtil.getAuthMethod(currentUser);
+        if (AuthMethod.ANON.equals(authMethod)) {
             throw new NotAuthenticatedException("Caller is not authenticated.");
+        } else if (AuthMethod.CERT.equals(authMethod)) {
+            final List<String> allowedDNs =
+                    PosixMapperAction.POSIX_CONFIGURATION.getProperty(PosixInitAction.ALLOWED_DISTINGUISHED_NAMES_KEY);
+            final PrincipalVerifier principalVerifier =
+                    new PrincipalVerifier(allowedDNs.stream().map(X500Principal::new).toArray(Principal[]::new));
+            principalVerifier.verify(AuthenticationUtil.getX500Principal(currentUser));
         }
     }
 
     protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
-                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
-        this.syncOutput.addHeader("content-type", writeContentType);
+        final String writeContentType = setContentType();
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVGroupWriter(writer);
@@ -134,16 +142,22 @@ public abstract class PosixMapperAction extends RestAction {
     }
 
     protected UserWriter getUserWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
-                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
-        this.syncOutput.addHeader("content-type", writeContentType);
+        final String writeContentType = setContentType();
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVUserWriter(writer);
         } else {
             return new AsciiUserWriter(writer);
         }
+    }
+
+    private String setContentType() {
+        final String requestContentType = syncInput.getHeader("accept");
+        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
+                ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
+        this.syncOutput.addHeader("content-type", writeContentType);
+
+        return writeContentType;
     }
 
     /**

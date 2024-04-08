@@ -26,6 +26,7 @@ war {
 
 dependencies {
     implementation 'org.hibernate.orm:hibernate-core:6.2.0.Final'
+    implementation 'org.opencadc:cadc-access-control-identity:[1.2.5,2.0)'
     implementation 'org.opencadc:cadc-util:[1.9.11,2.0)'
     implementation 'org.opencadc:cadc-log:[1.1.6,2.0)'
     implementation 'org.opencadc:cadc-registry:[1.7.3,)'
@@ -38,7 +39,6 @@ dependencies {
     intTestCompile 'org.apache.commons:commons-lang3:3.13.0'
 
     runtimeOnly 'org.opencadc:cadc-gms:[1.0.12,2.0)'
-    runtimeOnly 'org.opencadc:cadc-access-control-identity:[1.0.3,2.0)'
     runtimeOnly 'org.postgresql:postgresql:[42.6.0,)'
 
     // work around because 1.8.0-beta4 prints exceptions in log, eg:
