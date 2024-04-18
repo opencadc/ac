@@ -105,7 +105,7 @@ public class ACIdentityManager implements IdentityManager {
     private static final Logger log = Logger.getLogger(ACIdentityManager.class);
     
     private static final Set<URI> SEC_METHODS;
-    private static final String PP_PROP = ACIdentityManager.class.getName() + "requireCompletePosixPrincipal";
+    private static final String PP_PROP = ACIdentityManager.class.getName() + ".requireCompletePosixPrincipal";
     
     private final boolean requireCompletePosixPrincipal;
     
@@ -119,7 +119,11 @@ public class ACIdentityManager implements IdentityManager {
     }
     
     public ACIdentityManager() {
-        this.requireCompletePosixPrincipal = "true".equals(System.getProperty(PP_PROP));
+        String pval = System.getProperty(PP_PROP);
+        if (pval != null) {
+            pval = pval.trim();
+        }
+        this.requireCompletePosixPrincipal = "true".equals(pval);
     }
 
     @Override
@@ -134,10 +138,13 @@ public class ACIdentityManager implements IdentityManager {
 
     @Override
     public Subject augment(final Subject subject) {
+        log.debug("augment START: " + subject);
         if (subject == null) {
+            log.debug("augment DONE null: " + subject);
             return subject;
         }
         if (subject.getPrincipals().isEmpty()) {
+            log.debug("augment DONE no principals: " + subject);
             return subject;
         }
 
@@ -146,10 +153,14 @@ public class ACIdentityManager implements IdentityManager {
 
         if (requireCompletePosixPrincipal) {
             PosixPrincipal pp = getPosixPrincipal(subject);
-            needAugment = needAugment || (pp == null || pp.defaultGroup == null || pp.username == null); // missing or incomplete
+            log.debug("augment check posix: " + pp);
+            needAugment = needAugment || pp == null || pp.defaultGroup == null || pp.username == null; // missing or incomplete
+        } else {
+            log.debug("augment: requireCompletePosixPrincipal=false");
         }
 
         if (!needAugment) {
+            log.debug("augment DONE needAugment=false: " + subject);
             return subject;
         }
 
@@ -167,6 +178,7 @@ public class ACIdentityManager implements IdentityManager {
 
             Subject servopsSubject = CredUtil.createOpsSubject();
             Subject.doAs(servopsSubject, action);
+            log.debug("augment DONE w/ UserClient: " + subject);
             return subject;
         } catch (PrivilegedActionException e) {
             String msg = "Error augmenting subject " + subject;
