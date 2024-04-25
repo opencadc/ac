@@ -10,6 +10,24 @@ additional path elements (see [war-rename.conf](https://github.com/opencadc/dock
 ### configuration
 The following runtime configuration must be made available via the `/config` directory.
 
+### Key access (Optional, but required for certain clients)
+The POSIX Mapper requires authentication for access, but not all clients will have an authenticated user in hand.  To
+facilitate this, the `/config` folder can contain a `keys` folder with a file called `/.api-keys`:
+
+`/config/keys/.api-keys`:
+```
+MYSECRETKEYVALUE
+```
+
+Where Kubernetes is concerned, it's advisable to create a Secret with this value and mount it to the POSIX Mapper, 
+as well as any clients that need access to the POSIX Mapper service without an authenticated Subject.
+
+Access for clients will involve setting the `X-Client-API-Key` header to the value in the file:
+
+```shell
+$ curl --header "X-Client-API-key: MYSECRETKEYVALUE" https://example.org/posix-mapper/uid
+```
+
 ### catalina.properties
 This file contains java system properties to configure the tomcat server and some of the java libraries used in the service.
 
@@ -54,6 +72,10 @@ org.opencadc.posix.mapper.homeDirRoot=/storage/home
 # ID ranges to allow some customization where administration is necessary
 org.opencadc.posix.mapper.uid.start=10000
 org.opencadc.posix.mapper.gid.start=90000
+
+# At least one group that are allowed to query the API.  Use multiple org.opencadc.posix.mapper.group entries for
+# multiple groups.
+org.opencadc.posix.mapper.group=ivo://example.org/gms?mygroup
 ```
 The _resourceID_ is the resourceID of _this_ posix-mapper service.
 
