@@ -74,7 +74,10 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
-import org.opencadc.auth.PrincipalVerifier;
+import ca.nrc.cadc.util.StringUtil;
+import org.opencadc.auth.APIKeyVerifier;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -88,13 +91,16 @@ import org.opencadc.posix.mapper.web.user.TSVUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.security.Principal;
-import java.util.List;
+import java.net.URI;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 public abstract class PosixMapperAction extends RestAction {
 
@@ -117,18 +123,42 @@ public abstract class PosixMapperAction extends RestAction {
         checkAuthorization();
     }
 
-    private void checkAuthorization() {
+    private void checkAuthorization() throws Exception {
         final Subject currentUser = AuthenticationUtil.getCurrentSubject();
         final AuthMethod authMethod = AuthenticationUtil.getAuthMethod(currentUser);
         if (AuthMethod.ANON.equals(authMethod)) {
-            throw new NotAuthenticatedException("Caller is not authenticated.");
-        } else if (AuthMethod.CERT.equals(authMethod)) {
-            final List<String> allowedDNs =
-                    PosixMapperAction.POSIX_CONFIGURATION.getProperty(PosixInitAction.ALLOWED_DISTINGUISHED_NAMES_KEY);
-            final PrincipalVerifier principalVerifier =
-                    new PrincipalVerifier(allowedDNs.stream().map(X500Principal::new).toArray(Principal[]::new));
-            principalVerifier.verify(AuthenticationUtil.getX500Principal(currentUser));
+            checkAnonymous();
+        } else {
+            checkGroupReadAccess(currentUser);
         }
+    }
+
+    private void checkAnonymous() {
+        final APIKeyVerifier apiKeyVerifier = new APIKeyVerifier();
+        final String providedKey = syncInput.getHeader(APIKeyVerifier.API_KEY_REQUEST_HEADER_NAME);
+
+        if (StringUtil.hasText(providedKey)) {
+            apiKeyVerifier.verify(providedKey);
+        } else {
+            throw new NotAuthenticatedException("Caller is not authenticated.");
+        }
+    }
+
+    private void checkGroupReadAccess(final Subject currentUser) throws Exception {
+        final IvoaGroupClient ivoaGroupClient = new IvoaGroupClient();
+        final Set<GroupURI> allowedGroupURIs =
+                PosixMapperAction.POSIX_CONFIGURATION.getProperty(PosixInitAction.ALLOWED_GROUPS_KEY)
+                                                     .stream()
+                                                     .map(groupURIString -> new GroupURI(URI.create(groupURIString)))
+                                                     .collect(Collectors.toSet());
+
+        Subject.doAs(currentUser, (PrivilegedExceptionAction<? extends Void>) () -> {
+            if (ivoaGroupClient.getMemberships(allowedGroupURIs).isEmpty()) {
+                throw new NotAuthenticatedException("Not authorized to use the POSIX Mapper service.");
+            } else {
+                return null;
+            }
+        });
     }
 
     protected GroupWriter getGroupWriter() throws IOException {
