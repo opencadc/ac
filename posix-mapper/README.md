@@ -12,20 +12,25 @@ The following runtime configuration must be made available via the `/config` dir
 
 ### Key access (Optional, but required for certain clients)
 The POSIX Mapper requires authentication for access, but not all clients will have an authenticated user in hand.  To
-facilitate this, the `/config` folder can contain a `keys` folder with a file called `/.api-keys`:
+facilitate this, the `/config` folder can contain a `keys` folder with key files inside`:
 
-`/config/keys/.api-keys`:
+`/config/keys/service-a-api-key`:
 ```
 MYSECRETKEYVALUE
+```
+
+`/config/keys/service-b-api-key`:
+```
+ANOTHERSECRETVALUE
 ```
 
 Where Kubernetes is concerned, it's advisable to create a Secret with this value and mount it to the POSIX Mapper, 
 as well as any clients that need access to the POSIX Mapper service without an authenticated Subject.
 
-Access for clients will involve setting the `X-Client-API-Key` header to the value in the file:
+Access for clients will involve setting the `authorization: api-key <token-value>` header to the value in the file:
 
 ```shell
-$ curl --header "X-Client-API-key: MYSECRETKEYVALUE" https://example.org/posix-mapper/uid
+$ curl --header "authorization: api-key MYSECRETKEYVALUE" https://example.org/posix-mapper/uid
 ```
 
 ### catalina.properties
