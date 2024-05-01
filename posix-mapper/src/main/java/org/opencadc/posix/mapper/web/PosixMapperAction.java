@@ -74,7 +74,6 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
-import org.opencadc.auth.PrincipalVerifier;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -88,13 +87,10 @@ import org.opencadc.posix.mapper.web.user.TSVUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.security.Principal;
-import java.util.List;
 
 public abstract class PosixMapperAction extends RestAction {
 
@@ -122,12 +118,6 @@ public abstract class PosixMapperAction extends RestAction {
         final AuthMethod authMethod = AuthenticationUtil.getAuthMethod(currentUser);
         if (AuthMethod.ANON.equals(authMethod)) {
             throw new NotAuthenticatedException("Caller is not authenticated.");
-        } else if (AuthMethod.CERT.equals(authMethod)) {
-            final List<String> allowedDNs =
-                    PosixMapperAction.POSIX_CONFIGURATION.getProperty(PosixInitAction.ALLOWED_DISTINGUISHED_NAMES_KEY);
-            final PrincipalVerifier principalVerifier =
-                    new PrincipalVerifier(allowedDNs.stream().map(X500Principal::new).toArray(Principal[]::new));
-            principalVerifier.verify(AuthenticationUtil.getX500Principal(currentUser));
         }
     }
 

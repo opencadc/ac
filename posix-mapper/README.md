@@ -23,6 +23,10 @@ for common system properties.
 - See <a href="https://github.com/opencadc/ac/tree/master/cadc-access-control-identity">cadc-access-control-identity</a> for CADC access-control system support.
 - See <a href="https://github.com/opencadc/ac/tree/master/cadc-gms">cadc-gms</a> for OIDC token support.
 
+| :point_down:  IdentityManager System Property                                                                                                                                                                                                                                                       |
+|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| The POSIX Mapper is a special case that allows API Keys for access.  As such, setting the `ca.nrc.cadc.auth.IdentityManager` System Property will be overwritten by an internal implementation.  This internal implementation will still delegate calls to the configured IdentityManager, however. |
+
 `posix-mapper` requires a connection pool to the local user mapping database:
 ```
 # database connection pools
@@ -48,9 +52,6 @@ org.opencadc.posix.mapper.resourceID=ivo://{authority}/{name}
 # Database schema
 org.opencadc.posix.mapper.schema=mapping
 
-# home dir root
-org.opencadc.posix.mapper.homeDirRoot=/storage/home
-
 # ID ranges to allow some customization where administration is necessary
 org.opencadc.posix.mapper.uid.start=10000
 org.opencadc.posix.mapper.gid.start=90000
@@ -58,8 +59,6 @@ org.opencadc.posix.mapper.gid.start=90000
 The _resourceID_ is the resourceID of _this_ posix-mapper service.
 
 The _schema_ is the database schema used for interacting with tables in the database.
-
-The _homeDirRoot_ is the path to the root of home folders.  This is used to create entires in the `/etc/passwd` file.
 
 _uid.start_ start of UID range
 _gid.start_ start of GID range
