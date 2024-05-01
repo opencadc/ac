@@ -98,7 +98,7 @@ public class PosixInitAction extends InitAction {
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
 
     // Add multiples of these to the Properties file.
-    static final String ALLOWED_DISTINGUISHED_NAMES_KEY = PosixInitAction.POSIX_KEY + ".authDN";
+    static final String ALLOWED_GROUPS_KEY = PosixInitAction.POSIX_KEY + ".group";
 
     static final String[] CHECK_CONFIG_KEYS = new String[] {
             PosixInitAction.SCHEMA_KEY, PosixInitAction.RESOURCE_ID_KEY,

@@ -74,6 +74,8 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -91,6 +93,11 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URI;
+import java.security.PrivilegedExceptionAction;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 public abstract class PosixMapperAction extends RestAction {
 
@@ -113,12 +120,31 @@ public abstract class PosixMapperAction extends RestAction {
         checkAuthorization();
     }
 
-    private void checkAuthorization() {
+    private void checkAuthorization() throws Exception {
         final Subject currentUser = AuthenticationUtil.getCurrentSubject();
         final AuthMethod authMethod = AuthenticationUtil.getAuthMethod(currentUser);
         if (AuthMethod.ANON.equals(authMethod)) {
             throw new NotAuthenticatedException("Caller is not authenticated.");
+        } else {
+            checkGroupReadAccess(currentUser);
         }
+    }
+
+    private void checkGroupReadAccess(final Subject currentUser) throws Exception {
+        final IvoaGroupClient ivoaGroupClient = new IvoaGroupClient();
+        final Set<GroupURI> allowedGroupURIs =
+                PosixMapperAction.POSIX_CONFIGURATION.getProperty(PosixInitAction.ALLOWED_GROUPS_KEY)
+                                                     .stream()
+                                                     .map(groupURIString -> new GroupURI(URI.create(groupURIString)))
+                                                     .collect(Collectors.toSet());
+
+        Subject.doAs(currentUser, (PrivilegedExceptionAction<? extends Void>) () -> {
+            if (ivoaGroupClient.getMemberships(allowedGroupURIs).isEmpty()) {
+                throw new NotAuthenticatedException("Not authorized to use the POSIX Mapper service.");
+            } else {
+                return null;
+            }
+        });
     }
 
     protected GroupWriter getGroupWriter() throws IOException {
