@@ -82,8 +82,6 @@ public class DelegatingAPIKeyIdentityManager implements IdentityManager {
                         subject.getPublicCredentials().add(authorizationToken);
                     });
 
-                    subject.getPublicCredentials().add(AuthMethod.TOKEN);
-
                     return subject;
                 }
             } else {

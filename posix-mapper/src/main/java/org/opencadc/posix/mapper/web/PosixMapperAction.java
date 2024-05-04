@@ -70,7 +70,9 @@ package org.opencadc.posix.mapper.web;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
@@ -126,7 +128,16 @@ public abstract class PosixMapperAction extends RestAction {
         if (AuthMethod.ANON.equals(authMethod)) {
             throw new NotAuthenticatedException("Caller is not authenticated.");
         } else {
-            checkGroupReadAccess(currentUser);
+            // Standard validate() will provide NumericPrincipal and HTTPPrincipal.  If they are missing, assume
+            // API Key access and no Group check.
+            final boolean missingPosixPrincipal = currentUser.getPrincipals(PosixPrincipal.class).isEmpty();
+            final boolean missingHTTPPrincipal = currentUser.getPrincipals(HttpPrincipal.class).isEmpty();
+            final boolean tokenFromAPIKey = AuthMethod.TOKEN.equals(authMethod) && missingPosixPrincipal
+                                            && missingHTTPPrincipal;
+
+            if (!tokenFromAPIKey) {
+                checkGroupReadAccess(currentUser);
+            }
         }
     }
 
