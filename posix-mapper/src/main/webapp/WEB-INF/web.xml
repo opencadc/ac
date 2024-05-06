@@ -5,8 +5,12 @@
         "http://java.sun.com/j2ee/dtds/web-app_2_3.dtd">
 
 <web-app>
-
     <display-name>posix-mapper</display-name>
+    
+    <listener>
+        <!-- One-time execution to preserve the Identity Manager. -->
+        <listener-class>org.opencadc.posix.mapper.web.PosixMapperListener</listener-class>
+    </listener>
 
     <servlet>
         <servlet-name>logControl</servlet-name>

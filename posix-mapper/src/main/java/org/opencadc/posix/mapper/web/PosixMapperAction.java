@@ -70,10 +70,14 @@ package org.opencadc.posix.mapper.web;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.gms.IvoaGroupClient;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -91,6 +95,11 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URI;
+import java.security.PrivilegedExceptionAction;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 public abstract class PosixMapperAction extends RestAction {
 
@@ -113,18 +122,44 @@ public abstract class PosixMapperAction extends RestAction {
         checkAuthorization();
     }
 
-    private void checkAuthorization() {
+    private void checkAuthorization() throws Exception {
         final Subject currentUser = AuthenticationUtil.getCurrentSubject();
-        if (currentUser.getPublicCredentials(AuthMethod.class).contains(AuthMethod.ANON)) {
+        final AuthMethod authMethod = AuthenticationUtil.getAuthMethod(currentUser);
+        if (AuthMethod.ANON.equals(authMethod)) {
             throw new NotAuthenticatedException("Caller is not authenticated.");
+        } else {
+            // Standard validate() will provide NumericPrincipal and HTTPPrincipal.  If they are missing, assume
+            // API Key access and no Group check.
+            final boolean missingPosixPrincipal = currentUser.getPrincipals(PosixPrincipal.class).isEmpty();
+            final boolean missingHTTPPrincipal = currentUser.getPrincipals(HttpPrincipal.class).isEmpty();
+            final boolean tokenFromAPIKey = AuthMethod.TOKEN.equals(authMethod) && missingPosixPrincipal
+                                            && missingHTTPPrincipal;
+
+            if (!tokenFromAPIKey) {
+                checkGroupReadAccess(currentUser);
+            }
         }
     }
 
+    private void checkGroupReadAccess(final Subject currentUser) throws Exception {
+        final IvoaGroupClient ivoaGroupClient = new IvoaGroupClient();
+        final Set<GroupURI> allowedGroupURIs =
+                PosixMapperAction.POSIX_CONFIGURATION.getProperty(PosixInitAction.ALLOWED_GROUPS_KEY)
+                                                     .stream()
+                                                     .map(groupURIString -> new GroupURI(URI.create(groupURIString)))
+                                                     .collect(Collectors.toSet());
+
+        Subject.doAs(currentUser, (PrivilegedExceptionAction<? extends Void>) () -> {
+            if (ivoaGroupClient.getMemberships(allowedGroupURIs).isEmpty()) {
+                throw new NotAuthenticatedException("Not authorized to use the POSIX Mapper service.");
+            } else {
+                return null;
+            }
+        });
+    }
+
     protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
-                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
-        this.syncOutput.addHeader("content-type", writeContentType);
+        final String writeContentType = setContentType();
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVGroupWriter(writer);
@@ -134,16 +169,22 @@ public abstract class PosixMapperAction extends RestAction {
     }
 
     protected UserWriter getUserWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
-                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
-        this.syncOutput.addHeader("content-type", writeContentType);
+        final String writeContentType = setContentType();
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVUserWriter(writer);
         } else {
             return new AsciiUserWriter(writer);
         }
+    }
+
+    private String setContentType() {
+        final String requestContentType = syncInput.getHeader("accept");
+        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
+                ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
+        this.syncOutput.addHeader("content-type", writeContentType);
+
+        return writeContentType;
     }
 
     /**
