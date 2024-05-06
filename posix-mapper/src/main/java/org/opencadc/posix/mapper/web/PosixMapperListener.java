@@ -20,7 +20,8 @@ public class PosixMapperListener implements ServletContextListener {
         LOGGER.debug("contextInitialized: START");
         DelegatingAPIKeyIdentityManager.DELEGATED_IDENTITY_MANAGER = AuthenticationUtil.getIdentityManager();
         System.setProperty(IdentityManager.class.getName(), DelegatingAPIKeyIdentityManager.class.getName());
-        LOGGER.debug("contextInitialized: OK");
+        LOGGER.debug("contextInitialized (IdentityManager now set to "
+                             + System.getProperty(IdentityManager.class.getName()) + "): OK");
     }
 
     @Override
