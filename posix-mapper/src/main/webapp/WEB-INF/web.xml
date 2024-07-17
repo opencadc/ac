@@ -41,7 +41,7 @@
         </init-param>
         <init-param>
             <param-name>init</param-name>
-            <param-value>org.opencadc.posix.mapper.web.PosixInitAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.DelegatingPosixInitAction</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
