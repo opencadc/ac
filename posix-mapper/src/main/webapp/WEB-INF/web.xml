@@ -32,6 +32,10 @@
         <load-on-startup>1</load-on-startup>
     </servlet>
 
+    <!--
+      Note that this servlet uses a separate init action as it will perform one-time application initialization
+      of the delegating IdentityManager.
+    -->
     <servlet>
         <servlet-name>PosixUserManagementServlet</servlet-name>
         <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
