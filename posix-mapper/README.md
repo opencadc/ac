@@ -46,10 +46,6 @@ for common system properties.
 - See <a href="https://github.com/opencadc/ac/tree/master/cadc-access-control-identity">cadc-access-control-identity</a> for CADC access-control system support.
 - See <a href="https://github.com/opencadc/ac/tree/master/cadc-gms">cadc-gms</a> for OIDC token support.
 
-| :point_down:  IdentityManager System Property                                                                                                                                                                                                                                                       |
-|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| The POSIX Mapper is a special case that allows API Keys for access.  As such, setting the `ca.nrc.cadc.auth.IdentityManager` System Property will be overwritten by an internal implementation.  This internal implementation will still delegate calls to the configured IdentityManager, however. |
-
 `posix-mapper` requires a connection pool to the local user mapping database:
 ```
 # database connection pools
