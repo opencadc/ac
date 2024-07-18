@@ -82,6 +82,8 @@ import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -89,6 +91,7 @@ import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -100,6 +103,8 @@ import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.json.JSONTokener;
+import jdk.nashorn.internal.parser.JSONParser;
 
 /**
  * Prototype IdentityManager for a standards-based system. This currently supports
@@ -119,8 +124,8 @@ public class StandardIdentityManager implements IdentityManager {
         tmp.add(Standards.SECURITY_METHOD_TOKEN);
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
-    
-    private final URI oidcIssuer;
+
+    private final Set<URL> oidcIssuers;  // white list of oidc issuers
     
     // need these to contruct an AuthorizationToken
     private RegistryClient reg = new RegistryClient();
@@ -131,20 +136,22 @@ public class StandardIdentityManager implements IdentityManager {
     
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
-        String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        this.oidcIssuer = loc.getServiceURI(key);
-        try {
-            URL u = oidcIssuer.toURL();
-            oidcDomains.add(u.getHost());
+        this.oidcIssuers = loc.getServiceURIs(Standards.SECURITY_METHOD_OPENID);
+        for (URI oidcIssuer : oidcIssuers) {
+            try {
+                URL u = oidcIssuer.toURL();
+                oidcDomains.add(u.getHost());
 
-            // add known and assume trusted A&A services
-            String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
-            if (host != null) {
-                oidcDomains.add(host);
+                // add known and assume trusted A&A services
+                String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
+                if (host != null) {
+                    oidcDomains.add(host);
+                }
+
+            } catch (MalformedURLException ex) {
+                throw new InvalidConfigException("found " + Standards.SECURITY_METHOD_OPENID
+                        + " = " + oidcIssuer + " - expected valid URL", ex);
             }
-
-        } catch (MalformedURLException ex) {
-            throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
         }
         for (String dom : oidcDomains) {
             log.debug("OIDC domain: " + dom);
@@ -319,9 +326,48 @@ public class StandardIdentityManager implements IdentityManager {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
 
+        Base64.Decoder dec = Base64.getUrlDecoder();
+        for (AuthorizationTokenPrincipal tk : rawTokens) {
+            String rawtoken = tk.getHeaderValue();
+            rawtoken = rawtoken.replace("bearer", "");
+            rawtoken = rawtoken.trim();
+
+            log.debug(rawtoken);
+            String[] parts = rawtoken.split("[.]");
+
+            String header = null;
+            URL iss;
+            try {
+                header = StringUtil.readFromInputStream(new ByteArrayInputStream(dec.decode(parts[0])), "UTF-8");
+                log.debug("header: " + header);
+                String payload = StringUtil.readFromInputStream(new ByteArrayInputStream(dec.decode(parts[1])), "UTF-8");
+                log.debug("payload: " + payload);
+                JSONObject object = (JSONObject) new JSONTokener(payload).nextValue();
+                String issStr = object.getString("iss");
+                log.debug("iss: " + issStr);
+                iss = new URL(issStr);
+                boolean found = false;
+                for (URL trustedIss : oidcIssuers) {
+                    if (iss.equals(trustedIss)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    throw new NotAuthenticatedException("Token issuer not trusted: " + iss);
+                }
+                byte[] sig = dec.decode(parts[2]);
+                log.debug("sig: " + sig.length + " bytes");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        URI oidcIssuer = URI.create("https://ska-iam.stfc.ac.uk/"); //TODO
         log.debug("token issuer: " + oidcIssuer + " rawTokens: " + rawTokens.size());
         if (oidcIssuer != null && !rawTokens.isEmpty()) {
-            URL u = getUserEndpoint();
+            URL u = getUserEndpoint(oidcIssuer);
             for (AuthorizationTokenPrincipal raw : rawTokens) {
                 String credentials = null;
                 String challengeType = null;
@@ -387,7 +433,7 @@ public class StandardIdentityManager implements IdentityManager {
         }
     }
     
-    private URL getUserEndpoint() {
+    private URL getUserEndpoint(URI oidcIssuer) {
         try {
             // TODO: call OpenID well known config to find userinfo endpoint
             StringBuilder sb = new StringBuilder(oidcIssuer.toASCIIString());
