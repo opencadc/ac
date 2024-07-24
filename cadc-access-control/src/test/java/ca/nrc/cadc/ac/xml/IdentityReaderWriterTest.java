@@ -88,7 +88,6 @@ import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**
@@ -192,14 +191,6 @@ public class IdentityReaderWriterTest extends AbstractReaderWriter
         assertNotNull(actual);
 
         assertEquals(expected, actual);
-
-        // OpenID
-        expected = new OpenIdPrincipal("bar");
-        element = getElement(expected);
-        assertNotNull(element);
-
-        actual = getPrincipal(element);
-        assertNotNull(actual);
 
         assertEquals(expected, actual);
 

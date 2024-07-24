@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2023.                            (c) 2023.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -74,7 +74,7 @@ import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
@@ -90,6 +90,7 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -125,6 +126,8 @@ public class StandardIdentityManager implements IdentityManager {
     private RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
     private URI oidcScope;
+
+    private static final String OID_OWNER_DELIM = " ";  // delimiter between issuer and openID that form the owner str
     
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
@@ -133,13 +136,13 @@ public class StandardIdentityManager implements IdentityManager {
         try {
             URL u = oidcIssuer.toURL();
             oidcDomains.add(u.getHost());
-            
+
             // add known and assume trusted A&A services
             String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
             if (host != null) {
                 oidcDomains.add(host);
             }
-           
+
         } catch (MalformedURLException ex) {
             throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
         }
@@ -178,7 +181,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public Subject augment(Subject subject) {
-        // oidc tokens: validate gets HttpPrincipal and NumericPrincipal
+        // oidc tokens: validate gets HttpPrincipal and OpenIdPrincipal
         // cadc signed cookies/tokens: validate gets all identities
         boolean hasPP = !subject.getPrincipals(PosixPrincipal.class).isEmpty();
         boolean hasHP = !subject.getPrincipals(HttpPrincipal.class).isEmpty();
@@ -244,18 +247,25 @@ public class StandardIdentityManager implements IdentityManager {
     @Override
     public Subject toSubject(Object owner) {
         Subject ret = new Subject();
+        OpenIdPrincipal p = null;
         if (owner != null) {
-            UUID uuid = null;
-            if (owner instanceof UUID) {
-                uuid = (UUID) owner;
-            } else if (owner instanceof String) {
-                String sub = (String) owner;
-                uuid = UUID.fromString(sub);
+            if (owner instanceof String) {
+                String[] openIDComponents = ((String)owner).split(OID_OWNER_DELIM);  // "issuer openID"
+                if (openIDComponents.length != 2) {
+                    throw new RuntimeException("unexpected owner format: " + owner.getClass().getName() + " value: " + owner);
+                }
+                URL issuer = null;
+                try {
+                    issuer = new URL(openIDComponents[0]);
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(
+                            "incorrect issuer format for owner: " + owner.getClass().getName() + " value: " + owner);
+                }
+                p = new OpenIdPrincipal(issuer, openIDComponents[1]);
             } else {
                 throw new RuntimeException("unexpected owner type: " + owner.getClass().getName() + " value: " + owner);
             }
-            NumericPrincipal p = new NumericPrincipal(uuid);
-            
+
             // effectively augment by using the current subject as a "cache" of known identities
             Subject s = AuthenticationUtil.getCurrentSubject();
             if (s != null) {
@@ -267,7 +277,7 @@ public class StandardIdentityManager implements IdentityManager {
                     }
                 }
             }
-            
+
             ret.getPrincipals().add(p);
             // this is sufficient for some purposes, but not for output using toDisplayString (eg vospace node owner)
             // TODO: use PosixMapperClient.augment() to try to add a PosixPrincipal and infer an HttpPrincipal?
@@ -278,11 +288,12 @@ public class StandardIdentityManager implements IdentityManager {
     @Override
     public Object toOwner(Subject subject) {
         // use NumericPrincipal aka OIDC sub for persistence
-        Set<NumericPrincipal> ps = subject.getPrincipals(NumericPrincipal.class);
+        Set<OpenIdPrincipal> ps = subject.getPrincipals(OpenIdPrincipal.class);
         if (ps.isEmpty()) {
             return null;
         }
-        return ps.iterator().next().getUUID().toString();
+        OpenIdPrincipal openIdPrincipal = ps.iterator().next();
+        return openIdPrincipal.getIssuer().toString() + OID_OWNER_DELIM + openIdPrincipal.getName();
     }
 
     @Override
@@ -307,8 +318,8 @@ public class StandardIdentityManager implements IdentityManager {
     private void validateOidcAccessToken(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
-        
-        log.debug("token issuer: "  + oidcIssuer + " rawTokens: " + rawTokens.size());
+
+        log.debug("token issuer: " + oidcIssuer + " rawTokens: " + rawTokens.size());
         if (oidcIssuer != null && !rawTokens.isEmpty()) {
             URL u = getUserEndpoint();
             for (AuthorizationTokenPrincipal raw : rawTokens) {
@@ -325,12 +336,12 @@ public class StandardIdentityManager implements IdentityManager {
                         credentials = tval[1];
                     } else {
                         throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_REQUEST,
-                            "invalid authorization");
+                                "invalid authorization");
                     }
-                } // else: some other challenge 
+                } // else: some other challenge
                 log.debug("challenge type: " + challengeType);
                 log.debug("credentials: " + credentials);
-                    
+
                 // validate
                 if (challengeType != null && credentials != null) {
                     try {
@@ -345,11 +356,11 @@ public class StandardIdentityManager implements IdentityManager {
                         String username = json.getString("preferred_username");
                         // TODO: register an X509 DN with IAM and see if I can get it back here
 
-                        NumericPrincipal np = new NumericPrincipal(UUID.fromString(sub));
+                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcIssuer.toURL(), sub);
                         HttpPrincipal hp = new HttpPrincipal(username);
 
                         s.getPrincipals().remove(raw);
-                        s.getPrincipals().add(np);
+                        s.getPrincipals().add(oip);
                         s.getPrincipals().add(hp);
 
                         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
@@ -372,8 +383,8 @@ public class StandardIdentityManager implements IdentityManager {
                     }
                 }
             }
+            log.debug("validateOidcAccessToken - DONE");
         }
-        log.debug("validateOidcAccessToken - DONE");
     }
     
     private URL getUserEndpoint() {

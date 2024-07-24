@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2024.                            (c) 2024.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -103,7 +103,6 @@ import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.date.DateUtil;
 
@@ -282,11 +281,7 @@ public abstract class AbstractReaderWriter
 
         String identity = element.getText();
         Principal principal;
-        if (type.equals(IdentityType.OPENID.getValue()))
-        {
-            principal = new OpenIdPrincipal(identity);
-        }
-        else if (type.equals(IdentityType.CADC.getValue()))
+        if (type.equals(IdentityType.CADC.getValue()))
         {
             principal = new NumericPrincipal(UUID.fromString(identity));
         }
@@ -783,10 +778,6 @@ public abstract class AbstractReaderWriter
         else if ((identity instanceof NumericPrincipal))
         {
             identityElement.setAttribute(TYPE, IdentityType.CADC.getValue());
-        }
-        else if ((identity instanceof OpenIdPrincipal))
-        {
-            identityElement.setAttribute(TYPE, IdentityType.OPENID.getValue());
         }
         else if ((identity instanceof X500Principal))
         {
