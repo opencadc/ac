@@ -287,13 +287,12 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public Object toOwner(Subject subject) {
-        // use NumericPrincipal aka OIDC sub for persistence
         Set<OpenIdPrincipal> ps = subject.getPrincipals(OpenIdPrincipal.class);
         if (ps.isEmpty()) {
             return null;
         }
         OpenIdPrincipal openIdPrincipal = ps.iterator().next();
-        return openIdPrincipal.getIssuer().toString() + OID_OWNER_DELIM + openIdPrincipal.getName();
+        return openIdPrincipal.getIssuer().toExternalForm() + OID_OWNER_DELIM + openIdPrincipal.getName();
     }
 
     @Override
