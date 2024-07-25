@@ -10,6 +10,29 @@ additional path elements (see [war-rename.conf](https://github.com/opencadc/dock
 ### configuration
 The following runtime configuration must be made available via the `/config` directory.
 
+### Key access (Optional, but required for certain clients)
+The POSIX Mapper requires authentication for access, but not all clients will have an authenticated user in hand.  To
+facilitate this, the `/config` folder can contain a `keys` folder with key files inside`:
+
+`/config/keys/service-a-api-key`:
+```
+MYSECRETKEYVALUE
+```
+
+`/config/keys/service-b-api-key`:
+```
+ANOTHERSECRETVALUE
+```
+
+Where Kubernetes is concerned, it's advisable to create a Secret with this value and mount it to the POSIX Mapper, 
+as well as any clients that need access to the POSIX Mapper service without an authenticated Subject.
+
+Access for clients will involve setting the `authorization: api-key <token-value>` header to the value in the file:
+
+```shell
+$ curl --header "authorization: api-key MYSECRETKEYVALUE" https://example.org/posix-mapper/uid
+```
+
 ### catalina.properties
 This file contains java system properties to configure the tomcat server and some of the java libraries used in the service.
 
@@ -48,18 +71,17 @@ org.opencadc.posix.mapper.resourceID=ivo://{authority}/{name}
 # Database schema
 org.opencadc.posix.mapper.schema=mapping
 
-# home dir root
-org.opencadc.posix.mapper.homeDirRoot=/storage/home
-
 # ID ranges to allow some customization where administration is necessary
 org.opencadc.posix.mapper.uid.start=10000
 org.opencadc.posix.mapper.gid.start=90000
+
+# At least one group that are allowed to query the API.  Use multiple org.opencadc.posix.mapper.group entries for
+# multiple groups.
+org.opencadc.posix.mapper.group=ivo://example.org/gms?mygroup
 ```
 The _resourceID_ is the resourceID of _this_ posix-mapper service.
 
 The _schema_ is the database schema used for interacting with tables in the database.
-
-The _homeDirRoot_ is the path to the root of home folders.  This is used to create entires in the `/etc/passwd` file.
 
 _uid.start_ start of UID range
 _gid.start_ start of GID range

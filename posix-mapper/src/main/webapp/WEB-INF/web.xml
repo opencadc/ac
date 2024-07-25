@@ -5,7 +5,6 @@
         "http://java.sun.com/j2ee/dtds/web-app_2_3.dtd">
 
 <web-app>
-
     <display-name>posix-mapper</display-name>
 
     <servlet>
@@ -33,6 +32,10 @@
         <load-on-startup>1</load-on-startup>
     </servlet>
 
+    <!--
+      Note that this servlet uses a separate init action as it will perform one-time application initialization
+      of the delegating IdentityManager.
+    -->
     <servlet>
         <servlet-name>PosixUserManagementServlet</servlet-name>
         <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
@@ -42,7 +45,7 @@
         </init-param>
         <init-param>
             <param-name>init</param-name>
-            <param-value>org.opencadc.posix.mapper.web.PosixInitAction</param-value>
+            <param-value>org.opencadc.posix.mapper.web.DelegatingPosixInitAction</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
