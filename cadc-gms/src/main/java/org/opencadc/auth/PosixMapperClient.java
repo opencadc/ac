@@ -115,8 +115,10 @@ public class PosixMapperClient {
         this.service = resourceID.toASCIIString();
         try {
             final RegistryClient regClient = new RegistryClient();
+            regClient.setConnectionTimeout(6000); // ms
+            regClient.setReadTimeout(12000);      // ms
             this.capabilities = regClient.getCapabilities(resourceID);
-        } catch (ResourceNotFoundException | IOException ex) {
+        } catch (Exception ex) {
             throw new RuntimeException("failed to read capabilities for " + service, ex);
         }
     }
@@ -129,6 +131,8 @@ public class PosixMapperClient {
         try {
             URL capURL = new URL(baseURL.toExternalForm() + "/capabilities");
             HttpGet get = new HttpGet(capURL, true);
+            get.setConnectionTimeout(6000); // ms
+            get.setReadTimeout(12000);      // ms
             get.prepare();
             CapabilitiesReader r = new CapabilitiesReader();
             this.capabilities = r.read(get.getInputStream());
@@ -179,6 +183,8 @@ public class PosixMapperClient {
         URL queryURL = new URL(query.toString());
 
         HttpGet get = new HttpGet(queryURL, true);
+        get.setConnectionTimeout(6000); // ms
+        get.setReadTimeout(30000);      // ms
         get.setRequestProperty("accept", "text/tab-separated-values");
         get.prepare();
 
@@ -238,6 +244,8 @@ public class PosixMapperClient {
                                                                 ResourceAlreadyExistsException, InterruptedException {
         final URL userMapURL = getServiceURL(Standards.POSIX_USERMAP);
         final HttpGet get = new HttpGet(userMapURL, true);
+        get.setConnectionTimeout(6000); // ms
+        get.setReadTimeout(30000);      // ms
         get.setRequestProperty("accept", "text/tab-separated-values");
         get.prepare();
 
@@ -284,6 +292,8 @@ public class PosixMapperClient {
                                                      ResourceAlreadyExistsException, InterruptedException  {
         final URL userMapURL = getServiceURL(Standards.POSIX_GROUPMAP);
         final HttpGet get = new HttpGet(userMapURL, true);
+        get.setConnectionTimeout(6000); // ms
+        get.setReadTimeout(30000);      // ms
         get.setRequestProperty("accept", "text/tab-separated-values");
         get.prepare();
 
@@ -334,6 +344,8 @@ public class PosixMapperClient {
         URL queryURL = new URL(query.toString());
 
         HttpGet get = new HttpGet(queryURL, true);
+        get.setConnectionTimeout(6000); // ms
+        get.setReadTimeout(30000);      // ms
         get.setRequestProperty("accept", "text/tab-separated-values");
         get.prepare();
 

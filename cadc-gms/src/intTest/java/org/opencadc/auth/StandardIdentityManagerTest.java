@@ -71,7 +71,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.auth.X509CertificateChain;
@@ -102,8 +102,9 @@ public class StandardIdentityManagerTest {
     private static final Logger log = Logger.getLogger(StandardIdentityManagerTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
         Log4jInit.setLevel("org.opencadc.auth", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.net", Level.INFO);
     }
     
     private X509CertificateChain chain;
@@ -168,26 +169,26 @@ public class StandardIdentityManagerTest {
             Subject validated = AuthenticationUtil.getSubject(new DummyPrincipalExtractor(false, true), false);
             final StandardIdentityManager im = new StandardIdentityManager();
             log.info("validated: " + validated);
-            Assert.assertFalse("oidc uuid", validated.getPrincipals(NumericPrincipal.class).isEmpty());
+            Assert.assertFalse("oidc iss/sub", validated.getPrincipals(OpenIdPrincipal.class).isEmpty());
             Assert.assertFalse("oidc username", validated.getPrincipals(HttpPrincipal.class).isEmpty());
             
             Subject augmented = im.augment(validated);
             log.info("augmented: " + augmented);
-            Assert.assertFalse("oidc uuid", validated.getPrincipals(NumericPrincipal.class).isEmpty());
+            Assert.assertFalse("oidc iss/sub", validated.getPrincipals(OpenIdPrincipal.class).isEmpty());
             Assert.assertFalse("oidc username", validated.getPrincipals(HttpPrincipal.class).isEmpty());
             
             final Object owner = im.toOwner(augmented);
             Subject s = im.toSubject(owner);
             log.info("owner round trip: " + s);
             Assert.assertNotNull(s);
-            Assert.assertFalse(s.getPrincipals(NumericPrincipal.class).isEmpty());
+            Assert.assertFalse(s.getPrincipals(OpenIdPrincipal.class).isEmpty());
             Assert.assertTrue(s.getPrincipals(HttpPrincipal.class).isEmpty());
             
             // test using current subject as cache for augment
             Subject as = Subject.doAs(augmented, (PrivilegedExceptionAction<Subject>) () -> im.toSubject(owner));
             log.info("owner round trip inside doAs(augmented): " + as);
             Assert.assertNotNull(as);
-            Assert.assertFalse(as.getPrincipals(NumericPrincipal.class).isEmpty());
+            Assert.assertFalse(as.getPrincipals(OpenIdPrincipal.class).isEmpty());
             Assert.assertFalse(as.getPrincipals(HttpPrincipal.class).isEmpty());
             
         } catch (Exception unexpected) {

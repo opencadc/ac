@@ -318,7 +318,7 @@ public class StandardIdentityManager implements IdentityManager {
             return null;
         }
         OpenIdPrincipal openIdPrincipal = ps.iterator().next();
-        return openIdPrincipal.getIssuer().toString() + OID_OWNER_DELIM + openIdPrincipal.getName();
+        return openIdPrincipal.getIssuer().toExternalForm() + OID_OWNER_DELIM + openIdPrincipal.getName();
     }
 
     @Override
