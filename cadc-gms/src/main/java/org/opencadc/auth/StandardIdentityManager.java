@@ -85,20 +85,32 @@ import ca.nrc.cadc.util.StringUtil;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
+import org.jose4j.jwa.AlgorithmConstraints;
+import org.jose4j.jwk.HttpsJwks;
+import org.jose4j.jws.AlgorithmIdentifiers;
+import org.jose4j.jwt.JwtClaims;
+import org.jose4j.jwt.MalformedClaimException;
+import org.jose4j.jwt.consumer.ErrorCodes;
+import org.jose4j.jwt.consumer.InvalidJwtException;
+import org.jose4j.jwt.consumer.JwtConsumer;
+import org.jose4j.jwt.consumer.JwtConsumerBuilder;
+import org.jose4j.jwt.consumer.JwtContext;
+import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
 import org.json.JSONObject;
 
 /**
@@ -119,32 +131,44 @@ public class StandardIdentityManager implements IdentityManager {
         tmp.add(Standards.SECURITY_METHOD_TOKEN);
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
+
+    private final static Map<URI, HttpsJwks> OIDC_ISSUERS;  // white list of oidc issuers
+
+    static {
+        LocalAuthority loc = new LocalAuthority();
+        OIDC_ISSUERS = new HashMap<>();
+        for (URI oidcIssuer : loc.getServiceURIs(Standards.SECURITY_METHOD_OPENID)) {
+            try {
+                URL issuerURL = oidcIssuer.toURL();
+                URL jwksURL = getJwsURL(issuerURL);
+                OIDC_ISSUERS.put(issuerURL.toURI(), new HttpsJwks(jwksURL.toString()));
+            } catch (MalformedURLException ex) {
+                throw new InvalidConfigException("found " + Standards.SECURITY_METHOD_OPENID
+                        + " = " + oidcIssuer + " - expected valid URL of OIDC service", ex);
+            } catch (URISyntaxException e) {
+                throw new RuntimeException("BUG in transforming URL to URI", e);
+            }
+        }
+
+    }
     
-    private final URI oidcIssuer;
-    
-    // need these to contruct an AuthorizationToken
-    private RegistryClient reg = new RegistryClient();
+    // need these to construct an AuthorizationToken
+    private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
-    private URI oidcScope;
+    private URI oidcScope;  // TODO - not assigned yet
 
     private static final String OID_OWNER_DELIM = " ";  // delimiter between issuer and openID that form the owner str
     
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
-        String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        this.oidcIssuer = loc.getServiceURI(key);
-        try {
-            URL u = oidcIssuer.toURL();
-            oidcDomains.add(u.getHost());
+        for (URI issuer : OIDC_ISSUERS.keySet()) {
+            oidcDomains.add(issuer.getHost());
 
             // add known and assume trusted A&A services
             String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
             if (host != null) {
                 oidcDomains.add(host);
             }
-
-        } catch (MalformedURLException ex) {
-            throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
         }
         for (String dom : oidcDomains) {
             log.debug("OIDC domain: " + dom);
@@ -159,6 +183,7 @@ public class StandardIdentityManager implements IdentityManager {
     // lookup the local/trusted provider of an API and extract the hostname
     private String getProviderHostname(LocalAuthority loc, URI standardID) {
         try {
+            // TODO how to handle multiple oidc providers. Single posixMapper?
             URI resourceID = loc.getServiceURI(standardID.toASCIIString());
             if (resourceID != null) {
                 URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
@@ -189,6 +214,7 @@ public class StandardIdentityManager implements IdentityManager {
         if (needAugment) {
             try {
                 LocalAuthority loc = new LocalAuthority();
+                // TODO how to handle multiple oidc providers. Single posixMapper?
                 URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
@@ -204,7 +230,7 @@ public class StandardIdentityManager implements IdentityManager {
                         throw new RuntimeException("CONFIG: unsupported posix-mapping identifier scheme: " + posixUserMap);
                     }
                     Subject cur = AuthenticationUtil.getCurrentSubject();
-                    if (cur == null && hasHP && !hasPP) {
+                    if (cur == null && hasHP) {
                         // not in a Subject.doAs
                         // use case: augment authenticated user after validate at start of request
                         Set<AuthorizationToken> ats = subject.getPublicCredentials(AuthorizationToken.class);
@@ -247,14 +273,14 @@ public class StandardIdentityManager implements IdentityManager {
     @Override
     public Subject toSubject(Object owner) {
         Subject ret = new Subject();
-        OpenIdPrincipal p = null;
+        OpenIdPrincipal p;
         if (owner != null) {
             if (owner instanceof String) {
                 String[] openIDComponents = ((String)owner).split(OID_OWNER_DELIM);  // "issuer openID"
                 if (openIDComponents.length != 2) {
                     throw new RuntimeException("unexpected owner format: " + owner.getClass().getName() + " value: " + owner);
                 }
-                URL issuer = null;
+                URL issuer;
                 try {
                     issuer = new URL(openIDComponents[0]);
                 } catch (MalformedURLException e) {
@@ -313,93 +339,136 @@ public class StandardIdentityManager implements IdentityManager {
         
         return null;
     }
-    
+
+    private static URL getJwsURL(URL issuer) {
+        // given the URL of an issuer, it returns the URL of the JWS endpoint
+        // get configuration first
+        String configLocation = issuer + "/.well-known/openid-configuration";
+        try {
+            URL configURL = new URL(configLocation);
+            HttpGet get = new HttpGet(configURL, true);
+            get.setConnectionTimeout(6000); // ms
+            get.setReadTimeout(12000);      // ms
+            get.prepare();
+            InputStream istream = get.getInputStream();
+            String str = StringUtil.readFromInputStream(istream, "UTF-8");
+            JSONObject json = new JSONObject(str);
+            String jwksUri = json.getString("jwks_uri");
+            if (jwksUri == null) {
+                throw new RuntimeException("BUG: cannot find jwks-uri in oidc config at " + configLocation);
+            }
+            return new URL(jwksUri);
+
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("BUG: ", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot read oids config at " + configLocation, e);
+        }
+    }
+
+    private URI getJwtIssuer(String jwtToken) throws InvalidJwtException, MalformedClaimException, MalformedURLException {
+        // get the issuer of the token without validating it
+        JwtConsumer firstPassJwtConsumer = new JwtConsumerBuilder()
+                .setSkipAllValidators()
+                .setDisableRequireSignature()
+                .setSkipSignatureVerification()
+                .build();
+        JwtContext jwtContext = firstPassJwtConsumer.process(jwtToken);
+        return URI.create(jwtContext.getJwtClaims().getIssuer());
+    }
+
     private void validateOidcAccessToken(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
 
-        log.debug("token issuer: " + oidcIssuer + " rawTokens: " + rawTokens.size());
-        if (oidcIssuer != null && !rawTokens.isEmpty()) {
-            URL u = getUserEndpoint();
-            for (AuthorizationTokenPrincipal raw : rawTokens) {
-                String credentials = null;
-                String challengeType = null;
+        for (AuthorizationTokenPrincipal raw : rawTokens) {
+            String credentials;
+            String challengeType;
 
-                // parse header
-                log.debug("header key: " + raw.getHeaderKey());
-                log.debug("header val: " + raw.getHeaderValue());
-                if (AuthenticationUtil.AUTHORIZATION_HEADER.equalsIgnoreCase(raw.getHeaderKey())) {
-                    String[] tval = raw.getHeaderValue().split(" ");
-                    if (tval.length == 2) {
-                        challengeType = tval[0];
-                        credentials = tval[1];
-                    } else {
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_REQUEST,
-                                "invalid authorization");
-                    }
-                } // else: some other challenge
-                log.debug("challenge type: " + challengeType);
-                log.debug("credentials: " + credentials);
+            // parse header
+            log.debug("header key: " + raw.getHeaderKey());
+            log.debug("header val: " + raw.getHeaderValue());
+            if (AuthenticationUtil.AUTHORIZATION_HEADER.equalsIgnoreCase(raw.getHeaderKey())) {
+                String[] tval = raw.getHeaderValue().split(" ");
+                if (tval.length == 2) {
+                    challengeType = tval[0];
+                    credentials = tval[1];
+                } else {
+                    throw new NotAuthenticatedException(raw.getHeaderValue(), NotAuthenticatedException.AuthError.INVALID_REQUEST,
+                            "invalid authorization");
+                }
+            } else {
+                throw new NotAuthenticatedException("Unsupported authorization header: " + raw.getHeaderKey());
+            }
+            log.debug("challenge type: " + challengeType);
+            log.debug("credentials: " + credentials);
 
-                // validate
-                if (challengeType != null && credentials != null) {
+            try {
+                URI jwtIssuer = getJwtIssuer(credentials);
+
+                if (!OIDC_ISSUERS.containsKey(jwtIssuer)) {
+                    throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
+                            "Unsupported issuer: " + jwtIssuer, null);
+                }
+                HttpsJwksVerificationKeyResolver httpsJwksKeyResolver =
+                        new HttpsJwksVerificationKeyResolver(OIDC_ISSUERS.get(jwtIssuer));
+                JwtConsumer jwtConsumer = new JwtConsumerBuilder()
+                        .setRequireExpirationTime()
+                        .setExpectedIssuers(true, jwtIssuer.toString())
+                        .setVerificationKeyResolver(httpsJwksKeyResolver)
+                        .setJwsAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.PERMIT, // which is only RS256 here
+                                AlgorithmIdentifiers.RSA_USING_SHA256))
+                        .build(); // create the JwtConsumer instance;
+
+
+                //  Validate the JWT and process it to the Claims
+                JwtClaims jwtClaims = jwtConsumer.processToClaims(credentials);
+                log.debug("JWT validation succeeded! " + jwtClaims);
+
+
+                String sub = jwtClaims.getClaimValue("sub", String.class);
+                OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
+
+                String username = jwtClaims.getClaimValueAsString("preferred_username");
+                HttpPrincipal hp = new HttpPrincipal(username);
+
+                s.getPrincipals().remove(raw);
+                s.getPrincipals().add(oip);
+                s.getPrincipals().add(hp);
+
+                AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
+                s.getPublicCredentials().add(authToken);
+                log.debug("Validated user: " + oip);
+            } catch (InvalidJwtException e) {
+                String msg = "Invalid token";
+
+                // Whether the JWT has expired being one common reason for invalidity
+                if (e.hasExpired()) {
                     try {
-                        HttpGet get = new HttpGet(u, true);
-                        get.setRequestProperty("authorization", raw.getHeaderValue());
-                        get.prepare();
-
-                        InputStream istream = get.getInputStream();
-                        String str = StringUtil.readFromInputStream(istream, "UTF-8");
-                        JSONObject json = new JSONObject(str);
-                        String sub = json.getString("sub");
-                        String username = json.getString("preferred_username");
-                        // TODO: register an X509 DN with IAM and see if I can get it back here
-
-                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcIssuer.toURL(), sub);
-                        HttpPrincipal hp = new HttpPrincipal(username);
-
-                        s.getPrincipals().remove(raw);
-                        s.getPrincipals().add(oip);
-                        s.getPrincipals().add(hp);
-
-                        AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
-                        s.getPublicCredentials().add(authToken);
-                    } catch (NotAuthenticatedException ex) {
-                        JSONObject json = new JSONObject(ex.getMessage());
-                        String error = json.getString("error");
-                        String details = json.getString("error_description");
-                        // details usually includes the invalid access token: truncate
-                        StringBuilder sb = new StringBuilder(error);
-                        sb.append(" reason: ");
-                        int max = Math.min(details.length(), 32);
-                        sb.append(details.subSequence(0, max));
-                        if (max < details.length()) {
-                            sb.append("...");
-                        }
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
-                    } catch (Exception ex) {
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
+                        msg = "Token expired at " + e.getJwtContext().getJwtClaims().getExpirationTime();
+                    } catch (MalformedClaimException ex) {
+                        msg = "BUG: Malformed JWT expiration time in token";
                     }
                 }
+
+                // Or maybe the audience was invalid
+                if (e.hasErrorCode(ErrorCodes.AUDIENCE_INVALID)) {
+                    try {
+                        msg = "JWT had wrong audience: " + e.getJwtContext().getJwtClaims().getAudience();
+                    } catch (MalformedClaimException ex) {
+                        msg = "BUG: Malformed Audience claim in token";
+                    }
+                }
+
+                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, msg, e);
+
+            } catch (MalformedClaimException e) {
+                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
+                        "BUG: Malformed claim", e);
+            } catch (MalformedURLException e) {
+                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
+                        "Invalid URL for token iss", e );
             }
-            log.debug("validateOidcAccessToken - DONE");
         }
     }
-    
-    private URL getUserEndpoint() {
-        try {
-            // TODO: call OpenID well known config to find userinfo endpoint
-            StringBuilder sb = new StringBuilder(oidcIssuer.toASCIIString());
-            if (sb.charAt(sb.length() - 1) != '/') {
-                sb.append("/");
-            }
-            sb.append("userinfo");
-            URL userinfo = new URL(sb.toString());
-            log.debug("oidc.userinfo: " + userinfo);
-            return userinfo;
-        } catch (MalformedURLException ex) {
-            throw new RuntimeException("BUG: failed to create valid oidc userinfo url", ex);
-        }
-    }
-        
 }
