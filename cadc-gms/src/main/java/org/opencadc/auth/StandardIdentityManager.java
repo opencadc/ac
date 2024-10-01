@@ -312,7 +312,7 @@ public class StandardIdentityManager implements IdentityManager {
 
         log.debug("token issuer: " + oidcIssuer + " rawTokens: " + rawTokens.size());
         if (oidcIssuer != null && !rawTokens.isEmpty()) {
-            URL u = getUserEndpoint();
+            URL u = StandardIdentityManager.getUserEndpoint();
             for (AuthorizationTokenPrincipal raw : rawTokens) {
                 String credentials = null;
                 String challengeType = null;
@@ -378,7 +378,7 @@ public class StandardIdentityManager implements IdentityManager {
         }
     }
     
-    private URL getUserEndpoint() {
+    private static URL getUserEndpoint() {
         try {
             return OIDCClient.getUserInfoEndpoint();
         } catch (MalformedURLException ex) {
