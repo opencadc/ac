@@ -116,9 +116,9 @@ public class StandardIdentityManager implements IdentityManager {
         tmp.add(Standards.SECURITY_METHOD_TOKEN);
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
-    
-    private final URI oidcIssuer;
-    
+
+    private final OIDCClient oidcClient;
+
     // need these to construct an AuthorizationToken
     private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
@@ -129,8 +129,9 @@ public class StandardIdentityManager implements IdentityManager {
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
         String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        this.oidcIssuer = OIDCClient.getIssuerID();
-        URL u = OIDCClient.getIssuer();
+        oidcClient = new OIDCClient(loc.getServiceURI(key));
+
+        URL u = oidcClient.getIssuerURL();
         oidcDomains.add(u.getHost());
 
         // add known and assume trusted A&A services
@@ -310,9 +311,9 @@ public class StandardIdentityManager implements IdentityManager {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
 
-        log.debug("token issuer: " + oidcIssuer + " rawTokens: " + rawTokens.size());
-        if (oidcIssuer != null && !rawTokens.isEmpty()) {
-            URL u = StandardIdentityManager.getUserEndpoint();
+        log.debug("token issuer: " + oidcClient.issuer + " rawTokens: " + rawTokens.size());
+        if (!rawTokens.isEmpty()) {
+            URL u = getUserEndpoint();
             for (AuthorizationTokenPrincipal raw : rawTokens) {
                 String credentials = null;
                 String challengeType = null;
@@ -347,7 +348,7 @@ public class StandardIdentityManager implements IdentityManager {
                         String username = json.getString("preferred_username");
                         // TODO: register an X509 DN with IAM and see if I can get it back here
 
-                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcIssuer.toURL(), sub);
+                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcClient.getIssuerURL(), sub);
                         HttpPrincipal hp = new HttpPrincipal(username);
 
                         s.getPrincipals().remove(raw);
@@ -378,9 +379,9 @@ public class StandardIdentityManager implements IdentityManager {
         }
     }
     
-    private static URL getUserEndpoint() {
+    private URL getUserEndpoint() {
         try {
-            return OIDCClient.getUserInfoEndpoint();
+            return oidcClient.getUserInfoEndpoint();
         } catch (MalformedURLException ex) {
             throw new RuntimeException("BUG: failed to create valid oidc userinfo url", ex);
         }

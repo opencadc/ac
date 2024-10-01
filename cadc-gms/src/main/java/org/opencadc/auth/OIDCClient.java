@@ -83,7 +83,7 @@ import org.json.JSONObject;
 
 
 /**
- * Client to the currently configured OpenID Connect provider.
+ * Client to the currently configured OpenID Connect provider.  This Client class is intended to have a very short lifespan.
  * TODO: Generic enough to be more central?
  *
  * @see LocalAuthority for configuration
@@ -94,55 +94,61 @@ class OIDCClient {
     private static final String USERINFO_ENDPOINT_KEY = "userinfo_endpoint";
     private static final String ISSUER_LOOKUP_KEY = Standards.SECURITY_METHOD_OPENID.toASCIIString();
 
+    // Cached Well Known JSON.  Instances of this class should not linger as this field is not managed and only set once.
+    private JSONObject wellKnownJSON;
+
+    final URI issuer;
+
+
     /**
-     * Obtain the Issuer base URL.
-     *
-     * @return URL of the Issuer.  Never null.
+     * Public constructor.
+     * @param issuer      The URI of the OpenID Connect Provider.  Must be URL compatible.
      */
-    static URI getIssuerID() {
-        final LocalAuthority localAuthority = new LocalAuthority();
-        return localAuthority.getServiceURI(OIDCClient.ISSUER_LOOKUP_KEY);
+    public OIDCClient(URI issuer) {
+        this.issuer = issuer;
     }
 
     /**
-     * Obtain the Issuer base URL.
+     * Obtain the Issuer base URL.  Mainly used to validate this as a URL.
      *
      * @return URL of the Issuer.  Never null.
      * @throws InvalidConfigException If the configured Issuer URL is not a valid URL.
      */
-    static URL getIssuer() {
-        final URI openIDIssuerURI = OIDCClient.getIssuerID();
+    URL getIssuerURL() {
         try {
-            return openIDIssuerURI.toURL();
+            return this.issuer.toURL();
         } catch (MalformedURLException ex) {
-            throw new InvalidConfigException("found " + OIDCClient.ISSUER_LOOKUP_KEY + " = " + openIDIssuerURI + " - expected valid URL", ex);
+            throw new InvalidConfigException("found " + OIDCClient.ISSUER_LOOKUP_KEY + " = " + this.issuer + " - expected valid URL", ex);
         }
     }
 
     /**
-     * Obtain the .well-known endpoint JSON document.
-     * TODO: Cache this?
+     * Obtain the .well-known endpoint JSON document.  This does very simple caching so as to ensure a single read of the well-known endpoint per request.
      *
      * @return The JSON Object of the response data.
      * @throws MalformedURLException If URLs cannot be created as expected.
      */
-    static JSONObject getWellKnownJSON() throws MalformedURLException {
-        final URL oidcIssuer = OIDCClient.getIssuer();
-        final URL configurationURL = new URL(oidcIssuer.toExternalForm() + OIDCClient.WELL_KNOWN_ENDPOINT);
-        final Writer writer = new StringWriter();
-        final HttpGet httpGet = new HttpGet(configurationURL, inputStream -> {
-            final Reader inputReader = new BufferedReader(new InputStreamReader(inputStream));
-            final char[] buffer = new char[8192];
-            int charsRead;
-            while ((charsRead = inputReader.read(buffer)) >= 0) {
-                writer.write(buffer, 0, charsRead);
-            }
-            writer.flush();
-        });
+    JSONObject getWellKnownJSON() throws MalformedURLException {
+        if (this.wellKnownJSON == null) {
+            final URL oidcIssuer = getIssuerURL();
+            final URL configurationURL = new URL(oidcIssuer.toExternalForm() + OIDCClient.WELL_KNOWN_ENDPOINT);
+            final Writer writer = new StringWriter();
+            final HttpGet httpGet = new HttpGet(configurationURL, inputStream -> {
+                final Reader inputReader = new BufferedReader(new InputStreamReader(inputStream));
+                final char[] buffer = new char[8192];
+                int charsRead;
+                while ((charsRead = inputReader.read(buffer)) >= 0) {
+                    writer.write(buffer, 0, charsRead);
+                }
+                writer.flush();
+            });
 
-        httpGet.run();
+            httpGet.run();
 
-        return new JSONObject(writer.toString());
+            this.wellKnownJSON = new JSONObject(writer.toString());
+        }
+
+        return this.wellKnownJSON;
     }
 
     /**
@@ -151,8 +157,8 @@ class OIDCClient {
      * @return URL of the User Info Endpoint to validate a bearer token.  Never null.
      * @throws MalformedURLException For a poorly formed URL.
      */
-    static URL getUserInfoEndpoint() throws MalformedURLException {
-        final JSONObject jsonObject = OIDCClient.getWellKnownJSON();
+    URL getUserInfoEndpoint() throws MalformedURLException {
+        final JSONObject jsonObject = getWellKnownJSON();
         final String userInfoEndpointString = jsonObject.getString(OIDCClient.USERINFO_ENDPOINT_KEY);
         return new URL(userInfoEndpointString);
     }
