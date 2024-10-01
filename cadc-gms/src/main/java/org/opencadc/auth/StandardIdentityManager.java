@@ -80,7 +80,6 @@ import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.InputStream;
 import java.net.MalformedURLException;
