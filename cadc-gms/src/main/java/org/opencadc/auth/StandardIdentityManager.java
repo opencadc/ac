@@ -313,7 +313,7 @@ public class StandardIdentityManager implements IdentityManager {
 
         log.debug("token issuer: " + oidcClient.issuer + " rawTokens: " + rawTokens.size());
         if (!rawTokens.isEmpty()) {
-            URL u = getUserEndpoint();
+            URL u = oidcClient.getUserInfoEndpoint();
             for (AuthorizationTokenPrincipal raw : rawTokens) {
                 String credentials = null;
                 String challengeType = null;
@@ -378,13 +378,4 @@ public class StandardIdentityManager implements IdentityManager {
             log.debug("validateOidcAccessToken - DONE");
         }
     }
-    
-    private URL getUserEndpoint() {
-        try {
-            return oidcClient.getUserInfoEndpoint();
-        } catch (MalformedURLException ex) {
-            throw new RuntimeException("BUG: failed to create valid oidc userinfo url", ex);
-        }
-    }
-        
 }
