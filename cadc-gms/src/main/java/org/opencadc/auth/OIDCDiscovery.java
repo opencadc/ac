@@ -82,7 +82,7 @@ import org.apache.log4j.Logger;
  */
 public class OIDCDiscovery {
     private static final Logger log = Logger.getLogger(OIDCDiscovery.class);
-    private static final String CACHE_DIRECTORY_NAME = "cadc-oidc-discovery";
+    private static final String CACHE_DIRECTORY_NAME = "cadc-gms";
     private static final String WELL_KNOWN_ENDPOINT = "/.well-known/openid-configuration";
 
     final URI issuer;
@@ -101,7 +101,7 @@ public class OIDCDiscovery {
     private File getCachedFile() {
         final Path baseCacheDir = getBaseCacheDirectory();
         final String issuerAuthority = this.issuer.getAuthority();
-        String resourceCacheDir = baseCacheDir + issuerAuthority;
+        final String resourceCacheDir = baseCacheDir + issuerAuthority;
         final Path path = Paths.get(resourceCacheDir, this.issuer.getPath(), "well-known.json");
         log.debug("Caching file [" + path + "] in dir [" + resourceCacheDir + "]");
 
@@ -109,11 +109,13 @@ public class OIDCDiscovery {
     }
 
     private Path getBaseCacheDirectory() {
-        String tmpDir = System.getProperty("java.io.tmpdir");
-        String userName = System.getProperty("user.name");
+        final String tmpDir = System.getProperty("java.io.tmpdir");
+        final String userName = System.getProperty("user.name");
+
         if (tmpDir == null) {
             throw new RuntimeException("No tmp system dir defined.");
         }
+
         final Path baseCacheDir;
         if (userName == null) {
             baseCacheDir = Paths.get(tmpDir, OIDCDiscovery.CACHE_DIRECTORY_NAME);
