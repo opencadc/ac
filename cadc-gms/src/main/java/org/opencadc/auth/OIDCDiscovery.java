@@ -82,7 +82,7 @@ import org.apache.log4j.Logger;
  */
 public class OIDCDiscovery {
     private static final Logger log = Logger.getLogger(OIDCDiscovery.class);
-    private static final String CACHE_DIRECTORY_NAME = "cadc-gms";
+    private static final String CACHE_DIRECTORY_NAME = "cadc-gms-1.0";
     private static final String WELL_KNOWN_ENDPOINT = "/.well-known/openid-configuration";
 
     final URI issuer;
@@ -101,8 +101,11 @@ public class OIDCDiscovery {
     private File getCachedFile() {
         final Path baseCacheDir = getBaseCacheDirectory();
         final String issuerAuthority = this.issuer.getAuthority();
-        final String resourceCacheDir = baseCacheDir + issuerAuthority;
-        final Path path = Paths.get(resourceCacheDir, this.issuer.getPath(), "well-known.json");
+        final Path resourceCacheDir = Paths.get(baseCacheDir.toString(), issuerAuthority);
+
+        // Create a path to the cache file itself
+        // .../cadc-gms-1.0/<identity-provider-authority>/<identity-provider-path>/.well-known/openid-configuration
+        final Path path = Paths.get(resourceCacheDir.toString(), this.issuer.getPath(), OIDCDiscovery.WELL_KNOWN_ENDPOINT);
         log.debug("Caching file [" + path + "] in dir [" + resourceCacheDir + "]");
 
         return path.toFile();
