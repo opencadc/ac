@@ -80,7 +80,6 @@ import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.InvalidConfigException;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -90,13 +89,11 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
@@ -119,11 +116,11 @@ public class StandardIdentityManager implements IdentityManager {
         tmp.add(Standards.SECURITY_METHOD_TOKEN);
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
-    
-    private final URI oidcIssuer;
-    
-    // need these to contruct an AuthorizationToken
-    private RegistryClient reg = new RegistryClient();
+
+    private final OIDCClient oidcClient;
+
+    // need these to construct an AuthorizationToken
+    private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
     private URI oidcScope;
 
@@ -132,19 +129,15 @@ public class StandardIdentityManager implements IdentityManager {
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
         String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        this.oidcIssuer = loc.getServiceURI(key);
-        try {
-            URL u = oidcIssuer.toURL();
-            oidcDomains.add(u.getHost());
+        oidcClient = new OIDCClient(loc.getServiceURI(key));
 
-            // add known and assume trusted A&A services
-            String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
-            if (host != null) {
-                oidcDomains.add(host);
-            }
+        URL u = oidcClient.getIssuerURL();
+        oidcDomains.add(u.getHost());
 
-        } catch (MalformedURLException ex) {
-            throw new InvalidConfigException("found " + key + " = " + oidcIssuer + " - expected valid URL", ex);
+        // add known and assume trusted A&A services
+        String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
+        if (host != null) {
+            oidcDomains.add(host);
         }
         for (String dom : oidcDomains) {
             log.debug("OIDC domain: " + dom);
@@ -204,7 +197,7 @@ public class StandardIdentityManager implements IdentityManager {
                         throw new RuntimeException("CONFIG: unsupported posix-mapping identifier scheme: " + posixUserMap);
                     }
                     Subject cur = AuthenticationUtil.getCurrentSubject();
-                    if (cur == null && hasHP && !hasPP) {
+                    if (cur == null && hasHP) {
                         // not in a Subject.doAs
                         // use case: augment authenticated user after validate at start of request
                         Set<AuthorizationToken> ats = subject.getPublicCredentials(AuthorizationToken.class);
@@ -247,14 +240,14 @@ public class StandardIdentityManager implements IdentityManager {
     @Override
     public Subject toSubject(Object owner) {
         Subject ret = new Subject();
-        OpenIdPrincipal p = null;
+        OpenIdPrincipal p;
         if (owner != null) {
             if (owner instanceof String) {
                 String[] openIDComponents = ((String)owner).split(OID_OWNER_DELIM);  // "issuer openID"
                 if (openIDComponents.length != 2) {
                     throw new RuntimeException("unexpected owner format: " + owner.getClass().getName() + " value: " + owner);
                 }
-                URL issuer = null;
+                URL issuer;
                 try {
                     issuer = new URL(openIDComponents[0]);
                 } catch (MalformedURLException e) {
@@ -318,9 +311,9 @@ public class StandardIdentityManager implements IdentityManager {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
 
-        log.debug("token issuer: " + oidcIssuer + " rawTokens: " + rawTokens.size());
-        if (oidcIssuer != null && !rawTokens.isEmpty()) {
-            URL u = getUserEndpoint();
+        log.debug("token issuer: " + oidcClient.issuer + " rawTokens: " + rawTokens.size());
+        if (!rawTokens.isEmpty()) {
+            URL u = oidcClient.getUserInfoEndpoint();
             for (AuthorizationTokenPrincipal raw : rawTokens) {
                 String credentials = null;
                 String challengeType = null;
@@ -355,7 +348,7 @@ public class StandardIdentityManager implements IdentityManager {
                         String username = json.getString("preferred_username");
                         // TODO: register an X509 DN with IAM and see if I can get it back here
 
-                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcIssuer.toURL(), sub);
+                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcClient.getIssuerURL(), sub);
                         HttpPrincipal hp = new HttpPrincipal(username);
 
                         s.getPrincipals().remove(raw);
@@ -385,21 +378,4 @@ public class StandardIdentityManager implements IdentityManager {
             log.debug("validateOidcAccessToken - DONE");
         }
     }
-    
-    private URL getUserEndpoint() {
-        try {
-            // TODO: call OpenID well known config to find userinfo endpoint
-            StringBuilder sb = new StringBuilder(oidcIssuer.toASCIIString());
-            if (sb.charAt(sb.length() - 1) != '/') {
-                sb.append("/");
-            }
-            sb.append("userinfo");
-            URL userinfo = new URL(sb.toString());
-            log.debug("oidc.userinfo: " + userinfo);
-            return userinfo;
-        } catch (MalformedURLException ex) {
-            throw new RuntimeException("BUG: failed to create valid oidc userinfo url", ex);
-        }
-    }
-        
 }
