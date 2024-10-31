@@ -76,13 +76,19 @@ import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.StringUtil;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.security.Key;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -95,16 +101,21 @@ import java.util.TreeSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.jose4j.jwa.AlgorithmConstraints;
-import org.jose4j.jwk.HttpsJwks;
+import org.jose4j.jwk.JsonWebKey;
+import org.jose4j.jwk.JsonWebKeySet;
+import org.jose4j.jwk.VerificationJwkSelector;
 import org.jose4j.jws.AlgorithmIdentifiers;
+import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
-import org.jose4j.jwt.consumer.ErrorCodes;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.jwt.consumer.JwtConsumer;
 import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.jwt.consumer.JwtContext;
-import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
+import org.jose4j.jwx.JsonWebStructure;
+import org.jose4j.keys.resolvers.VerificationKeyResolver;
+import org.jose4j.lang.JoseException;
+import org.jose4j.lang.UnresolvableKeyException;
 import org.json.JSONObject;
 
 /**
@@ -168,7 +179,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public Subject validate(Subject subject) throws NotAuthenticatedException {
-        validateOidcAccessToken(subject);
+        validateJwtAccessToken(subject);
         return subject;
     }
 
@@ -316,114 +327,133 @@ public class StandardIdentityManager implements IdentityManager {
         return URI.create(jwtContext.getJwtClaims().getIssuer());
     }
 
-    private void validateOidcAccessToken(Subject s) {
+    private void validateJwtAccessToken(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
-
-        if (rawTokens.isEmpty()) {
-            log.debug("validateOidcAccessToken - no tokens to validate");
-            return;
-        }
-
+        boolean validated = false;
         for (AuthorizationTokenPrincipal raw : rawTokens) {
-            String credentials;
-            String challengeType;
-            // parse header
-            log.debug("header key: " + raw.getHeaderKey());
-            log.debug("header val: " + raw.getHeaderValue());
-
             if (AuthenticationUtil.AUTHORIZATION_HEADER.equalsIgnoreCase(raw.getHeaderKey())) {
                 String[] tval = raw.getHeaderValue().split(" ");
                 if (tval.length == 2) {
-                    challengeType = tval[0];
-                    credentials = tval[1];
+                    if ("Bearer".equalsIgnoreCase(tval[0])) {
+                        validate(s, raw);
+                        if (!validated) {
+                            validated = true;
+                        } else {
+                            throw new NotAuthenticatedException(raw.getHeaderValue(), NotAuthenticatedException.AuthError.INVALID_REQUEST,
+                                    "Multiple bearer token authorization headers not supported");
+                        }
+                    } // else not a bearer token
                 } else {
                     throw new NotAuthenticatedException(raw.getHeaderValue(), NotAuthenticatedException.AuthError.INVALID_REQUEST,
-                            "invalid authorization");
+                            "BUG: invalid authorization " + raw.getHeaderValue());
                 }
-            } else {
-                throw new NotAuthenticatedException("Unsupported authorization header: " + raw.getHeaderKey());
-            }
-            log.debug("challenge type: " + challengeType);
-            log.debug("credentials: " + credentials);
-
-            try {
-                URI jwtIssuer = getJwtIssuer(credentials);
-
-                HttpsJwksVerificationKeyResolver httpsJwksKeyResolver = getHttpsJwksVerificationKeyResolver(jwtIssuer, challengeType);
-                JwtConsumer jwtConsumer = new JwtConsumerBuilder()
-                        .setRequireExpirationTime()
-                        .setExpectedIssuers(true, jwtIssuer.toString())
-                        .setVerificationKeyResolver(httpsJwksKeyResolver)
-                        .setJwsAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.PERMIT, // whitelist
-                                AlgorithmIdentifiers.RSA_USING_SHA256)) // RS256 only
-                        .build(); // create the JwtConsumer instance;
-
-                //  Validate the JWT and process it to the Claims
-                JwtClaims jwtClaims = jwtConsumer.processToClaims(credentials);
-                log.debug("JWT validation succeeded! " + jwtClaims);
-
-                String sub = jwtClaims.getClaimValue("sub", String.class);
-                OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
-
-                s.getPrincipals().remove(raw);
-                s.getPrincipals().add(oip);
-
-                if (jwtClaims.getClaimValueAsString("preferred_username") != null) {
-                    HttpPrincipal hp = new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username"));
-                    s.getPrincipals().add(hp);
-                }
-
-                AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
-                s.getPublicCredentials().add(authToken);
-                log.debug("Validated user: " + oip);
-            } catch (InvalidJwtException e) {
-                String msg = "Invalid token";
-
-                // Whether the JWT has expired being one common reason for invalidity
-                if (e.hasExpired()) {
-                    try {
-                        msg = "Token expired at " + e.getJwtContext().getJwtClaims().getExpirationTime();
-                    } catch (MalformedClaimException ex) {
-                        msg = "BUG: Malformed JWT expiration time in token";
-                    }
-                }
-
-                // Or maybe the audience was invalid
-                if (e.hasErrorCode(ErrorCodes.AUDIENCE_INVALID)) {
-                    try {
-                        msg = "JWT had wrong audience: " + e.getJwtContext().getJwtClaims().getAudience();
-                    } catch (MalformedClaimException ex) {
-                        msg = "BUG: Malformed Audience claim in token";
-                    }
-                }
-
-                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, msg, e);
-
-            } catch (MalformedClaimException e) {
-                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
-                        "BUG: Malformed claim", e);
-            } catch (MalformedURLException e) {
-                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
-                        "Invalid URL for token iss", e);
-            }
+            } // else other challenge
         }
     }
 
-    private static HttpsJwksVerificationKeyResolver getHttpsJwksVerificationKeyResolver(URI jwtIssuer, String challengeType) {
+    private void validate(Subject s, AuthorizationTokenPrincipal raw) {
+        // this method validates a single token using either the issuer public key (preferred because the key is
+        // cached locally) or by calling the user info endpoint and updates the subject accordingly
+        String[] tval = raw.getHeaderValue().split(" ");
+        String challengeType = tval[0];
+        String credentials = tval[1];
+        log.debug("challenge type: " + challengeType);
+        log.debug("credentials: " + credentials);
+
+        URI jwtIssuer;
+        try {
+            jwtIssuer = getJwtIssuer(credentials);
+        } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
+            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
+                    "Cannot determine issuer from token", e);
+        }
+        List<Principal> validatedPrincipals = null;
+        try {
+            validatedPrincipals = validateWithPubKey(raw, jwtIssuer, challengeType, credentials);
+        } catch (MalformedURLException | MalformedClaimException | InvalidJwtException e) {
+            log.debug("Cannot validate token with issuer public key", e);
+        }
+
+        if (validatedPrincipals == null) {
+            // public key validation did not work. Try the user info endpoint
+            try {
+                validatedPrincipals = validateWithUserInfo(raw, jwtIssuer);
+            } catch (ResourceAlreadyExistsException | ResourceNotFoundException | IOException | InterruptedException e) {
+                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
+                        "Cannot validate token using user info endpoint", e);
+            }
+        }
+
+        s.getPrincipals().remove(raw);
+        for (Principal p : validatedPrincipals) {
+            s.getPrincipals().add(p);
+        }
+
+        // TODO - oidcDomains and oidcScope are not assigned yet
+        AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
+        s.getPublicCredentials().add(authToken);
+    }
+
+    private List<Principal> validateWithPubKey(AuthorizationTokenPrincipal raw, URI jwtIssuer, String challengeType, String credentials) throws MalformedURLException, InvalidJwtException, MalformedClaimException {
+        VerificationKeyResolver httpsJwksKeyResolver = getHttpsJwksVerificationKeyResolver(jwtIssuer, challengeType);
+        JwtConsumer jwtConsumer = new JwtConsumerBuilder()
+                .setRequireExpirationTime()
+                .setExpectedIssuers(true, jwtIssuer.toString())
+                .setVerificationKeyResolver(httpsJwksKeyResolver)
+                .setJwsAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.PERMIT, // whitelist
+                        AlgorithmIdentifiers.RSA_USING_SHA256)) // RS256 only
+                .build(); // create the JwtConsumer instance;
+
+        //  Validate the JWT and process it to the Claims
+        JwtClaims jwtClaims = jwtConsumer.processToClaims(credentials);
+        log.debug("JWT validation succeeded! " + jwtClaims);
+
+        String sub = jwtClaims.getClaimValue("sub", String.class);
+
+        List<Principal> result = new ArrayList<>();
+        OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
+        result.add(oip);
+
+        if (jwtClaims.getClaimValueAsString("preferred_username") != null) {
+            result.add(new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username")));
+        }
+        log.debug("Validated user via issuer pub key: " + oip);
+        return result;
+    }
+
+    private static List<Principal> validateWithUserInfo(AuthorizationTokenPrincipal raw, URI jwtIssuer) throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException, InterruptedException {
+        OIDCClient oidcClient = new OIDCClient(jwtIssuer);
+        URL userInfoEndpoint = oidcClient.getUserInfoEndpoint();
+        log.debug("User info endpoint: " + userInfoEndpoint);
+        HttpGet get = new HttpGet(userInfoEndpoint, true);
+        get.setRequestProperty("authorization", raw.getHeaderValue());
+        get.prepare();
+
+        InputStream istream = get.getInputStream();
+        String str = StringUtil.readFromInputStream(istream, "UTF-8");
+        JSONObject json = new JSONObject(str);
+        String sub = json.getString("sub");
+        String username = json.getString("preferred_username");
+        List<Principal> result = new ArrayList<>();
+        OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
+        result.add(oip);
+        if (username != null) {
+            result.add(new HttpPrincipal(username));
+        }
+        log.debug("Validated user via user info endpoint: " + oip);
+        return result;
+    }
+
+    private VerificationKeyResolver getHttpsJwksVerificationKeyResolver(URI jwtIssuer, String challengeType) throws
+            MalformedURLException{
         JSONObject oidcConfig = getJsonObject(jwtIssuer, challengeType);
         if (oidcConfig.getString("jwks_uri") == null) {
             throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
                     "BUG: Missing jwks_uri in OIDC .well-known/openid-configuration", null);
         }
-
-        // TODO: HttpsJwks has a built-in cache. To use registry cache, we need to implement SimpleGet and SimpleResponse
-        // interfaces and use the HttpsJwks.simpleGet() method to plug them in.
-        // Alternatively, override HttpsJwks class especially the getJsonWebKeys() method to use the registry cache.
-        HttpsJwks httpsJwks = new HttpsJwks(oidcConfig.getString("jwks_uri"));
-        HttpsJwksVerificationKeyResolver httpsJwksKeyResolver =
-                new HttpsJwksVerificationKeyResolver(httpsJwks);
-        return httpsJwksKeyResolver;
+        URL jwksUrl = URI.create(oidcConfig.getString("jwks_uri")).toURL();
+        return new CacheVerificationKeyResolver(jwtIssuer, jwksUrl);
     }
 
     private static JSONObject getJsonObject(URI jwtIssuer, String challengeType) {
@@ -432,13 +462,49 @@ public class StandardIdentityManager implements IdentityManager {
                     "Unsupported issuer: " + jwtIssuer, null);
         }
         OIDCClient oidcClient = new OIDCClient(jwtIssuer);
-        JSONObject oidcConfig = null;
         try {
-            oidcConfig = oidcClient.getWellKnownJSON();
+            return oidcClient.getWellKnownJSON();
         } catch (IOException e) {
             throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
                     "BUG: Cannot access OIDC .well-known/openid-configuration end point", e);
         }
-        return oidcConfig;
+    }
+
+    static class CacheVerificationKeyResolver implements VerificationKeyResolver {
+        // uses a local cached copy of the public keys from the OIDC provider
+        private final VerificationJwkSelector verificationJwkSelector = new VerificationJwkSelector();
+        private boolean disambiguateWithVerifySignature;
+        private final OIDCProviderPubKey oidcProviderPubKey;
+
+        public CacheVerificationKeyResolver(URI jwtIssuer, URL jwksUrl) {
+            this.oidcProviderPubKey = new OIDCProviderPubKey(jwtIssuer, jwksUrl);
+        }
+
+        @Override
+        public Key resolveKey(JsonWebSignature jsonWebSignature, List<JsonWebStructure> list) throws UnresolvableKeyException {
+            JsonWebKeySet jwks = null;
+            try {
+                jwks = new JsonWebKeySet(this.oidcProviderPubKey.getCachingFile().getContent());
+                List<JsonWebKey> keys = jwks.getJsonWebKeys();
+                JsonWebKey jwk = select(jsonWebSignature, keys);
+                if (jwk == null) {
+                    throw new UnresolvableKeyException("No key found for signature");
+                } else {
+                    return jwk.getKey();
+                }
+            } catch (JoseException | IOException e) {
+                throw new UnresolvableKeyException("Bug: Error selecting key", e);
+            }
+        }
+
+        protected JsonWebKey select(JsonWebSignature jws, List<JsonWebKey> jsonWebKeys) throws JoseException {
+            return this.disambiguateWithVerifySignature ?
+                    this.verificationJwkSelector.selectWithVerifySignatureDisambiguate(jws, jsonWebKeys) :
+                    this.verificationJwkSelector.select(jws, jsonWebKeys);
+        }
+
+        public void setDisambiguateWithVerifySignature(boolean disambiguateWithVerifySignature) {
+            this.disambiguateWithVerifySignature = disambiguateWithVerifySignature;
+        }
     }
 }
