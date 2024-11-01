@@ -116,7 +116,9 @@ import org.jose4j.jwx.JsonWebStructure;
 import org.jose4j.keys.resolvers.VerificationKeyResolver;
 import org.jose4j.lang.JoseException;
 import org.jose4j.lang.UnresolvableKeyException;
+import org.json.JSONException;
 import org.json.JSONObject;
+import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
 
 /**
  * Prototype IdentityManager for a standards-based system. This currently supports
@@ -147,11 +149,35 @@ public class StandardIdentityManager implements IdentityManager {
     // need these to construct an AuthorizationToken
     private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
+
+    OIDCClient oidcClient;
     private URI oidcScope;  // TODO - not assigned yet
 
     private static final String OID_OWNER_DELIM = " ";  // delimiter between issuer and openID that form the owner str
     
     public StandardIdentityManager() {
+        LocalAuthority loc = new LocalAuthority();
+        Set<URI> oidcServURIs = loc.getServiceURIs(Standards.SECURITY_METHOD_OPENID);
+        if (oidcServURIs.isEmpty()) {
+            throw new RuntimeException("CONFIG: no OpenID Connect issuer configured");
+        }
+        if (oidcServURIs.size() > 1) {
+            // currently not supported until we figure out how to handle multiple issuers and GMSs
+            throw new RuntimeException("CONFIG: multiple OpenID Connect issuers configured");
+        }
+        oidcClient = new OIDCClient(oidcServURIs.iterator().next());
+
+        URL u = oidcClient.getIssuerURL();
+        oidcDomains.add(u.getHost());
+
+        // add known and assume trusted A&A services
+        String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
+        if (host != null) {
+            oidcDomains.add(host);
+        }
+        for (String dom : oidcDomains) {
+            log.debug("OIDC domain: " + dom);
+        }
     }
 
     @Override
@@ -159,21 +185,24 @@ public class StandardIdentityManager implements IdentityManager {
         return SEC_METHODS;
     }
 
-    // lookup the local/trusted provider of an API and extract the hostname
+    // lookup the local/trusted single provider of an API and extract the hostname
     private String getProviderHostname(LocalAuthority loc, URI standardID) {
-        try {
-            // TODO how to handle multiple oidc providers. Single posixMapper?
-            URI resourceID = loc.getServiceURI(standardID.toASCIIString());
-            if (resourceID != null) {
-                URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
-                if (srv != null) {
-                    return srv.getHost();
-                }
-                log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
-            }
-        } catch (NoSuchElementException ignore) {
-            log.debug("not found: " + standardID);
+
+        Set<URI> servicesURIs = loc.getServiceURIs(standardID);
+        if (servicesURIs.isEmpty())
+        {
+            return null;
         }
+        if (servicesURIs.size() > 1) {
+            throw new RuntimeException("CONFIG: multiple services not supported for " + standardID);
+        }
+
+        URI resourceID = servicesURIs.iterator().next();
+        URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
+        if (srv != null) {
+            return srv.getHost();
+        }
+        log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
         return null;
     }
 
@@ -361,24 +390,26 @@ public class StandardIdentityManager implements IdentityManager {
         log.debug("challenge type: " + challengeType);
         log.debug("credentials: " + credentials);
 
-        URI jwtIssuer;
+        URI jwtIssuer = null;
         try {
             jwtIssuer = getJwtIssuer(credentials);
         } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
-            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
-                    "Cannot determine issuer from token", e);
+            log.debug("Cannot determine issuer from token", e);
         }
         List<Principal> validatedPrincipals = null;
-        try {
-            validatedPrincipals = validateWithPubKey(raw, jwtIssuer, challengeType, credentials);
-        } catch (MalformedURLException | MalformedClaimException | InvalidJwtException e) {
-            log.debug("Cannot validate token with issuer public key", e);
+        if (jwtIssuer != null) {
+            try {
+                validatedPrincipals = validateWithPubKey(raw, jwtIssuer, challengeType, credentials);
+            } catch (MalformedURLException | MalformedClaimException | InvalidJwtException e) {
+                log.debug("Cannot validate token with issuer public key", e);
+            }
         }
-
         if (validatedPrincipals == null) {
             // public key validation did not work. Try the user info endpoint
             try {
-                validatedPrincipals = validateWithUserInfo(raw, jwtIssuer);
+                // makes the assumption that there's only one issuer (the configured one. This allows it to work with
+                // both JWT tokens (issuer specified in the token) and access tokens with no issuer specified
+                validatedPrincipals = validateWithUserInfo(raw, oidcClient.getUserInfoEndpoint());
             } catch (ResourceAlreadyExistsException | ResourceNotFoundException | IOException | InterruptedException e) {
                 throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
                         "Cannot validate token using user info endpoint", e);
@@ -390,7 +421,7 @@ public class StandardIdentityManager implements IdentityManager {
             s.getPrincipals().add(p);
         }
 
-        // TODO - oidcDomains and oidcScope are not assigned yet
+        // TODO - oidcScope not assigned yet
         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
         s.getPublicCredentials().add(authToken);
     }
@@ -422,11 +453,8 @@ public class StandardIdentityManager implements IdentityManager {
         return result;
     }
 
-    private static List<Principal> validateWithUserInfo(AuthorizationTokenPrincipal raw, URI jwtIssuer) throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException, InterruptedException {
-        OIDCClient oidcClient = new OIDCClient(jwtIssuer);
-        URL userInfoEndpoint = oidcClient.getUserInfoEndpoint();
-        log.debug("User info endpoint: " + userInfoEndpoint);
-        HttpGet get = new HttpGet(userInfoEndpoint, true);
+    private static List<Principal> validateWithUserInfo(AuthorizationTokenPrincipal raw, URL issuerURL) throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException, InterruptedException {
+        HttpGet get = new HttpGet(issuerURL, true);
         get.setRequestProperty("authorization", raw.getHeaderValue());
         get.prepare();
 
@@ -434,9 +462,19 @@ public class StandardIdentityManager implements IdentityManager {
         String str = StringUtil.readFromInputStream(istream, "UTF-8");
         JSONObject json = new JSONObject(str);
         String sub = json.getString("sub");
-        String username = json.getString("preferred_username");
+        String username = null;
+        if (json.has("preferred_username")) {
+            // jwt token
+            username = json.getString("preferred_username");
+        } else {
+            if (json.has("name")) {
+                // TODO not sure if this is correct but this is what the CADC userinfo has for the HttpPrincipal.
+                username = json.getString("name");
+            }
+        }
+
         List<Principal> result = new ArrayList<>();
-        OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
+        OpenIdPrincipal oip = new OpenIdPrincipal(issuerURL, sub);
         result.add(oip);
         if (username != null) {
             result.add(new HttpPrincipal(username));
