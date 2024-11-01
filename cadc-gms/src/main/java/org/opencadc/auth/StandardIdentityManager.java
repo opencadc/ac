@@ -116,9 +116,7 @@ import org.jose4j.jwx.JsonWebStructure;
 import org.jose4j.keys.resolvers.VerificationKeyResolver;
 import org.jose4j.lang.JoseException;
 import org.jose4j.lang.UnresolvableKeyException;
-import org.json.JSONException;
 import org.json.JSONObject;
-import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
 
 /**
  * Prototype IdentityManager for a standards-based system. This currently supports
@@ -189,8 +187,7 @@ public class StandardIdentityManager implements IdentityManager {
     private String getProviderHostname(LocalAuthority loc, URI standardID) {
 
         Set<URI> servicesURIs = loc.getServiceURIs(standardID);
-        if (servicesURIs.isEmpty())
-        {
+        if (servicesURIs.isEmpty()) {
             return null;
         }
         if (servicesURIs.size() > 1) {
@@ -365,7 +362,7 @@ public class StandardIdentityManager implements IdentityManager {
                 String[] tval = raw.getHeaderValue().split(" ");
                 if (tval.length == 2) {
                     if ("Bearer".equalsIgnoreCase(tval[0])) {
-                        validate(s, raw);
+                        validateWithToken(s, raw);
                         if (!validated) {
                             validated = true;
                         } else {
@@ -381,7 +378,7 @@ public class StandardIdentityManager implements IdentityManager {
         }
     }
 
-    private void validate(Subject s, AuthorizationTokenPrincipal raw) {
+    private void validateWithToken(Subject s, AuthorizationTokenPrincipal raw) {
         // this method validates a single token using either the issuer public key (preferred because the key is
         // cached locally) or by calling the user info endpoint and updates the subject accordingly
         String[] tval = raw.getHeaderValue().split(" ");
@@ -399,7 +396,7 @@ public class StandardIdentityManager implements IdentityManager {
         List<Principal> validatedPrincipals = null;
         if (jwtIssuer != null) {
             try {
-                validatedPrincipals = validateWithPubKey(raw, jwtIssuer, challengeType, credentials);
+                validatedPrincipals = validateWithPubKey(jwtIssuer, challengeType, credentials);
             } catch (MalformedURLException | MalformedClaimException | InvalidJwtException e) {
                 log.debug("Cannot validate token with issuer public key", e);
             }
@@ -426,7 +423,8 @@ public class StandardIdentityManager implements IdentityManager {
         s.getPublicCredentials().add(authToken);
     }
 
-    private List<Principal> validateWithPubKey(AuthorizationTokenPrincipal raw, URI jwtIssuer, String challengeType, String credentials) throws MalformedURLException, InvalidJwtException, MalformedClaimException {
+    private List<Principal> validateWithPubKey(URI jwtIssuer, String challengeType,String credentials)
+            throws MalformedURLException, InvalidJwtException, MalformedClaimException {
         VerificationKeyResolver httpsJwksKeyResolver = getHttpsJwksVerificationKeyResolver(jwtIssuer, challengeType);
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
                 .setRequireExpirationTime()
@@ -453,7 +451,8 @@ public class StandardIdentityManager implements IdentityManager {
         return result;
     }
 
-    private static List<Principal> validateWithUserInfo(AuthorizationTokenPrincipal raw, URL issuerURL) throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException, InterruptedException {
+    private static List<Principal> validateWithUserInfo(AuthorizationTokenPrincipal raw, URL issuerURL)
+            throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException, InterruptedException {
         HttpGet get = new HttpGet(issuerURL, true);
         get.setRequestProperty("authorization", raw.getHeaderValue());
         get.prepare();
@@ -484,7 +483,7 @@ public class StandardIdentityManager implements IdentityManager {
     }
 
     private VerificationKeyResolver getHttpsJwksVerificationKeyResolver(URI jwtIssuer, String challengeType) throws
-            MalformedURLException{
+            MalformedURLException {
         JSONObject oidcConfig = getJsonObject(jwtIssuer, challengeType);
         if (oidcConfig.getString("jwks_uri") == null) {
             throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
@@ -536,8 +535,8 @@ public class StandardIdentityManager implements IdentityManager {
         }
 
         protected JsonWebKey select(JsonWebSignature jws, List<JsonWebKey> jsonWebKeys) throws JoseException {
-            return this.disambiguateWithVerifySignature ?
-                    this.verificationJwkSelector.selectWithVerifySignatureDisambiguate(jws, jsonWebKeys) :
+            return this.disambiguateWithVerifySignature
+                    ? this.verificationJwkSelector.selectWithVerifySignatureDisambiguate(jws, jsonWebKeys) :
                     this.verificationJwkSelector.select(jws, jsonWebKeys);
         }
 
