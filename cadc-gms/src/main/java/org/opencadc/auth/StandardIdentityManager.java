@@ -356,29 +356,25 @@ public class StandardIdentityManager implements IdentityManager {
     private void validateJwtAccessToken(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
-        boolean validated = false;
-        for (AuthorizationTokenPrincipal raw : rawTokens) {
-            if (AuthenticationUtil.AUTHORIZATION_HEADER.equalsIgnoreCase(raw.getHeaderKey())) {
-                String[] tval = raw.getHeaderValue().split(" ");
-                if (tval.length == 2) {
-                    if ("Bearer".equalsIgnoreCase(tval[0])) {
-                        validateWithToken(s, raw);
-                        if (!validated) {
-                            validated = true;
-                        } else {
-                            throw new NotAuthenticatedException(raw.getHeaderValue(), NotAuthenticatedException.AuthError.INVALID_REQUEST,
-                                    "Multiple bearer token authorization headers not supported");
-                        }
-                    } // else not a bearer token
-                } else {
-                    throw new NotAuthenticatedException(raw.getHeaderValue(), NotAuthenticatedException.AuthError.INVALID_REQUEST,
-                            "BUG: invalid authorization " + raw.getHeaderValue());
-                }
-            } // else other challenge
+        if (rawTokens.size() > 1) {
+            throw new NotAuthenticatedException("multiple authorization tokens", NotAuthenticatedException.AuthError.INVALID_REQUEST,
+                    "Multiple authorization tokens not supported");
         }
+        AuthorizationTokenPrincipal raw = rawTokens.iterator().next();
+        if (AuthenticationUtil.AUTHORIZATION_HEADER.equalsIgnoreCase(raw.getHeaderKey())) {
+            String[] tval = raw.getHeaderValue().split(" ");
+            if (tval.length == 2) {
+                if (AuthenticationUtil.CHALLENGE_TYPE_BEARER.equalsIgnoreCase(tval[0])) {
+                    validateToken(s, raw);
+                } // else not a bearer token
+            } else {
+                throw new NotAuthenticatedException(raw.getHeaderValue(), NotAuthenticatedException.AuthError.INVALID_REQUEST,
+                        "BUG: invalid authorization " + raw.getHeaderValue());
+            }
+        } // else other challenge
     }
 
-    private void validateWithToken(Subject s, AuthorizationTokenPrincipal raw) {
+    private void validateToken(Subject s, AuthorizationTokenPrincipal raw) {
         // this method validates a single token using either the issuer public key (preferred because the key is
         // cached locally) or by calling the user info endpoint and updates the subject accordingly
         String[] tval = raw.getHeaderValue().split(" ");
