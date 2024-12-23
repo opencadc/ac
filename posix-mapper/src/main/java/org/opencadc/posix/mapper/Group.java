@@ -14,13 +14,7 @@ import org.opencadc.posix.mapper.db.GroupURIType;
 public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "groups_gid_seq1")
-    @GenericGenerator(name = "groups_gid_seq1", type = GroupIDSequenceGenerator.class,
-    parameters = {
-            @org.hibernate.annotations.Parameter(name = GroupIDSequenceGenerator.SEQUENCE_PARAM,
-                    value = "groups_gid_seq1"),
-            @org.hibernate.annotations.Parameter(name = GroupIDSequenceGenerator.INCREMENT_PARAM, value = "1"),
-            @org.hibernate.annotations.Parameter(name = GroupIDSequenceGenerator.INITIAL_PARAM, value = "900000")
-    })
+    @SequenceGenerator(name = "groups_gid_seq1", sequenceName = "groups_gid_seq1", allocationSize = 1)
     private Integer gid;
 
     @Column(unique = true)
