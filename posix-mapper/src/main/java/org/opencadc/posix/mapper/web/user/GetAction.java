@@ -81,7 +81,7 @@ public class GetAction extends PosixMapperAction {
     @Override
     public void doAction() throws Exception {
         final UserWriter userWriter = getUserWriter();
-        GetAction.POSIX_CLIENT.writeUsers(userWriter, usernameParameters().toArray(new String[0]),
+        PosixMapperAction.POSIX_CLIENT.writeUsers(userWriter, usernameParameters().toArray(new String[0]),
                                           uidParameters().toArray(new Integer[0]));
         syncOutput.getOutputStream().flush();
     }

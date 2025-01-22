@@ -81,7 +81,7 @@ public class GetAction extends PosixMapperAction {
     @Override
     public void doAction() throws Exception {
         final GroupWriter groupWriter = getGroupWriter();
-        GetAction.POSIX_CLIENT.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
+        PosixMapperAction.POSIX_CLIENT.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
                                            gidParameters().toArray(new Integer[0]));
 
         syncOutput.getOutputStream().flush();
