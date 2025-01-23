@@ -81,8 +81,8 @@ public class GetAction extends PosixMapperAction {
     @Override
     public void doAction() throws Exception {
         final GroupWriter groupWriter = getGroupWriter();
-        this.posixClient.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
-                                     gidParameters().toArray(new Integer[0]));
+        PosixMapperAction.POSIX_CLIENT.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
+                                           gidParameters().toArray(new Integer[0]));
 
         syncOutput.getOutputStream().flush();
     }
@@ -109,8 +109,8 @@ public class GetAction extends PosixMapperAction {
             gidConstraints = Collections.emptyList();
         } else {
             gidConstraints = gidStringParameters.stream()
-                                                          .map(Integer::parseInt)
-                                                          .collect(Collectors.toList());
+                                                .map(Integer::parseInt)
+                                                .collect(Collectors.toList());
         }
 
         return gidConstraints;

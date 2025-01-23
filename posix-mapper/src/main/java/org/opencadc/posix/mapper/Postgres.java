@@ -28,7 +28,6 @@ public class Postgres {
         Properties properties = new Properties();
         properties.put("hibernate.connection.driver_class", "org.postgresql.Driver");
         properties.put("hibernate.connection.datasource", Postgres.DEFAULT_JNDI);
-        properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         if (this.defaultSchema != null) {
             properties.put("hibernate.default_schema", this.defaultSchema);
         }
@@ -87,15 +86,8 @@ public class Postgres {
     }
 
     public <R> R inSession(Function<Session, R> function) {
-        Session session = null;
-        try {
-            session = open();
+        try (final Session session = open()) {
             return function.apply(session);
-        } catch (Exception e) {
-            log.error(e);
-            throw e;
-        } finally {
-            close(session);
         }
     }
 
