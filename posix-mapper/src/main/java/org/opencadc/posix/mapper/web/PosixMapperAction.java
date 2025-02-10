@@ -74,6 +74,11 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import javax.security.auth.Subject;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -86,35 +91,30 @@ import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
 import org.opencadc.posix.mapper.web.user.TSVUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
-import javax.security.auth.Subject;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-
 public abstract class PosixMapperAction extends RestAction {
 
     protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
     protected static final String TSV_CONTENT_TYPE = "text/tab-separated-values";
 
-    // As the Postgres class uses a Factory pattern, a static client is created to prevent multiple factory instances
-    // being created that was causing a memory leak.
-    // jenkinsd (2024.12.23)
-    //
-    protected static final PosixClient POSIX_CLIENT =
-            new PostgresPosixClient(Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
-                                                              .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                            .entityClass(User.class, Group.class)
-                                            .build());
-
     protected PosixMapperAction() {
-    }
 
+    }
 
     @Override
     public void initAction() throws Exception {
         super.initAction();
         checkAuthorization();
+    }
+
+    /**
+     * Create a new PosixClient instance.  Callers MUST remember to call `close()` on the returned instance.
+     * @return  PosixClient instance, never null.
+     */
+    protected PosixClient getPosixClient() {
+        return new PostgresPosixClient(Postgres.instance(
+                PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
+                                               .entityClass(User.class, Group.class)
+                                               .build());
     }
 
     private void checkAuthorization() {
