@@ -68,21 +68,28 @@
 
 package org.opencadc.posix.mapper.web.group;
 
-import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.web.PosixMapperAction;
-
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.PosixClient;
+import org.opencadc.posix.mapper.web.PosixMapperAction;
 
 public class GetAction extends PosixMapperAction {
     @Override
     public void doAction() throws Exception {
         final GroupWriter groupWriter = getGroupWriter();
-        PosixMapperAction.POSIX_CLIENT.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
-                                           gidParameters().toArray(new Integer[0]));
+        PosixClient posixClient = null;
+        try {
+            posixClient = getPosixClient();
+            posixClient.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
+                                    gidParameters().toArray(new Integer[0]));
+        } finally {
+            if (posixClient != null) {
+                posixClient.close();
+            }
+        }
 
         syncOutput.getOutputStream().flush();
     }

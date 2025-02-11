@@ -4,7 +4,6 @@ import org.opencadc.gms.GroupURI;
 import org.opencadc.posix.mapper.web.group.GroupWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
-import java.util.List;
 
 public interface PosixClient {
     // Dummy scheme and authority for default groups.
@@ -24,9 +23,11 @@ public interface PosixClient {
 
     Group saveGroup(Group group) throws Exception;
 
-    boolean groupExist(GroupURI groupURI) throws Exception;
-
-    List<User> getUsers() throws Exception;
+    /**
+     * Close this client and release underlying resources.
+     * @throws Exception    Anything unexpected.
+     */
+    void close() throws Exception;
 
     /**
      * Write out all the User mappings to the given writer.  It is the responsibility of the implementation to

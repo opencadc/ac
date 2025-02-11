@@ -68,21 +68,29 @@
 
 package org.opencadc.posix.mapper.web.user;
 
-
-import org.opencadc.posix.mapper.web.PosixMapperAction;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.opencadc.posix.mapper.PosixClient;
+import org.opencadc.posix.mapper.web.PosixMapperAction;
 
 public class GetAction extends PosixMapperAction {
 
     @Override
     public void doAction() throws Exception {
         final UserWriter userWriter = getUserWriter();
-        PosixMapperAction.POSIX_CLIENT.writeUsers(userWriter, usernameParameters().toArray(new String[0]),
-                                          uidParameters().toArray(new Integer[0]));
+        PosixClient posixClient = null;
+        try {
+            posixClient = getPosixClient();
+            posixClient.writeUsers(userWriter, usernameParameters().toArray(new String[0]),
+                                   uidParameters().toArray(new Integer[0]));
+        } finally {
+            if (posixClient != null) {
+                posixClient.close();
+            }
+        }
+
         syncOutput.getOutputStream().flush();
     }
 
