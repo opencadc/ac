@@ -74,6 +74,11 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import javax.security.auth.Subject;
 import org.opencadc.posix.mapper.Group;
 import org.opencadc.posix.mapper.PosixClient;
 import org.opencadc.posix.mapper.Postgres;
@@ -86,31 +91,30 @@ import org.opencadc.posix.mapper.web.user.AsciiUserWriter;
 import org.opencadc.posix.mapper.web.user.TSVUserWriter;
 import org.opencadc.posix.mapper.web.user.UserWriter;
 
-import javax.security.auth.Subject;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-
 public abstract class PosixMapperAction extends RestAction {
 
-    protected PosixClient posixClient;
     protected static final MultiValuedProperties POSIX_CONFIGURATION = PosixInitAction.getConfig();
     protected static final String TSV_CONTENT_TYPE = "text/tab-separated-values";
 
-
     protected PosixMapperAction() {
-        final Postgres postgres = Postgres.instance(PosixMapperAction.POSIX_CONFIGURATION
-                                                            .getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                          .entityClass(User.class, Group.class)
-                                          .build();
-        this.posixClient = new PostgresPosixClient(postgres);
+
     }
 
     @Override
     public void initAction() throws Exception {
         super.initAction();
         checkAuthorization();
+    }
+
+    /**
+     * Create a new PosixClient instance.  Callers MUST remember to call `close()` on the returned instance.
+     * @return  PosixClient instance, never null.
+     */
+    protected PosixClient getPosixClient() {
+        return new PostgresPosixClient(Postgres.instance(
+                PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
+                                               .entityClass(User.class, Group.class)
+                                               .build());
     }
 
     private void checkAuthorization() {
@@ -121,10 +125,7 @@ public abstract class PosixMapperAction extends RestAction {
     }
 
     protected GroupWriter getGroupWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
-                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
-        this.syncOutput.addHeader("content-type", writeContentType);
+        final String writeContentType = prepareContent();
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVGroupWriter(writer);
@@ -134,10 +135,7 @@ public abstract class PosixMapperAction extends RestAction {
     }
 
     protected UserWriter getUserWriter() throws IOException {
-        final String requestContentType = syncInput.getHeader("accept");
-        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
-                                        ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
-        this.syncOutput.addHeader("content-type", writeContentType);
+        final String writeContentType = prepareContent();
         final Writer writer = new BufferedWriter(new OutputStreamWriter(this.syncOutput.getOutputStream()));
         if (PosixMapperAction.TSV_CONTENT_TYPE.equals(writeContentType)) {
             return new TSVUserWriter(writer);
@@ -146,9 +144,19 @@ public abstract class PosixMapperAction extends RestAction {
         }
     }
 
+    protected String prepareContent() {
+        final String requestContentType = syncInput.getHeader("accept");
+        final String writeContentType = PosixMapperAction.TSV_CONTENT_TYPE.equals(requestContentType)
+                ? PosixMapperAction.TSV_CONTENT_TYPE : "text/plain";
+        this.syncOutput.addHeader("content-type", writeContentType);
+
+        return writeContentType;
+    }
+
     /**
      * Never used.
-     * @return  null
+     *
+     * @return null
      */
     @Override
     protected InlineContentHandler getInlineContentHandler() {
