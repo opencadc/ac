@@ -2,6 +2,12 @@ package org.opencadc.posix.mapper;
 
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.function.Function;
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -9,26 +15,26 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.exception.ConstraintViolationException;
 import org.opencadc.posix.mapper.web.PosixInitAction;
 
-import java.util.*;
-import java.util.function.Function;
-
 public class Postgres {
 
-    final Logger LOGGER = Logger.getLogger(Postgres.class);
+    private static final Logger LOGGER = Logger.getLogger(Postgres.class);
     private static final String DEFAULT_JNDI = "java:comp/env/" + PosixInitAction.JNDI_DATASOURCE;
-
     private final List<Class<?>> entityClasses = new ArrayList<>();
+    private final String defaultSchema;
     private SessionFactory sessionFactory;
 
-    private final String defaultSchema;
+    private Postgres(final String defaultSchema) {
+        this.defaultSchema = defaultSchema;
+    }
 
-    private static final Logger log = Logger.getLogger(Postgres.class);
+    public static Postgres instance(final String defaultSchema) {
+        return new Postgres(defaultSchema);
+    }
 
     private Properties properties() {
         Properties properties = new Properties();
         properties.put("hibernate.connection.driver_class", "org.postgresql.Driver");
         properties.put("hibernate.connection.datasource", Postgres.DEFAULT_JNDI);
-        properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         if (this.defaultSchema != null) {
             properties.put("hibernate.default_schema", this.defaultSchema);
         }
@@ -36,7 +42,7 @@ public class Postgres {
         properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.hbm2ddl.auto", "validate");
         properties.put("hibernate.current_session_context_class",
-                       "org.hibernate.context.internal.ThreadLocalSessionContext");
+                       "org.hibernate.context.internal.JTASessionContext");
         return properties;
     }
 
@@ -49,25 +55,9 @@ public class Postgres {
         return configuration;
     }
 
-    private Postgres() {
-        this(null);
-    }
-
-    private Postgres(final String defaultSchema) {
-        this.defaultSchema = defaultSchema;
-    }
-
     public Postgres entityClass(Class<?>... entityClasses) {
         this.entityClasses.addAll(Arrays.asList(entityClasses));
         return this;
-    }
-
-    public static Postgres instance() {
-        return new Postgres();
-    }
-
-    public static Postgres instance(final String defaultSchema) {
-        return new Postgres(defaultSchema);
     }
 
     public Postgres build() {
@@ -80,22 +70,15 @@ public class Postgres {
         return this.sessionFactory.openSession();
     }
 
-    public void close(Session session) {
-        if (session != null && session.isOpen()) {
-            session.close();
+    public void close() {
+        if (this.sessionFactory != null) {
+            this.sessionFactory.close();
         }
     }
 
     public <R> R inSession(Function<Session, R> function) {
-        Session session = null;
-        try {
-            session = open();
+        try (final Session session = open()) {
             return function.apply(session);
-        } catch (Exception e) {
-            log.error(e);
-            throw e;
-        } finally {
-            close(session);
         }
     }
 
@@ -114,7 +97,7 @@ public class Postgres {
                 return val;
             });
         } catch (Exception e) {
-            log.error(e);
+            LOGGER.error(e);
             throw e;
         }
     }

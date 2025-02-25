@@ -65,20 +65,18 @@
  *
  ************************************************************************
  */
+
 package org.opencadc.posix.mapper;
-
-
-import org.hibernate.query.Query;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.web.group.GroupWriter;
-import org.opencadc.posix.mapper.web.user.UserWriter;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.hibernate.query.Query;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.web.group.GroupWriter;
+import org.opencadc.posix.mapper.web.user.UserWriter;
 
 
 public class PostgresPosixClient implements PosixClient {
@@ -87,6 +85,16 @@ public class PostgresPosixClient implements PosixClient {
 
     public PostgresPosixClient(Postgres postgres) {
         this.postgres = postgres;
+    }
+
+    /**
+     * Closes this resource, relinquishing any underlying resources.  This function will close off the Postgres
+     * connection, and any related items.
+     */
+    public void close() {
+        if (this.postgres != null) {
+            this.postgres.close();
+        }
     }
 
     @Override
@@ -116,16 +124,6 @@ public class PostgresPosixClient implements PosixClient {
     @Override
     public Group saveGroup(Group group) {
         return postgres.save(group);
-    }
-
-    @Override
-    public boolean groupExist(GroupURI groupURI) {
-        return getGroup(groupURI) != null;
-    }
-
-    @Override
-    public List<User> getUsers() {
-        return postgres.inTransaction(session -> session.createQuery("from Users u", User.class).list());
     }
 
     @Override
@@ -160,7 +158,7 @@ public class PostgresPosixClient implements PosixClient {
             }
 
             if (uidConstraints.length > 0) {
-                if (queryBuilder.indexOf("where") > 0 ) {
+                if (queryBuilder.indexOf("where") > 0) {
                     queryBuilder.append(" or");
                 } else {
                     queryBuilder.append(" where");
@@ -205,7 +203,7 @@ public class PostgresPosixClient implements PosixClient {
             }
 
             if (gidConstraints.length > 0) {
-                if (queryBuilder.indexOf("where") > 0 ) {
+                if (queryBuilder.indexOf("where") > 0) {
                     queryBuilder.append(" or");
                 } else {
                     queryBuilder.append(" where");
