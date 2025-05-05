@@ -1,7 +1,7 @@
 plugins {
-    id 'java'
-    id 'maven'
+    id 'java-library'
     id 'maven-publish'
+    id 'checkstyle'
     id 'application'
 }
 
@@ -10,11 +10,13 @@ repositories {
     mavenLocal()
 }
 
-sourceCompatibility = 1.8
+apply from: '../opencadc.gradle'
+
+sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '1.1.29'
+version = '1.1.30'
 
 description = 'OpenCADC User+Group client library'
 def git_url = 'https://github.com/opencadc/ac'
@@ -22,19 +24,12 @@ def git_url = 'https://github.com/opencadc/ac'
 mainClassName = 'ca.nrc.cadc.ac.client.Main'
 
 dependencies {
-    compile 'org.jdom:jdom2:[2.0.6,3.0)'
-    compile 'org.json:json:20160212'
+    api 'org.opencadc:cadc-util:[1.9.11,2.0)'
+    api 'org.opencadc:cadc-registry:[1.5,2.0)'
+    api 'org.opencadc:cadc-cdp:[1.0,2.0)'
+    api 'org.opencadc:cadc-gms:[1.0.5,1.1)'
 
-    compile 'org.opencadc:cadc-util:[1.9.11,2.0)'
-    compile 'org.opencadc:cadc-registry:[1.5,2.0)'
-    compile 'org.opencadc:cadc-gms:[1.0.5,1.1)'
-    compile 'org.opencadc:cadc-cdp:[1.0,2.0)'
-
-    testCompile 'junit:junit:[4.13,5.0)'
-    testCompile 'xerces:xercesImpl:[2.12,3.0)'
-    testCompile 'org.skyscreamer:jsonassert:[1.0,)'
-}
-
-configurations {
-  runtime.exclude group: 'org.springframework'
+    testImplementation 'junit:junit:[4.13,5.0)'
+    testImplementation 'xerces:xercesImpl:[2.12,3.0)'
+    testImplementation 'org.skyscreamer:jsonassert:[1.0,)'
 }
