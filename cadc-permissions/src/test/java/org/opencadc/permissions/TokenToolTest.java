@@ -67,20 +67,17 @@
 
 package org.opencadc.permissions;
 
+import ca.nrc.cadc.util.Base64;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
-import ca.nrc.cadc.util.RsaSignatureVerifier;
 import java.io.File;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.xerces.impl.dv.util.Base64;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -254,7 +251,7 @@ public class TokenToolTest {
             TokenTool ver = new TokenTool(pubKeyFile);
             String token = gen.generateToken(URI.create(uri), readGrant, user);
             String[] parts = token.split("~");
-            String newToken = TokenTool.base64URLEncode(Base64.encode("junk".getBytes())) + "~" + parts[1];
+            String newToken = TokenTool.base64URLEncode(new String(Base64.encode("junk".getBytes()))) + "~" + parts[1];
             try {
                 ver.validateToken(newToken, URI.create(uri), readGrant);
                 Assert.fail("Should have failed with invalid metadata");
@@ -279,7 +276,7 @@ public class TokenToolTest {
             TokenTool ver = new TokenTool(pubKeyFile);
             String token = gen.generateToken(URI.create(uri), readGrant, user);
             String[] parts = token.split("~");
-            String newToken = parts[0] + "~" + TokenTool.base64URLEncode(Base64.encode("junk".getBytes()));
+            String newToken = parts[0] + "~" + TokenTool.base64URLEncode(new String(Base64.encode("junk".getBytes())));
             try {
                 ver.validateToken(newToken, URI.create(uri), readGrant);
                 Assert.fail("Should have failed with invalid signature");
