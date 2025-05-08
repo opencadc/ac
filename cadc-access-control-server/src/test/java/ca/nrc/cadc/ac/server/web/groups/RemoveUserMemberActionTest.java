@@ -68,23 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
-
-import java.net.URI;
-import java.security.Principal;
-import java.util.UUID;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.MemberNotFoundException;
@@ -97,6 +80,19 @@ import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.net.URI;
+import java.security.Principal;
+import java.util.UUID;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
 
 /**
  * @author jburke
