@@ -68,28 +68,6 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.util.Date;
-import java.util.UUID;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.InternalID;
@@ -101,14 +79,30 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.util.Date;
+import java.util.UUID;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class GroupReaderWriterTest
-{
+public class GroupReaderWriterTest {
     private static Logger log = Logger.getLogger(GroupReaderWriterTest.class);
 
     private String ERROR_MSG_BASE = "should throw InvalidExceptionError";
@@ -116,68 +110,59 @@ public class GroupReaderWriterTest
     static {
         Log4jInit.setLevel(Group.class.getPackage().getName(), Level.INFO);
     }
-    
+
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             String s = null;
             GroupReader groupReader = new GroupReader();
             Group g = groupReader.read(s);
             fail("null String " + ERROR_MSG_BASE);
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
 
-        try
-        {
+        try {
             InputStream in = null;
             GroupReader groupReader = new GroupReader();
             Group g = groupReader.read(in);
             fail("null InputStream should throw IOException");
+        } catch (IOException e) {
         }
-        catch (IOException e) {}
 
-        try
-        {
+        try {
             Reader r = null;
             GroupReader groupReader = new GroupReader();
             Group g = groupReader.read(r);
             fail("null element should throw ReaderException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             GroupWriter groupWriter = new GroupWriter();
             groupWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
     }
 
     @Test
     public void testMinimalReadWrite()
-        throws Exception
-    {
+            throws Exception {
         Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));
 
         StringBuilder xml = new StringBuilder();
@@ -193,8 +178,7 @@ public class GroupReaderWriterTest
 
     @Test
     public void testMaximalReadWrite()
-        throws Exception
-    {
+            throws Exception {
         User owner = new User();
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
         owner.getIdentities().add(x500Principal);
@@ -250,21 +234,15 @@ public class GroupReaderWriterTest
         assertTrue(actual.getUserMembers().containsAll(expected.getUserMembers()));
     }
 
-    private void setGroupOwner(Group group, User owner)
-    {
+    private void setGroupOwner(Group group, User owner) {
         // set private uri field using reflection
-        try
-        {
+        try {
             Field field = group.getClass().getDeclaredField("owner");
             field.setAccessible(true);
             field.set(group, owner);
-        }
-        catch (NoSuchFieldException e)
-        {
+        } catch (NoSuchFieldException e) {
             throw new RuntimeException("Group owner field not found", e);
-        }
-        catch (IllegalAccessException e)
-        {
+        } catch (IllegalAccessException e) {
             throw new RuntimeException("unable to update Group owner field", e);
         }
     }

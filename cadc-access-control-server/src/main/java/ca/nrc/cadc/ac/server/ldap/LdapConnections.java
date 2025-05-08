@@ -69,11 +69,9 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
-
+import org.apache.log4j.Logger;
 import com.unboundid.ldap.sdk.LDAPConnection;
 
 /**
@@ -81,14 +79,13 @@ import com.unboundid.ldap.sdk.LDAPConnection;
  * connections to LDAP.  The connections are either manual (if config is
  * provided) or automatic and with a connection pool if a persistence
  * object is provided.
- *
+ * <p>
  * This class is not thread-safe but does not need to be since new
  * instances of the DAO classes are always created.
  *
  * @author majorb
  */
-class LdapConnections
-{
+class LdapConnections {
     private final static Logger log = Logger.getLogger(LdapConnections.class);
 
     private LdapPersistence persistence;
@@ -106,179 +103,131 @@ class LdapConnections
     private LDAPConnection manualConfigReadWriteConn;
     private LDAPConnection manualConfigUnboundReadOnlyConn;
 
-    LdapConnections(LdapPersistence persistence)
-    {
+    LdapConnections(LdapPersistence persistence) {
         if (persistence == null)
             throw new RuntimeException("persistence object is required");
         this.persistence = persistence;
     }
 
-    LdapConnections(LdapConfig config)
-    {
+    LdapConnections(LdapConfig config) {
         if (config == null)
             throw new RuntimeException("config object is required");
 
         this.config = config;
     }
 
-    LDAPConnection getReadOnlyConnection() throws TransientException
-    {
-        if (persistence != null)
-        {
-            if (readOnlyPool == null)
-            {
+    LDAPConnection getReadOnlyConnection() throws TransientException {
+        if (persistence != null) {
+            if (readOnlyPool == null) {
                 readOnlyPool = persistence.getPool(LdapPersistence.POOL_READONLY);
             }
-            if (autoConfigReadOnlyConn == null)
-            {
+            if (autoConfigReadOnlyConn == null) {
                 log.debug("Getting new auto config read only connection.");
                 Profiler profiler = new Profiler(LdapConnections.class);
                 autoConfigReadOnlyConn = readOnlyPool.getConnection();
                 profiler.checkpoint("Get read only connection");
-            }
-            else
-            {
+            } else {
                 log.debug("Getting reused auto config read only connection.");
             }
             return autoConfigReadOnlyConn;
-        }
-        else
-        {
-            if (readOnlyPool == null)
-            {
+        } else {
+            if (readOnlyPool == null) {
                 readOnlyPool = new LdapConnectionPool(config, config.getReadOnlyPool(), LdapPersistence.POOL_READONLY, true, true);
             }
-            if (manualConfigReadOnlyConn == null)
-            {
+            if (manualConfigReadOnlyConn == null) {
                 log.debug("Getting new manual config read only connection.");
                 manualConfigReadOnlyConn = readOnlyPool.getConnection();
-            }
-            else
-            {
+            } else {
                 log.debug("Getting reused manual config read only connection.");
             }
             return manualConfigReadOnlyConn;
         }
     }
 
-    LDAPConnection getReadWriteConnection() throws TransientException
-    {
-        if (persistence != null)
-        {
-            if (readWritePool == null)
-            {
+    LDAPConnection getReadWriteConnection() throws TransientException {
+        if (persistence != null) {
+            if (readWritePool == null) {
                 readWritePool = persistence.getPool(LdapPersistence.POOL_READWRITE);
             }
-            if (autoConfigReadWriteConn == null)
-            {
+            if (autoConfigReadWriteConn == null) {
                 log.debug("Getting new auto config read write connection.");
                 Profiler profiler = new Profiler(LdapConnections.class);
                 autoConfigReadWriteConn = readWritePool.getConnection();
                 profiler.checkpoint("Get read write connection");
-            }
-            else
-            {
+            } else {
                 log.debug("Getting reused auto config read write connection.");
             }
             return autoConfigReadWriteConn;
-        }
-        else
-        {
-            if (readWritePool == null)
-            {
+        } else {
+            if (readWritePool == null) {
                 readWritePool = new LdapConnectionPool(config, config.getReadWritePool(), LdapPersistence.POOL_READWRITE, true, false);
             }
-            if (manualConfigReadWriteConn == null)
-            {
+            if (manualConfigReadWriteConn == null) {
                 log.debug("Getting new manual config read write connection.");
                 manualConfigReadWriteConn = readWritePool.getConnection();
-            }
-            else
-            {
+            } else {
                 log.debug("Getting reused manual config read write connection.");
             }
             return manualConfigReadWriteConn;
         }
     }
 
-    LDAPConnection getUnboundReadOnlyConnection() throws TransientException
-    {
-        if (persistence != null)
-        {
-            if (unboundReadOnlyPool == null)
-            {
+    LDAPConnection getUnboundReadOnlyConnection() throws TransientException {
+        if (persistence != null) {
+            if (unboundReadOnlyPool == null) {
                 unboundReadOnlyPool = persistence.getPool(LdapPersistence.POOL_UNBOUNDREADONLY);
             }
-            if (autoConfigUnboundReadOnlyConn == null)
-            {
+            if (autoConfigUnboundReadOnlyConn == null) {
                 log.debug("Getting new auto config unbound read only connection.");
                 Profiler profiler = new Profiler(LdapConnections.class);
                 autoConfigUnboundReadOnlyConn = unboundReadOnlyPool.getConnection();
                 profiler.checkpoint("Get read write connection");
-            }
-            else
-            {
+            } else {
                 log.debug("Getting reused auto config unbound read only connection.");
             }
             return autoConfigUnboundReadOnlyConn;
-        }
-        else
-        {
-            if (unboundReadOnlyPool == null)
-            {
+        } else {
+            if (unboundReadOnlyPool == null) {
                 unboundReadOnlyPool = new LdapConnectionPool(config, config.getUnboundReadOnlyPool(), LdapPersistence.POOL_UNBOUNDREADONLY, false, true);
             }
-            if (manualConfigUnboundReadOnlyConn == null)
-            {
+            if (manualConfigUnboundReadOnlyConn == null) {
                 log.debug("Getting new manual config unbound read only connection.");
                 manualConfigUnboundReadOnlyConn = unboundReadOnlyPool.getConnection();
-            }
-            else
-            {
+            } else {
                 log.debug("Getting reused manual config unbound read only connection.");
             }
             return manualConfigUnboundReadOnlyConn;
         }
     }
 
-    void releaseConnections()
-    {
+    void releaseConnections() {
         Profiler profiler = new Profiler(LdapConnections.class);
-        if (persistence != null)
-        {
-            if (autoConfigReadOnlyConn != null)
-            {
+        if (persistence != null) {
+            if (autoConfigReadOnlyConn != null) {
                 log.debug("Releasing read only auto config connection.");
                 readOnlyPool.releaseConnection(autoConfigReadOnlyConn);
                 profiler.checkpoint("Release read only connection");
             }
-            if (autoConfigReadWriteConn != null)
-            {
+            if (autoConfigReadWriteConn != null) {
                 log.debug("Releasing read write auto config connection.");
                 readWritePool.releaseConnection(autoConfigReadWriteConn);
                 profiler.checkpoint("Release read write connection");
             }
-            if (autoConfigUnboundReadOnlyConn != null)
-            {
+            if (autoConfigUnboundReadOnlyConn != null) {
                 log.debug("Releasing unbound read only auto config connection.");
                 unboundReadOnlyPool.releaseConnection(autoConfigUnboundReadOnlyConn);
                 profiler.checkpoint("Release read only connection");
             }
-        }
-        else
-        {
-            if (manualConfigReadOnlyConn != null)
-            {
+        } else {
+            if (manualConfigReadOnlyConn != null) {
                 log.debug("Releasing read only manual config connection.");
                 readOnlyPool.releaseConnection(manualConfigReadOnlyConn);
             }
-            if (manualConfigReadWriteConn != null)
-            {
+            if (manualConfigReadWriteConn != null) {
                 log.debug("Releasing read write manual config connection.");
                 readWritePool.releaseConnection(manualConfigReadWriteConn);
             }
-            if (manualConfigUnboundReadOnlyConn != null)
-            {
+            if (manualConfigUnboundReadOnlyConn != null) {
                 log.debug("Releasing unbound read only manual config connection.");
                 unboundReadOnlyPool.releaseConnection(manualConfigUnboundReadOnlyConn);
             }
@@ -289,30 +238,25 @@ class LdapConnections
      * Best-effort manual pool shutdown.
      */
     @Override
-    public void finalize()
-    {
-        if (readOnlyPool != null && persistence == null)
-        {
+    public void finalize() {
+        if (readOnlyPool != null && persistence == null) {
             log.debug("Closing manual config readonly connection pool--should only see this " +
-            		"message when running unit tests.");
+                    "message when running unit tests.");
             readOnlyPool.shutdown();
         }
-        if (readWritePool != null && persistence == null)
-        {
+        if (readWritePool != null && persistence == null) {
             log.debug("Closing manual config readwrite connection pool--should only see this " +
                     "message when running unit tests.");
             readWritePool.shutdown();
         }
-        if (unboundReadOnlyPool != null && persistence == null)
-        {
+        if (unboundReadOnlyPool != null && persistence == null) {
             log.debug("Closing manual config unboundreadonly connection pool--should only see this " +
                     "message when running unit tests.");
             unboundReadOnlyPool.shutdown();
         }
     }
 
-    LdapConfig getCurrentConfig()
-    {
+    LdapConfig getCurrentConfig() {
         if (persistence != null)
             return persistence.getCurrentConfig();
         else

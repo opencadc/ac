@@ -74,28 +74,23 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 import org.opencadc.auth.PosixGroup;
 
-public class GetGroupNamesAction extends AbstractGroupAction
-{
+public class GetGroupNamesAction extends AbstractGroupAction {
 
     private static final Logger log = Logger.getLogger(GetGroupNamesAction.class);
 
-    GetGroupNamesAction()
-    {
+    GetGroupNamesAction() {
         super();
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Collection<PosixGroup> groups = groupPersistence.getGroupNames();
         log.debug("Found " + groups.size() + " group names");
         syncOut.setHeader("Content-Type", "text/plain");
         log.debug("Set content-type to text/plain");
         Writer writer = syncOut.getWriter();
         boolean start = true;
-        for (final PosixGroup group : groups)
-        {
-            if (!start)
-            {
+        for (final PosixGroup group : groups) {
+            if (!start) {
                 writer.write("\r\n");
             }
             writer.write(group.getGroupURI().getName());

@@ -9,44 +9,36 @@ import java.util.Set;
 
 /**
  * A custom set built on a list implementation.
- *
+ * <p>
  * Ordering will not be deterministic as per the Set specification.
  */
-public class UserSet implements Set<User>
-{
+public class UserSet implements Set<User> {
 
     private List<User> users;
 
-    public UserSet()
-    {
+    public UserSet() {
         users = new ArrayList<User>();
     }
 
-    public User getUser(Principal identity)
-    {
+    public User getUser(Principal identity) {
         User test = null;
-        for (User u : users)
-        {
+        for (User u : users) {
             test = new User();
             test.getIdentities().add(identity);
-            if (test.isConsistent(u))
-            {
+            if (test.isConsistent(u)) {
                 return u;
             }
         }
         return null;
     }
 
-    public List<User> getUserList()
-    {
+    public List<User> getUserList() {
         return users;
     }
 
     @Override
-    public boolean add(User e)
-    {
-        if (!users.contains(e))
-        {
+    public boolean add(User e) {
+        if (!users.contains(e)) {
             users.add(e);
             return true;
         }
@@ -54,14 +46,11 @@ public class UserSet implements Set<User>
     }
 
     @Override
-    public boolean addAll(Collection<? extends User> c)
-    {
+    public boolean addAll(Collection<? extends User> c) {
         Iterator<? extends User> i = c.iterator();
         boolean modified = false;
-        while (i.hasNext())
-        {
-            if (this.add(i.next()))
-            {
+        while (i.hasNext()) {
+            if (this.add(i.next())) {
                 modified = true;
             }
         }
@@ -69,40 +58,33 @@ public class UserSet implements Set<User>
     }
 
     @Override
-    public void clear()
-    {
+    public void clear() {
         users.clear();
     }
 
     @Override
-    public boolean contains(Object o)
-    {
+    public boolean contains(Object o) {
         return users.contains(o);
     }
 
     @Override
-    public boolean containsAll(Collection<?> c)
-    {
+    public boolean containsAll(Collection<?> c) {
         return users.containsAll(c);
     }
 
     @Override
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return users.isEmpty();
     }
 
     @Override
-    public Iterator<User> iterator()
-    {
+    public Iterator<User> iterator() {
         return users.iterator();
     }
 
     @Override
-    public boolean remove(Object o)
-    {
-        if (users.contains(o))
-        {
+    public boolean remove(Object o) {
+        if (users.contains(o)) {
             users.remove(o);
             return true;
         }
@@ -110,14 +92,11 @@ public class UserSet implements Set<User>
     }
 
     @Override
-    public boolean removeAll(Collection<?> c)
-    {
+    public boolean removeAll(Collection<?> c) {
         Iterator<?> i = c.iterator();
         boolean modified = false;
-        while (i.hasNext())
-        {
-            if (this.remove(i.next()))
-            {
+        while (i.hasNext()) {
+            if (this.remove(i.next())) {
                 modified = true;
             }
         }
@@ -125,16 +104,13 @@ public class UserSet implements Set<User>
     }
 
     @Override
-    public boolean retainAll(Collection<?> c)
-    {
+    public boolean retainAll(Collection<?> c) {
         Iterator<User> i = users.listIterator();
         boolean modified = false;
         User next = null;
-        while (i.hasNext())
-        {
+        while (i.hasNext()) {
             next = i.next();
-            if (!c.contains(next))
-            {
+            if (!c.contains(next)) {
                 i.remove();
                 modified = true;
             }
@@ -143,20 +119,17 @@ public class UserSet implements Set<User>
     }
 
     @Override
-    public int size()
-    {
+    public int size() {
         return users.size();
     }
 
     @Override
-    public Object[] toArray()
-    {
+    public Object[] toArray() {
         return users.toArray();
     }
 
     @Override
-    public <T> T[] toArray(T[] a)
-    {
+    public <T> T[] toArray(T[] a) {
         return users.toArray(a);
     }
 

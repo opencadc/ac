@@ -1,56 +1,47 @@
 package ca.nrc.cadc.ac.server.web;
 
 
-import static org.easymock.EasyMock.createNiceMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.db.StandaloneContextFactory;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.util.List;
-
 import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServletRequest;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.db.StandaloneContextFactory;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
 import junit.framework.Assert;
+import static org.easymock.EasyMock.createNiceMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
 
 
-public class UserServletTest
-{
+public class UserServletTest {
     private static final Logger log = Logger.getLogger(UserServletTest.class);
 
-    public UserServletTest()
-    {
+    public UserServletTest() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
-    public void getAcceptedContentTypeJSON() throws Exception
-    {
+    public void getAcceptedContentTypeJSON() throws Exception {
         final HttpServletRequest mockRequest =
                 createNiceMock(HttpServletRequest.class);
         final UserServlet testSubject = new UserServlet();
@@ -61,14 +52,13 @@ public class UserServletTest
         replay(mockRequest);
 
         assertEquals("Wrong content type.", "application/json",
-                     testSubject.getAcceptedContentType(mockRequest));
+                testSubject.getAcceptedContentType(mockRequest));
 
         verify(mockRequest);
     }
 
     @Test
-    public void getAcceptedContentTypeDefault() throws Exception
-    {
+    public void getAcceptedContentTypeDefault() throws Exception {
         final HttpServletRequest mockRequest =
                 createNiceMock(HttpServletRequest.class);
         final UserServlet testSubject = new UserServlet();
@@ -78,23 +68,20 @@ public class UserServletTest
         replay(mockRequest);
 
         assertEquals("Wrong content type.", "text/xml",
-                     testSubject.getAcceptedContentType(mockRequest));
+                testSubject.getAcceptedContentType(mockRequest));
 
         verify(mockRequest);
     }
 
     @Test
-    public void testPrivilegedUsers1()
-    {
-        try
-        {
+    public void testPrivilegedUsers1() {
+        try {
             final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
-            UserServlet userServlet = new UserServlet(){
+            UserServlet userServlet = new UserServlet() {
                 @Override
-                public PluginFactory getPluginFactory()
-                {
+                public PluginFactory getPluginFactory() {
                     return piMock;
                 }
             };
@@ -102,36 +89,31 @@ public class UserServletTest
             StandaloneContextFactory.initJNDI();
             ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedX500Principals")).
+                            UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("cn=user1,ou=cadc,o=hia,c=ca cn=user2,ou=cadc,o=hia,c=ca");
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
+                            UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
                     andReturn("user1 user2");
             EasyMock.replay(config);
             userServlet.init(config);
             List<Subject> subjects = userServlet.privilegedSubjects;
             Assert.assertTrue(subjects.size() == 2);
             EasyMock.verify(config);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unexpected", e);
             Assert.fail(e.getMessage());
         }
     }
 
     @Test
-    public void testPrivilegedUsers2()
-    {
-        try
-        {
+    public void testPrivilegedUsers2() {
+        try {
             final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
-            UserServlet userServlet = new UserServlet(){
+            UserServlet userServlet = new UserServlet() {
                 @Override
-                public PluginFactory getPluginFactory()
-                {
+                public PluginFactory getPluginFactory() {
                     return piMock;
                 }
             };
@@ -139,95 +121,80 @@ public class UserServletTest
             StandaloneContextFactory.initJNDI();
             ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedX500Principals")).
+                            UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("\"cn=user1, ou=cadc, o=hia,c=ca\" \"cn=user2, ou=cadc,o=hia,c=ca\"");
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
+                            UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
                     andReturn("user1 \"user2\"");
             EasyMock.replay(config);
             userServlet.init(config);
             List<Subject> subjects = userServlet.privilegedSubjects;
             Assert.assertTrue(subjects.size() == 2);
             EasyMock.verify(config);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unexpected", e);
             Assert.fail(e.getMessage());
         }
     }
 
     @Test
-    public void testPrivilegedUsers3()
-    {
-        try
-        {
+    public void testPrivilegedUsers3() {
+        try {
             final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
-            UserServlet userServlet = new UserServlet(){
+            UserServlet userServlet = new UserServlet() {
                 @Override
-                public PluginFactory getPluginFactory()
-                {
+                public PluginFactory getPluginFactory() {
                     return piMock;
                 }
             };
             ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedX500Principals")).
+                            UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("\"cn=user1, ou=cadc, o=hia,c=ca\"");
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
+                            UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
                     andReturn("user1");
             EasyMock.replay(config, piMock);
             userServlet.init(config);
             List<Subject> subjects = userServlet.privilegedSubjects;
             Assert.assertTrue(subjects.size() == 1);
             EasyMock.verify(config);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unexpected", e);
             Assert.fail(e.getMessage());
         }
     }
 
     @Test
-    public void testPrivilegedUsers4()
-    {
-        try
-        {
+    public void testPrivilegedUsers4() {
+        try {
             StandaloneContextFactory.initJNDI();
             final PluginFactory piMock = EasyMock.createNiceMock(PluginFactory.class);
             EasyMock.expect(piMock.createUserPersistence()).andReturn(null).once();
             StandaloneContextFactory.initJNDI();
-            UserServlet userServlet = new UserServlet(){
+            UserServlet userServlet = new UserServlet() {
                 @Override
-                public PluginFactory getPluginFactory()
-                {
+                public PluginFactory getPluginFactory() {
                     return piMock;
                 }
             };
             ServletConfig config = EasyMock.createNiceMock(ServletConfig.class);
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedX500Principals")).
+                            UserServlet.class.getName() + ".PrivilegedX500Principals")).
                     andReturn("\"cn=user1, ou=cadc, o=hia,c=ca\" \"cn=user2, ou=cadc,o=hia,c=ca\"");
             EasyMock.expect(config.getInitParameter(
-                UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
+                            UserServlet.class.getName() + ".PrivilegedHttpPrincipals")).
                     andReturn("user1 \"user2\" user3");
             EasyMock.replay(config);
-            try
-            {
+            try {
                 userServlet.init(config);
                 Assert.fail("Should have thrown an error");
-            }
-            catch (ExceptionInInitializerError e)
-            {
+            } catch (ExceptionInInitializerError e) {
                 // expected
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unexpected", e);
             Assert.fail(e.getMessage());
         }

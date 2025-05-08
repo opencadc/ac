@@ -88,9 +88,8 @@ import org.opencadc.permissions.xml.GrantReader;
 
 /**
  * Client for retrieving grant information about artifacts.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class PermissionsClient {
 
@@ -121,7 +120,6 @@ public class PermissionsClient {
      *
      * @param assetID Identifies the artifact for which to retrieve grant information.
      * @return Null if permission information isn't found for the assetID, otherwise the read grant information.
-     *
      * @throws TransientException If an unexpected, temporary exception occurred.
      */
     public ReadGrant getReadGrant(URI assetID) throws TransientException {
@@ -133,7 +131,6 @@ public class PermissionsClient {
      *
      * @param assetID Identifies the artifact for which to retrieve grant information.
      * @return Null if permission information isn't found for the assetID, otherwise the write grant information.
-     *
      * @throws TransientException If an unexpected, temporary exception occurred.
      */
     public WriteGrant getWriteGrant(URI assetID) throws TransientException {
@@ -144,7 +141,7 @@ public class PermissionsClient {
      * Get the permission information about the file identified by assetID.
      *
      * @param assetID Identifies the artifact for which to retrieve grant information.
-     * @param op The type of grant to retrieve.
+     * @param op      The type of grant to retrieve.
      * @return Null if permission information isn't found for the assetID, otherwise the grant information.
      * @throws TransientException If an unexpected, temporary exception occurred.
      */
@@ -179,8 +176,8 @@ public class PermissionsClient {
      * Construct the URL to retrieve the grant information.
      *
      * @param serviceURL The URL of the permissions service.
-     * @param op The type of grant to retrieve.
-     * @param assetID Identifies the artifact for which to retrieve grant information.
+     * @param op         The type of grant to retrieve.
+     * @param assetID    Identifies the artifact for which to retrieve grant information.
      * @return URL to the grant information.
      */
     URL getGrantURL(URL serviceURL, Operation op, URI assetID) {

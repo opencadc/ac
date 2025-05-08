@@ -68,14 +68,13 @@
 
 package org.opencadc.posix.mapper.db;
 
+import java.util.Properties;
 import org.hibernate.MappingException;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.enhanced.SequenceStyleGenerator;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.type.Type;
 import org.opencadc.posix.mapper.Group;
-
-import java.util.Properties;
 
 public class GroupIDSequenceGenerator extends SequenceStyleGenerator {
     @Override

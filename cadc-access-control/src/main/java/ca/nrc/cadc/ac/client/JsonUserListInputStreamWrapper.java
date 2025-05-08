@@ -72,17 +72,14 @@ import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserListReader;
 import ca.nrc.cadc.net.InputStreamWrapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-public class JsonUserListInputStreamWrapper implements InputStreamWrapper
-{
+public class JsonUserListInputStreamWrapper implements InputStreamWrapper {
     private final List<User> output;
 
-    public JsonUserListInputStreamWrapper(final List<User> output)
-    {
+    public JsonUserListInputStreamWrapper(final List<User> output) {
         this.output = output;
     }
 
@@ -94,16 +91,12 @@ public class JsonUserListInputStreamWrapper implements InputStreamWrapper
      */
     @Override
     public void read(final InputStream inputStream)
-        throws IOException
-    {
+            throws IOException {
         final JsonUserListReader reader = new JsonUserListReader();
 
-        try
-        {
+        try {
             output.addAll(reader.read(inputStream));
-        }
-        catch (ReaderException e)
-        {
+        } catch (ReaderException e) {
             throw new IOException("Unable to parse input", e);
         }
     }

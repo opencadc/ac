@@ -72,71 +72,58 @@ package ca.nrc.cadc.ac.server.ldap;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.apache.log4j.Logger;
 
 /**
  * The object that is bound in JNDI to hold the LDAP pools.
  */
-public class ConnectionPools
-{
+public class ConnectionPools {
 
     private LdapConfig config;
 
-    private Map<String,LdapConnectionPool> pools;
+    private Map<String, LdapConnectionPool> pools;
     private static final Logger logger = Logger.getLogger(ConnectionPools.class);
 
     private long lastPoolCheck = System.currentTimeMillis();
     private boolean isClosed;
 
-    public ConnectionPools(Map<String,LdapConnectionPool> pools, LdapConfig config)
-    {
+    public ConnectionPools(Map<String, LdapConnectionPool> pools, LdapConfig config) {
         this.pools = pools;
         this.config = config;
         isClosed = false;
     }
 
-    public Map<String,LdapConnectionPool> getPools()
-    {
+    public Map<String, LdapConnectionPool> getPools() {
         return pools;
     }
 
-    public LdapConfig getConfig()
-    {
+    public LdapConfig getConfig() {
         return config;
     }
 
-    public long getLastPoolCheck()
-    {
+    public long getLastPoolCheck() {
         return lastPoolCheck;
     }
 
-    public void setLastPoolCheck(long lastPoolCheck)
-    {
+    public void setLastPoolCheck(long lastPoolCheck) {
         this.lastPoolCheck = lastPoolCheck;
     }
 
-    public void close()
-    {
+    public void close() {
         Collection<LdapConnectionPool> allPools = pools.values();
         Iterator<LdapConnectionPool> i = allPools.iterator();
-        while (i.hasNext())
-        {
+        while (i.hasNext()) {
             LdapConnectionPool next = i.next();
-            try
-            {
+            try {
                 next.shutdown();
-            }
-            catch (Throwable t)
-            {
+            } catch (Throwable t) {
                 logger.warn("Could not shutdown pool " + next.getName(), t);
             }
         }
         isClosed = true;
     }
 
-    public boolean isClosed()
-    {
+    public boolean isClosed() {
         return isClosed;
     }
 

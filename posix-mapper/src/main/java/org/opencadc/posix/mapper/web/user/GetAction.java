@@ -84,7 +84,7 @@ public class GetAction extends PosixMapperAction {
         try {
             posixClient = getPosixClient();
             posixClient.writeUsers(userWriter, usernameParameters().toArray(new String[0]),
-                                   uidParameters().toArray(new Integer[0]));
+                    uidParameters().toArray(new Integer[0]));
         } finally {
             if (posixClient != null) {
                 posixClient.close();
@@ -106,8 +106,8 @@ public class GetAction extends PosixMapperAction {
             uidConstraints = Collections.emptyList();
         } else {
             uidConstraints = uidStringParameters.stream()
-                                                .map(Integer::parseInt)
-                                                .collect(Collectors.toList());
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
         }
 
         return uidConstraints;

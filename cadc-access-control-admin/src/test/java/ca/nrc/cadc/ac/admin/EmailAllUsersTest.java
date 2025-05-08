@@ -85,9 +85,10 @@ public class EmailAllUsersTest {
     public void getEmailsAllSkipDomainTest() throws Exception {
 
         EmailAllUsers testSubject = new EmailAllUsers(null, null, 3, null,
-                                                      true, null, true) {
+                true, null, true) {
             @Override
-            protected void init() throws UsageException {}
+            protected void init() throws UsageException {
+            }
 
             @Override
             protected List<String> getSkipDomains() {
@@ -97,7 +98,7 @@ public class EmailAllUsersTest {
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
                 return Stream.of("foo@foo.com", "bar@bar.com", "baz@baz.bar.com")
-                    .collect(Collectors.toCollection(TreeSet::new));
+                        .collect(Collectors.toCollection(TreeSet::new));
             }
         };
 
@@ -109,9 +110,10 @@ public class EmailAllUsersTest {
     public void getEmailsNoSkipDomainTest() throws Exception {
 
         EmailAllUsers testSubject = new EmailAllUsers(null, null, 3, null,
-                                                      true, null, true) {
+                true, null, true) {
             @Override
-            protected void init() throws UsageException {}
+            protected void init() throws UsageException {
+            }
 
             @Override
             protected List<String> getSkipDomains() {
@@ -121,7 +123,7 @@ public class EmailAllUsersTest {
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
                 return Stream.of("foo@example.com", "bar@example.com", "baz@example.com")
-                    .collect(Collectors.toCollection(TreeSet::new));
+                        .collect(Collectors.toCollection(TreeSet::new));
             }
         };
 
@@ -134,9 +136,10 @@ public class EmailAllUsersTest {
     public void getEmailsWithSkipDomainTest() throws Exception {
 
         EmailAllUsers testSubject = new EmailAllUsers(null, null, 3, null,
-                                                      true, null, true) {
+                true, null, true) {
             @Override
-            protected void init() throws UsageException {}
+            protected void init() throws UsageException {
+            }
 
             @Override
             protected List<String> getSkipDomains() {
@@ -146,7 +149,7 @@ public class EmailAllUsersTest {
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
                 return Stream.of("foo@example.com", "bar@bar.com", "baz@example.com")
-                    .collect(Collectors.toCollection(TreeSet::new));
+                        .collect(Collectors.toCollection(TreeSet::new));
             }
         };
 
@@ -160,9 +163,10 @@ public class EmailAllUsersTest {
     public void getEmailsResume() throws Exception {
 
         EmailAllUsers testSubject = new EmailAllUsers(null, null, 3, null,
-                                                      true, "bar@example.com", true) {
+                true, "bar@example.com", true) {
             @Override
-            protected void init() throws UsageException {}
+            protected void init() throws UsageException {
+            }
 
             @Override
             protected List<String> getSkipDomains() {
@@ -172,7 +176,7 @@ public class EmailAllUsersTest {
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
                 return Stream.of("bar@bar.com", "baz@baz.bar.com", "foo@foo.com")
-                    .collect(Collectors.toCollection(TreeSet::new));
+                        .collect(Collectors.toCollection(TreeSet::new));
             }
         };
 
@@ -181,9 +185,10 @@ public class EmailAllUsersTest {
         Assert.assertEquals(2, emails.size());
 
         testSubject = new EmailAllUsers(null, null, 3, null,
-                                        true, "baz@example.com", true) {
+                true, "baz@example.com", true) {
             @Override
-            protected void init() throws UsageException {}
+            protected void init() throws UsageException {
+            }
 
             @Override
             protected List<String> getSkipDomains() {
@@ -193,7 +198,7 @@ public class EmailAllUsersTest {
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
                 return Stream.of("bar@example.com", "baz@example.com", "foo@example.com")
-                    .collect(Collectors.toCollection(TreeSet::new));
+                        .collect(Collectors.toCollection(TreeSet::new));
             }
         };
 
@@ -202,9 +207,10 @@ public class EmailAllUsersTest {
         Assert.assertEquals(1, emails.size());
 
         testSubject = new EmailAllUsers(null, null, 3, null,
-                                        true, "foo@example.com", true) {
+                true, "foo@example.com", true) {
             @Override
-            protected void init() throws UsageException {}
+            protected void init() throws UsageException {
+            }
 
             @Override
             protected List<String> getSkipDomains() {
@@ -214,7 +220,7 @@ public class EmailAllUsersTest {
             @Override
             protected SortedSet<String> getAllUserEmails() throws TransientException {
                 return Stream.of("bar@example.com", "baz@example.com", "foo@example.com")
-                    .collect(Collectors.toCollection(TreeSet::new));
+                        .collect(Collectors.toCollection(TreeSet::new));
             }
         };
 

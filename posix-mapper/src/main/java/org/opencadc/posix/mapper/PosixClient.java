@@ -25,17 +25,19 @@ public interface PosixClient {
 
     /**
      * Close this client and release underlying resources.
-     * @throws Exception    Anything unexpected.
+     *
+     * @throws Exception Anything unexpected.
      */
     void close() throws Exception;
 
     /**
      * Write out all the User mappings to the given writer.  It is the responsibility of the implementation to
      * ensure Users are created.
-     * @param writer        The Writer to write to.
-     * @param usernames     Usernames to constrain.
-     * @param uidConstraints    UID values to constrain against
-     * @throws Exception    If Users cannot be obtained, or written.
+     *
+     * @param writer         The Writer to write to.
+     * @param usernames      Usernames to constrain.
+     * @param uidConstraints UID values to constrain against
+     * @throws Exception If Users cannot be obtained, or written.
      */
     void writeUsers(UserWriter writer, String[] usernames, Integer[] uidConstraints) throws Exception;
 
@@ -43,10 +45,10 @@ public interface PosixClient {
      * Write out all the Group mappings to the given writer.  It is the responsibility of the implementation to
      * ensure Groups exist if so desired.
      *
-     * @param writer        The Writer to write to.
-     * @param groupURIConstraints     Constrain the results to the provided groupURIs.
-     * @param gidConstraints     Constrain the results to the provided groupURIs.
-     * @throws Exception    If Groups cannot be obtained, or written.
+     * @param writer              The Writer to write to.
+     * @param groupURIConstraints Constrain the results to the provided groupURIs.
+     * @param gidConstraints      Constrain the results to the provided groupURIs.
+     * @throws Exception If Groups cannot be obtained, or written.
      */
     void writeGroups(GroupWriter writer, GroupURI[] groupURIConstraints, Integer[] gidConstraints)
             throws Exception;

@@ -69,25 +69,21 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import ca.nrc.cadc.util.Log4jInit;
-
-public class LdapPersistenceTest
-{
+public class LdapPersistenceTest {
 
     private final static Logger log = Logger.getLogger(LdapPersistenceTest.class);
 
-    public LdapPersistenceTest()
-    {
+    public LdapPersistenceTest() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
-    public void test()
-    {
+    public void test() {
         // tbd
     }
 

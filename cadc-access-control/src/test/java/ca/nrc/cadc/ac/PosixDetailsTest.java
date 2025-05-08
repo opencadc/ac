@@ -70,78 +70,63 @@ package ca.nrc.cadc.ac;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
- *
  * @author jburke
  */
-public class PosixDetailsTest
-{
+public class PosixDetailsTest {
     private static Logger log = Logger.getLogger(PosixDetailsTest.class);
-    
+
     @Test
-    public void simplePosixDetailsTest() throws Exception
-    {
+    public void simplePosixDetailsTest() throws Exception {
         PosixDetails pd1 = new PosixDetails("username", 1, 2, "/dev/null");
 
         assertEquals("username", pd1.getUsername());
         assertEquals(1l, pd1.getUid());
         assertEquals(2l, pd1.getGid());
         assertEquals("/dev/null", pd1.getHomeDirectory());
-        
+
         PosixDetails pd2 = pd1;
         assertEquals(pd1.hashCode(), pd2.hashCode());
         assertEquals(pd1, pd2);
         assertTrue(pd1 == pd2);
-        
+
         // test toString
         System.out.println(pd1);
     }
-    
+
     @Test
-    public void exceptionTests()
-    {
+    public void exceptionTests() {
         boolean thrown = false;
-        try
-        {
+        try {
             new PosixDetails(null, 1, 2, "/dev/null");
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
 
-        try
-        {
+        try {
             new PosixDetails("", 1, 2, "/dev/null");
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
 
-        try
-        {
+        try {
             new PosixDetails("username", 1, 2, null);
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
 
-        try
-        {
+        try {
             new PosixDetails(null, 1, 2, "");
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
     }
-    
+
 }

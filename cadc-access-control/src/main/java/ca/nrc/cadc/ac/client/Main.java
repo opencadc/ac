@@ -69,6 +69,12 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.CertCmdArgUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.ArgumentMap;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -77,28 +83,18 @@ import java.security.PrivilegedAction;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.CertCmdArgUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.ArgumentMap;
-import ca.nrc.cadc.util.Log4jInit;
 
 /**
  * Prototype main class for the GMSClient.  Currently
  * only used for testing.  Should not be used for production
  * work.
  */
-public class Main implements PrivilegedAction<Object>
-{
+public class Main implements PrivilegedAction<Object> {
 
     private static Logger log = Logger.getLogger(Main.class);
 
@@ -121,32 +117,25 @@ public class Main implements PrivilegedAction<Object>
 
     private ArgumentMap argMap;
 
-    private Main(ArgumentMap args)
-    {
+    private Main(ArgumentMap args) {
         this.argMap = args;
     }
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
         ArgumentMap argMap = new ArgumentMap(args);
 
-        if (argMap.isSet(ARG_HELP) || argMap.isSet(ARG_H))
-        {
+        if (argMap.isSet(ARG_HELP) || argMap.isSet(ARG_H)) {
             usage();
             System.exit(0);
         }
 
         // Set debug mode
-        if (argMap.isSet(ARG_DEBUG) || argMap.isSet(ARG_D))
-        {
+        if (argMap.isSet(ARG_DEBUG) || argMap.isSet(ARG_D)) {
             Log4jInit.setLevel("ca.nrc.cadc.ac.client", Level.DEBUG);
             Log4jInit.setLevel("ca.nrc.cadc.net", Level.DEBUG);
-        }
-        else if (argMap.isSet(ARG_VERBOSE) || argMap.isSet(ARG_V))
-        {
+        } else if (argMap.isSet(ARG_VERBOSE) || argMap.isSet(ARG_V)) {
             Log4jInit.setLevel("ca.nrc.cadc.ac.client", Level.INFO);
-        }
-        else
+        } else
             Log4jInit.setLevel("ca", Level.WARN);
 
         Main main = new Main(argMap);
@@ -163,8 +152,7 @@ public class Main implements PrivilegedAction<Object>
         log.debug("Response: " + response);
     }
 
-    private String getCommand()
-    {
+    private String getCommand() {
         if (argMap.isSet(ARG_ADD_MEMBER))
             return ARG_ADD_MEMBER;
 
@@ -189,8 +177,7 @@ public class Main implements PrivilegedAction<Object>
         return null;
     }
 
-    private static void usage()
-    {
+    private static void usage() {
         System.out.println("Usage: Group management command line tool");
         System.out.println();
         System.out.println("  --create --group=<uri>");
@@ -211,13 +198,10 @@ public class Main implements PrivilegedAction<Object>
     }
 
     @Override
-    public Object run()
-    {
-        try
-        {
+    public Object run() {
+        try {
             String command = getCommand();
-            if (command == null)
-            {
+            if (command == null) {
                 System.err.println("No valid commands.");
                 System.out.println();
                 usage();
@@ -234,165 +218,124 @@ public class Main implements PrivilegedAction<Object>
 
             List<String> members = argMap.getPositionalArgs();
 
-            if (command.equals(ARG_ADD_MEMBER))
-            {
+            if (command.equals(ARG_ADD_MEMBER)) {
 
                 if (members.isEmpty())
                     throw new IllegalArgumentException("No members specified");
 
-                for (String member : members)
-                {
-                    try
-                    {
+                for (String member : members) {
+                    try {
                         // try creating a group URI
                         GroupURI memberURI = new GroupURI(new URI(member));
                         client.addGroupMember(group, memberURI.getName());
-                    }
-                    catch (IllegalArgumentException e)
-                    {
+                    } catch (IllegalArgumentException e) {
                         // assume the string is a userid
                         client.addUserMember(group, new HttpPrincipal(member));
                     }
                 }
-            }
-            else if (command.equals(ARG_DEL_MEMBER))
-            {
+            } else if (command.equals(ARG_DEL_MEMBER)) {
                 if (members.isEmpty())
                     throw new IllegalArgumentException("No members specified");
 
-                for (String member : members)
-                {
-                    try
-                    {
+                for (String member : members) {
+                    try {
                         // try creating a group URI
                         GroupURI memberURI = new GroupURI(new URI(member));
                         client.removeGroupMember(group, memberURI.getName());
-                    } catch (IllegalArgumentException e)
-                    {
+                    } catch (IllegalArgumentException e) {
                         // assume the string is a userid
                         client.removeUserMember(group, new HttpPrincipal(member));
                     }
                 }
-            }
-            else if (command.equals(ARG_ADD_ADMIN))
-            {
+            } else if (command.equals(ARG_ADD_ADMIN)) {
                 if (members.isEmpty())
                     throw new IllegalArgumentException("No members specified");
 
                 Group cur = client.getGroup(group);
                 boolean changes = false;
 
-                for (String member : members)
-                {
+                for (String member : members) {
                     GroupURI memberURI = null;
                     HttpPrincipal hp = null;
-                    try
-                    {
+                    try {
                         // try creating a group URI
                         memberURI = new GroupURI(new URI(member));
-                    }
-                    catch (IllegalArgumentException e)
-                    {
+                    } catch (IllegalArgumentException e) {
                         // assume the string is a userID
                         hp = new HttpPrincipal(member);
                     }
 
                     boolean update = true;
-                    if (hp != null)
-                    {
-                        if (hp != null)
-                        {
-                            for (User admin : cur.getUserAdmins())
-                            {
-                                for (Principal p : admin.getIdentities())
-                                {
-                                    if (p instanceof HttpPrincipal)
-                                    {
+                    if (hp != null) {
+                        if (hp != null) {
+                            for (User admin : cur.getUserAdmins()) {
+                                for (Principal p : admin.getIdentities()) {
+                                    if (p instanceof HttpPrincipal) {
                                         HttpPrincipal ahp = (HttpPrincipal) p;
-                                        if (hp.equals(ahp))
-                                        {
+                                        if (hp.equals(ahp)) {
                                             update = false;
                                             break;
                                         }
                                     }
                                 }
                             }
-                            if (update)
-                            {
+                            if (update) {
                                 User adminUser = new User();
                                 adminUser.getIdentities().add(hp);
                                 cur.getUserAdmins().add(adminUser);
                                 log.info("admin added: " + member);
                                 changes = true;
-                            }
-                            else
+                            } else
                                 log.info("admin found: " + member);
-                        }
-                        else
-                        {
-                            for (Group admin : cur.getGroupAdmins())
-                            {
-                                if (admin.getID().equals(memberURI))
-                                {
+                        } else {
+                            for (Group admin : cur.getGroupAdmins()) {
+                                if (admin.getID().equals(memberURI)) {
                                     update = false;
                                     break;
                                 }
                             }
-                            if (update)
-                            {
+                            if (update) {
                                 Group adminGroup = new Group(memberURI);
                                 cur.getGroupAdmins().add(adminGroup);
                                 log.info("group admin added: " + member);
                                 changes = true;
-                            }
-                            else
+                            } else
                                 log.info("group admin found: " + member);
                         }
                     }
                 }
 
-                if (changes)
-                {
+                if (changes) {
                     client.updateGroup(cur);
                     log.info("Group updated.");
                 }
-            }
-            else if (command.equals(ARG_DEL_ADMIN))
-            {
+            } else if (command.equals(ARG_DEL_ADMIN)) {
                 if (members.isEmpty())
                     throw new IllegalArgumentException("No members specified");
 
                 Group cur = client.getGroup(group);
                 boolean changes = false;
 
-                for (String member : members)
-                {
+                for (String member : members) {
                     GroupURI memberURI = null;
                     HttpPrincipal hp = null;
-                    try
-                    {
+                    try {
                         // try creating a group URI
                         memberURI = new GroupURI(new URI(member));
-                    } catch (IllegalArgumentException e)
-                    {
+                    } catch (IllegalArgumentException e) {
                         // assume the string is a userID
                         hp = new HttpPrincipal(member);
                     }
 
                     boolean update = false;
-                    if (hp != null)
-                    {
+                    if (hp != null) {
                         Iterator<User> iter = cur.getUserAdmins().iterator();
-                        while (iter.hasNext())
-                        {
+                        while (iter.hasNext()) {
                             User admin = iter.next();
-                            for (Principal p : admin.getIdentities())
-                            {
-                                if (p instanceof HttpPrincipal)
-                                {
+                            for (Principal p : admin.getIdentities()) {
+                                if (p instanceof HttpPrincipal) {
                                     HttpPrincipal ahp = (HttpPrincipal) p;
-                                    if (hp.equals(ahp))
-                                    {
+                                    if (hp.equals(ahp)) {
                                         iter.remove();
                                         update = true;
                                         break;
@@ -400,28 +343,22 @@ public class Main implements PrivilegedAction<Object>
                                 }
                             }
                         }
-                        if (update)
-                        {
+                        if (update) {
                             log.info("admin removed: " + member);
                             changes = true;
                         } else
                             log.info("admin not found: " + member);
-                    }
-                    else
-                    {
+                    } else {
                         Iterator<Group> iter = cur.getGroupAdmins().iterator();
-                        while (iter.hasNext())
-                        {
+                        while (iter.hasNext()) {
                             Group admin = iter.next();
-                            if (admin.getID().equals(memberURI))
-                            {
+                            if (admin.getID().equals(memberURI)) {
                                 iter.remove();
                                 update = true;
                                 break;
                             }
                         }
-                        if (update)
-                        {
+                        if (update) {
                             log.info("group admin removed: " + member);
                             changes = true;
                         } else
@@ -429,14 +366,11 @@ public class Main implements PrivilegedAction<Object>
                     }
                 }
 
-                if (changes)
-                {
+                if (changes) {
                     client.updateGroup(cur);
                     log.info("Group updated.");
                 }
-            }
-            else if (command.equals(ARG_CREATE_GROUP))
-            {
+            } else if (command.equals(ARG_CREATE_GROUP)) {
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -451,9 +385,7 @@ public class Main implements PrivilegedAction<Object>
                 member.getIdentities().add(p);
                 g.getUserMembers().add(member);
                 client.createGroup(g);
-            }
-            else if (command.equals(ARG_GET_GROUP))
-            {
+            } else if (command.equals(ARG_GET_GROUP)) {
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -475,9 +407,7 @@ public class Main implements PrivilegedAction<Object>
                 for (Group gm : g.getGroupMembers())
                     System.out.println("member: " + gm);
 
-            }
-            else if (command.equals(ARG_DELETE_GROUP))
-            {
+            } else if (command.equals(ARG_DELETE_GROUP)) {
                 if (group == null)
                     throw new IllegalArgumentException("No group specified");
 
@@ -485,9 +415,7 @@ public class Main implements PrivilegedAction<Object>
             }
 
             return null;
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("ERROR", t);
             return t;
         }

@@ -71,10 +71,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.xml.XmlUtil;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -82,16 +78,18 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 /**
  * Class to read a XML representation of a Group to a Group object.
  */
-public class GroupReader extends AbstractReaderWriter
-{
+public class GroupReader extends AbstractReaderWriter {
 
     /**
      * Construct a Group from an XML String source.
-     * 
+     *
      * @param xml String of the XML.
      * @return Group Group.
      * @throws ReaderException
@@ -99,10 +97,8 @@ public class GroupReader extends AbstractReaderWriter
      * @throws java.net.URISyntaxException
      */
     public Group read(String xml)
-        throws ReaderException, IOException, URISyntaxException
-    {
-        if (xml == null)
-        {
+            throws ReaderException, IOException, URISyntaxException {
+        if (xml == null) {
             throw new IllegalArgumentException("XML must not be null");
         }
         return read(new StringReader(xml));
@@ -110,26 +106,21 @@ public class GroupReader extends AbstractReaderWriter
 
     /**
      * Construct a Group from a InputStream.
-     * 
+     *
      * @param in InputStream.
      * @return Group Group.
      * @throws ReaderException
      * @throws java.io.IOException
      */
     public Group read(InputStream in)
-        throws ReaderException, IOException
-    {
-        if (in == null)
-        {
+            throws ReaderException, IOException {
+        if (in == null) {
             throw new IOException("stream closed");
         }
         InputStreamReader reader;
-        try
-        {
+        try {
             reader = new InputStreamReader(in, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("UTF-8 encoding not supported");
         }
         return read(reader);
@@ -137,27 +128,22 @@ public class GroupReader extends AbstractReaderWriter
 
     /**
      * Construct a Group from a Reader.
-     * 
+     *
      * @param reader Reader.
      * @return Group Group.
      * @throws ReaderException
      * @throws java.io.IOException
      */
     public Group read(Reader reader)
-        throws ReaderException, IOException
-    {
-        if (reader == null)
-        {
+            throws ReaderException, IOException {
+        if (reader == null) {
             throw new IllegalArgumentException("reader must not be null");
         }
 
         Document document;
-        try
-        {
+        try {
             document = XmlUtil.buildDocument(reader);
-        }
-        catch (JDOMException jde)
-        {
+        } catch (JDOMException jde) {
             String error = "XML failed validation: " + jde.getMessage();
             throw new ReaderException(error, jde);
         }
@@ -166,8 +152,7 @@ public class GroupReader extends AbstractReaderWriter
 
         String groupElemName = root.getName();
 
-        if (!groupElemName.equalsIgnoreCase(GROUP))
-        {
+        if (!groupElemName.equalsIgnoreCase(GROUP)) {
             String error = "Expected group element, found " + groupElemName;
             throw new ReaderException(error);
         }

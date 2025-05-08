@@ -69,28 +69,22 @@
 
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.DNPrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import java.util.UUID;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.UUID;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
-import ca.nrc.cadc.auth.DNPrincipal;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.NumericPrincipal;
-
-public class UserTest
-{
+public class UserTest {
     private static Logger log = Logger.getLogger(UserTest.class);
 
     @Test
-    public void isConsistentTest() throws Exception
-    {
+    public void isConsistentTest() throws Exception {
         User user1 = new User();
         User user2 = null;
 
@@ -129,8 +123,7 @@ public class UserTest
     }
 
     @Test
-    public void simpleEqualityTests() throws Exception
-    {
+    public void simpleEqualityTests() throws Exception {
         User user1 = new User();
         User user2 = new User();
 
@@ -197,8 +190,7 @@ public class UserTest
     }
 
     @Test
-    public void comparatorTest() throws Exception
-    {
+    public void comparatorTest() throws Exception {
         User user = new User();
         boolean result = false;
 

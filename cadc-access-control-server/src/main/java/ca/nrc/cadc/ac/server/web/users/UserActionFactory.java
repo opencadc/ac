@@ -73,204 +73,159 @@ import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.net.NetUtil;
-
 import java.io.IOException;
 import java.security.Principal;
 import java.util.UUID;
-
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
-
 import org.apache.log4j.Logger;
 
 
-public abstract class UserActionFactory
-{
+public abstract class UserActionFactory {
     private static final Logger log = Logger.getLogger(UserActionFactory.class);
 
     public abstract AbstractUserAction createAction(HttpServletRequest request)
-        throws IllegalArgumentException, IOException;
+            throws IllegalArgumentException, IOException;
 
-    public static UserActionFactory httpGetFactory()
-    {
-        return new UserActionFactory()
-        {
+    public static UserActionFactory httpGetFactory() {
+        return new UserActionFactory() {
             public AbstractUserAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 0)
-                {
+                if (segments.length == 0) {
                     action = new GetUserListAction();
-                }
-                else if (segments.length == 1)
-                {
+                } else if (segments.length == 1) {
                     String userID = NetUtil.decode(segments[0]);
                     Principal p = getIdentity(userID, request.getParameter("idType"));
                     action = new GetUserAction(p, request.getParameter("detail"));
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
 
-                 throw new IllegalArgumentException("Bad GET request to " + path);
+                throw new IllegalArgumentException("Bad GET request to " + path);
             }
         };
     }
 
-    public static UserActionFactory httpPutFactory()
-    {
-        return new UserActionFactory()
-        {
+    public static UserActionFactory httpPutFactory() {
+        return new UserActionFactory() {
             public AbstractUserAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 0)
-                {
+                if (segments.length == 0) {
                     action = new CreateUserAction(request.getInputStream());
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
 
-                 throw new IllegalArgumentException("Bad PUT request to " + path);
+                throw new IllegalArgumentException("Bad PUT request to " + path);
             }
         };
     }
 
-    public static UserActionFactory httpPostFactory()
-    {
-        return new UserActionFactory()
-        {
+    public static UserActionFactory httpPostFactory() {
+        return new UserActionFactory() {
             public AbstractUserAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 1)
-                {
+                if (segments.length == 1) {
                     action = new ModifyUserAction(request.getInputStream(), request);
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
 
-                 throw new IllegalArgumentException("Bad POST request to " + path);
+                throw new IllegalArgumentException("Bad POST request to " + path);
             }
         };
     }
 
-    public static UserActionFactory httpDeleteFactory()
-    {
-        return new UserActionFactory()
-        {
+    public static UserActionFactory httpDeleteFactory() {
+        return new UserActionFactory() {
             public AbstractUserAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractUserAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 1)
-                {
+                if (segments.length == 1) {
                     String userID = NetUtil.decode(segments[0]);
                     Principal p = getIdentity(userID, request.getParameter("idType"));
                     String hardDelete = request.getParameter("hard");
                     boolean markAsDeleted = true;
-                    if (hardDelete != null && hardDelete.equalsIgnoreCase(Boolean.TRUE.toString()))
-                    {
+                    if (hardDelete != null && hardDelete.equalsIgnoreCase(Boolean.TRUE.toString())) {
                         markAsDeleted = false;
                     }
                     action = new DeleteUserAction(p, markAsDeleted);
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
 
-                 throw new IllegalArgumentException("Bad DELETE request to " + path);
+                throw new IllegalArgumentException("Bad DELETE request to " + path);
             }
         };
     }
 
-    public static UserActionFactory httpHeadFactory()
-    {
-        return new UserActionFactory()
-        {
+    public static UserActionFactory httpHeadFactory() {
+        return new UserActionFactory() {
             public AbstractUserAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 // http head not supported
                 throw new UnsupportedOperationException();
             }
         };
     }
 
-    private static Principal getIdentity(String userName, String idType)
-    {
-        if (idType == null || idType.isEmpty())
-        {
+    private static Principal getIdentity(String userName, String idType) {
+        if (idType == null || idType.isEmpty()) {
             throw new IllegalArgumentException("User endpoint missing idType parameter");
-        }
-        else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue()))
-        {
+        } else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue())) {
             return new HttpPrincipal(userName);
-        }
-        else if (idType.equalsIgnoreCase(IdentityType.X500.getValue()))
-        {
+        } else if (idType.equalsIgnoreCase(IdentityType.X500.getValue())) {
             return new X500Principal(userName);
-        }
-        else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue()))
-        {
+        } else if (idType.equalsIgnoreCase(IdentityType.CADC.getValue())) {
             return new NumericPrincipal(UUID.fromString(userName));
-        }
-        else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue()))
-        {
+        } else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue())) {
             return new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, userName);
-        }
-        else if (idType.equalsIgnoreCase(IdentityType.POSIX.getValue()))
-        {
+        } else if (idType.equalsIgnoreCase(IdentityType.POSIX.getValue())) {
             try {
                 int value = Integer.parseInt(userName);
                 return new PosixPrincipal(value);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Bad value for posix id type");
             }
-        }
-        else
-        {
+        } else {
             throw new IllegalArgumentException("Unrecognized idType");
         }
     }

@@ -138,8 +138,8 @@ public class PostgresPosixClient implements PosixClient {
                     session.persist(toBePersisted);
 
                     final Group defaultGroup = new Group(new GroupURI(URI.create(PosixClient.DEFAULT_GROUP_AUTHORITY
-                                                                                 + "?"
-                                                                                 + toBePersisted.getUsername())));
+                            + "?"
+                            + toBePersisted.getUsername())));
                     defaultGroup.setGid(toBePersisted.getUid());
                     session.merge(defaultGroup);
                     return Boolean.TRUE;

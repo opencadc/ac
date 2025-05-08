@@ -68,32 +68,6 @@
  */
 package ca.nrc.cadc.ac.json;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupProperty;
 import ca.nrc.cadc.ac.InternalID;
@@ -106,87 +80,90 @@ import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * @author jburke
  */
-public class JsonGroupReaderWriterTest
-{
+public class JsonGroupReaderWriterTest {
     private static Logger log = Logger.getLogger(JsonGroupReaderWriterTest.class);
 
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.ac.json", Level.INFO);
     }
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
-    public void testReaderExceptions() throws Exception
-    {
-        try
-        {
+    public void testReaderExceptions() throws Exception {
+        try {
             String s = null;
             JsonGroupReader reader = new JsonGroupReader();
             Group g = reader.read(s);
             fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
         }
 
-        try
-        {
+        try {
             InputStream in = null;
             JsonGroupReader reader = new JsonGroupReader();
             Group g = reader.read(in);
             fail("null InputStream should throw IOException");
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
         }
 
-        try
-        {
+        try {
             Reader r = null;
             JsonGroupReader reader = new JsonGroupReader();
             Group g = reader.read(r);
             fail("null element should throw ReaderException");
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
         }
     }
 
     @Test
     public void testWriterExceptions()
-            throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             JsonGroupWriter writer = new JsonGroupWriter();
             writer.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
-        }
-        catch (WriterException e)
-        {
+        } catch (WriterException e) {
         }
     }
 
     @Test
     public void testMinimalReadWrite()
-            throws Exception
-    {
+            throws Exception {
         Group expected = new Group(new GroupURI("ivo://example.org/gms?groupID"));
 
         StringBuilder json = new StringBuilder();
@@ -202,11 +179,10 @@ public class JsonGroupReaderWriterTest
 
     @Test
     public void testMaximalReadWrite()
-            throws Exception
-    {
+            throws Exception {
         User owner = new User();
         UUID uuid = UUID.randomUUID();
-        URI uri = new URI("ivo://cadc.nrc.ca/user?" +uuid);
+        URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
         TestUtil.setField(owner, new InternalID(uri), AbstractReaderWriter.ID);
 
         X500Principal x500Principal = new X500Principal("cn=foo,o=bar");
@@ -264,7 +240,7 @@ public class JsonGroupReaderWriterTest
                 new ArrayList<GroupProperty>(actual.getProperties());
 
         Collections.sort(sortedExpectedProperties,
-                         new GroupPropertyComparator());
+                new GroupPropertyComparator());
         Collections.sort(sortedActualProperties, new GroupPropertyComparator());
 
         assertNotNull(actual);
@@ -273,29 +249,24 @@ public class JsonGroupReaderWriterTest
         assertEquals(expected.description, actual.description);
         assertEquals(expected.lastModified, actual.lastModified);
         assertEquals("Properties don't match.", sortedExpectedProperties,
-                     sortedActualProperties);
+                sortedActualProperties);
         assertTrue(expected.getGroupMembers().containsAll(actual.getGroupMembers()));
         assertTrue(actual.getGroupMembers().containsAll(expected.getGroupMembers()));
         assertTrue(expected.getUserMembers().containsAll(actual.getUserMembers()));
         assertTrue(actual.getUserMembers().containsAll(expected.getUserMembers()));
     }
 
-    class GroupPropertyComparator implements Comparator<GroupProperty>
-    {
+    class GroupPropertyComparator implements Comparator<GroupProperty> {
         @Override
-        public int compare(GroupProperty o1, GroupProperty o2)
-        {
+        public int compare(GroupProperty o1, GroupProperty o2) {
             final int keyComp = o1.getKey()
                     .compareTo(o2.getKey());
             final int result;
 
-            if (keyComp == 0)
-            {
+            if (keyComp == 0) {
                 result = o1.getValue().toString().compareTo(
                         o2.getValue().toString());
-            }
-            else
-            {
+            } else {
                 result = keyComp;
             }
 

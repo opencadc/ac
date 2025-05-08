@@ -108,13 +108,14 @@ public abstract class PosixMapperAction extends RestAction {
 
     /**
      * Create a new PosixClient instance.  Callers MUST remember to call `close()` on the returned instance.
-     * @return  PosixClient instance, never null.
+     *
+     * @return PosixClient instance, never null.
      */
     protected PosixClient getPosixClient() {
         return new PostgresPosixClient(Postgres.instance(
-                PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
-                                               .entityClass(User.class, Group.class)
-                                               .build());
+                        PosixMapperAction.POSIX_CONFIGURATION.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY))
+                .entityClass(User.class, Group.class)
+                .build());
     }
 
     private void checkAuthorization() {

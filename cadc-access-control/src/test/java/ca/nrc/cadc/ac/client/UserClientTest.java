@@ -69,6 +69,18 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.CookiePrincipal;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.SSOCookieCredential;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -82,16 +94,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.management.remote.JMXPrincipal;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.*;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.reg.Capabilities;
-import ca.nrc.cadc.reg.client.RegistryClient;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
@@ -99,34 +104,25 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
 
-
-public class UserClientTest
-{
+public class UserClientTest {
 
     private static final Logger log = Logger.getLogger(UserClientTest.class);
 
     private URI umsServiceURI;
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class
-                                   .getName() + ".dir", "src/test/resources");
+                .getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
-    public UserClientTest()
-    {
+    public UserClientTest() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         LocalAuthority localAuthority = new LocalAuthority();
         umsServiceURI = localAuthority
@@ -134,94 +130,70 @@ public class UserClientTest
     }
 
     @Test
-    public void testConstructor()
-    {
+    public void testConstructor() {
         // case 1: test construction with a null URL
-        try
-        {
+        try {
             new UserClient(null);
             Assert.fail("Null service URI should throw an illegalArgumentException.");
-        }
-        catch (IllegalArgumentException iae)
-        {
+        } catch (IllegalArgumentException iae) {
             Assert.assertTrue(iae.getMessage().contains("cannot be null"));
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             Assert.fail("Unexpected exception: " + t.getMessage());
         }
 
         // case 2: serviceURI with a fragment
-        try
-        {
+        try {
             URI uri = new URI("http://foo.com/bar?test#fragment");
             new UserClient(uri);
             Assert.fail("Service URI containing a fragment should throw an illegalArgumentException.");
-        }
-        catch (IllegalArgumentException iae)
-        {
+        } catch (IllegalArgumentException iae) {
             Assert.assertTrue(iae.getMessage()
-                                      .contains("fragment not allowed"));
-        }
-        catch (Throwable t)
-        {
+                    .contains("fragment not allowed"));
+        } catch (Throwable t) {
             Assert.fail("Unexpected exception: " + t.getMessage());
         }
     }
 
     @Test
-    public void testSubjectWithNoPrincipal()
-    {
-        try
-        {
+    public void testSubjectWithNoPrincipal() {
+        try {
             // test subject augmentation given a subject with no principal
             Subject subject = new Subject();
             this.createUserClient().augmentSubject(subject);
             Assert.assertEquals("Should have no principal.", 0, subject
                     .getPrincipals().size());
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             Assert.fail("Unexpected exception: " + t.getMessage());
         }
     }
 
 
     @Test
-    public void testSubjectWithUnsupportedPrincipal()
-    {
+    public void testSubjectWithUnsupportedPrincipal() {
         Principal principal = new JMXPrincipal("APIName");
-        try
-        {
+        try {
             // test subject augmentation given a subject with more than one principal
             Subject subject = new Subject();
             subject.getPrincipals().add(principal);
             this.createUserClient().augmentSubject(subject);
             Assert.fail("Expecting an IllegalArgumentException.");
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             String expected = "Subject has unsupported principal";
             Assert.assertTrue(e.getMessage().startsWith(expected));
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             Assert.fail("Unexpected exception: " + t.getMessage());
         }
     }
 
     protected UserClient createUserClient() throws URISyntaxException,
-                                                   MalformedURLException
-    {
+            MalformedURLException {
         return new UserClient(umsServiceURI);
 
     }
 
     @Test
-    public void testGetSinglePrincipal()
-    {
-        try
-        {
+    public void testGetSinglePrincipal() {
+        try {
             UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
@@ -229,19 +201,15 @@ public class UserClientTest
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof HttpPrincipal);
             Assert.assertEquals("bob", p.getName());
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("Unexpected exception", t);
             Assert.fail("Unexpected exception: " + t);
         }
     }
 
     @Test
-    public void testGetMultiplePrincipals1()
-    {
-        try
-        {
+    public void testGetMultiplePrincipals1() {
+        try {
             UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
@@ -251,19 +219,15 @@ public class UserClientTest
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof NumericPrincipal);
             Assert.assertEquals(uuid.toString(), p.getName());
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("Unexpected exception", t);
             Assert.fail("Unexpected exception: " + t);
         }
     }
 
     @Test
-    public void testGetMultiplePrincipals2()
-    {
-        try
-        {
+    public void testGetMultiplePrincipals2() {
+        try {
             UserClient c = new UserClient(umsServiceURI);
             UUID uuid = UUID.randomUUID();
 
@@ -278,44 +242,40 @@ public class UserClientTest
 
             Assert.assertTrue(p instanceof NumericPrincipal);
             Assert.assertEquals(uuid.toString(), p.getName());
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("Unexpected exception", t);
             Assert.fail("Unexpected exception: " + t);
         }
     }
 
     @Test
-    public void testWhoAmI() throws Exception
-    {
+    public void testWhoAmI() throws Exception {
         final String userXMLData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                                   + "<user>\n"
-                                   + "  <internalID>\n"
-                                   + "    <uri>ivo://cadc.nrc.ca/gms?00000000-0000-0000-0000-000000000088</uri>\n"
-                                   + "  </internalID>\n"
-                                   + "  <identities>\n"
-                                   + "    <identity type=\"HTTP\">testuser</identity>\n"
-                                   + "    <identity type=\"CADC\">00000000-0000-0000-0000-000000000088</identity>\n"
-                                   + "    <identity type=\"X500\">CN=testuser_e7f,OU=cadc,O=hia,C=ca</identity>\n"
-                                   + "  </identities>\n"
-                                   + "  <personalDetails>\n"
-                                   + "    <firstName>Test</firstName>\n"
-                                   + "    <lastName>User</lastName>\n"
-                                   + "    <email>Test.User@nrc-cnrc.gc.ca</email>\n"
-                                   + "    <address>5071 West Saanich Road</address>\n"
-                                   + "    <institute>NSI-HIA</institute>\n"
-                                   + "    <city>Victoria</city>\n"
-                                   + "    <country>Canada</country>\n"
-                                   + "  </personalDetails>\n"
-                                   + "</user>";
+                + "<user>\n"
+                + "  <internalID>\n"
+                + "    <uri>ivo://cadc.nrc.ca/gms?00000000-0000-0000-0000-000000000088</uri>\n"
+                + "  </internalID>\n"
+                + "  <identities>\n"
+                + "    <identity type=\"HTTP\">testuser</identity>\n"
+                + "    <identity type=\"CADC\">00000000-0000-0000-0000-000000000088</identity>\n"
+                + "    <identity type=\"X500\">CN=testuser_e7f,OU=cadc,O=hia,C=ca</identity>\n"
+                + "  </identities>\n"
+                + "  <personalDetails>\n"
+                + "    <firstName>Test</firstName>\n"
+                + "    <lastName>User</lastName>\n"
+                + "    <email>Test.User@nrc-cnrc.gc.ca</email>\n"
+                + "    <address>5071 West Saanich Road</address>\n"
+                + "    <institute>NSI-HIA</institute>\n"
+                + "    <city>Victoria</city>\n"
+                + "    <country>Canada</country>\n"
+                + "  </personalDetails>\n"
+                + "</user>";
 
         final OutputStream bos = new ByteArrayOutputStream();
 
         final URL serviceURL = new URL("http://myhost.com/users");
 
-        final RegistryClient registryClient = new RegistryClient()
-        {
+        final RegistryClient registryClient = new RegistryClient() {
             /**
              * @param resourceIdentifier
              * @param standardID
@@ -323,80 +283,70 @@ public class UserClientTest
              * @deprecated
              */
             @Override
-            public URL getServiceURL(URI resourceIdentifier, URI standardID, AuthMethod authMethod)
-            {
+            public URL getServiceURL(URI resourceIdentifier, URI standardID, AuthMethod authMethod) {
                 return serviceURL;
             }
         };
 
-        final UserClient testSubject = new UserClient(umsServiceURI)
-        {
+        final UserClient testSubject = new UserClient(umsServiceURI) {
             @Override
-            protected OutputStream getOutputStream()
-            {
+            protected OutputStream getOutputStream() {
                 return bos;
             }
 
             @Override
             protected HttpDownload download(URL url, OutputStream outputStream)
-                    throws IOException
-            {
+                    throws IOException {
                 outputStream.write(userXMLData.getBytes());
                 outputStream.flush();
 
-                return new HttpDownload(url, outputStream)
-                {
+                return new HttpDownload(url, outputStream) {
                     /**
                      * Get the ultimate (possibly after retries) HTTP response code.
                      *
                      * @return HTTP response code or -1 if no HTTP call made
                      */
                     @Override
-                    public int getResponseCode()
-                    {
+                    public int getResponseCode() {
                         return 200;
                     }
                 };
             }
 
             @Override
-            protected RegistryClient getRegistryClient()
-            {
+            protected RegistryClient getRegistryClient() {
                 return registryClient;
             }
         };
 
         final Subject s = createSubject(new Principal[]
-                                                {
-                                                        new CookiePrincipal("CADC-SSO", "COOKIESESSIONID")
-                                                });
+                {
+                        new CookiePrincipal("CADC-SSO", "COOKIESESSIONID")
+                });
 
         s.getPublicCredentials().add(
-                new SSOCookieCredential("COOKIESESSIONID", "my.domain", new Date(System.currentTimeMillis() + 1000*60*60*24)));
+                new SSOCookieCredential("COOKIESESSIONID", "my.domain", new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)));
 
         final User u =
-                Subject.doAs(s, new PrivilegedExceptionAction<User>()
-                {
+                Subject.doAs(s, new PrivilegedExceptionAction<User>() {
                     @Override
-                    public User run() throws Exception
-                    {
+                    public User run() throws Exception {
                         return testSubject.whoAmI();
                     }
                 });
 
         Assert.assertEquals("Wrong HTTP principal.",
-                            "testuser", u.getHttpPrincipal().getName());
+                "testuser", u.getHttpPrincipal().getName());
 
         final Set<X500Principal> x500Principals =
                 u.getIdentities(X500Principal.class);
 
         Assert.assertEquals("Wrong X500 Principal.",
-                            "CN=testuser_e7f,OU=cadc,O=hia,C=ca",
-                            x500Principals.toArray(new X500Principal[1])[0].getName());
+                "CN=testuser_e7f,OU=cadc,O=hia,C=ca",
+                x500Principals.toArray(new X500Principal[1])[0].getName());
     }
 
-    Subject createSubject(final Principal[] principals)
-    {
+    Subject createSubject(final Principal[] principals) {
         final Subject subject = new Subject();
 
         subject.getPrincipals().addAll(Arrays.asList(principals));
@@ -404,10 +354,8 @@ public class UserClientTest
     }
 
     @Test
-    public void testGetMultiplePrincipals3()
-    {
-        try
-        {
+    public void testGetMultiplePrincipals3() {
+        try {
             UserClient c = new UserClient(umsServiceURI);
 
             Subject s = new Subject();
@@ -418,9 +366,7 @@ public class UserClientTest
             Principal p = c.getPrincipal(s);
             Assert.assertTrue(p instanceof X500Principal);
             Assert.assertEquals("CN=majorb", p.getName());
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("Unexpected exception", t);
             Assert.fail("Unexpected exception: " + t);
         }

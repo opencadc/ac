@@ -68,55 +68,43 @@
  */
 package ca.nrc.cadc.ac.server.web.userrequests;
 
+import ca.nrc.cadc.ac.server.web.WebUtil;
 import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
-
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.web.WebUtil;
 
-
-public abstract class UserRequestActionFactory
-{
+public abstract class UserRequestActionFactory {
     private static final Logger log = Logger.getLogger(UserRequestActionFactory.class);
 
     public abstract AbstractUserRequestAction createAction(HttpServletRequest request)
-        throws IllegalArgumentException, IOException;
+            throws IllegalArgumentException, IOException;
 
-    public static UserRequestActionFactory httpGetFactory()
-    {
-        return new UserRequestActionFactory()
-        {
+    public static UserRequestActionFactory httpGetFactory() {
+        return new UserRequestActionFactory() {
             public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 // http get not supported
                 throw new UnsupportedOperationException();
             }
         };
     }
 
-    public static UserRequestActionFactory httpPutFactory()
-    {
-        return new UserRequestActionFactory()
-        {
+    public static UserRequestActionFactory httpPutFactory() {
+        return new UserRequestActionFactory() {
             public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractUserRequestAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 0)
-                {
+                if (segments.length == 0) {
                     action = new CreateUserRequestAction(request.getInputStream());
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
@@ -126,39 +114,30 @@ public abstract class UserRequestActionFactory
         };
     }
 
-    public static UserRequestActionFactory httpPostFactory()
-    {
-        return new UserRequestActionFactory()
-        {
+    public static UserRequestActionFactory httpPostFactory() {
+        return new UserRequestActionFactory() {
             public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 // http post not supported
                 throw new UnsupportedOperationException();
             }
         };
     }
 
-    public static UserRequestActionFactory httpDeleteFactory()
-    {
-        return new UserRequestActionFactory()
-        {
+    public static UserRequestActionFactory httpDeleteFactory() {
+        return new UserRequestActionFactory() {
             public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 // http delete not supported
                 throw new UnsupportedOperationException();
             }
         };
     }
 
-    public static UserRequestActionFactory httpHeadFactory()
-    {
-        return new UserRequestActionFactory()
-        {
+    public static UserRequestActionFactory httpHeadFactory() {
+        return new UserRequestActionFactory() {
             public AbstractUserRequestAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 // http head not supported
                 throw new UnsupportedOperationException();
             }

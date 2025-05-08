@@ -69,72 +69,57 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import java.security.AccessControlException;
-import java.util.Collection;
-import java.util.Set;
-
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import java.util.Collection;
+import java.util.Set;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
 
 /**
  * This class provides a list of all active or pending users in the LDAP server.
- * @author yeunga
  *
+ * @author yeunga
  */
-public abstract class AbstractListUsers extends AbstractCommand
-{
+public abstract class AbstractListUsers extends AbstractCommand {
     private static final Logger log = Logger.getLogger(AbstractListUsers.class);
 
     protected abstract Collection<User> getUsers()
-    		throws AccessControlException, TransientException;
+            throws AccessControlException, TransientException;
 
-    protected void doRun() throws AccessControlException, TransientException
-    {
+    protected void doRun() throws AccessControlException, TransientException {
         Collection<User> users = this.getUsers();
 
-        for (User user : users)
-        {
+        for (User user : users) {
             this.systemOut.println(getUserString(user));
         }
 
         this.systemOut.println("Number of users = " + users.size());
     }
 
-    private String getUserString(User user)
-    {
+    private String getUserString(User user) {
         StringBuilder sb = new StringBuilder();
         HttpPrincipal username = user.getHttpPrincipal();
-        if (username != null)
-        {
+        if (username != null) {
             sb.append(username.getName());
-        }
-        else
-        {
+        } else {
             Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-            if (!x500Principals.isEmpty())
-            {
+            if (!x500Principals.isEmpty()) {
                 sb.append(x500Principals.iterator().next().getName());
-            }
-            else
-            {
+            } else {
                 sb.append("Internal ID: " + user.getID().getURI());
             }
         }
 
-        if (user.personalDetails != null)
-        {
+        if (user.personalDetails != null) {
             sb.append(" [");
             sb.append(user.personalDetails.getFirstName());
             sb.append(" ");
             sb.append(user.personalDetails.getLastName());
             sb.append("]");
-            if (user.personalDetails.institute != null)
-            {
+            if (user.personalDetails.institute != null) {
                 sb.append(" [");
                 sb.append(user.personalDetails.institute);
                 sb.append("]");

@@ -68,15 +68,12 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
+import ca.nrc.cadc.ac.server.web.WebUtil;
+import ca.nrc.cadc.net.NetUtil;
 import java.io.IOException;
 import java.net.URL;
-
 import javax.servlet.http.HttpServletRequest;
-
-import ca.nrc.cadc.net.NetUtil;
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.server.web.WebUtil;
 
 /**
  * This class provides static methods for each of the http methods for
@@ -85,38 +82,30 @@ import ca.nrc.cadc.ac.server.web.WebUtil;
  *
  * @author majorb
  */
-public abstract class GroupsActionFactory
-{
+public abstract class GroupsActionFactory {
     private static final Logger log = Logger.getLogger(GroupsActionFactory.class);
 
     public abstract AbstractGroupAction createAction(HttpServletRequest request)
-        throws IllegalArgumentException, IOException;
+            throws IllegalArgumentException, IOException;
 
-    public static GroupsActionFactory httpGetFactory()
-    {
-        return new GroupsActionFactory()
-        {
+    public static GroupsActionFactory httpGetFactory() {
+        return new GroupsActionFactory() {
             public AbstractGroupAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 0)
-                {
+                if (segments.length == 0) {
                     action = new GetGroupNamesAction();
-                }
-                else if (segments.length == 1)
-                {
+                } else if (segments.length == 1) {
                     String groupName = segments[0];
                     action = new GetGroupAction(groupName);
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
@@ -125,42 +114,32 @@ public abstract class GroupsActionFactory
         };
     }
 
-    public static GroupsActionFactory httpPutFactory()
-    {
-        return new GroupsActionFactory()
-        {
+    public static GroupsActionFactory httpPutFactory() {
+        return new GroupsActionFactory() {
             public AbstractGroupAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 0)
-                {
+                if (segments.length == 0) {
                     action = new CreateGroupAction(request.getInputStream());
-                }
-                else if (segments.length == 3)
-                {
+                } else if (segments.length == 3) {
                     String groupName = segments[0];
                     String memberCategory = segments[1];
-                    if (memberCategory.equals("groupMembers"))
-                    {
+                    if (memberCategory.equals("groupMembers")) {
                         String groupMemberName = segments[2];
                         action = new AddGroupMemberAction(groupName, groupMemberName);
-                    }
-                    else if (memberCategory.equals("userMembers"))
-                    {
+                    } else if (memberCategory.equals("userMembers")) {
                         String userMemberID = segments[2];
                         String userMemberIDType = request.getParameter("idType");
                         action = new AddUserMemberAction(groupName, userMemberID, userMemberIDType);
                     }
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
@@ -169,21 +148,17 @@ public abstract class GroupsActionFactory
         };
     }
 
-    public static GroupsActionFactory httpPostFactory()
-    {
-        return new GroupsActionFactory()
-        {
+    public static GroupsActionFactory httpPostFactory() {
+        return new GroupsActionFactory() {
             public AbstractGroupAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 1)
-                {
+                if (segments.length == 1) {
 
 
                     String groupName = segments[0];
@@ -193,8 +168,7 @@ public abstract class GroupsActionFactory
                     sb.append(requestURL.getProtocol());
                     sb.append("://");
                     sb.append(requestURL.getHost());
-                    if (requestURL.getPort() > 0)
-                    {
+                    if (requestURL.getPort() > 0) {
                         sb.append(":");
                         sb.append(requestURL.getPort());
                     }
@@ -205,8 +179,7 @@ public abstract class GroupsActionFactory
                     action = new ModifyGroupAction(groupName, sb.toString(), request.getInputStream());
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
@@ -216,44 +189,34 @@ public abstract class GroupsActionFactory
 
     }
 
-    public static GroupsActionFactory httpDeleteFactory()
-    {
-        return new GroupsActionFactory()
-        {
+    public static GroupsActionFactory httpDeleteFactory() {
+        return new GroupsActionFactory() {
             public AbstractGroupAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 AbstractGroupAction action = null;
                 String path = request.getPathInfo();
                 log.debug("path: " + path);
 
                 String[] segments = WebUtil.getPathSegments(path);
 
-                if (segments.length == 1)
-                {
+                if (segments.length == 1) {
                     String groupName = segments[0];
                     action = new DeleteGroupAction(groupName);
-                }
-                else if (segments.length == 3)
-                {
+                } else if (segments.length == 3) {
                     String groupName = segments[0];
                     String memberCategory = segments[1];
 
-                    if (memberCategory.equals("groupMembers"))
-                    {
+                    if (memberCategory.equals("groupMembers")) {
                         String groupMemberName = segments[2];
                         action = new RemoveGroupMemberAction(groupName, groupMemberName);
-                    }
-                    else if (memberCategory.equals("userMembers"))
-                    {
+                    } else if (memberCategory.equals("userMembers")) {
                         String memberUserID = NetUtil.decode(segments[2]);
                         String memberUserIDType = request.getParameter("idType");
                         action = new RemoveUserMemberAction(groupName, memberUserID, memberUserIDType);
                     }
                 }
 
-                if (action != null)
-                {
+                if (action != null) {
                     log.debug("Returning action: " + action.getClass());
                     return action;
                 }
@@ -263,13 +226,10 @@ public abstract class GroupsActionFactory
 
     }
 
-    public static GroupsActionFactory httpHeadFactory()
-    {
-        return new GroupsActionFactory()
-        {
+    public static GroupsActionFactory httpHeadFactory() {
+        return new GroupsActionFactory() {
             public AbstractGroupAction createAction(HttpServletRequest request)
-                throws IllegalArgumentException, IOException
-            {
+                    throws IllegalArgumentException, IOException {
                 // http head not supported
                 throw new UnsupportedOperationException();
             }

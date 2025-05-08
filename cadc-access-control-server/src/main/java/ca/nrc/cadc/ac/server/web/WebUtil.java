@@ -74,25 +74,19 @@ import ca.nrc.cadc.util.StringUtil;
 /**
  * Utility methods for the ac web classes.
  */
-public class WebUtil
-{
-    public static String[] getPathSegments(String path)
-    {
+public class WebUtil {
+    public static String[] getPathSegments(String path) {
         String[] segments = new String[0];
-        if (path == null)
-        {
+        if (path == null) {
             return segments;
         }
-        if (path.startsWith("/"))
-        {
+        if (path.startsWith("/")) {
             path = path.substring(1);
         }
-        if (path.endsWith("/"))
-        {
+        if (path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
         }
-        if (StringUtil.hasText(path))
-        {
+        if (StringUtil.hasText(path)) {
             segments = path.split("/");
         }
         return segments;

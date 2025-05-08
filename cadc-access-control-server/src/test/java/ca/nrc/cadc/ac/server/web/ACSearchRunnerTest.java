@@ -68,25 +68,19 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.uws.Parameter;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
 public class ACSearchRunnerTest {
@@ -118,7 +112,7 @@ public class ACSearchRunnerTest {
             Assert.assertTrue(searchRunner.isIvoaStandardResponse());
             Assert.assertTrue(searchRunner.getGroupNames().isEmpty());
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
-            
+
             // group only param
             searchRunner = new ACSearchRunner();
             paramList.clear();
@@ -128,7 +122,7 @@ public class ACSearchRunnerTest {
             Assert.assertEquals(1, searchRunner.getGroupNames().size());
             Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
-            
+
             // multiple group params
             searchRunner = new ACSearchRunner();
             paramList.clear();
@@ -142,7 +136,7 @@ public class ACSearchRunnerTest {
             Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
             Assert.assertTrue(searchRunner.getGroupNames().contains("zen"));
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
-            
+
             // multiple group params with duplicate
             searchRunner = new ACSearchRunner();
             paramList.clear();
@@ -155,7 +149,7 @@ public class ACSearchRunnerTest {
             Assert.assertTrue(searchRunner.getGroupNames().contains("foo"));
             Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
-            
+
             // invalid role param
             searchRunner = new ACSearchRunner();
             paramList.clear();
@@ -185,7 +179,7 @@ public class ACSearchRunnerTest {
             Assert.assertEquals(1, searchRunner.getGroupNames().size());
             Assert.assertTrue(searchRunner.getGroupNames().contains("bar"));
             Assert.assertEquals(Role.MEMBER, searchRunner.getRole());
-            
+
         } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());

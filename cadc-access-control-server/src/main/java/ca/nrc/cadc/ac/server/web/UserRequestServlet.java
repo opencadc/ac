@@ -68,24 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.web.userrequests.AbstractUserRequestAction;
@@ -99,54 +81,65 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
-public class UserRequestServlet extends HttpServlet
-{
+public class UserRequestServlet extends HttpServlet {
     private static final long serialVersionUID = 6290241995918416399L;
     private static final Logger log = Logger.getLogger(UserRequestServlet.class);
 
     private List<Subject> privilegedSubjects;
 
     private UserPersistence userPersistence;
-    
+
     private Principal groupOwnerHttpPrincipal;
 
     /**
      * Servlet initialization method.
-     * 
+     *
      * <p>
-     * Receives the servlet configuration object and initializes UserPersistence 
+     * Receives the servlet configuration object and initializes UserPersistence
      * using input parameters read from it. Users who do augment
      * subject calls are constructed by taking the principals out of the ServletConfig
      * input parameter.
-     * 
+     *
      * <p>
-     * The UserRequestServlet configuration in the web deployment descriptor file 
+     * The UserRequestServlet configuration in the web deployment descriptor file
      * <code>web.xml</code> must have two input parameters:
      * <ul>
      * <li><code>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedX500Principals</code>
      * is a list of trusted administrators DNs. Each DN must be enclosed in double quotes.
      * The list can be multi-line for readability.</li>
      * <li><code>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedHttpPrincipals</code>
-     * is a list of space separated userids (HTTP identities),  enclosed in double quotes, 
+     * is a list of space separated userids (HTTP identities),  enclosed in double quotes,
      * corresponding to the previous DNs.</li>
      * </ul>
      * The two lists of principal names must be of the same
      * length and correspond to each other in order.
-     * 
-     * @param config           The servlet configuration object.
-     * 
-     * @throws javax.servlet.ServletException   For general Servlet exceptions.
+     *
+     * @param config The servlet configuration object.
+     * @throws javax.servlet.ServletException For general Servlet exceptions.
      */
     @Override
-    public void init(ServletConfig config) throws ServletException
-    {
+    public void init(ServletConfig config) throws ServletException {
         super.init(config);
 
-        try
-        {
+        try {
             String x500Users = config.getInitParameter(UserRequestServlet.class.getName() + ".PrivilegedX500Principals");
             log.debug("PrivilegedX500Users: " + x500Users);
 
@@ -155,61 +148,51 @@ public class UserRequestServlet extends HttpServlet
 
             String posixGroupOwner = config.getInitParameter("posixGroupOwner");
             groupOwnerHttpPrincipal = new HttpPrincipal(posixGroupOwner);
-            
+
             log.debug("Posix group owner: " + posixGroupOwner);
 
             List<String> x500List = new ArrayList<String>();
             List<String> httpList = new ArrayList<String>();
-            if (x500Users != null && httpUsers != null)
-            {
+            if (x500Users != null && httpUsers != null) {
                 Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
                 Matcher x500Matcher = pattern.matcher(x500Users);
                 Matcher httpMatcher = pattern.matcher(httpUsers);
-                while (x500Matcher.find())
-                {
+                while (x500Matcher.find()) {
                     String next = x500Matcher.group(1);
                     x500List.add(next.replace("\"", ""));
                 }
 
-                while (httpMatcher.find())
-                {
+                while (httpMatcher.find()) {
                     String next = httpMatcher.group(1);
                     httpList.add(next.replace("\"", ""));
                 }
 
-                if (x500List.size() != httpList.size())
-                {
+                if (x500List.size() != httpList.size()) {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
 
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-                for (int i=0; i<x500List.size(); i++)
-                {
+                for (int i = 0; i < x500List.size(); i++) {
                     Subject s = new Subject();
                     s.getPrincipals().add(new X500Principal(x500List.get(i)));
                     s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
                     privilegedSubjects.add(s);
                 }
 
-            }
-            else
-            {
+            } else {
                 log.warn("No Privileged users configured.");
             }
 
             PluginFactory pluginFactory = getPluginFactory();
             userPersistence = pluginFactory.createUserPersistence();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.fatal("Error initializing group persistence", t);
             throw new ExceptionInInitializerError(t);
         }
     }
-    
-    
-    protected PluginFactory getPluginFactory()
-    {
+
+
+    protected PluginFactory getPluginFactory() {
         return new PluginFactory();
     }
 
@@ -217,13 +200,11 @@ public class UserRequestServlet extends HttpServlet
      * Create a UserAction and run the action safely.
      */
     private void doAction(UserRequestActionFactory factory, HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         Profiler profiler = new Profiler(UserRequestServlet.class);
         long start = System.currentTimeMillis();
         UserLogInfo logInfo = new UserLogInfo(request);
-        try
-        {
+        try {
             log.info(logInfo.start());
             AbstractUserRequestAction action = factory.createAction(request);
             action.setAcceptedContentType(getAcceptedContentType(request));
@@ -236,17 +217,14 @@ public class UserRequestServlet extends HttpServlet
             // AND it is a PUT request, do not augment the subject.
             Subject subject;
             Subject privilegedSubject = getPrivilegedSubject(request);
-            if (action instanceof CreateUserRequestAction && privilegedSubject != null)
-            {
+            if (action instanceof CreateUserRequestAction && privilegedSubject != null) {
                 profiler.checkpoint("check privileged user");
                 subject = Subject.getSubject(AccessController.getContext());
                 log.debug("subject not augmented: " + subject);
                 action.setAugmentUser(true);
                 logInfo.setSubject(privilegedSubject);
                 profiler.checkpoint("set privileged user");
-            }
-            else
-            {
+            } else {
                 subject = AuthenticationUtil.getSubject(request);
                 logInfo.setSubject(subject);
                 log.debug("augmented subject: " + subject);
@@ -258,64 +236,46 @@ public class UserRequestServlet extends HttpServlet
             action.setSyncOut(syncOut);
             action.setUserPersistence(userPersistence);
 
-            try
-            {
-                if (subject == null)
-                {
+            try {
+                if (subject == null) {
                     action.run();
-                }
-                else
-                {
+                } else {
                     Subject.doAs(subject, action);
                 }
-            }
-            catch (PrivilegedActionException e)
-            {
+            } catch (PrivilegedActionException e) {
                 Throwable cause = e.getCause();
-                if (cause != null)
-                {
+                if (cause != null) {
                     throw cause;
                 }
                 Exception exception = e.getException();
-                if (exception != null)
-                {
+                if (exception != null) {
                     throw exception;
                 }
                 throw e;
-            }
-            finally
-            {
+            } finally {
                 profiler.checkpoint("Executed action");
             }
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            
+
             response.setStatus(400);
             response.getWriter().write(e.getMessage());
-        }
-        catch (NotAuthenticatedException e)
-        {
+        } catch (NotAuthenticatedException e) {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
-            
+
             response.setStatus(401);
             response.getWriter().write(e.getMessage());
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             String message = "Internal Server Error: " + t.getMessage();
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
-            
+
             response.setStatus(500);
             response.getWriter().write(message);
-        }
-        finally
-        {
+        } finally {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
@@ -323,96 +283,76 @@ public class UserRequestServlet extends HttpServlet
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(UserRequestActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(UserRequestActionFactory.httpPostFactory(), request, response);
     }
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(UserRequestActionFactory.httpDeleteFactory(), request, response);
     }
 
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(UserRequestActionFactory.httpPutFactory(), request, response);
     }
 
     @Override
     public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(UserRequestActionFactory.httpHeadFactory(), request, response);
     }
 
     /**
      * Obtain the requested (Accept) content type.
      *
-     * @param request               The HTTP Request.
-     * @return                      String content type.
+     * @param request The HTTP Request.
+     * @return String content type.
      */
-    String getAcceptedContentType(final HttpServletRequest request)
-    {
+    String getAcceptedContentType(final HttpServletRequest request) {
         final String requestedContentType = request.getHeader("Accept");
 
         if (StringUtil.hasText(requestedContentType)
-            && requestedContentType.contains(AbstractUserAction.JSON_CONTENT_TYPE))
-        {
+                && requestedContentType.contains(AbstractUserAction.JSON_CONTENT_TYPE)) {
             return AbstractUserAction.JSON_CONTENT_TYPE;
-        }
-        else
-        {
+        } else {
             return AbstractUserAction.DEFAULT_CONTENT_TYPE;
         }
     }
 
-    protected Subject getPrivilegedSubject(HttpServletRequest request)
-    {
-        if (privilegedSubjects == null || privilegedSubjects.isEmpty())
-        {
+    protected Subject getPrivilegedSubject(HttpServletRequest request) {
+        if (privilegedSubjects == null || privilegedSubjects.isEmpty()) {
             return null;
         }
 
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
 
-        for (Principal principal : principals)
-        {
-            if (principal instanceof X500Principal)
-            {
-                for (Subject s : privilegedSubjects)
-                {
+        for (Principal principal : principals) {
+            if (principal instanceof X500Principal) {
+                for (Subject s : privilegedSubjects) {
                     Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
-                    for (X500Principal p2 : x500Principals)
-                    {
-                        if (p2.getName().equalsIgnoreCase(principal.getName()))
-                        {
+                    for (X500Principal p2 : x500Principals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
                             return s;
                         }
                     }
                 }
             }
 
-            if (principal instanceof HttpPrincipal)
-            {
-                for (Subject s : privilegedSubjects)
-                {
+            if (principal instanceof HttpPrincipal) {
+                for (Subject s : privilegedSubjects) {
                     Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
-                    for (HttpPrincipal p2 : httpPrincipals)
-                    {
-                        if (p2.getName().equalsIgnoreCase(principal.getName()))
-                        {
+                    for (HttpPrincipal p2 : httpPrincipals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
                             return s;
                         }
                     }

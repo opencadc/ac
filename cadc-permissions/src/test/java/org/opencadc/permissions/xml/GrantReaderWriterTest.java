@@ -90,30 +90,31 @@ public class GrantReaderWriterTest {
         Log4jInit.setLevel("package org.opencadc.inventory.permissions.xml", Level.INFO);
     }
 
-    public GrantReaderWriterTest() {}
+    public GrantReaderWriterTest() {
+    }
 
     @Test
     public void testMinimalReadGrant() {
         try {
             ReadGrant expected = new ReadGrant(URI.create("ivo:foo/bar"), new Date(), true);
-            
+
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GrantWriter writer = new GrantWriter();
             writer.write(expected, bos);
-            
+
             String xml = bos.toString();
             log.info("xml:\n" + xml);
-            
+
             GrantReader reader = new GrantReader();
             Grant actual = reader.read(xml);
 
             Assert.assertTrue(actual instanceof ReadGrant);
-            
+
             Assert.assertEquals(expected.getAssetID(), actual.getAssetID());
             Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
             Assert.assertEquals(expected.isAnonymousAccess(), ((ReadGrant) actual).isAnonymousAccess());
             Assert.assertTrue(actual.getGroups().isEmpty());
-            
+
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -124,23 +125,23 @@ public class GrantReaderWriterTest {
     public void testMinimalWriteGrant() {
         try {
             WriteGrant expected = new WriteGrant(URI.create("ivo://foo/bar"), new Date());
-            
+
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GrantWriter writer = new GrantWriter();
             writer.write(expected, bos);
-            
+
             String xml = bos.toString();
             log.info("xml:\n" + xml);
-            
+
             GrantReader reader = new GrantReader();
             Grant actual = reader.read(xml);
 
             Assert.assertTrue(actual instanceof WriteGrant);
-            
+
             Assert.assertEquals(expected.getAssetID(), actual.getAssetID());
             Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
             Assert.assertTrue(actual.getGroups().isEmpty());
-            
+
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -153,23 +154,23 @@ public class GrantReaderWriterTest {
             ReadGrant expected = new ReadGrant(URI.create("ivo:foo/bar"), new Date(), true);
             expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group1")));
             expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group2")));
-            
+
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GrantWriter writer = new GrantWriter();
             writer.write(expected, bos);
-            
+
             String xml = bos.toString();
             log.info("xml:\n" + xml);
             System.out.println("xml:\n" + xml);
-            
+
             GrantReader reader = new GrantReader();
             ReadGrant actual = (ReadGrant) reader.read(xml);
-            
+
             Assert.assertEquals(expected.getAssetID(), actual.getAssetID());
             Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
             Assert.assertEquals(expected.isAnonymousAccess(), actual.isAnonymousAccess());
             Assert.assertEquals(expected.getGroups().size(), actual.getGroups().size());
-            
+
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -182,25 +183,25 @@ public class GrantReaderWriterTest {
             WriteGrant expected = new WriteGrant(URI.create("ivo:foo/bar"), new Date());
             expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group1")));
             expected.getGroups().add(new GroupURI(URI.create("ivo://foo.com/bar?group2")));
-            
+
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GrantWriter writer = new GrantWriter();
             writer.write(expected, bos);
-            
+
             String xml = bos.toString();
             log.info("xml:\n" + xml);
-            
+
             GrantReader reader = new GrantReader();
             WriteGrant actual = (WriteGrant) reader.read(xml);
-            
+
             Assert.assertEquals(expected.getAssetID(), actual.getAssetID());
             Assert.assertEquals(expected.getExpiryDate(), actual.getExpiryDate());
             Assert.assertEquals(expected.getGroups().size(), actual.getGroups().size());
-            
+
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
+
 }

@@ -68,11 +68,10 @@
 
 package org.opencadc.posix.mapper.web.group;
 
-import org.opencadc.posix.mapper.Group;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
+import org.opencadc.posix.mapper.Group;
 
 public class TSVGroupWriter implements GroupWriter {
 

@@ -68,11 +68,10 @@
 
 package org.opencadc.posix.mapper.web.user;
 
-import org.opencadc.posix.mapper.User;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
+import org.opencadc.posix.mapper.User;
 
 public class TSVUserWriter implements UserWriter {
 

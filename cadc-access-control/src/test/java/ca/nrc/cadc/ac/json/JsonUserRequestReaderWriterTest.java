@@ -67,21 +67,6 @@
  */
 package ca.nrc.cadc.ac.json;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.UUID;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.TestUtil;
@@ -91,72 +76,74 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.UUID;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 
-public class JsonUserRequestReaderWriterTest
-{
+public class JsonUserRequestReaderWriterTest {
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             String s = null;
             JsonUserRequestReader reader = new JsonUserRequestReader();
             UserRequest u = reader.read(s);
             fail("null String should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
 
-        try
-        {
+        try {
             InputStream in = null;
             JsonUserRequestReader reader = new JsonUserRequestReader();
             UserRequest u = reader.read(in);
             fail("null InputStream should throw IOException");
+        } catch (IOException e) {
         }
-        catch (IOException e) {}
 
-        try
-        {
+        try {
             Reader r = null;
             JsonUserRequestReader reader = new JsonUserRequestReader();
             UserRequest u = reader.read(r);
             fail("null Reader should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             JsonUserRequestWriter writer = new JsonUserRequestWriter();
             writer.write(null, new StringBuilder());
             fail("null User should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
     }
 
     @Test
     public void testReadWrite()
-        throws Exception
-    {
+            throws Exception {
         User expectedUser = new User();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());
         TestUtil.setField(expectedUser, new InternalID(uri), AbstractReaderWriter.ID);

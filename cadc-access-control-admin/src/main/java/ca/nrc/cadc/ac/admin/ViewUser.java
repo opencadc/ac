@@ -69,55 +69,45 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import java.security.AccessControlException;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import org.apache.log4j.Logger;
 
 /**
  * This class provides details of the specified user in the LDAP server.
- * @author yeunga
  *
+ * @author yeunga
  */
-public class ViewUser extends AbstractUserCommand
-{
+public class ViewUser extends AbstractUserCommand {
     private static final Logger log = Logger.getLogger(ViewUser.class);
 
     /**
      * Constructor
+     *
      * @param userID Id of the user to provide details for
      */
-    public ViewUser(final String userID)
-    {
-    	super(userID);
+    public ViewUser(final String userID) {
+        super(userID);
         log.debug("view user: " + userID);
     }
 
     protected void execute()
-        throws AccessControlException, TransientException, UserNotFoundException
-    {
-        try
-        {
+            throws AccessControlException, TransientException, UserNotFoundException {
+        try {
             // Try the main tree first
             log.debug("principal: " + this.getPrincipal());
             User user = this.getUserPersistence().getUser(this.getPrincipal());
             this.printUser(user);
             this.systemOut.println("User Status: ACTIVE");
-        }
-        catch (AccessControlException | UserNotFoundException e)
-        {
-            try
-            {
+        } catch (AccessControlException | UserNotFoundException e) {
+            try {
                 // Not in the main tree, try the pending tree
                 User user = this.getUserPersistence().getUserRequest(this.getPrincipal());
                 this.printUser(user);
                 this.systemOut.println("User Status: PENDING");
-            }
-            catch (AccessControlException | UserNotFoundException ue)
-            {
+            } catch (AccessControlException | UserNotFoundException ue) {
                 // Check to see if it's locked
                 log.debug("principal: " + this.getPrincipal());
                 User user = this.getUserPersistence().getLockedUser(this.getPrincipal());

@@ -80,8 +80,7 @@ import java.util.Collection;
 import java.util.SortedSet;
 import org.opencadc.auth.PosixGroup;
 
-public interface GroupPersistence
-{
+public interface GroupPersistence {
     /**
      * Call if this object is to be shut down.
      */
@@ -91,7 +90,7 @@ public interface GroupPersistence
      * Get all group names.
      *
      * @return A collection of strings.
-     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     Collection<PosixGroup> getGroupNames()
@@ -101,97 +100,89 @@ public interface GroupPersistence
      * Get the group with the given Group ID.
      *
      * @param groupID The Group ID.
-     *
      * @return A Group instance
-     *
      * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     Group getGroup(String groupID)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException;
+            throws GroupNotFoundException, TransientException,
+            AccessControlException;
 
     /**
      * Get the group with the given Group ID and optional permission check.
-     * Normal usage should do permission checks but if the caller has priviledged 
+     * Normal usage should do permission checks but if the caller has priviledged
      * access (see GroupServlet) then permission check can be disabled.
-     * 
-     * @param groupName the group ID
+     *
+     * @param groupName         the group ID
      * @param doPermissionCheck normally true, false for priviledged caller
      * @return the target group
      * @throws GroupNotFoundException
      * @throws TransientException
-     * @throws AccessControlException 
+     * @throws AccessControlException
      */
-    Group getGroup(String groupName, boolean doPermissionCheck) 
-        throws GroupNotFoundException, TransientException, AccessControlException;
+    Group getGroup(String groupName, boolean doPermissionCheck)
+            throws GroupNotFoundException, TransientException, AccessControlException;
+
     /**
      * Creates the group.
      *
      * @param group The group to create
-     *
      * @return A Group instance
-     *
      * @throws GroupAlreadyExistsException If a group with the same ID already
      *                                     exists.
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
-     * @throws UserNotFoundException If owner or a member not valid user.
-     * @throws GroupNotFoundException if one of the groups in group members or
-     * group admins does not exist in the server.
+     * @throws TransientException          If an temporary, unexpected problem occurred.
+     * @throws AccessControlException      If the operation is not permitted.
+     * @throws UserNotFoundException       If owner or a member not valid user.
+     * @throws GroupNotFoundException      if one of the groups in group members or
+     *                                     group admins does not exist in the server.
      */
     Group addGroup(Group group)
-        throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException,
-               GroupNotFoundException;
+            throws GroupAlreadyExistsException, TransientException,
+            AccessControlException, UserNotFoundException,
+            GroupNotFoundException;
 
     /**
      * Deletes the group.
      *
      * @param groupID The Group ID.
-     *
      * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     void deleteGroup(String groupID)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException;
+            throws GroupNotFoundException, TransientException,
+            AccessControlException;
 
     /**
      * Modify the given group.
      *
      * @param group The group to update.
-     *
      * @return A Group instance
-     *
      * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If an temporary, unexpected problem occurred.
+     * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
-     * @throws UserNotFoundException If owner or group members not valid users.
+     * @throws UserNotFoundException  If owner or group members not valid users.
      */
     Group modifyGroup(Group group)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException, UserNotFoundException;
+            throws GroupNotFoundException, TransientException,
+            AccessControlException, UserNotFoundException;
 
     /**
      * Obtain a Collection of Groups that fit the given query.
      *
-     * @param role Role of the user, either owner, member, or read/write.
+     * @param role    Role of the user, either owner, member, or read/write.
      * @param groupID The Group ID.
-     *
      * @return Collection of Groups matching the query, or empty Collection.
-     *         Never null.
-     *
-     * @throws UserNotFoundException If owner or group members not valid users.
+     * Never null.
+     * @throws UserNotFoundException                 If owner or group members not valid users.
      * @throws ca.nrc.cadc.ac.GroupNotFoundException
-     * @throws TransientException If an temporary, unexpected problem occurred.
-     * @throws AccessControlException If the operation is not permitted.
+     * @throws TransientException                    If an temporary, unexpected problem occurred.
+     * @throws AccessControlException                If the operation is not permitted.
      */
     Collection<Group> getGroups(Role role, String groupID)
-        throws UserNotFoundException, GroupNotFoundException,
-               TransientException, AccessControlException;
+            throws UserNotFoundException, GroupNotFoundException,
+            TransientException, AccessControlException;
 
     /**
      * Get a sorted set of distinct email addresses for all members
@@ -200,9 +191,9 @@ public interface GroupPersistence
      * @param groupName The group name.
      * @return A sorted set of email address.
      * @throws GroupNotFoundException If the group was not found.
-     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws TransientException     If a temporary unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     SortedSet<String> getMemberEmailsForGroup(String groupName)
-        throws GroupNotFoundException, TransientException, AccessControlException;
+            throws GroupNotFoundException, TransientException, AccessControlException;
 }

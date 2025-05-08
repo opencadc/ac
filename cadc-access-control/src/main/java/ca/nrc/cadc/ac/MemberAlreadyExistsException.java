@@ -70,17 +70,13 @@ package ca.nrc.cadc.ac;
 
 /**
  * Thrown when there is a member conflict.
- *
  */
-public class MemberAlreadyExistsException extends Exception
-{
-    public MemberAlreadyExistsException()
-    {
+public class MemberAlreadyExistsException extends Exception {
+    public MemberAlreadyExistsException() {
         super();
     }
-    
-    public MemberAlreadyExistsException(String message)
-    {
+
+    public MemberAlreadyExistsException(String message) {
         super(message);
     }
 }

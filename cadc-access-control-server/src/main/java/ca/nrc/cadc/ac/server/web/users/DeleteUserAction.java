@@ -71,29 +71,22 @@ package ca.nrc.cadc.ac.server.web.users;
 import java.security.AccessControlException;
 import java.security.Principal;
 
-public class DeleteUserAction extends AbstractUserAction
-{
+public class DeleteUserAction extends AbstractUserAction {
     private final Principal userID;
     private boolean markAsDeleted;
 
-    DeleteUserAction(Principal userID, boolean markAsDeleted)
-    {
+    DeleteUserAction(Principal userID, boolean markAsDeleted) {
         super();
         this.userID = userID;
         this.markAsDeleted = markAsDeleted;
     }
 
-    public void doAction() throws Exception
-    {
-        if (markAsDeleted)
-        {
+    public void doAction() throws Exception {
+        if (markAsDeleted) {
             userPersistence.deactivateUser(userID);
-        }
-        else
-        {
+        } else {
             // only the privileged user can do real deletes
-            if (!super.isPrivilegedSubject)
-            {
+            if (!super.isPrivilegedSubject) {
                 throw new AccessControlException("Forbidden");
             }
             userPersistence.deleteUser(userID);

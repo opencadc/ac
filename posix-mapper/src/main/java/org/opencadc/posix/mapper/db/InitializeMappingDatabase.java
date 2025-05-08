@@ -70,14 +70,13 @@ package org.opencadc.posix.mapper.db;
 
 import ca.nrc.cadc.db.version.InitDatabase;
 import ca.nrc.cadc.util.MultiValuedProperties;
-import org.opencadc.posix.mapper.web.PosixInitAction;
-
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.sql.DataSource;
+import org.opencadc.posix.mapper.web.PosixInitAction;
 
 
 /**
@@ -89,14 +88,14 @@ public class InitializeMappingDatabase extends InitDatabase {
     public static final String MODEL_VERSION = "0.1";
     public static final String PREV_MODEL_VERSION = "0.0";
 
-    static String[] CREATE_SQL = new String[] {
+    static String[] CREATE_SQL = new String[]{
             "mapping.modelversion.sql",
             "mapping.model.sql"
     };
 
     public InitializeMappingDatabase(DataSource dataSource, String database, String schema) {
         super(dataSource, database, schema, InitializeMappingDatabase.MODEL_NAME,
-              InitializeMappingDatabase.MODEL_VERSION, InitializeMappingDatabase.PREV_MODEL_VERSION);
+                InitializeMappingDatabase.MODEL_VERSION, InitializeMappingDatabase.PREV_MODEL_VERSION);
 
         this.createSQL.addAll(Arrays.stream(InitializeMappingDatabase.CREATE_SQL).collect(Collectors.toList()));
     }
@@ -105,11 +104,11 @@ public class InitializeMappingDatabase extends InitDatabase {
     public List<String> parseDDL(String fileName, String schema, String tag) throws IOException {
         final MultiValuedProperties configuration = PosixInitAction.getConfig();
         return super.parseDDL(fileName, schema, tag).stream()
-                    .map(line -> line.replaceAll("<gid_start>",
-                                                 configuration.getFirstPropertyValue(PosixInitAction.GID_START_KEY))
-                                 .replaceAll("<uid_start>",
-                                             configuration.getFirstPropertyValue(PosixInitAction.UID_START_KEY)))
-                    .collect(Collectors.toList());
+                .map(line -> line.replaceAll("<gid_start>",
+                                configuration.getFirstPropertyValue(PosixInitAction.GID_START_KEY))
+                        .replaceAll("<uid_start>",
+                                configuration.getFirstPropertyValue(PosixInitAction.UID_START_KEY)))
+                .collect(Collectors.toList());
     }
 
     @Override

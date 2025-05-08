@@ -80,10 +80,8 @@ import org.apache.log4j.Logger;
  * Reads and stores the LDAP configuration information.
  *
  * @author adriand
- *
  */
-public class LdapConfig
-{
+public class LdapConfig {
     private static final Logger logger = Logger.getLogger(LdapConfig.class);
 
     // A temporary hack to set the LDAP config file name.
@@ -107,26 +105,23 @@ public class LdapConfig
     public static final String LDAP_USERS_DN = "usersDN";
     public static final String LDAP_USER_REQUESTS_DN = "userRequestsDN";
     public static final String LDAP_GROUPS_DN = "groupsDN";
-    public static final String LDAP_ADMIN_GROUPS_DN  = "adminGroupsDN";
+    public static final String LDAP_ADMIN_GROUPS_DN = "adminGroupsDN";
 
     private final static int SECURE_PORT = 636;
 
-    public enum PoolPolicy
-    {
+    public enum PoolPolicy {
         roundRobin,
         fewestConnections,
         fastestConnect
     }
 
-    public enum SystemState
-    {
+    public enum SystemState {
         ONLINE,
         READONLY,
         OFFLINE
     }
 
-    public class LdapPool
-    {
+    public class LdapPool {
         private List<String> servers;
         private int initSize;
         private int maxSize;
@@ -135,46 +130,43 @@ public class LdapConfig
         private long maxWait;
         private boolean createIfNeeded;
 
-        public List<String> getServers()
-        {
+        public List<String> getServers() {
             return servers;
         }
-        public int getInitSize()
-        {
+
+        public int getInitSize() {
             return initSize;
         }
-        public int getMaxSize()
-        {
+
+        public int getMaxSize() {
             return maxSize;
         }
-        public PoolPolicy getPolicy()
-        {
+
+        public PoolPolicy getPolicy() {
             return policy;
         }
+
         public int getPort() {
             return port;
         }
 
-        public boolean isSecure()
-        {
+        public boolean isSecure() {
             return getPort() == SECURE_PORT;
         }
-        public long getMaxWait()
-        {
+
+        public long getMaxWait() {
             return maxWait;
         }
-        public boolean getCreateIfNeeded()
-        {
+
+        public boolean getCreateIfNeeded() {
             return createIfNeeded;
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append(" Servers: ");
-            for (String server : servers)
-            {
+            for (String server : servers) {
                 sb.append(" [" + server + "]");
             }
             sb.append(" port: " + port);
@@ -187,8 +179,7 @@ public class LdapConfig
         }
 
         @Override
-        public boolean equals(Object other)
-        {
+        public boolean equals(Object other) {
             if (other == null || !(other instanceof LdapPool))
                 return false;
 
@@ -197,7 +188,7 @@ public class LdapConfig
             if (l.port != port)
                 return false;
 
-            if (! l.servers.equals(servers))
+            if (!l.servers.equals(servers))
                 return false;
 
             if (l.initSize != initSize)
@@ -206,18 +197,20 @@ public class LdapConfig
             if (l.maxSize != maxSize)
                 return false;
 
-            if ( !(l.policy.equals(policy)))
+            if (!(l.policy.equals(policy)))
                 return false;
 
-            if ( !(l.maxWait == maxWait))
+            if (!(l.maxWait == maxWait))
                 return false;
 
-            if ( !(l.createIfNeeded == createIfNeeded))
+            if (!(l.createIfNeeded == createIfNeeded))
                 return false;
 
             return true;
         }
-    };
+    }
+
+    ;
 
     private LdapPool readOnlyPool = new LdapPool();
     private LdapPool readWritePool = new LdapPool();
@@ -231,29 +224,24 @@ public class LdapConfig
     private String proxyPasswd;
     private SystemState systemState;
 
-    public String getProxyUserDN()
-    {
+    public String getProxyUserDN() {
         return proxyUserDN;
     }
 
-    public String getProxyPasswd()
-    {
+    public String getProxyPasswd() {
         return proxyPasswd;
     }
 
-    public static LdapConfig getLdapConfig()
-    {
+    public static LdapConfig getLdapConfig() {
         return loadLdapConfig(CONFIG);
     }
 
-    public static LdapConfig loadLdapConfig(String ldapProperties)
-    {
+    public static LdapConfig loadLdapConfig(String ldapProperties) {
         logger.debug("Reading LDAP properties from: " + ldapProperties);
         PropertiesReader pr = new PropertiesReader(ldapProperties);
 
         MultiValuedProperties config = pr.getAllProperties();
-        if (config == null || config.keySet() == null)
-        {
+        if (config == null || config.keySet() == null) {
             throw new RuntimeException("failed to read any LDAP property ");
         }
 
@@ -279,8 +267,7 @@ public class LdapConfig
         return ldapConfig;
     }
 
-    private static void loadPoolConfig(LdapPool pool, MultiValuedProperties pr, String prefix)
-    {
+    private static void loadPoolConfig(LdapPool pool, MultiValuedProperties pr, String prefix) {
         pool.servers = getMultiProperty(pr, prefix + POOL_SERVERS);
         pool.initSize = Integer.parseInt(getProperty(pr, prefix + POOL_INIT_SIZE));
         pool.maxSize = Integer.parseInt(getProperty(pr, prefix + POOL_MAX_SIZE));
@@ -295,32 +282,29 @@ public class LdapConfig
             port = pr.getFirstPropertyValue(DEFAULT_LDAP_PORT);
             if (port == null) {
                 throw new ServiceConfigurationError("No port specified for " + prefix
-                                                    + " and no default port specified at " + DEFAULT_LDAP_PORT);
+                        + " and no default port specified at " + DEFAULT_LDAP_PORT);
             } else {
                 pool.port = Integer.parseInt(port);
             }
         }
         if (pool.policy == PoolPolicy.fastestConnect && !prefix.equals(READONLY_PREFIX)) {
             throw new ServiceConfigurationError(PoolPolicy.fastestConnect.toString() +
-                " pool policy cannot be applied to " + 
-                prefix.substring(0, prefix.length() - 1) + " pool servers.");
+                    " pool policy cannot be applied to " +
+                    prefix.substring(0, prefix.length() - 1) + " pool servers.");
         }
         pool.maxWait = Long.parseLong(getProperty(pr, prefix + MAX_WAIT));
         pool.createIfNeeded = Boolean.parseBoolean(getProperty(pr, prefix + CREATE_IF_NEEDED));
     }
 
-    private static String getProperty(MultiValuedProperties properties, String key)
-    {
+    private static String getProperty(MultiValuedProperties properties, String key) {
         String prop = properties.getFirstPropertyValue(key);
-        if (prop == null)
-        {
+        if (prop == null) {
             throw new RuntimeException("failed to read property " + key);
         }
         return prop;
     }
 
-    private static List<String> getMultiProperty(MultiValuedProperties properties, String key)
-    {
+    private static List<String> getMultiProperty(MultiValuedProperties properties, String key) {
         String prop = getProperty(properties, key);
 
         if (prop.trim().equals("")) {
@@ -331,20 +315,16 @@ public class LdapConfig
         return Arrays.asList(props);
     }
 
-    private static SystemState getSystemState(LdapConfig ldapConfig)
-    {
-        if (ldapConfig.getReadOnlyPool().getMaxSize() == 0)
-        {
+    private static SystemState getSystemState(LdapConfig ldapConfig) {
+        if (ldapConfig.getReadOnlyPool().getMaxSize() == 0) {
             return SystemState.OFFLINE;
         }
 
-        if (ldapConfig.getUnboundReadOnlyPool().getMaxSize() == 0)
-        {
+        if (ldapConfig.getUnboundReadOnlyPool().getMaxSize() == 0) {
             return SystemState.OFFLINE;
         }
 
-        if (ldapConfig.getReadWritePool().getMaxSize() == 0)
-        {
+        if (ldapConfig.getReadWritePool().getMaxSize() == 0) {
             return SystemState.READONLY;
         }
 
@@ -353,108 +333,96 @@ public class LdapConfig
 
 
     @Override
-    public boolean equals(Object other)
-    {
+    public boolean equals(Object other) {
         if (other == null || !(other instanceof LdapConfig))
             return false;
 
         LdapConfig l = (LdapConfig) other;
 
-        if ( !(l.defaultPort == defaultPort))
+        if (!(l.defaultPort == defaultPort))
             return false;
 
-        if ( !(l.usersDN.equals(usersDN)))
+        if (!(l.usersDN.equals(usersDN)))
             return false;
 
-        if ( !(l.userRequestsDN.equals(userRequestsDN)))
+        if (!(l.userRequestsDN.equals(userRequestsDN)))
             return false;
 
-        if ( !(l.groupsDN.equals(groupsDN)))
+        if (!(l.groupsDN.equals(groupsDN)))
             return false;
 
-        if ( !(l.adminGroupsDN.equals(adminGroupsDN)))
+        if (!(l.adminGroupsDN.equals(adminGroupsDN)))
             return false;
 
-        if ( !(l.proxyUserDN.equals(proxyUserDN)))
+        if (!(l.proxyUserDN.equals(proxyUserDN)))
             return false;
 
-        if ( !(l.readOnlyPool.equals(readOnlyPool)))
+        if (!(l.readOnlyPool.equals(readOnlyPool)))
             return false;
 
-        if ( !(l.readWritePool.equals(readWritePool)))
+        if (!(l.readWritePool.equals(readWritePool)))
             return false;
 
-        if ( !(l.unboundReadOnlyPool.equals(unboundReadOnlyPool)))
+        if (!(l.unboundReadOnlyPool.equals(unboundReadOnlyPool)))
             return false;
 
         return true;
     }
 
-    private LdapConfig()
-    {
+    private LdapConfig() {
     }
 
-    public LdapPool getReadOnlyPool()
-    {
+    public LdapPool getReadOnlyPool() {
         return readOnlyPool;
     }
 
-    public LdapPool getReadWritePool()
-    {
+    public LdapPool getReadWritePool() {
         return readWritePool;
     }
 
-    public LdapPool getUnboundReadOnlyPool()
-    {
+    public LdapPool getUnboundReadOnlyPool() {
         return unboundReadOnlyPool;
     }
+
     public int getDefaultPort() {
         return defaultPort;
     }
 
-    public String getUsersDN()
-    {
+    public String getUsersDN() {
         return this.usersDN;
     }
 
-    public String getUserRequestsDN()
-    {
+    public String getUserRequestsDN() {
         return this.userRequestsDN;
     }
 
-    public String getGroupsDN()
-    {
+    public String getGroupsDN() {
         return this.groupsDN;
     }
 
-    public String getAdminGroupsDN()
-    {
+    public String getAdminGroupsDN() {
         return this.adminGroupsDN;
     }
 
-    public String getAdminUserDN()
-    {
+    public String getAdminUserDN() {
         return this.proxyUserDN;
     }
 
-    public String getAdminPasswd()
-    {
+    public String getAdminPasswd() {
         return this.proxyPasswd;
     }
 
     /**
      * Check if in read-only or offline mode.
-     *
+     * <p>
      * A read max connection size of zero implies offline mode.
      * A read-wrtie max connection size of zero implies read-only mode.
      */
-    public SystemState getSystemState()
-    {
+    public SystemState getSystemState() {
         return systemState;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(" ReadOnlyPool: [" + readOnlyPool + "]");
         sb.append(" ReadWritePool: [" + readWritePool + "]");

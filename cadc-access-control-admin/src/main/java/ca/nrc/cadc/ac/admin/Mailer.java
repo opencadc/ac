@@ -35,20 +35,14 @@
 package ca.nrc.cadc.ac.admin;
 
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import ca.nrc.cadc.util.StringUtil;
+import java.util.Properties;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-
-import ca.nrc.cadc.util.StringUtil;
-
-import java.util.Properties;
-
 import org.apache.log4j.Logger;
 
 
@@ -59,7 +53,7 @@ import org.apache.log4j.Logger;
  * <p>
  * <b><code>
  * Mailer.send(toList, ccList, bccList, replyToList, from, subject, text);
- *  </b></code>
+ * </b></code>
  * </p>
  * <p>
  * Note that the class requires the <code><b>mail.smtp.host</b></code> system
@@ -72,7 +66,6 @@ import org.apache.log4j.Logger;
  * all the normal execution steps EXCEPT the actual dispatch of the message.
  * This kind of behaviour is useful during the unit testing of the clients when
  * the email messages are not required to be sent out.
- *
  */
 public class Mailer {
     private static Logger logger = Logger.getLogger(Mailer.class);
@@ -127,28 +120,23 @@ public class Mailer {
     protected String smtpAccount;
     protected String smtpPassword;
 
-    public boolean isComplete(boolean authenticated)
-    {
-        if (from == null || from.length() == 0)
-        {
+    public boolean isComplete(boolean authenticated) {
+        if (from == null || from.length() == 0) {
             logger.error("No from field set in Mailer");
             return false;
         }
 
-        if (toList == null || toList.length == 0)
-        {
+        if (toList == null || toList.length == 0) {
             logger.error("Empty \"to\" list in Mailer");
             return false;
         }
 
-        if (subject == null || subject.length() == 0)
-        {
+        if (subject == null || subject.length() == 0) {
             logger.error("No subject field set in Mailer");
             return false;
         }
 
-        if (body == null || body.length() == 0)
-        {
+        if (body == null || body.length() == 0) {
             logger.error("No message body set in Mailer");
             return false;
         }
@@ -182,15 +170,13 @@ public class Mailer {
      * Method to send an email message.
      *
      * @param authenticated Whether to use the auth SMTP server or not.
-     * @throws MessagingException Email problems
+     * @throws MessagingException       Email problems
      * @throws IllegalArgumentException when the object is not initialized properly.
      */
-    public synchronized void doSend(boolean authenticated) throws MessagingException
-    {
-        if (!isComplete(authenticated))
-        {
+    public synchronized void doSend(boolean authenticated) throws MessagingException {
+        if (!isComplete(authenticated)) {
             throw new IllegalArgumentException(
-                "doSend called before message was complete");
+                    "doSend called before message was complete");
         }
 
         Properties props = new Properties();
@@ -203,8 +189,7 @@ public class Mailer {
             props.put("mail.smtp.starttls.enable", true);
         }
 
-        if (session == null)
-        {
+        if (session == null) {
             session = Session.getInstance(props);
         }
 
@@ -213,8 +198,7 @@ public class Mailer {
 
         // TO address list
         InternetAddress[] addresses = new InternetAddress[toList.length];
-        for (int i = 0; i < addresses.length; i++)
-        {
+        for (int i = 0; i < addresses.length; i++) {
             addresses[i] = new InternetAddress(toList[i]);
             logger.debug("added TO email address: " + addresses[i]);
         }
@@ -222,11 +206,9 @@ public class Mailer {
 
         msg.setFrom(new InternetAddress(from));
         logger.debug("set FROM: " + from);
-        if(replyToList != null)
-        {
+        if (replyToList != null) {
             addresses = new InternetAddress[replyToList.length];
-            for (int i = 0; i < addresses.length; i++)
-            {
+            for (int i = 0; i < addresses.length; i++) {
                 addresses[i] = new InternetAddress(replyToList[i]);
                 logger.debug("added REPLY-TO email address: " + addresses[i]);
             }
@@ -234,11 +216,9 @@ public class Mailer {
         }
 
         // CC address list
-        if (ccList != null)
-        {
+        if (ccList != null) {
             addresses = new InternetAddress[ccList.length];
-            for (int i = 0; i < addresses.length; i++)
-            {
+            for (int i = 0; i < addresses.length; i++) {
                 addresses[i] = new InternetAddress(ccList[i]);
                 logger.debug("added CC email address: " + addresses[i]);
             }
@@ -246,11 +226,9 @@ public class Mailer {
         }
 
         // BCC address list
-        if (bccList != null)
-        {
+        if (bccList != null) {
             addresses = new InternetAddress[bccList.length];
-            for (int i = 0; i < addresses.length; i++)
-            {
+            for (int i = 0; i < addresses.length; i++) {
                 addresses[i] = new InternetAddress(bccList[i]);
                 logger.debug("added BCC email address: " + addresses[i]);
             }
@@ -276,26 +254,18 @@ public class Mailer {
     /**
      * Convenience method to send email
      *
-     * @param recipient
-     *            recipient(s) of the message. Cannot be null.
-     * @param cc
-     *            cc list. Can be null.
-     * @param bcc
-     *            bcc list. Can be null.
-     * @param sender
-     *            the sender of the message. Cannot be null.
-     * @param replyTo
-     *            addresses to be used for reply. Can be null.
-     * @param subject
-     *            the subject of the message. Cannot be null.
-     * @param message
-     *            the body of the message. Cannot be null.
+     * @param recipient recipient(s) of the message. Cannot be null.
+     * @param cc        cc list. Can be null.
+     * @param bcc       bcc list. Can be null.
+     * @param sender    the sender of the message. Cannot be null.
+     * @param replyTo   addresses to be used for reply. Can be null.
+     * @param subject   the subject of the message. Cannot be null.
+     * @param message   the body of the message. Cannot be null.
      * @return true if message successfully send, or false otherwise (log
-     *         message details the cause of the failure).
+     * message details the cause of the failure).
      */
     public static boolean send(String[] recipient, String[] cc, String[] bcc,
-                               String sender, String[] replyTo, String subject, String message, boolean authenticated)
-    {
+                               String sender, String[] replyTo, String subject, String message, boolean authenticated) {
         Mailer mailer = new Mailer();
         mailer.toList = recipient;
         mailer.ccList = cc;
@@ -304,12 +274,9 @@ public class Mailer {
         mailer.replyToList = replyTo;
         mailer.subject = subject;
         mailer.body = message;
-        try
-        {
+        try {
             mailer.doSend(authenticated);
-        }
-        catch (MessagingException e)
-        {
+        } catch (MessagingException e) {
             logger.error("Problems sending email message: ", e);
             return false;
         }
@@ -319,124 +286,102 @@ public class Mailer {
     /**
      * @return Returns the bccList.
      */
-    public String[] getBccList()
-    {
+    public String[] getBccList() {
         return bccList;
     }
 
     /**
-     * @param bccList
-     *            The bccList to set.
+     * @param bccList The bccList to set.
      */
-    public void setBccList(String[] bccList)
-    {
+    public void setBccList(String[] bccList) {
         this.bccList = bccList;
     }
 
     /**
      * @return Returns the body.
      */
-    public String getBody()
-    {
+    public String getBody() {
         return body;
     }
 
     /**
-     * @param body
-     *            The body to set.
+     * @param body The body to set.
      */
-    public void setBody(String body)
-    {
+    public void setBody(String body) {
         this.body = body;
     }
 
-    public void setContentType(final String contentType)
-    {
+    public void setContentType(final String contentType) {
         this.contentType = contentType;
     }
 
     /**
      * @return Returns the ccList.
      */
-    public String[] getCcList()
-    {
+    public String[] getCcList() {
         return ccList;
     }
 
     /**
-     * @param ccList
-     *            The ccList to set.
+     * @param ccList The ccList to set.
      */
-    public void setCcList(String[] ccList)
-    {
+    public void setCcList(String[] ccList) {
         this.ccList = ccList;
     }
 
     /**
      * @return Returns the from.
      */
-    public String getFrom()
-    {
+    public String getFrom() {
         return from;
     }
 
     /**
-     * @param from
-     *            The from to set.
+     * @param from The from to set.
      */
-    public void setFrom(String from)
-    {
+    public void setFrom(String from) {
         this.from = from;
     }
 
     /**
      * @return Returns the subject.
      */
-    public String getSubject()
-    {
+    public String getSubject() {
         return subject;
     }
 
     /**
-     * @param subject
-     *            The subject to set.
+     * @param subject The subject to set.
      */
-    public void setSubject(String subject)
-    {
+    public void setSubject(String subject) {
         this.subject = subject;
     }
 
     /**
      * @return Returns the toList.
      */
-    public String[] getToList()
-    {
+    public String[] getToList() {
         return toList;
     }
 
     /**
-     * @param toList
-     *            The toList to set.
+     * @param toList The toList to set.
      */
-    public void setToList(String[] toList)
-    {
+    public void setToList(String[] toList) {
         this.toList = toList;
     }
 
     /**
      * @return Returns the replyTo list.
      */
-    public String[] getReplyToList()
-    {
+    public String[] getReplyToList() {
         return replyToList;
     }
 
     /**
-     * @param replyToList
-     *            The replyTo list to set.
+     * @param replyToList The replyTo list to set.
      */
-    public void setReplyToList(String[] replyToList)
-    {
+    public void setReplyToList(String[] replyToList) {
         this.replyToList = replyToList;
     }
 

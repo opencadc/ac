@@ -69,56 +69,44 @@
 
 package ca.nrc.cadc.ac;
 
-public class UserRequest
-{
+public class UserRequest {
     private User user;
     private char[] password;
 
-    public UserRequest(final User user, final char[] password)
-    {
-        if (user == null)
-        {
+    public UserRequest(final User user, final char[] password) {
+        if (user == null) {
             throw new IllegalArgumentException("null user");
         }
-        if (password == null || password.length == 0)
-        {
+        if (password == null || password.length == 0) {
             throw new IllegalArgumentException("null or empty password");
         }
-        if (user.getIdentities().isEmpty())
-        {
+        if (user.getIdentities().isEmpty()) {
             throw new IllegalArgumentException("user has no identities");
         }
         this.user = user;
         this.password = password;
     }
 
-    public User getUser()
-    {
+    public User getUser() {
         return this.user;
     }
 
-    public char[] getPassword()
-    {
+    public char[] getPassword() {
         return this.password;
     }
 
-    public void clear()
-    {
-        for (int i = 0; i < password.length; i++)
-        {
+    public void clear() {
+        for (int i = 0; i < password.length; i++) {
             password[i] = '0';
         }
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (obj == null || getClass() != obj.getClass())
-        {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
 
@@ -128,8 +116,7 @@ public class UserRequest
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return user.hashCode();
     }
 }

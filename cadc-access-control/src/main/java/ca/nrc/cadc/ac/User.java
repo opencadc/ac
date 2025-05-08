@@ -68,20 +68,17 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.PrincipalComparator;
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
 import javax.security.auth.x500.X500Principal;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.PrincipalComparator;
-
-public class User
-{
+public class User {
     private InternalID id;
 
     private SortedSet<Principal> identities;
@@ -96,41 +93,35 @@ public class User
      */
     public Object appData;
 
-    public User()
-    {
+    public User() {
         PrincipalComparator p = new PrincipalComparator();
         UserPrincipalComparator u = new UserPrincipalComparator(p);
         this.identities = new TreeSet<Principal>(Comparator.nullsLast(u));
     }
 
-    public InternalID getID()
-    {
+    public InternalID getID() {
         return id;
     }
 
-    public Set<Principal> getIdentities()
-    {
+    public Set<Principal> getIdentities() {
         return identities;
     }
 
     /**
      * Obtain a set of identities whose type match the given one.
      *
-     * @param identityClass     The class to search on.
-     * @param <S>               The Principal type.
-     * @return                  Set of matched identities, or empty Set.
-     *                          Never null.
+     * @param identityClass The class to search on.
+     * @param <S>           The Principal type.
+     * @return Set of matched identities, or empty Set.
+     * Never null.
      */
-    public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass)
-    {
+    public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass) {
         PrincipalComparator p = new PrincipalComparator();
         UserPrincipalComparator u = new UserPrincipalComparator(p);
         final Set<S> matchedIdentities = new TreeSet<S>(u);
 
-        for (final Principal principal : identities)
-        {
-            if (identityClass.isAssignableFrom(principal.getClass()))
-            {
+        for (final Principal principal : identities) {
+            if (identityClass.isAssignableFrom(principal.getClass())) {
                 matchedIdentities.add((S) principal);
             }
         }
@@ -138,11 +129,9 @@ public class User
         return matchedIdentities;
     }
 
-    public HttpPrincipal getHttpPrincipal()
-    {
+    public HttpPrincipal getHttpPrincipal() {
         Set<HttpPrincipal> identities = getIdentities(HttpPrincipal.class);
-        if (!identities.isEmpty())
-        {
+        if (!identities.isEmpty()) {
             return identities.iterator().next();
         }
         return null;
@@ -151,12 +140,10 @@ public class User
     /**
      * @deprecated
      */
-    public X500Principal getX500Principal()
-    {
+    public X500Principal getX500Principal() {
         final Set<X500Principal> identities =
                 getIdentities(X500Principal.class);
-        if (!identities.isEmpty())
-        {
+        if (!identities.isEmpty()) {
             return identities.iterator().next();
         }
         return null;
@@ -170,16 +157,13 @@ public class User
      * @param superset
      * @return true if the user is consistent, false otherwise
      */
-    public boolean isConsistent(final User superset)
-    {
+    public boolean isConsistent(final User superset) {
 
-        if (superset == null)
-        {
+        if (superset == null) {
             return false;
         }
 
-        if (this.identities.size() == 0 || superset.identities.size() == 0)
-        {
+        if (this.identities.size() == 0 || superset.identities.size() == 0) {
             return false;
         }
 
@@ -196,10 +180,8 @@ public class User
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof User)
-        {
+    public boolean equals(Object obj) {
+        if (obj instanceof User) {
             User user = (User) obj;
             return (this.isConsistent(user) || user.isConsistent(this));
         }
@@ -207,21 +189,18 @@ public class User
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(getClass().getSimpleName());
         sb.append("[");
-        if (id != null)
-        {
+        if (id != null) {
             sb.append(id);
         }
         sb.append("]");
         return sb.toString();
     }
 
-    public String toPrettyString()
-    {
+    public String toPrettyString() {
         HttpPrincipal p1 = this.getHttpPrincipal();
         if (p1 != null)
             return p1.getName();
@@ -231,25 +210,20 @@ public class User
         return toString();
     }
 
-    private class UserPrincipalComparator implements Comparator<Principal>
-    {
+    private class UserPrincipalComparator implements Comparator<Principal> {
         private PrincipalComparator p;
 
-        UserPrincipalComparator(PrincipalComparator p)
-        {
+        UserPrincipalComparator(PrincipalComparator p) {
             this.p = p;
         }
 
         @Override
-        public int compare(Principal o1, Principal o2)
-        {
-            if (o1 == null || o2 == null)
-            {
+        public int compare(Principal o1, Principal o2) {
+            if (o1 == null || o2 == null) {
                 throw new IllegalArgumentException("Cannot compare null objects");
             }
 
-            if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal)
-            {
+            if (o1 instanceof HttpPrincipal && o2 instanceof HttpPrincipal) {
                 return 0;
             }
 

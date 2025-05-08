@@ -71,8 +71,7 @@ package ca.nrc.cadc.ac;
 /**
  * Holder of commonly used consts in cadcAccessControl
  */
-public class AC
-{
+public class AC {
     // Denotes a description given to a group
     public static final String PROPERTY_GROUP_DESCRIPTION = "ivo://ivoa.net/gms#description";
 

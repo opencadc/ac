@@ -71,7 +71,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -82,19 +81,17 @@ import java.io.Writer;
 /**
  * Class to write a XML representation of a User object.
  */
-public class UserWriter extends AbstractReaderWriter
-{
+public class UserWriter extends AbstractReaderWriter {
     /**
      * Write a User to a StringBuilder.
-     * 
-     * @param user User to write.
+     *
+     * @param user    User to write.
      * @param builder StringBuilder to write to.
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
     public void write(User user, StringBuilder builder)
-        throws IOException, WriterException
-    {
+            throws IOException, WriterException {
         write(user, new StringBuilderWriter(builder));
     }
 
@@ -102,20 +99,16 @@ public class UserWriter extends AbstractReaderWriter
      * Write a User to an OutputStream.
      *
      * @param user User to write.
-     * @param out OutputStream to write to.
-     * @throws IOException if the writer fails to write.
+     * @param out  OutputStream to write to.
+     * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
     public void write(User user, OutputStream out)
-        throws IOException, WriterException
-    {                
+            throws IOException, WriterException {
         OutputStreamWriter outWriter;
-        try
-        {
+        try {
             outWriter = new OutputStreamWriter(out, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("UTF-8 encoding not supported", e);
         }
         write(user, new BufferedWriter(outWriter));
@@ -124,19 +117,17 @@ public class UserWriter extends AbstractReaderWriter
     /**
      * Write a User to a Writer.
      *
-     * @param user User to write.
+     * @param user   User to write.
      * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
+     * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
     public void write(User user, Writer writer)
-        throws IOException, WriterException
-    {
-        if (user == null)
-        {
+            throws IOException, WriterException {
+        if (user == null) {
             throw new WriterException("null User");
         }
-        
+
         write(getElement(user), writer);
     }
 

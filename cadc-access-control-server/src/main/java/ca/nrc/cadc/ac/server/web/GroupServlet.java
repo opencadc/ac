@@ -68,18 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.security.PrivilegedActionException;
-
-import javax.security.auth.Subject;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.web.groups.AbstractGroupAction;
@@ -89,35 +77,41 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
+import java.io.IOException;
 import java.security.Principal;
+import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
 /**
  * Servlet for handling all requests to /groups
  *
  * @author majorb
  */
-public class GroupServlet extends HttpServlet
-{
+public class GroupServlet extends HttpServlet {
     private static final long serialVersionUID = 7854660717655869213L;
     private static final Logger log = Logger.getLogger(GroupServlet.class);
 
     private GroupPersistence groupPersistence;
-    
+
     protected List<Subject> privilegedSubjects;
 
     @Override
-    public void init(ServletConfig config) throws ServletException
-    {
+    public void init(ServletConfig config) throws ServletException {
         super.init(config);
 
-        try
-        {
+        try {
             String x500Users = config.getInitParameter(GroupServlet.class.getName() + ".PrivilegedX500Principals");
             log.debug("PrivilegedX500Users: " + x500Users);
 
@@ -126,57 +120,47 @@ public class GroupServlet extends HttpServlet
 
             List<String> x500List = new ArrayList<String>();
             List<String> httpList = new ArrayList<String>();
-            if (x500Users != null && httpUsers != null)
-            {
+            if (x500Users != null && httpUsers != null) {
                 Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
                 Matcher x500Matcher = pattern.matcher(x500Users);
                 Matcher httpMatcher = pattern.matcher(httpUsers);
 
-                while (x500Matcher.find())
-                {
+                while (x500Matcher.find()) {
                     String next = x500Matcher.group(1);
                     x500List.add(next.replace("\"", ""));
                 }
 
-                while (httpMatcher.find())
-                {
+                while (httpMatcher.find()) {
                     String next = httpMatcher.group(1);
                     httpList.add(next.replace("\"", ""));
                 }
 
-                if (x500List.size() != httpList.size())
-                {
+                if (x500List.size() != httpList.size()) {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
 
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-                for (int i=0; i<x500List.size(); i++)
-                {
+                for (int i = 0; i < x500List.size(); i++) {
                     Subject s = new Subject();
                     s.getPrincipals().add(new X500Principal(x500List.get(i)));
                     s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
                     privilegedSubjects.add(s);
                 }
 
-            }
-            else
-            {
+            } else {
                 log.warn("No Privileged users configured.");
             }
-            
+
             PluginFactory pluginFactory = new PluginFactory();
             groupPersistence = pluginFactory.createGroupPersistence();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.fatal("Error initializing group persistence", t);
             throw new ExceptionInInitializerError(t);
         }
     }
 
     @Override
-    public void destroy()
-    {
+    public void destroy() {
         groupPersistence.destroy();
     }
 
@@ -184,14 +168,12 @@ public class GroupServlet extends HttpServlet
      * Create a GroupAction and run the action safely.
      */
     private void doAction(GroupsActionFactory factory, HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         long start = System.currentTimeMillis();
         GroupLogInfo logInfo = new GroupLogInfo(request);
 
-        try
-        {
-            
+        try {
+
             log.info(logInfo.start());
             Subject subject = AuthenticationUtil.getSubject(request);
             logInfo.setSubject(subject);
@@ -206,63 +188,46 @@ public class GroupServlet extends HttpServlet
 
             Subject privilegedSubject = getPrivilegedSubject(request);
             log.debug("privileged subject: " + privilegedSubject);
-            if (privilegedSubject != null)
-            {
+            if (privilegedSubject != null) {
                 action.setIsPrivilegedUser(true);
                 logInfo.setMessage("privileged access");
             }
-            
-            try
-            {
-                if (subject == null)
-                {
+
+            try {
+                if (subject == null) {
                     action.run();
-                }
-                else
-                {
+                } else {
                     Subject.doAs(subject, action);
                 }
-            }
-            catch (PrivilegedActionException e)
-            {
+            } catch (PrivilegedActionException e) {
                 Throwable cause = e.getCause();
-                if (cause != null)
-                {
+                if (cause != null) {
                     throw cause;
                 }
                 Exception exception = e.getException();
-                if (exception != null)
-                {
+                if (exception != null) {
                     throw exception;
                 }
                 throw e;
             }
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
             response.getWriter().write(e.getMessage());
             response.setStatus(400);
-        }
-        catch (NotAuthenticatedException e)
-        {
+        } catch (NotAuthenticatedException e) {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
             response.getWriter().write(e.getMessage());
             response.setStatus(401);
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             String message = "Internal Server Error: " + t.getMessage();
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
             response.getWriter().write(message);
             response.setStatus(500);
-        }
-        finally
-        {
+        } finally {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
@@ -270,75 +235,59 @@ public class GroupServlet extends HttpServlet
 
     @Override
     public void doGet(final HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(GroupsActionFactory.httpGetFactory(), request, response);
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(GroupsActionFactory.httpPostFactory(), request, response);
     }
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(GroupsActionFactory.httpDeleteFactory(), request, response);
     }
 
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(GroupsActionFactory.httpPutFactory(), request, response);
     }
 
     @Override
     public void doHead(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+            throws IOException {
         doAction(GroupsActionFactory.httpHeadFactory(), request, response);
     }
 
-    protected Subject getPrivilegedSubject(HttpServletRequest request)
-    {
-        if (privilegedSubjects == null || privilegedSubjects.isEmpty())
-        {
+    protected Subject getPrivilegedSubject(HttpServletRequest request) {
+        if (privilegedSubjects == null || privilegedSubjects.isEmpty()) {
             return null;
         }
 
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
 
-        for (Principal principal : principals)
-        {
-            if (principal instanceof X500Principal)
-            {
-                for (Subject s : privilegedSubjects)
-                {
+        for (Principal principal : principals) {
+            if (principal instanceof X500Principal) {
+                for (Subject s : privilegedSubjects) {
                     Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
-                    for (X500Principal p2 : x500Principals)
-                    {
-                        if (p2.getName().equalsIgnoreCase(principal.getName()))
-                        {
+                    for (X500Principal p2 : x500Principals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
                             return s;
                         }
                     }
                 }
             }
 
-            if (principal instanceof HttpPrincipal)
-            {
-                for (Subject s : privilegedSubjects)
-                {
+            if (principal instanceof HttpPrincipal) {
+                for (Subject s : privilegedSubjects) {
                     Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
-                    for (HttpPrincipal p2 : httpPrincipals)
-                    {
-                        if (p2.getName().equalsIgnoreCase(principal.getName()))
-                        {
+                    for (HttpPrincipal p2 : httpPrincipals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
                             return s;
                         }
                     }

@@ -69,34 +69,30 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import java.security.AccessControlException;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import org.apache.log4j.Logger;
 
 /**
  * This class deletes the specified pending user from the LDAP server.
- * @author yeunga
  *
+ * @author yeunga
  */
-public class RejectUser extends AbstractUserCommand
-{
+public class RejectUser extends AbstractUserCommand {
     private static final Logger log = Logger.getLogger(RejectUser.class);
 
     /**
      * Constructor
+     *
      * @param userID Id of the pending user to be deleted
      */
-    public RejectUser(final String userID)
-    {
-    	super(userID);
+    public RejectUser(final String userID) {
+        super(userID);
     }
 
     protected void execute()
-        throws AccessControlException, UserNotFoundException, TransientException
-    {
+            throws AccessControlException, UserNotFoundException, TransientException {
         // delete user from the pending tree
         this.getUserPersistence().deleteUserRequest(this.getPrincipal());
         String msg = "User " + this.getPrincipal().getName() + " was rejected successfully.";

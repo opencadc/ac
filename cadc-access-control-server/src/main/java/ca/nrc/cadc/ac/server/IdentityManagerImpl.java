@@ -104,7 +104,7 @@ public class IdentityManagerImpl implements IdentityManager {
     private static final Logger log = Logger.getLogger(IdentityManagerImpl.class);
 
     private static final Set<URI> SEC_METHODS;
-    
+
     static {
         Set<URI> tmp = new TreeSet<>();
         tmp.add(Standards.SECURITY_METHOD_ANON);
@@ -113,7 +113,7 @@ public class IdentityManagerImpl implements IdentityManager {
         tmp.add(Standards.SECURITY_METHOD_TOKEN);
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
-    
+
     public IdentityManagerImpl() {
     }
 
@@ -231,7 +231,7 @@ public class IdentityManagerImpl implements IdentityManager {
         }
         return null;
     }
-    
+
     // prefer principals that map to ldap attributes
     private static Principal getLdapPrincipal(Subject s) {
         Principal ret = null;

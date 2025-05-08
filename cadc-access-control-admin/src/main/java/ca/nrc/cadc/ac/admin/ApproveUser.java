@@ -69,83 +69,69 @@
 
 package ca.nrc.cadc.ac.admin;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.net.TransientException;
 import java.security.AccessControlException;
 import java.util.IllegalFormatException;
-
 import java.util.List;
 import java.util.PropertyResourceBundle;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.net.TransientException;
 
 /**
  * This class approves the specified pending user by moving the user
  * from a pending user to an active user in the LDAP server.
- * @author yeunga
  *
+ * @author yeunga
  */
-public class ApproveUser extends AbstractUserCommand
-{
+public class ApproveUser extends AbstractUserCommand {
     private static final Logger log = Logger.getLogger(ApproveUser.class);
 
     private static final List<String> MAIL_PROPS =
-        Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY,
-                  Mailer.SMTP_AUTH_HOST, Mailer.SMTP_AUTH_PORT, Mailer.SMTP_ACCOUNT, Mailer.SMTP_PASSWORD)
-            .collect(Collectors.toList());
+            Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY,
+                            Mailer.SMTP_AUTH_HOST, Mailer.SMTP_AUTH_PORT, Mailer.SMTP_ACCOUNT, Mailer.SMTP_PASSWORD)
+                    .collect(Collectors.toList());
 
     private final String dn;
     private final PropertyResourceBundle mailProps;
 
     /**
      * Constructor
+     *
      * @param userID Id of the pending user to be approved
      */
     public ApproveUser(final String userID, final String dn)
-        throws UsageException
-    {
-    	super(userID);
-    	this.dn = dn;
+            throws UsageException {
+        super(userID);
+        this.dn = dn;
         this.mailProps = AdminUtil.getProperties(Mailer.MAIL_CONFIG, MAIL_PROPS);
     }
 
     protected void execute()
-	    throws AccessControlException, UserNotFoundException, TransientException
-    {
+            throws AccessControlException, UserNotFoundException, TransientException {
         X500Principal dnPrincipal = null;
-        try
-        {
+        try {
             dnPrincipal = new X500Principal(dn);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new IllegalArgumentException("Invalid DN format: " + dn);
         }
 
-        try
-        {
+        try {
             this.getUserPersistence().approveUserRequest(this.getPrincipal());
             this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
-        }
-        catch (UserNotFoundException e)
-        {
+        } catch (UserNotFoundException e) {
             this.systemOut.println("Could not find userRequest " + this.getPrincipal());
             return;
         }
 
         User user = null;
-        try
-        {
+        try {
             user = this.getUserPersistence().getUser(this.getPrincipal());
-        }
-        catch (UserNotFoundException e)
-        {
+        } catch (UserNotFoundException e) {
             this.systemOut.println("Could not set user DN");
             return;
         }
@@ -155,22 +141,18 @@ public class ApproveUser extends AbstractUserCommand
 
         user.getIdentities().add(dnPrincipal);
         this.getUserPersistence().modifyUser(user);
-        String noWhiteSpaceDN = dn.replaceAll("\\s","");
+        String noWhiteSpaceDN = dn.replaceAll("\\s", "");
         this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + noWhiteSpaceDN);
         this.printUser(user);
     }
 
-    private void emailUser(User  user)
-    {
-        try
-        {
+    private void emailUser(User user) {
+        try {
             String recipient = null;
-            if (user.personalDetails != null)
-            {
+            if (user.personalDetails != null) {
                 recipient = user.personalDetails.email;
             }
-            if (recipient == null)
-            {
+            if (recipient == null) {
                 log.warn("No user email address, not emailing");
                 return;
             }
@@ -179,17 +161,13 @@ public class ApproveUser extends AbstractUserCommand
             String populatedBody = null;
             String body = mailProps.getString(Mailer.MAIL_BODY);
             HttpPrincipal p = user.getIdentities(HttpPrincipal.class).iterator().next();
-            try
-            {
+            try {
                 populatedBody = String.format(body, p.getName());
-            }
-            catch (IllegalFormatException e)
-            {
+            } catch (IllegalFormatException e) {
                 log.info("userid not inserted into message body");
             }
 
-            if (populatedBody == null)
-            {
+            if (populatedBody == null) {
                 populatedBody = body;
             }
             log.debug("email body populated: " + populatedBody);
@@ -200,14 +178,14 @@ public class ApproveUser extends AbstractUserCommand
             mailer.setSmtpAccount(this.mailProps.getString(Mailer.SMTP_ACCOUNT));
             mailer.setSmtpPassword(this.mailProps.getString(Mailer.SMTP_PASSWORD));
 
-            mailer.setToList(new String[] { recipient });
-            mailer.setReplyToList(new String[] { mailProps.getString(Mailer.MAIL_REPLY_TO)});
+            mailer.setToList(new String[]{recipient});
+            mailer.setReplyToList(new String[]{mailProps.getString(Mailer.MAIL_REPLY_TO)});
             mailer.setFrom(mailProps.getString(Mailer.MAIL_FROM));
             mailer.setSubject(mailProps.getString(Mailer.MAIL_SUBJECT));
             mailer.setBody(populatedBody);
 
             if (mailProps.containsKey(Mailer.MAIL_BCC)) {
-                mailer.setBccList(new String[] { mailProps.getString(Mailer.MAIL_BCC) });
+                mailer.setBccList(new String[]{mailProps.getString(Mailer.MAIL_BCC)});
             }
 
             mailer.setContentType(Mailer.HTML_CONTENT_TYPE);
@@ -215,9 +193,7 @@ public class ApproveUser extends AbstractUserCommand
             boolean authenticated = true;
             mailer.doSend(authenticated);
             this.systemOut.println("Emailed approval message to user.");
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             this.systemOut.println("Failed to email user");
             log.warn("Failed to email user", e);
         }

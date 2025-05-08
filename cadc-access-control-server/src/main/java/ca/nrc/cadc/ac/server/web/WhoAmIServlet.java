@@ -93,8 +93,7 @@ import org.apache.log4j.Logger;
  * currently authenticated user, or rather, the user whose Subject is currently
  * found in this context.
  */
-public class WhoAmIServlet extends HttpServlet
-{
+public class WhoAmIServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(WhoAmIServlet.class);
 
     static final String USER_GET_PATH = "/%s?idType=%s";
@@ -110,61 +109,48 @@ public class WhoAmIServlet extends HttpServlet
     @Override
     protected void doGet(final HttpServletRequest request,
                          final HttpServletResponse response)
-            throws ServletException, IOException
-    {
+            throws ServletException, IOException {
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
         log.info(logInfo.start());
-        try
-        {
+        try {
             final Subject subject = getSubject(request);
             AuthMethod authMethod = getAuthMethod(subject);
-            if (AuthMethod.ANON.equals(authMethod))
-            {
+            if (AuthMethod.ANON.equals(authMethod)) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
 
             Principal principal = getPrincipalForRestCall(subject);
-            if (principal == null)
-            {
+            if (principal == null) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().print("No supported identities for /whoami");
                 return;
             }
 
             redirect(request.getRequestURL(), response, principal, authMethod);
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        }
-        catch (NotAuthenticatedException e)
-        {
+        } catch (NotAuthenticatedException e) {
             log.debug(e.getMessage(), e);
             logInfo.setMessage(e.getMessage());
             response.getWriter().write(e.getMessage());
             response.setStatus(401);
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             String message = "Internal Server Error: " + t.getMessage();
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-        finally
-        {
+        } finally {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
     }
 
-    private Principal getPrincipalForRestCall(Subject s)
-    {
+    private Principal getPrincipalForRestCall(Subject s) {
         // TODO: Would be better to add this type of checking to AuthenticationUtil.
         //       But: a better fix would probably be to remove the userid and
         //            authentication type from the get user REST call.  Only the
@@ -183,27 +169,25 @@ public class WhoAmIServlet extends HttpServlet
         return null;
     }
 
-    public AuthMethod getAuthMethod(Subject subject)
-    {
+    public AuthMethod getAuthMethod(Subject subject) {
         return AuthenticationUtil.getAuthMethod(subject);
     }
 
     /**
      * Forward on to the Service's user endpoint.
      *
-     * @param response      The HTTP response.
-     * @param principal     The HttpPrincipal instance.
-     * @param authMethod    The authMethod
+     * @param response   The HTTP response.
+     * @param principal  The HttpPrincipal instance.
+     * @param authMethod The authMethod
      */
-    void redirect(StringBuffer requestURL, HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException
-    {
+    void redirect(StringBuffer requestURL, HttpServletResponse response, Principal principal, AuthMethod authMethod) throws IOException {
         String baseServiceURL = requestURL.substring(0, requestURL.indexOf(EndpointConstants.WHOAMI));
-        String serviceURL = baseServiceURL  + EndpointConstants.USERS;
+        String serviceURL = baseServiceURL + EndpointConstants.USERS;
         final URL redirectURL = new URL(serviceURL + USER_GET_PATH);
 
         // Take the first one.
         final String redirectUrl =
-            String.format(redirectURL.toString(), principal.getName(), AuthenticationUtil.getPrincipalType(principal));
+                String.format(redirectURL.toString(), principal.getName(), AuthenticationUtil.getPrincipalType(principal));
         final URI redirectURI = URI.create(redirectUrl);
 
         log.debug("redirecting to " + redirectURI.toASCIIString());
@@ -217,8 +201,7 @@ public class WhoAmIServlet extends HttpServlet
      * @param request Servlet request
      * @return augmented Subject
      */
-    Subject getSubject(final HttpServletRequest request)
-    {
+    Subject getSubject(final HttpServletRequest request) {
         return AuthenticationUtil.getSubject(request);
     }
 }

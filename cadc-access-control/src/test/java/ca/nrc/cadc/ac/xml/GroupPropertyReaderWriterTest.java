@@ -68,119 +68,102 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
+import ca.nrc.cadc.ac.GroupProperty;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import ca.nrc.cadc.ac.GroupProperty;
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class GroupPropertyReaderWriterTest extends AbstractReaderWriter
-{
+public class GroupPropertyReaderWriterTest extends AbstractReaderWriter {
     private static Logger log = Logger.getLogger(GroupPropertyReaderWriterTest.class);
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac.xml", Level.INFO);
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
+            throws Exception {
         Element element = null;
-        try
-        {
+        try {
             GroupProperty gp = getGroupProperty(element);
             fail("null element should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = new Element("foo");
-        try
-        {
+        try {
             GroupProperty gp = getGroupProperty(element);
             fail("element not named 'property' should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = new Element("property");
-        try
-        {
+        try {
             GroupProperty gp = getGroupProperty(element);
             fail("element without 'key' attribute should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element.setAttribute("key", "foo");
-        try
-        {
+        try {
             GroupProperty gp = getGroupProperty(element);
             fail("element without 'type' attribute should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element.setAttribute("type", "Double");
-        try
-        {
+        try {
             GroupProperty gp = getGroupProperty(element);
             fail("Unsupported 'type' should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             GroupProperty groupProperty = null;
             Element element = getElement(groupProperty);
             fail("null GroupProperty should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
 
         GroupProperty groupProperty = new GroupProperty("key", new Double(1.0), true);
-        try
-        {
+        try {
             Element element = getElement(groupProperty);
             fail("Unsupported GroupProperty type should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testReadWrite()
-        throws Exception
-    {
+            throws Exception {
         // String type
         GroupProperty expected = new GroupProperty("key", "value", true);
         Element element = getElement(expected);

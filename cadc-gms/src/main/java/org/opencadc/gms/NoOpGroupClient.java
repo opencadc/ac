@@ -79,9 +79,8 @@ import java.util.List;
  * <p></p>
  * This client will be created by GroupClient.getGroupClient() when another implementation
  * is not discovered in the classpath.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class NoOpGroupClient implements GroupClient {
 
@@ -94,5 +93,5 @@ public class NoOpGroupClient implements GroupClient {
     public List<GroupURI> getMemberships() {
         return Arrays.asList();
     }
-    
+
 }

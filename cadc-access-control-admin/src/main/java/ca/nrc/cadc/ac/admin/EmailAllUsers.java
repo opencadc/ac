@@ -98,11 +98,11 @@ public class EmailAllUsers extends AbstractCommand {
     private static final Logger log = Logger.getLogger(EmailAllUsers.class);
 
     private static final List<String> MAIL_PROPS =
-        Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY)
-            .collect(Collectors.toList());
+            Stream.of(Mailer.MAIL_FROM, Mailer.MAIL_TO, Mailer.MAIL_REPLY_TO, Mailer.MAIL_SUBJECT, Mailer.MAIL_BODY)
+                    .collect(Collectors.toList());
 
     public static final List<String> SMTP_PROPS =
-        Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT).collect(Collectors.toList());
+            Stream.of(Mailer.SMTP_HOST, Mailer.SMTP_PORT).collect(Collectors.toList());
 
     private final String emailPropsFilename;
     private final String logFilename;
@@ -118,7 +118,7 @@ public class EmailAllUsers extends AbstractCommand {
 
     public EmailAllUsers(String emailPropsFilename, String logFilename, int batchSize, String toGroup,
                          boolean toAllUsers, String resumeEmail, boolean dryRun)
-        throws UsageException {
+            throws UsageException {
 
         this.emailPropsFilename = emailPropsFilename;
         this.logFilename = logFilename;
@@ -133,7 +133,7 @@ public class EmailAllUsers extends AbstractCommand {
 
     @Override
     protected void doRun()
-        throws AccessControlException, TransientException {
+            throws AccessControlException, TransientException {
 
         // Get list of emails to send
         SortedSet<String> allEmails;
@@ -141,7 +141,7 @@ public class EmailAllUsers extends AbstractCommand {
             allEmails = getEmails();
         } catch (GroupNotFoundException e) {
             e.printStackTrace();
-            throw new IllegalStateException(String.format("unknown group name - %s: %s",this.toGroup, e.getMessage()));
+            throw new IllegalStateException(String.format("unknown group name - %s: %s", this.toGroup, e.getMessage()));
         }
 
         int total = allEmails.size();
@@ -188,7 +188,7 @@ public class EmailAllUsers extends AbstractCommand {
                 sendEmails(toSend);
                 sent += toSend.size();
                 this.systemOut.printf("processed:%s sent:%s skipped:%s total[%s/%s]%n",
-                                      toSend.size(), sent, skipped, sent + skipped, allEmails.size());
+                        toSend.size(), sent, skipped, sent + skipped, allEmails.size());
             } catch (MessagingException e) {
                 e.printStackTrace();
                 throw new IllegalStateException(String.format("error sending email: %s", e.getMessage()));
@@ -218,8 +218,8 @@ public class EmailAllUsers extends AbstractCommand {
         this.systemOut.printf("   sent: %s%n", sent);
         this.systemOut.printf("skipped: %s%n", skipped);
         this.systemOut.printf("WARNING: --send-email does not send email to nrc.ca accounts.%n"
-                                  + "Email to nrc.ca accounts must be send using an email client.%n"
-                                  + "A LDAP query can return the list of nrc.ca accounts.%n");
+                + "Email to nrc.ca accounts must be send using an email client.%n"
+                + "A LDAP query can return the list of nrc.ca accounts.%n");
 
         try {
             this.logWriter.close();
@@ -229,14 +229,14 @@ public class EmailAllUsers extends AbstractCommand {
     }
 
     protected void init()
-        throws UsageException {
+            throws UsageException {
         this.smtpProps = AdminUtil.getProperties(Mailer.MAIL_CONFIG, SMTP_PROPS);
         this.mailProps = AdminUtil.getProperties(emailPropsFilename, MAIL_PROPS);
         this.logWriter = initLogging(logFilename);
     }
 
     protected BufferedWriter initLogging(String logFilename)
-        throws UsageException {
+            throws UsageException {
 
         Path path = Paths.get(logFilename);
         BufferedWriter writer;
@@ -244,13 +244,13 @@ public class EmailAllUsers extends AbstractCommand {
             writer = Files.newBufferedWriter(path, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new UsageException(
-                String.format("unable to write to file - %s: %s", logFilename, e.getMessage()));
+                    String.format("unable to write to file - %s: %s", logFilename, e.getMessage()));
         }
         return writer;
     }
 
     protected SortedSet<String> getEmails()
-        throws GroupNotFoundException, AccessControlException, TransientException {
+            throws GroupNotFoundException, AccessControlException, TransientException {
 
         List<String> skipDomains = getSkipDomains();
         SortedSet<String> emails;
@@ -289,14 +289,14 @@ public class EmailAllUsers extends AbstractCommand {
                 this.systemOut.printf("resuming from email %s%n", first);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format("--resume email %s not found in email list",
-                                                                 this.resumeEmail));
+                        this.resumeEmail));
             }
         }
         return emails;
     }
 
     protected void sendEmails(Set<String> emails)
-        throws MessagingException {
+            throws MessagingException {
 
         if (this.dryRun) {
             return;
@@ -306,8 +306,8 @@ public class EmailAllUsers extends AbstractCommand {
         mailer.setSmtpHost(smtpProps.getString(Mailer.SMTP_HOST));
         mailer.setSmtpPort(smtpProps.getString(Mailer.SMTP_PORT));
 
-        mailer.setToList(new String[] { mailProps.getString(Mailer.MAIL_TO)});
-        mailer.setReplyToList(new String[] { mailProps.getString(Mailer.MAIL_REPLY_TO)});
+        mailer.setToList(new String[]{mailProps.getString(Mailer.MAIL_TO)});
+        mailer.setReplyToList(new String[]{mailProps.getString(Mailer.MAIL_REPLY_TO)});
         mailer.setBccList(emails.stream().toArray(String[]::new));
         mailer.setFrom(mailProps.getString(Mailer.MAIL_FROM));
         mailer.setSubject(mailProps.getString(Mailer.MAIL_SUBJECT));

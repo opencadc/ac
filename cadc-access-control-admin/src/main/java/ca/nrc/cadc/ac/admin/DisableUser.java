@@ -76,33 +76,29 @@ import org.apache.log4j.Logger;
 
 /**
  * This class disables the specified user (Locks the user account in LDAP).
- * @author jeevesh
  *
+ * @author jeevesh
  */
-public class DisableUser extends AbstractUserCommand
-{
+public class DisableUser extends AbstractUserCommand {
     private static final Logger log = Logger.getLogger(DisableUser.class);
 
     /**
      * Constructor
+     *
      * @param userID Id of the user to be disabled (deactivated)
      */
-    public DisableUser(final String userID)
-    {
-    	super(userID);
+    public DisableUser(final String userID) {
+        super(userID);
     }
 
     protected void execute()
-        throws AccessControlException, UserNotFoundException, TransientException
-    {
+            throws AccessControlException, UserNotFoundException, TransientException {
         try {
             // Use deactivateUser, which will lock the user account in LDAP
             this.getUserPersistence().deactivateUser(this.getPrincipal());
             String msg = "User " + this.getPrincipal().getName() + " is disabled (locked).";
             this.systemOut.println(msg);
-        }
-        catch (UserNotFoundException u)
-        {
+        } catch (UserNotFoundException u) {
             String msg = "User " + this.getPrincipal().getName() + ": already disabled (locked) or does not exist.";
             this.systemOut.println(msg);
         }

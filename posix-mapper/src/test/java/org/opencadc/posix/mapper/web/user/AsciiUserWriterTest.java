@@ -68,13 +68,12 @@
 
 package org.opencadc.posix.mapper.web.user;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.opencadc.posix.mapper.User;
-
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.posix.mapper.User;
 
 public class AsciiUserWriterTest {
     @Test
@@ -86,7 +85,7 @@ public class AsciiUserWriterTest {
         testSubject.write(List.of(testUser).iterator());
 
         Assert.assertEquals("Wrong output", "TESTUSER1:x:0:0:::\n",
-                            writer.toString());
+                writer.toString());
     }
 
     @Test
@@ -99,6 +98,6 @@ public class AsciiUserWriterTest {
         testSubject.write(List.of(testUser).iterator());
 
         Assert.assertEquals("Wrong output", "TESTUSER4:x:899:899:::\n",
-                            writer.toString());
+                writer.toString());
     }
 }

@@ -68,23 +68,6 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.UUID;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.TestUtil;
@@ -93,84 +76,86 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.UUID;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class UserReaderWriterTest
-{
+public class UserReaderWriterTest {
     private static Logger log = Logger.getLogger(UserReaderWriterTest.class);
 
-    public UserReaderWriterTest()
-    {
+    public UserReaderWriterTest() {
         Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
     }
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
+            throws Exception {
 
         System.out.println("config dir: " + System.getProperty(PropertiesReader.class.getName() + ".dir"));
 
-        try
-        {
+        try {
             String s = null;
             UserReader userReader = new UserReader();
             User u = userReader.read(s);
             fail("null String should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
 
-        try
-        {
+        try {
             InputStream in = null;
             UserReader userReader = new UserReader();
             User u = userReader.read(in);
             fail("null InputStream should throw IOException");
+        } catch (IOException e) {
         }
-        catch (IOException e) {}
 
-        try
-        {
+        try {
             Reader r = null;
             UserReader userReader = new UserReader();
             User u = userReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             UserWriter userWriter = new UserWriter();
             userWriter.write(null, new StringBuilder());
             fail("null User should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
     }
 
     @Test
     public void testReadWrite()
-        throws Exception
-    {
+            throws Exception {
         User expected = new User();
         UUID uuid = UUID.randomUUID();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);

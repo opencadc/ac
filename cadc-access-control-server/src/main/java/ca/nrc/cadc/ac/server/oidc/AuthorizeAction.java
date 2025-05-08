@@ -73,46 +73,40 @@ import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.rest.RestAction;
-
+import ca.nrc.cadc.util.PropertiesReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
 import javax.security.auth.Subject;
-
-import ca.nrc.cadc.util.PropertiesReader;
 import org.apache.log4j.Logger;
 
 /**
- * 
  * Authorize the RelyParty to obtain a OAuth2 token by ensuring
  * the client is authenticated and has given consent.
  * Subclasses AuthorizeGetAction and AuthorizePostAction collect the incoming
  * parameters.
  *
  * @author majorb
- *
  */
 public abstract class AuthorizeAction extends RestAction {
-    
+
     private static final Logger log = Logger.getLogger(AuthorizeAction.class);
-    
+
     private static final String CODE_REPSONSE_TYPE = "code";
     private static final String TOKEN_REPSONSE_TYPE = "token";
     private static final String IDTOKEN_REPSONSE_TYPE = "id_token";
-    
+
     private static final String OIDC_SCOPE = "openid";
     private static final String VO_SINGLESIGNON_SCOPE = "vo-sso";
 
     public static final String DOMAINS_PROP_FILE = "ac-domains.properties";
-    
+
     protected String scope;
     protected String responseType;
     protected String clientID;
@@ -127,12 +121,12 @@ public abstract class AuthorizeAction extends RestAction {
     protected String idTokenHint;
     protected String loginHint;
     protected String acrValues;
-    
+
     protected abstract void loadRequestInput();
-    
+
     @Override
     public void doAction() throws Exception {
-        
+
         loadRequestInput();
         logRequestInput();
 
@@ -141,16 +135,16 @@ public abstract class AuthorizeAction extends RestAction {
             sendError(error);
             return;
         }
-        
+
         // determine the request flow using response_type and scope
         if (CODE_REPSONSE_TYPE.equals(responseType)) {
-            
+
             if (scope == null) {
                 AuthorizeError error = missingParameter("scope");
                 sendError(error);
                 return;
             }
-            
+
             // ensure oidc code flow in scope
             String[] scopes = scope.split("\\s+");
             if (!Arrays.asList(scopes).contains(OIDC_SCOPE)) {
@@ -159,13 +153,13 @@ public abstract class AuthorizeAction extends RestAction {
                 sendError(error);
                 return;
             }
-            
+
             doOpenIDCodeFlow();
-            
+
         } else if (TOKEN_REPSONSE_TYPE.equals(responseType) || IDTOKEN_REPSONSE_TYPE.equals(responseType)) {
-            
+
             doCLIFlow();
-            
+
         } else {
             AuthorizeError error = new AuthorizeError();
             error.error = "unsupported_response_type";
@@ -173,9 +167,9 @@ public abstract class AuthorizeAction extends RestAction {
             return;
         }
     }
-    
+
     private void doOpenIDCodeFlow() throws Exception {
-        
+
         // check required params
         if (redirectURI == null) {
             AuthorizeError error = missingParameter("redirect_uri");
@@ -188,7 +182,7 @@ public abstract class AuthorizeAction extends RestAction {
             sendError(error);
             return;
         }
-        
+
         // check client id
         RelyParty rp = OIDCUtil.getRelyParty(clientID);
         if (rp == null) {
@@ -197,11 +191,11 @@ public abstract class AuthorizeAction extends RestAction {
             sendError(authError);
             return;
         }
-        
+
         if (!"login".equals(prompt)) {
             // TODO: check if already logged in using id_token_hint
         }
-        
+
         // if not logged in, check value of prompt
         if ("none".equals(prompt)) {
             AuthorizeError error = new AuthorizeError();
@@ -240,12 +234,12 @@ public abstract class AuthorizeAction extends RestAction {
             log.debug("redirecting to " + redirect.toString());
             syncOutput.setCode(302);
             syncOutput.setHeader("Location", redirect);
-            
+
         } else {
-            
+
             // if authenticated (only possible by cookie) skip login form
             // formulate the authenticate redirect response
-            
+
             // perform group check on rp.accessGroup 
             if (!OIDCUtil.accessAllowed(rp)) {
                 AuthorizeError authError = new AuthorizeError();
@@ -253,10 +247,10 @@ public abstract class AuthorizeAction extends RestAction {
                 sendError(authError);
                 return;
             }
-            
+
             Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
             String username = useridPrincipals.iterator().next().getName();
-            
+
             StringBuilder redirect = new StringBuilder(redirectURI);
             URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
             String code = OIDCUtil.getToken(username, scope, OIDCUtil.AUTHORIZE_CODE_EXPIRY_MINUTES);
@@ -271,24 +265,24 @@ public abstract class AuthorizeAction extends RestAction {
         }
 
     }
-    
+
     private void doCLIFlow() throws Exception {
-        
+
         // see if the request is authenticated
         Subject s = AuthenticationUtil.getCurrentSubject();
         AuthMethod authMethod = AuthenticationUtil.getAuthMethodFromCredentials(s);
         if (authMethod.equals(AuthMethod.ANON)) {
-            
+
             // 401 and Authenticate headers set by cadc-rest
             throw new NotAuthenticatedException("login_requried");
-            
+
         } else {
-            
+
             Set<HttpPrincipal> useridPrincipals = s.getPrincipals(HttpPrincipal.class);
             String username = useridPrincipals.iterator().next().getName();
-            
+
             if (TOKEN_REPSONSE_TYPE.equals(responseType)) {
-                
+
                 // only 'vo-sso' scope supported for token responseType
                 if (scope != null && !VO_SINGLESIGNON_SCOPE.equals(scope)) {
                     AuthorizeError error = new AuthorizeError();
@@ -296,7 +290,7 @@ public abstract class AuthorizeAction extends RestAction {
                     sendError(error);
                     return;
                 }
-                
+
                 URI scope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE);
                 PropertiesReader propReader = new PropertiesReader(AuthorizeAction.DOMAINS_PROP_FILE);
                 List<String> domainValues = propReader.getAllProperties().getProperty("domains");
@@ -309,16 +303,16 @@ public abstract class AuthorizeAction extends RestAction {
                 }
 
                 String token = OIDCUtil.getToken(username, scope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES, domainList);
-                
+
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", token);
                 OutputStream out = syncOutput.getOutputStream();
                 OutputStreamWriter writer = new OutputStreamWriter(out);
                 writer.write(token);
                 writer.flush();
-                
+
             } else if (IDTOKEN_REPSONSE_TYPE.equals(responseType)) {
-                
+
                 // check client id
                 RelyParty rp = OIDCUtil.getRelyParty(clientID);
                 if (rp == null) {
@@ -327,23 +321,23 @@ public abstract class AuthorizeAction extends RestAction {
                     sendError(authError);
                     return;
                 }
-                
+
 //                String jws = OIDCUtil.buildIDToken(rp, false);
                 String jws = OIDCUtil.buildIDToken(rp, syncInput.getRequestURI());
-                
+
                 // write to header and body
                 syncOutput.setHeader("X-Auth-Token", jws);
                 OutputStream out = syncOutput.getOutputStream();
                 OutputStreamWriter writer = new OutputStreamWriter(out);
                 writer.write(jws);
                 writer.flush();
-                
+
             }
-             
+
         }
-        
+
     }
-    
+
     private void logRequestInput() {
         log.debug("scope: " + scope);
         log.debug("response_type: " + responseType);
@@ -360,14 +354,14 @@ public abstract class AuthorizeAction extends RestAction {
         log.debug("login_hint: " + loginHint);
         log.debug("acr_values: " + acrValues);
     }
-    
+
     private AuthorizeError missingParameter(String param) {
         AuthorizeError error = new AuthorizeError();
         error.error = "invalid_request";
         error.errorDescription = "missing required parameter '" + param + "'";
         return error;
     }
-    
+
     private void sendError(AuthorizeError error) throws UnsupportedEncodingException {
         if (redirectURI == null) {
             String msg = error.error;
@@ -390,7 +384,7 @@ public abstract class AuthorizeAction extends RestAction {
         syncOutput.setCode(302);
         syncOutput.setHeader("Location", redirect.toString());
     }
-    
+
     private class AuthorizeError {
         String error;
         String errorDescription;

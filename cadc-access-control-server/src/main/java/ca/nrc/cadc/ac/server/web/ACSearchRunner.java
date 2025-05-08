@@ -85,7 +85,6 @@ import ca.nrc.cadc.uws.ParameterUtil;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import ca.nrc.cadc.uws.util.JobLogInfo;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -99,9 +98,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 
 public class ACSearchRunner implements JobRunner {
@@ -197,7 +194,7 @@ public class ACSearchRunner implements JobRunner {
                     }
                 }
             }
-            
+
             // TODO: change response type based on RESPONSEFORMAT param or Accept header
             if (ivoaStandardResponse) {
                 syncOut.setHeader("Content-Type", "text/plain");
@@ -213,7 +210,7 @@ public class ACSearchRunner implements JobRunner {
                 GroupListWriter groupListWriter = new GroupListWriter();
                 groupListWriter.write(groups, syncOut.getOutputStream());
             }
-            
+
         } catch (TransientException t) {
             logInfo.setSuccess(false);
             logInfo.setMessage(t.getMessage());
@@ -290,28 +287,28 @@ public class ACSearchRunner implements JobRunner {
 
     /**
      * Validate the incoming parameters.
-     * 
+     * <p>
      * IVOA GMS requests can be:
-     *   - (no params) - list group memberships
-     *   - one or more group=[groupName] params - is member of {groupName1} - {groupNameN}?
+     * - (no params) - list group memberships
+     * - one or more group=[groupName] params - is member of {groupName1} - {groupNameN}?
      * CADC parameter extensions of GMS standard:
-     *   - role=[role] - list groups in role (member, admin, or owner)
-     *   - role=[role] groupID=[groupName}] - list group if user has specified role in group
-     * 
+     * - role=[role] - list groups in role (member, admin, or owner)
+     * - role=[role] groupID=[groupName}] - list group if user has specified role in group
+     *
      * @param params The incoming parameters.
      */
     void validateParams(List<Parameter> params) {
-        
+
         if (params == null) {
             throw new IllegalArgumentException("missing parameters");
         }
-        
+
         String roleParam = ParameterUtil.findParameterValue("ROLE", params);
         // GROUPID param support is deprecated
         String groupIDParam = ParameterUtil.findParameterValue("GROUPID", params);
         // ivoa param name is 'group'
         List<String> groupParams = ParameterUtil.findParameterValues("group", params);
-        
+
         // ivoa search for all memberships is request with no params
         if (roleParam == null && groupIDParam == null && groupParams.isEmpty()) {
             // default to membership role
@@ -319,7 +316,7 @@ public class ACSearchRunner implements JobRunner {
             ivoaStandardResponse = true;
             return;
         }
-        
+
         if (!groupParams.isEmpty()) {
             // set will drop duplicates
             this.groupNames.addAll(groupParams);
@@ -332,29 +329,29 @@ public class ACSearchRunner implements JobRunner {
             }
             return;
         }
-        
+
         // role is required
         if (roleParam != null) {
             this.role = Role.toValue(roleParam);
         } else {
             throw new IllegalArgumentException("required parameter ROLE not found");
         }
-        
+
         // groupID is optional
         if (groupIDParam != null) {
             this.groupNames.add(groupIDParam);
         }
 
     }
-    
+
     Role getRole() {
         return role;
     }
-    
+
     Set<String> getGroupNames() {
         return groupNames;
     }
-    
+
     boolean isIvoaStandardResponse() {
         return ivoaStandardResponse;
     }

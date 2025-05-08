@@ -68,25 +68,20 @@
  */
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.auth.HttpPrincipal;
+import java.net.URISyntaxException;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URISyntaxException;
-
-import org.apache.log4j.Logger;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.auth.HttpPrincipal;
-
-public class GroupTest
-{
+public class GroupTest {
     private static Logger log = Logger.getLogger(GroupTest.class);
 
     @Test
-    public void simpleGroupTest() throws Exception
-    {
+    public void simpleGroupTest() throws Exception {
         Group group1 = new Group(new GroupURI("ivo://example.org/gms?TestGroup"));
         Group group2 = group1;
         assertEquals(group1.hashCode(), group2.hashCode());
@@ -105,27 +100,27 @@ public class GroupTest
 
         group4 = new Group(new GroupURI("ivo://example.org/gms?TestGroup"));
         assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
+        assertEquals(group3, group4);
 
         group4.getUserMembers().add(user);
         assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
+        assertEquals(group3, group4);
 
         group3.getGroupMembers().add(group4);
         assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
+        assertEquals(group3, group4);
 
         group4.getUserAdmins().add(user);
         assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
+        assertEquals(group3, group4);
 
         group3.getGroupAdmins().add(group4);
         assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
+        assertEquals(group3, group4);
 
         group3.description = "Test group";
         assertEquals(group3.hashCode(), group4.hashCode());
-        assertEquals(group3,group4);
+        assertEquals(group3, group4);
 
         group4 = new Group(new GroupURI("ivo://example.org/gms?NewTestGroup-._~."));
         assertFalse(group3.hashCode() == group4.hashCode());
@@ -136,15 +131,11 @@ public class GroupTest
     }
 
     @Test
-    public void exceptionTests() throws URISyntaxException
-    {
+    public void exceptionTests() throws URISyntaxException {
         boolean thrown = false;
-        try
-        {
+        try {
             new Group(null);
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);

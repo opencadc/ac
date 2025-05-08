@@ -71,11 +71,9 @@ package ca.nrc.cadc.ac;
 
 import java.lang.reflect.Field;
 
-public class TestUtil
-{
+public class TestUtil {
     public static void setField(Object object, Object value, String name)
-        throws Exception
-    {
+            throws Exception {
         Field field = object.getClass().getDeclaredField(name);
         field.setAccessible(true);
         field.set(object, value);

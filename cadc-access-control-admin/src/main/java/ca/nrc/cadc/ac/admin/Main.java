@@ -70,36 +70,30 @@
 package ca.nrc.cadc.ac.admin;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.io.PrintStream;
-import java.security.cert.CertificateException;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
+import java.io.PrintStream;
+import java.security.cert.CertificateException;
+import org.apache.log4j.Logger;
 
 /**
  * A command line admin tool for LDAP users.
  *
  * @author yeunga
- *
  */
-public class Main
-{
+public class Main {
     private static Logger log = Logger.getLogger(Main.class);
 
     private final PrintStream systemOut;
     private final PrintStream systemErr;
 
 
-    public Main(PrintStream systemOut, PrintStream systemErr)
-    {
+    public Main(PrintStream systemOut, PrintStream systemErr) {
         this.systemOut = systemOut;
         this.systemErr = systemErr;
     }
 
-    public Main()
-    {
+    public Main() {
         systemOut = System.out;
         systemErr = System.err;
     }
@@ -107,23 +101,18 @@ public class Main
 
     /**
      * Execute the specified utility.
-     * @param args   The arguments passed in to this programme.
+     *
+     * @param args The arguments passed in to this programme.
      */
-    public static void main(final String[] args)
-    {
+    public static void main(final String[] args) {
         final Main main = new Main();
 
-        try
-        {
+        try {
             main.execute(args);
             System.exit(0);
-        }
-        catch(UsageException | CertificateException e)
-        {
+        } catch (UsageException | CertificateException e) {
             System.exit(-1);
-        }
-        catch(Exception t)
-        {
+        } catch (Exception t) {
             System.exit(-2);
         }
     }
@@ -131,41 +120,32 @@ public class Main
     /**
      * Execute this class's function.  This is to be run by tests.
      *
-     * @param args          The string arguments.
-     * @throws Exception    Any issue arising.
+     * @param args The string arguments.
+     * @throws Exception Any issue arising.
      */
-    public void execute(final String[] args) throws Exception
-    {
-        try
-        {
+    public void execute(final String[] args) throws Exception {
+        try {
 
             final CmdLineParser parser = new CmdLineParser(args, systemOut,
-                                                           systemErr);
+                    systemErr);
 
-            if (parser.isHelpCommand())
-            {
+            if (parser.isHelpCommand()) {
                 systemOut.println(CmdLineParser.getUsage());
-            }
-            else
-            {
+            } else {
                 // Set the necessary JNDI system property for lookups.
-                System.setProperty("java.naming.factory.initial",  ContextFactoryImpl.class.getName());
+                System.setProperty("java.naming.factory.initial", ContextFactoryImpl.class.getName());
 
                 UserPersistence userPersistence = new PluginFactory().createUserPersistence();
                 GroupPersistence groupPersistence = new PluginFactory().createGroupPersistence();
-                final CommandRunner runner =  new CommandRunner(parser, userPersistence, groupPersistence);
+                final CommandRunner runner = new CommandRunner(parser, userPersistence, groupPersistence);
 
                 runner.run();
             }
-        }
-        catch(UsageException e)
-        {
+        } catch (UsageException e) {
             systemErr.println("ERROR: " + e.getMessage());
             systemOut.println(CmdLineParser.getUsage());
             throw e;
-        }
-        catch(Exception t)
-        {
+        } catch (Exception t) {
             systemErr.println("ERROR: " + t.getMessage());
             t.printStackTrace(systemErr);
             throw t;

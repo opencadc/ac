@@ -72,14 +72,13 @@ import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
-import org.opencadc.posix.mapper.db.InitializeMappingDatabase;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
+import org.opencadc.posix.mapper.db.InitializeMappingDatabase;
 
 public class PosixInitAction extends InitAction {
 
@@ -97,7 +96,7 @@ public class PosixInitAction extends InitAction {
 
     static final String RESOURCE_ID_KEY = PosixInitAction.POSIX_KEY + ".resourceID";
 
-    static final String[] CHECK_CONFIG_KEYS = new String[] {
+    static final String[] CHECK_CONFIG_KEYS = new String[]{
             PosixInitAction.SCHEMA_KEY, PosixInitAction.RESOURCE_ID_KEY,
             PosixInitAction.UID_START_KEY, PosixInitAction.GID_START_KEY
     };
@@ -125,7 +124,7 @@ public class PosixInitAction extends InitAction {
         errorReportMessage.append("incomplete config: ");
 
         Arrays.stream(PosixInitAction.CHECK_CONFIG_KEYS)
-              .forEach(key -> PosixInitAction.checkConfigProperty(key, multiValuedProperties, errorReportMessage));
+                .forEach(key -> PosixInitAction.checkConfigProperty(key, multiValuedProperties, errorReportMessage));
 
         if (errorReportMessage.indexOf("MISSING") > 0) {
             throw new IllegalStateException(errorReportMessage.toString());
@@ -152,8 +151,8 @@ public class PosixInitAction extends InitAction {
         LOGGER.info("initConfig: OK");
     }
 
-    static Map<String,Object> getDaoConfig(MultiValuedProperties props) {
-        final Map<String,Object> ret = new TreeMap<>();
+    static Map<String, Object> getDaoConfig(MultiValuedProperties props) {
+        final Map<String, Object> ret = new TreeMap<>();
         ret.put("jndiDataSourceName", PosixInitAction.JNDI_DATASOURCE);
         ret.put("schema", props.getFirstPropertyValue(PosixInitAction.SCHEMA_KEY));
 

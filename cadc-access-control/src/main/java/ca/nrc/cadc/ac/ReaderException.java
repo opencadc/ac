@@ -72,8 +72,7 @@ package ca.nrc.cadc.ac;
 /**
  * Class for all Exceptions that occur during reading.
  */
-public class ReaderException extends Exception
-{
+public class ReaderException extends Exception {
     /**
      * Constructs a new exception with the specified detail message.  The
      * cause is not initialized, and may subsequently be initialized by
@@ -82,8 +81,7 @@ public class ReaderException extends Exception
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public ReaderException(String message)
-    {
+    public ReaderException(String message) {
         super(message);
     }
 
@@ -101,8 +99,7 @@ public class ReaderException extends Exception
      *                unknown.)
      * @since 1.4
      */
-    public ReaderException(String message, Throwable cause)
-    {
+    public ReaderException(String message, Throwable cause) {
         super(message, cause);
     }
 

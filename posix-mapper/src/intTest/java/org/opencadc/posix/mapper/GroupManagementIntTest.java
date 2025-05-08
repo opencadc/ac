@@ -77,13 +77,6 @@ import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -94,6 +87,12 @@ import java.nio.file.Files;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
+import javax.security.auth.Subject;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class GroupManagementIntTest {
     private static final Logger log = Logger.getLogger(UserManagementIntTest.class);
@@ -112,16 +111,16 @@ public class GroupManagementIntTest {
     public GroupManagementIntTest() throws Exception {
         RegistryClient regClient = new RegistryClient();
         groupMapperURL = regClient.getServiceURL(GroupManagementIntTest.POSIX_MAPPER_SERVICE_ID,
-                                                 Standards.POSIX_GROUPMAP, AuthMethod.TOKEN);
+                Standards.POSIX_GROUPMAP, AuthMethod.TOKEN);
         log.info("Group Mapping URL: " + groupMapperURL);
 
         File bearerTokenFile = FileUtil.getFileFromResource("posix-mapper-test.token",
-                                                            UserManagementIntTest.class);
+                UserManagementIntTest.class);
         final String bearerToken = new String(Files.readAllBytes(bearerTokenFile.toPath()));
         userSubject = new Subject();
         userSubject.getPublicCredentials().add(
                 new AuthorizationToken("Bearer", bearerToken.replaceAll("\n", ""),
-                                       List.of(NetUtil.getDomainName(groupMapperURL))));
+                        List.of(NetUtil.getDomainName(groupMapperURL))));
         log.debug("userSubject: " + userSubject);
     }
 
@@ -132,19 +131,19 @@ public class GroupManagementIntTest {
             try {
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_TYPE,
-                          new String[]{"ivo://test.org/groups?" + groupName}, new int[0]);
+                        new String[]{"ivo://test.org/groups?" + groupName}, new int[0]);
                 final String output = byteArrayOutputStream.toString();
                 final int gid = Integer.parseInt(output.trim().split(":")[2]);
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 getGroups(byteArrayOutputStream, GroupManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0],
-                          new int[]{gid});
+                        new int[]{gid});
                 Assert.assertEquals("Wrong output", output, byteArrayOutputStream.toString());
 
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 getGroups(byteArrayOutputStream, GroupManagementIntTest.TSV_CONTENT_TYPE, new String[0],
-                          new int[]{gid});
+                        new int[]{gid});
                 Assert.assertEquals("Wrong output", "ivo://test.org/groups?" + groupName + "\t" + gid,
-                                    byteArrayOutputStream.toString().trim());
+                        byteArrayOutputStream.toString().trim());
             } catch (Throwable throwable) {
                 throw new Exception(throwable.getMessage(), throwable);
             }
@@ -174,7 +173,7 @@ public class GroupManagementIntTest {
         if (gids.length > 0) {
             urlBuilder.append("gid=");
             urlBuilder.append(String.join("&gid=", Arrays.stream(gids)
-                                                         .mapToObj(Integer::toString).toArray(String[]::new)));
+                    .mapToObj(Integer::toString).toArray(String[]::new)));
         }
 
         final HttpGet httpGet = new HttpGet(new URL(urlBuilder.toString()), inputStreamWrapper);

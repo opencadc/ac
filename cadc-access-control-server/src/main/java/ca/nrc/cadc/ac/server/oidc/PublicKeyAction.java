@@ -68,28 +68,23 @@ package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
-
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.RSAKey;
-
 import java.io.OutputStreamWriter;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Set;
-import java.util.UUID;
-
 import org.apache.log4j.Logger;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
 
 /**
  * This class responds to HTTP GET calls and returns the public key used to decrypt
  * signed JWTs.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class PublicKeyAction extends RestAction {
-    
+
     private static final Logger log = Logger.getLogger(PublicKeyAction.class);
 
     @Override
@@ -97,11 +92,11 @@ public class PublicKeyAction extends RestAction {
         log.debug("returning public key as jwks");
         Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
         RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
-        
+
         JWK jwk = new RSAKey.Builder(key)
-            .keyUse(KeyUse.SIGNATURE)
-            .keyID(OIDCUtil.KID_CLAIM_VALUE)
-            .build();
+                .keyUse(KeyUse.SIGNATURE)
+                .keyID(OIDCUtil.KID_CLAIM_VALUE)
+                .build();
 
         String jwkJSON = jwk.toPublicJWK().toJSONString();
         StringBuilder json = new StringBuilder();
@@ -118,7 +113,7 @@ public class PublicKeyAction extends RestAction {
         out.write(json.toString());
         out.flush();
     }
-    
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;

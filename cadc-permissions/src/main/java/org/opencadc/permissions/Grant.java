@@ -77,9 +77,8 @@ import org.opencadc.gms.GroupURI;
 
 /**
  * Holds grant information about an artifact.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public abstract class Grant {
 
@@ -91,7 +90,7 @@ public abstract class Grant {
     /**
      * Construct a grant for the given artifactURI and expiryDate.
      *
-     * @param assetID the asset identifier
+     * @param assetID    the asset identifier
      * @param expiryDate the expiry date of the grant
      */
     public Grant(URI assetID, Date expiryDate) {
@@ -118,16 +117,16 @@ public abstract class Grant {
     public Date getExpiryDate() {
         return expiryDate;
     }
-    
+
     /**
      * Get the group list with access to the asset.
-     * 
+     *
      * @return list of groups with access
      */
     public List<GroupURI> getGroups() {
         return groups;
     }
-    
+
     private void assertNotNull(Class caller, String name, Object test) {
         if (test == null) {
             throw new IllegalArgumentException("invalid " + caller.getSimpleName() + "." + name + ": null");

@@ -69,23 +69,19 @@
 package ca.nrc.cadc.ac.server.web.userrequests;
 
 import ca.nrc.cadc.ac.UserRequest;
-
 import java.io.InputStream;
 
 
-public class CreateUserRequestAction extends AbstractUserRequestAction
-{
+public class CreateUserRequestAction extends AbstractUserRequestAction {
     private final InputStream inputStream;
 
-    CreateUserRequestAction(final InputStream inputStream)
-    {
+    CreateUserRequestAction(final InputStream inputStream) {
         super();
         this.inputStream = inputStream;
     }
 
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         final UserRequest userRequest = readUserRequest(this.inputStream);
         userPersistence.addUserRequest(userRequest, this.groupOwnerHttpPrincipal);
 

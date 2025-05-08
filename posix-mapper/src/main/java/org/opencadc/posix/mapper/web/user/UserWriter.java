@@ -68,10 +68,9 @@
 
 package org.opencadc.posix.mapper.web.user;
 
-import org.opencadc.posix.mapper.User;
-
 import java.io.IOException;
 import java.util.Iterator;
+import org.opencadc.posix.mapper.User;
 
 public interface UserWriter {
     void write(final Iterator<User> userIterator) throws IOException;

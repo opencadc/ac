@@ -1,10 +1,6 @@
 package org.opencadc.posix.mapper;
 
 
-import org.opencadc.gms.GroupURI;
-
-import java.util.List;
-
 public interface PosixUtil {
 
     PosixUtil userName(String userName);
@@ -23,8 +19,8 @@ public interface PosixUtil {
      * Utility method so constructors can validate arguments.
      *
      * @param caller class doing test
-     * @param name field name being checked
-     * @param test object to test
+     * @param name   field name being checked
+     * @param test   object to test
      * @throws IllegalArgumentException if the value is invalid
      */
     static void assertNotNull(Class<?> caller, String name, Object test)

@@ -68,30 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web;
 
-import java.io.IOException;
-import java.net.URI;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Set;
-import java.util.TimeZone;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
@@ -106,8 +82,29 @@ import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
+import java.io.IOException;
+import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 
 /**
  * Servlet to handle password resets.  Passwords are an integral part of the
@@ -117,10 +114,9 @@ import java.util.regex.Pattern;
  * This servlet handles GET and POST only.  It relies on the Subject being set higher
  * up by the AccessControlFilter as configured in the web descriptor.
  */
-public class ResetPasswordServlet extends HttpServlet
-{
+public class ResetPasswordServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(ResetPasswordServlet.class);
-    
+
     public static final String RESET_PASSWORD_SCOPE = "/resetPassword";
 
     List<Subject> privilegedSubjects;
@@ -128,137 +124,113 @@ public class ResetPasswordServlet extends HttpServlet
 
     /**
      * Servlet initialization method.
-     * 
+     *
      * <p>
-     * Receives the servlet configuration object and initializes UserPersistence 
+     * Receives the servlet configuration object and initializes UserPersistence
      * using input parameters read from it. Users who do augment
-     * subject calls are constructed by taking the principals out of the ServletConfig 
+     * subject calls are constructed by taking the principals out of the ServletConfig
      * input parameter.
-     * 
+     *
      * <p>
-     * The ResetPasswordServlet configuration in the web deployment descriptor file 
+     * The ResetPasswordServlet configuration in the web deployment descriptor file
      * <code>web.xml</code> must have two input parameters:
      * <ul>
      * <li><code>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedX500Principals</code>
      * is a list of trusted administrators DNs. Each DN must be enclosed in double quotes.
      * The list can be multi-line for readability.</li>
      * <li><code>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedHttpPrincipals</code>
-     * is a list of space separated userids (HTTP identities),  enclosed in double quotes, 
+     * is a list of space separated userids (HTTP identities),  enclosed in double quotes,
      * corresponding to the previous DNs.</li>
      * </ul>
      * The two lists of principal names must be of the same
      * length and correspond to each other in order.
-     * 
-     * @param config           The servlet configuration object.
-     * 
-     * @throws javax.servlet.ServletException   For general Servlet exceptions.
+     *
+     * @param config The servlet configuration object.
+     * @throws javax.servlet.ServletException For general Servlet exceptions.
      */
     @Override
-    public void init(final ServletConfig config) throws ServletException
-    {
+    public void init(final ServletConfig config) throws ServletException {
         super.init(config);
 
-        try
-        {
+        try {
             String x500Users = config.getInitParameter(ResetPasswordServlet.class.getName() + ".PrivilegedX500Principals");
             log.debug("privilegedX500Users: " + x500Users);
 
             String httpUsers = config.getInitParameter(ResetPasswordServlet.class.getName() + ".PrivilegedHttpPrincipals");
             log.debug("privilegedHttpUsers: " + httpUsers);
-            
+
             List<String> x500List = new ArrayList<String>();
             List<String> httpList = new ArrayList<String>();
-            if (x500Users != null && httpUsers != null)
-            {
+            if (x500Users != null && httpUsers != null) {
                 Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
                 Matcher x500Matcher = pattern.matcher(x500Users);
                 Matcher httpMatcher = pattern.matcher(httpUsers);
-                
-                while (x500Matcher.find())
-                {
-                    String next = x500Matcher.group(1);                
+
+                while (x500Matcher.find()) {
+                    String next = x500Matcher.group(1);
                     x500List.add(next.replace("\"", ""));
                 }
-                
-                while (httpMatcher.find())
-                {
+
+                while (httpMatcher.find()) {
                     String next = httpMatcher.group(1);
                     httpList.add(next.replace("\"", ""));
                 }
 
-                if (x500List.size() != httpList.size())
-                {
+                if (x500List.size() != httpList.size()) {
                     throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
                 }
 
                 privilegedSubjects = new ArrayList<Subject>(x500Users.length());
-                for (int i=0; i<x500List.size(); i++)
-                {
+                for (int i = 0; i < x500List.size(); i++) {
                     Subject s = new Subject();
                     s.getPrincipals().add(new X500Principal(x500List.get(i)));
                     s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
                     privilegedSubjects.add(s);
                 }
 
-            }
-            else
-            {
+            } else {
                 log.warn("No Privileged users configured.");
             }
 
             PluginFactory pluginFactory = getPluginFactory();
             userPersistence = pluginFactory.createUserPersistence();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.fatal("Error initializing group persistence", t);
             throw new ExceptionInInitializerError(t);
         }
     }
-    
-    
-    protected PluginFactory getPluginFactory()
-    {
+
+
+    protected PluginFactory getPluginFactory() {
         return new PluginFactory();
     }
 
-    
-    protected boolean isPrivilegedSubject(final HttpServletRequest request)
-    {
-        if (privilegedSubjects == null || privilegedSubjects.isEmpty())
-        {
+
+    protected boolean isPrivilegedSubject(final HttpServletRequest request) {
+        if (privilegedSubjects == null || privilegedSubjects.isEmpty()) {
             return false;
         }
 
         ServletPrincipalExtractor extractor = new ServletPrincipalExtractor(request);
         Set<Principal> principals = extractor.getPrincipals();
 
-        for (Principal principal : principals)
-        {
-            if (principal instanceof X500Principal)
-            {
-                for (Subject s : privilegedSubjects)
-                {
+        for (Principal principal : principals) {
+            if (principal instanceof X500Principal) {
+                for (Subject s : privilegedSubjects) {
                     Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
-                    for (X500Principal p2 : x500Principals)
-                    {
-                        if (p2.getName().equalsIgnoreCase(principal.getName()))
-                        {
+                    for (X500Principal p2 : x500Principals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
                             return true;
                         }
                     }
                 }
             }
 
-            if (principal instanceof HttpPrincipal)
-            {
-                for (Subject s : privilegedSubjects)
-                {
+            if (principal instanceof HttpPrincipal) {
+                for (Subject s : privilegedSubjects) {
                     Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
-                    for (HttpPrincipal p2 : httpPrincipals)
-                    {
-                        if (p2.getName().equalsIgnoreCase(principal.getName()))
-                        {
+                    for (HttpPrincipal p2 : httpPrincipals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
                             return true;
                         }
                     }
@@ -280,31 +252,22 @@ public class ResetPasswordServlet extends HttpServlet
     @Override
     protected void doGet(final HttpServletRequest request,
                          final HttpServletResponse response)
-            throws ServletException, IOException
-    {
+            throws ServletException, IOException {
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
         log.info(logInfo.start());
-        try
-        {
+        try {
             final Subject subject = getSubject(request);
             logInfo.setSubject(subject);
-            if ((subject == null) || (subject.getPrincipals().isEmpty()))
-            {
+            if ((subject == null) || (subject.getPrincipals().isEmpty())) {
                 logInfo.setMessage("Unauthorized subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            }
-            else
-            {
-                if (isPrivilegedSubject(request))
-                {
-                    String token = (String) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-                    {
-                        public Object run() throws Exception
-                        {
+            } else {
+                if (isPrivilegedSubject(request)) {
+                    String token = (String) Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+                        public Object run() throws Exception {
                             String emailAddress = request.getParameter("emailAddress");
-                            if (StringUtil.hasText(emailAddress))
-                            {
+                            if (StringUtil.hasText(emailAddress)) {
                                 User user = userPersistence.getUserByEmailAddress(emailAddress);
                                 HttpPrincipal userID = (HttpPrincipal) user.getHttpPrincipal();
                                 URI scopeURI = new URI(RESET_PASSWORD_SCOPE);
@@ -314,9 +277,7 @@ public class ResetPasswordServlet extends HttpServlet
                                 // Domain list is null for this case
                                 SignedToken dt = new SignedToken(userID, scopeURI, expiry.getTime(), null);
                                 return SignedToken.format(dt);
-                            }
-                            else
-                            {
+                            } else {
                                 throw new IllegalArgumentException("Missing email address");
                             }
                         }
@@ -325,55 +286,40 @@ public class ResetPasswordServlet extends HttpServlet
                     response.setContentType("text/plain");
                     response.setContentLength(token.length());
                     response.getWriter().write(token);
-                }
-                else
-                {
+                } else {
                     logInfo.setMessage("Permission denied subject");
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 }
             }
-        }
-        catch (Throwable t)
-        {
-            try
-            {
-                if (t instanceof PrivilegedActionException)
-                {
+        } catch (Throwable t) {
+            try {
+                if (t instanceof PrivilegedActionException) {
                     Exception e = ((PrivilegedActionException) t).getException();
-                    if (e != null)
-                    {
+                    if (e != null) {
                         throw e;
                     }
                 }
 
                 throw t;
-            }
-            catch (UserAlreadyExistsException e)
-            {
+            } catch (UserAlreadyExistsException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.setContentType("text/plain");
                 response.getWriter().write(e.getMessage());
-            }
-            catch (UserNotFoundException e)
-            {
+            } catch (UserNotFoundException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 response.setContentType("text/plain");
                 response.getWriter().write(e.getMessage());
-            }
-            catch (IllegalArgumentException e)
-            {
+            } catch (IllegalArgumentException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.setContentType("text/plain");
                 response.getWriter().write(e.getMessage());
-            }
-            catch (TransientException e)
-            {
+            } catch (TransientException e) {
                 log.debug(e.getMessage(), e);
                 String message = e.getMessage();
                 logInfo.setMessage(message);
@@ -381,31 +327,25 @@ public class ResetPasswordServlet extends HttpServlet
                 response.setContentType("text/plain");
                 if (e.getRetryDelay() > 0)
                     response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
-                
+
                 response.setStatus(503);
                 response.getWriter().write("Transient Error: " + message);
-            }
-            catch (AccessControlException | NotAuthenticatedException e)
-            {
+            } catch (AccessControlException | NotAuthenticatedException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                
+
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            }
-            catch (Throwable t1)
-            {
+            } catch (Throwable t1) {
                 String message = "Internal Server Error: " + t.getMessage();
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
-                
+
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 response.setContentType("text/plain");
                 response.getWriter().write(message);
             }
-        }
-        finally
-        {
+        } finally {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
@@ -421,22 +361,17 @@ public class ResetPasswordServlet extends HttpServlet
      */
     public void doPost(final HttpServletRequest request,
                        final HttpServletResponse response)
-            throws IOException
-    {
+            throws IOException {
         final long start = System.currentTimeMillis();
         final ServletLogInfo logInfo = new ServletLogInfo(request);
         log.info(logInfo.start());
-        try
-        {
+        try {
             final Subject subject = getSubject(request);
             logInfo.setSubject(subject);
-            if ((subject == null) || (subject.getPrincipals().isEmpty()))
-            {
+            if ((subject == null) || (subject.getPrincipals().isEmpty())) {
                 logInfo.setMessage("Unauthorized subject");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            }
-            else
-            {
+            } else {
                 // verify the scope
                 Set<AuthorizationToken> tokens = subject.getPublicCredentials(AuthorizationToken.class);
                 AuthorizationToken token = tokens.iterator().next();
@@ -445,27 +380,21 @@ public class ResetPasswordServlet extends HttpServlet
                     logInfo.setMessage("Unauthorized subject, insufficient scope");
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 }
-                
-                Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-                {
-                    public Object run() throws Exception
-                    {
+
+                Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+                    public Object run() throws Exception {
 
                         Set<HttpPrincipal> pset = subject.getPrincipals(HttpPrincipal.class);
-                        if (pset.isEmpty())
-                        {
+                        if (pset.isEmpty()) {
                             throw new IllegalStateException("no HttpPrincipal in subject");
                         }
 
                         HttpPrincipal userID = pset.iterator().next();
 
                         String newPassword = request.getParameter("password");
-                        if (StringUtil.hasText(newPassword))
-                        {
+                        if (StringUtil.hasText(newPassword)) {
                             userPersistence.resetPassword(userID, newPassword);
-                        }
-                        else
-                        {
+                        } else {
                             throw new IllegalArgumentException("Missing password");
                         }
 
@@ -473,75 +402,59 @@ public class ResetPasswordServlet extends HttpServlet
                     }
                 });
             }
-        }
-        catch (Throwable t)
-        {
-            try
-            {
-                if (t instanceof PrivilegedActionException)
-                {
+        } catch (Throwable t) {
+            try {
+                if (t instanceof PrivilegedActionException) {
                     Exception e = ((PrivilegedActionException) t).getException();
-                    if (e != null)
-                    {
+                    if (e != null) {
                         throw e;
                     }
                 }
 
                 throw t;
-            }
-            catch (UserNotFoundException e)
-            {
+            } catch (UserNotFoundException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                
+
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 addMessage(response, e);
-            }
-            catch (IllegalArgumentException e)
-            {
+            } catch (IllegalArgumentException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                
+
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 addMessage(response, e);
-            }
-            catch (NotAuthenticatedException e)
-            {
+            } catch (NotAuthenticatedException e) {
                 // NotAuthenticatedException is thrown when token passed in is invalid
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                
+
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 addMessage(response, e);
-                
-            }
-            catch (AccessControlException e)
-            {
+
+            } catch (AccessControlException e) {
                 log.debug(e.getMessage(), e);
                 logInfo.setMessage(e.getMessage());
-                
+
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 addMessage(response, e);
-            }
-            catch (Throwable t1)
-            {
+            } catch (Throwable t1) {
                 String message = "Internal Server Error: " + t.getMessage();
                 log.error(message, t);
                 logInfo.setSuccess(false);
                 logInfo.setMessage(message);
-                
+
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
-        }
-        finally
-        {
+        } finally {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
-     }
+    }
 
     /**
      * Add an output message to the HttpServletResponse from Exception passed in.
+     *
      * @param response
      * @param ex
      * @throws IOException
@@ -564,8 +477,7 @@ public class ResetPasswordServlet extends HttpServlet
      * @param request Servlet request
      * @return augmented Subject
      */
-    Subject getSubject(final HttpServletRequest request)
-    {
+    Subject getSubject(final HttpServletRequest request) {
         return AuthenticationUtil.getSubject(request);
     }
 }

@@ -96,19 +96,19 @@ import org.opencadc.permissions.WriteGrant;
  */
 public class PermissionsCheck {
     private static final Logger log = Logger.getLogger(PermissionsCheck.class);
-    
+
     private final URI artifactURI;
     private final boolean authenticateOnly;
     private final WebServiceLogInfo logInfo;
-    
+
     private transient Subject opsSubject;
-    
+
     private static void assertNotNull(Class caller, String name, Object test) {
         if (test == null) {
             throw new IllegalArgumentException("invalid " + caller.getSimpleName() + "." + name + ": null");
         }
     }
-    
+
     // ctor for a short-lived but reusable checker outside rest context
     // use case: datalink calls to predict permissions for a set of links (artifacts/files)
     public PermissionsCheck() {
@@ -132,7 +132,7 @@ public class PermissionsCheck {
         public void setGrant(String grant) {
             // silent no-op
         }
-        
+
     }
 
     private Subject createOpsSubject() {
@@ -142,10 +142,10 @@ public class PermissionsCheck {
         }
         return AuthenticationUtil.getAnonSubject();
     }
-    
+
     /**
      * Get the raw read grants from the specified grant providers(s).
-     * 
+     *
      * @param readGrantServices list of granting services
      * @return list of read grants
      */
@@ -153,7 +153,7 @@ public class PermissionsCheck {
         if (readGrantServices == null || readGrantServices.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         try {
             if (opsSubject == null) {
                 this.opsSubject = createOpsSubject();
@@ -165,17 +165,17 @@ public class PermissionsCheck {
             throw new RuntimeException("unexpected exception calling permissions service(s)", ex);
         }
     }
-    
+
     /**
      * Check the given read granting services for read permission to the artifact.
      *
      * @param readGrantServices list of granting services
-     * @throws AccessControlException if read permission is denied
-     * @throws TransientException if call to permission service fails with transient status code
+     * @throws AccessControlException    if read permission is denied
+     * @throws TransientException        if call to permission service fails with transient status code
      * @throws ResourceNotFoundException from GroupClient call to GMS service
      */
     public void checkReadPermission(List<URI> readGrantServices)
-        throws AccessControlException, InterruptedException, 
+            throws AccessControlException, InterruptedException,
             ResourceNotFoundException, TransientException {
         assertNotNull(PermissionsCheck.class, "readGrantServices", readGrantServices);
 
@@ -224,7 +224,7 @@ public class PermissionsCheck {
         } catch (CertificateException ex) {
             throw new AccessControlException("permission denied (invalid delegated client certificate)");
         }
-        
+
         throw new AccessControlException("permission denied");
     }
 
@@ -232,12 +232,12 @@ public class PermissionsCheck {
      * Check the given write granting services for write permission to the artifact.
      *
      * @param writeGrantServices list of write granting services.
-     * @throws AccessControlException if write permission is denied.
-     * @throws TransientException if call to permission service fails with transient status code
+     * @throws AccessControlException    if write permission is denied.
+     * @throws TransientException        if call to permission service fails with transient status code
      * @throws ResourceNotFoundException from GroupClient call to GMS service
      */
     public void checkWritePermission(List<URI> writeGrantServices)
-        throws AccessControlException, InterruptedException, 
+            throws AccessControlException, InterruptedException,
             ResourceNotFoundException, TransientException {
         assertNotNull(PermissionsCheck.class, "writeGrantServices", writeGrantServices);
 
@@ -335,7 +335,7 @@ public class PermissionsCheck {
 
         URI artifactURI;
         List<URI> writeGrantServices;
-        
+
         GetWriteGrantsAction(URI artifactURI, List<URI> writeGrantServices) {
             this.artifactURI = artifactURI;
             this.writeGrantServices = writeGrantServices;

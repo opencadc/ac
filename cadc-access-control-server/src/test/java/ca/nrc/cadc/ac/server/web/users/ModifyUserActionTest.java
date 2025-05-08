@@ -68,24 +68,6 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.security.Principal;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.log4j.Level;
-import org.easymock.EasyMock;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
@@ -94,26 +76,36 @@ import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.security.Principal;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.log4j.Level;
+import org.easymock.EasyMock;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
-public class ModifyUserActionTest
-{
+public class ModifyUserActionTest {
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
-    public void testModifyUser() throws Exception
-    {
+    public void testModifyUser() throws Exception {
         final HttpPrincipal httpPrincipal = new HttpPrincipal("CADCtest");
         User expected = new User();
         expected.getIdentities().add(httpPrincipal);
@@ -143,8 +135,7 @@ public class ModifyUserActionTest
         EasyMock.expect(mockRequest.getContextPath()).andReturn("/ac").once();
         EasyMock.expect(mockRequest.getServletPath()).andReturn("/users").once();
 
-        @SuppressWarnings("unchecked")
-        final UserPersistence mockUserPersistence = createMock(UserPersistence.class);
+        @SuppressWarnings("unchecked") final UserPersistence mockUserPersistence = createMock(UserPersistence.class);
         expect(mockUserPersistence.modifyUserPersonalDetails(testUser)).andReturn(testUser).once();
 
         final SyncOutput mockSyncOut = createMock(SyncOutput.class);
@@ -166,12 +157,9 @@ public class ModifyUserActionTest
         testSubject.syncOut = mockSyncOut;
         UserLogInfo logInfo = createMock(UserLogInfo.class);
         testSubject.setLogInfo(logInfo);
-        try
-        {
+        try {
             testSubject.doAction();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
         verify(mockRequest, mockSyncOut, mockUserPersistence);

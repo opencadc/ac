@@ -75,35 +75,30 @@ import java.security.AccessControlException;
 import org.apache.log4j.Logger;
 
 /**
- *  This class enables the specified user (Unlocks the user account in LDAP).
- * @author jeevesh
+ * This class enables the specified user (Unlocks the user account in LDAP).
  *
+ * @author jeevesh
  */
-public class EnableUser extends AbstractUserCommand
-{
+public class EnableUser extends AbstractUserCommand {
     private static final Logger log = Logger.getLogger(EnableUser.class);
 
     /**
      * Constructor
+     *
      * @param userID Id of the user to be disabled (deactivated)
      */
-    public EnableUser(final String userID)
-    {
-    	super(userID);
+    public EnableUser(final String userID) {
+        super(userID);
     }
 
     protected void execute()
-        throws AccessControlException, UserNotFoundException, TransientException
-    {
-        try
-        {
+            throws AccessControlException, UserNotFoundException, TransientException {
+        try {
             // Use deactivateUser, which will lock the user account in LDAP
             this.getUserPersistence().reactivateUser(this.getPrincipal());
             String msg = "User " + this.getPrincipal().getName() + " was enabled successfully.";
             this.systemOut.println(msg);
-        }
-        catch (UserNotFoundException u)
-        {
+        } catch (UserNotFoundException u) {
             this.systemOut.println(u.getLocalizedMessage());
         }
     }

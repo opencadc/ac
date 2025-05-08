@@ -1,22 +1,5 @@
 package ca.nrc.cadc.ac.json;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.UUID;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
@@ -27,66 +10,66 @@ import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.UUID;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 
 /**
  * JsonUserListReaderWriterTest TODO describe class
  */
-public class JsonUserListReaderWriterTest
-{
+public class JsonUserListReaderWriterTest {
     private static final Logger log = Logger.getLogger(JsonUserListReaderWriterTest.class);
 
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-            throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             JsonUserListReader reader = new JsonUserListReader();
             reader.read((String) null);
             fail("null String should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             // Good
         }
 
-        try
-        {
+        try {
             JsonUserListReader reader = new JsonUserListReader();
             reader.read((InputStream) null);
             fail("null InputStream should throw IOException");
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // Good
         }
 
-        try
-        {
+        try {
             JsonUserListReader reader = new JsonUserListReader();
             reader.read((Reader) null);
             fail("null Reader should throw IllegalArgumentException");
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             // Good
         }
     }
@@ -146,27 +129,21 @@ public class JsonUserListReaderWriterTest
 //
 //        assertEquals("Size is wrong.", 4, readBackIn.size());
 //    }
-
     @Test
     public void testWriterExceptions()
-            throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             JsonUserWriter writer = new JsonUserWriter();
             writer.write(null, new StringBuilder());
             fail("null User should throw WriterException");
-        }
-        catch (WriterException e)
-        {
+        } catch (WriterException e) {
             // Good
         }
     }
 
     @Test
     public void testReadWrite()
-            throws Exception
-    {
+            throws Exception {
         User expected = new User();
         UUID uuid = UUID.randomUUID();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" + UUID.randomUUID());

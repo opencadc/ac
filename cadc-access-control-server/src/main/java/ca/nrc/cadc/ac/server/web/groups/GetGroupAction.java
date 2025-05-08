@@ -65,28 +65,26 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac.server.web.groups;
+ */
+package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 
-public class GetGroupAction extends AbstractGroupAction
-{
+public class GetGroupAction extends AbstractGroupAction {
     private final String groupName;
 
-    GetGroupAction( String groupName)
-    {
+    GetGroupAction(String groupName) {
         super();
         this.groupName = groupName;
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Group group;
         if (isPrivilegedUser) {
-             group = groupPersistence.getGroup(this.groupName, false);
+            group = groupPersistence.getGroup(this.groupName, false);
         } else {
-             group = groupPersistence.getGroup(this.groupName);
+            group = groupPersistence.getGroup(this.groupName);
         }
         syncOut.setHeader("Content-Type", "application/xml; charset=utf-8");
         GroupWriter groupWriter = new GroupWriter();

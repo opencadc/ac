@@ -69,44 +69,37 @@
 package ca.nrc.cadc.ac;
 
 /**
- *
  * @author jburke
  */
-public enum Role
-{
+public enum Role {
     OWNER("owner"),
     MEMBER("member"),
     ADMIN("admin");
-    
+
     private final String value;
 
-    private Role(String value)
-    {
+    private Role(String value) {
         this.value = value;
     }
 
-    public static Role toValue(String s)
-    {
+    public static Role toValue(String s) {
         for (Role role : values())
             if (role.value.equals(s))
                 return role;
         throw new IllegalArgumentException("invalid value: " + s);
     }
 
-    public String getValue()
-    { 
+    public String getValue() {
         return value;
     }
 
-    public int checksum()
-    {
+    public int checksum() {
         return value.hashCode();
     }
-    
+
     @Override
-    public String toString()
-    {
+    public String toString() {
         return this.getClass().getSimpleName() + "[" + value + "]";
     }
-    
+
 }

@@ -70,22 +70,20 @@ package ca.nrc.cadc.ac.server.ldap;
 
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
+import java.security.AccessControlException;
+import java.security.GeneralSecurityException;
+import java.util.Random;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+import org.apache.log4j.Logger;
 import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
-import org.apache.log4j.Logger;
-
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
-import java.security.AccessControlException;
-import java.security.GeneralSecurityException;
-import java.util.Random;
 
 
-public abstract class LdapDAO
-{
-	private static final Logger logger = Logger.getLogger(LdapDAO.class);
+public abstract class LdapDAO {
+    private static final Logger logger = Logger.getLogger(LdapDAO.class);
 
     // LDAP attributes common to LdapUser and LdapGroup
     protected static final String LDAP_OBJECT_CLASS = "objectClass";
@@ -100,30 +98,25 @@ public abstract class LdapDAO
 
     DN subjDN = null;
 
-    public LdapDAO(LdapConnections connections)
-    {
+    public LdapDAO(LdapConnections connections) {
         this.connections = connections;
         config = connections.getCurrentConfig();
         logger.debug("New LdapDAO instance, config: " + config);
     }
 
-    public LDAPConnection getReadOnlyConnection() throws TransientException
-    {
+    public LDAPConnection getReadOnlyConnection() throws TransientException {
         return connections.getReadOnlyConnection();
     }
 
-    public LDAPConnection getReadWriteConnection() throws TransientException
-    {
+    public LDAPConnection getReadWriteConnection() throws TransientException {
         return connections.getReadWriteConnection();
     }
 
-    public LDAPConnection getUnboundReadConnection() throws TransientException
-    {
+    public LDAPConnection getUnboundReadConnection() throws TransientException {
         return connections.getUnboundReadOnlyConnection();
     }
 
-    public void close()
-    {
+    public void close() {
         connections.releaseConnections();
     }
 
@@ -132,10 +125,10 @@ public abstract class LdapDAO
      * implementation returns a value between 20000 and Integer.MAX_VALUE.
      * Services that support a different mechanism for generating numeric
      * IDs override this method.
+     *
      * @return
      */
-    protected int genNextNumericId()
-    {
+    protected int genNextNumericId() {
         Random rand = new Random();
         return rand.nextInt(Integer.MAX_VALUE - 20000) + 20000;
     }
@@ -145,56 +138,40 @@ public abstract class LdapDAO
      * throws an appropriate exception. This is the place to decide on
      * mapping between ldap errors and exception types
      *
-     * @param code          The code returned from an LDAP request.
+     * @param code The code returned from an LDAP request.
      * @throws TransientException
      */
     protected static void checkLdapResult(ResultCode code)
-            throws TransientException
-    {
-    	logger.debug("Ldap result: " + code);
+            throws TransientException {
+        logger.debug("Ldap result: " + code);
         checkLdapResult(code, false, null);
     }
-    
+
     protected static void checkLdapResult(LDAPException e) throws TransientException {
         checkLdapResult(e.getResultCode(), false, e.getMessage());
     }
-    
+
     protected static void checkLdapResult(ResultCode code, boolean ignoreNoSuchAttribute, String errorMessage)
-            throws TransientException
-    {
-    	if ( code == ResultCode.SUCCESS 
+            throws TransientException {
+        if (code == ResultCode.SUCCESS
                 || code == ResultCode.NO_SUCH_OBJECT
-                || (ignoreNoSuchAttribute && code == ResultCode.NO_SUCH_ATTRIBUTE) )
-        {
+                || (ignoreNoSuchAttribute && code == ResultCode.NO_SUCH_ATTRIBUTE)) {
             return;
         }
 
-        if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS)
-        {
+        if (code == ResultCode.INSUFFICIENT_ACCESS_RIGHTS) {
             throw new AccessControlException("Not authorized ");
-        }
-        else if (code == ResultCode.INVALID_CREDENTIALS)
-        {
+        } else if (code == ResultCode.INVALID_CREDENTIALS) {
             throw new AccessControlException("Invalid credentials ");
-        }
-        else if (code == ResultCode.PARAM_ERROR)
-        {
+        } else if (code == ResultCode.PARAM_ERROR) {
             throw new IllegalArgumentException("Error in Ldap parameters ");
-        }
-        else if (code == ResultCode.BUSY || code == ResultCode.CONNECT_ERROR)
-        {
+        } else if (code == ResultCode.BUSY || code == ResultCode.CONNECT_ERROR) {
             throw new TransientException("Connection problems ");
-        }
-        else if (code == ResultCode.TIMEOUT || code == ResultCode.TIME_LIMIT_EXCEEDED)
-        {
+        } else if (code == ResultCode.TIMEOUT || code == ResultCode.TIME_LIMIT_EXCEEDED) {
             throw new TransientException("ldap timeout");
-        }
-        else if (code == ResultCode.INVALID_DN_SYNTAX)
-        {
+        } else if (code == ResultCode.INVALID_DN_SYNTAX) {
             throw new IllegalArgumentException("Invalid DN syntax");
-        }
-        else if (code == ResultCode.CONSTRAINT_VIOLATION)
-        {
+        } else if (code == ResultCode.CONSTRAINT_VIOLATION) {
             if (errorMessage != null) {
                 throw new IllegalArgumentException(errorMessage);
             } else {
@@ -206,33 +183,25 @@ public abstract class LdapDAO
     }
 
 
-    static SocketFactory getSocketFactory(LdapConfig.LdapPool poolConfig)
-    {
+    static SocketFactory getSocketFactory(LdapConfig.LdapPool poolConfig) {
         final SocketFactory socketFactory;
 
-        if (poolConfig.isSecure())
-        {
+        if (poolConfig.isSecure()) {
             Profiler profiler = new Profiler(LdapDAO.class);
             socketFactory = createSSLSocketFactory();
             profiler.checkpoint("createSSLSocketFactory");
-        }
-        else
-        {
+        } else {
             socketFactory = SocketFactory.getDefault();
         }
 
         return socketFactory;
     }
 
-    static SSLSocketFactory createSSLSocketFactory()
-    {
-        try
-        {
+    static SSLSocketFactory createSSLSocketFactory() {
+        try {
             return new com.unboundid.util.ssl.SSLUtil().
                     createSSLSocketFactory();
-        }
-        catch (GeneralSecurityException e)
-        {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException("Unexpected error.", e);
         }
     }

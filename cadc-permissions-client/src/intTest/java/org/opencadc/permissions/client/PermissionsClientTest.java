@@ -108,9 +108,9 @@ public class PermissionsClientTest {
         Log4jInit.setLevel("org.opencadc.inventory.permissions", Level.INFO);
 
         cadcRegTest1Subject = SSLUtil.createSubject(
-            FileUtil.getFileFromResource("x509_CADCRegtest1.pem", PermissionsClientTest.class));
+                FileUtil.getFileFromResource("x509_CADCRegtest1.pem", PermissionsClientTest.class));
         cadcAuthTest1Subject = SSLUtil.createSubject(
-            FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", PermissionsClientTest.class));
+                FileUtil.getFileFromResource("x509_CADCAuthtest1.pem", PermissionsClientTest.class));
 
         serviceID = URI.create("ivo://cadc.nrc.ca/baldur");
 
@@ -141,7 +141,8 @@ public class PermissionsClientTest {
             PermissionsClient testSubject = new PermissionsClient(serviceID);
             log.debug(cadcRegTest1Subject);
             Subject.doAs(cadcRegTest1Subject, new PrivilegedExceptionAction<Object>() {
-                @Override public Object run() throws Exception {
+                @Override
+                public Object run() throws Exception {
                     ReadGrant readGrant = testSubject.getReadGrant(testArtifact);
                     Assert.fail("Anonymous user access should " + "throw exception");
                     return null;

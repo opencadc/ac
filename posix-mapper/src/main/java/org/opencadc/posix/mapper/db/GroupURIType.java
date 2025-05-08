@@ -68,16 +68,15 @@
 
 package org.opencadc.posix.mapper.db;
 
-import org.hibernate.engine.spi.SharedSessionContractImplementor;
-import org.hibernate.usertype.UserType;
-import org.opencadc.gms.GroupURI;
-
 import java.io.Serializable;
 import java.net.URI;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.hibernate.usertype.UserType;
+import org.opencadc.gms.GroupURI;
 
 /**
  * Hibernate mapping type to marshal and unmarshal a GroupURI.

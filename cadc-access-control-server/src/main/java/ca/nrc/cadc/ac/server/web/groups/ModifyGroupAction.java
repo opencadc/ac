@@ -68,32 +68,28 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.profiler.Profiler;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ModifyGroupAction extends AbstractGroupAction
-{
+public class ModifyGroupAction extends AbstractGroupAction {
     private final String groupName;
     private final String request;
     private final InputStream inputStream;
 
-    ModifyGroupAction(String groupName, final String request, InputStream inputStream)
-    {
+    ModifyGroupAction(String groupName, final String request, InputStream inputStream) {
         super();
         this.groupName = groupName;
         this.request = request;
         this.inputStream = inputStream;
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Profiler profiler = new Profiler(ModifyGroupAction.class);
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
@@ -104,38 +100,30 @@ public class ModifyGroupAction extends AbstractGroupAction
         profiler.checkpoint("modify Group");
 
         List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers())
-        {
-            if (!oldGroup.getUserMembers().remove(member))
-            {
+        for (User member : group.getUserMembers()) {
+            if (!oldGroup.getUserMembers().remove(member)) {
                 addedMembers.add(getUseridForLogging(member));
             }
         }
-        for (Group gr : group.getGroupMembers())
-        {
-            if (!oldGroup.getGroupMembers().remove(gr))
-            {
+        for (Group gr : group.getGroupMembers()) {
+            if (!oldGroup.getGroupMembers().remove(gr)) {
                 addedMembers.add(gr.getID().getName());
             }
         }
-        if (addedMembers.isEmpty())
-        {
+        if (addedMembers.isEmpty()) {
             addedMembers = null;
-        } 
+        }
 
-        List<String>deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers())
-        {
+        List<String> deletedMembers = new ArrayList<String>();
+        for (User member : oldGroup.getUserMembers()) {
             deletedMembers.add(getUseridForLogging(member));
         }
-        for (Group gr : oldGroup.getGroupMembers())
-        {
+        for (Group gr : oldGroup.getGroupMembers()) {
             deletedMembers.add(gr.getID().getName());
         }
-        if (deletedMembers.isEmpty())
-        {
+        if (deletedMembers.isEmpty()) {
             deletedMembers = null;
-        } 
+        }
 
         logGroupInfo(group.getID().getName(), deletedMembers, addedMembers);
         profiler.checkpoint("log GroupInfo");

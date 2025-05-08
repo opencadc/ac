@@ -68,110 +68,93 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.security.Principal;
-import java.util.UUID;
-
-import javax.management.remote.JMXPrincipal;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.security.Principal;
+import java.util.UUID;
+import javax.management.remote.JMXPrincipal;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class IdentityReaderWriterTest extends AbstractReaderWriter
-{
+public class IdentityReaderWriterTest extends AbstractReaderWriter {
     private static Logger log = Logger.getLogger(IdentityReaderWriterTest.class);
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
+            throws Exception {
         Element element = null;
-        try
-        {
+        try {
             Principal p = getPrincipal(element);
             fail("null element should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = new Element("foo");
-        try
-        {
+        try {
             Principal p = getPrincipal(element);
             fail("element not named 'identity' should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = new Element("identity");
-        try
-        {
+        try {
             Principal p = getPrincipal(element);
             fail("element without 'type' attribute should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element.setAttribute("type", "foo");
-        try
-        {
+        try {
             Principal p = getPrincipal(element);
             fail("element with unknown 'type' attribute should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
+            throws Exception {
         Principal p = null;
-        try
-        {
+        try {
             Element element = getElement(p);
             fail("null Identity should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
 
         p = new JMXPrincipal("foo");
-        try
-        {
+        try {
             Element element = getElement(p);
             fail("Unsupported Principal type should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testReadWrite()
-        throws Exception
-    {
+            throws Exception {
         // X500
         Principal expected = new X500Principal("cn=foo,o=bar");
         Element element = getElement(expected);
