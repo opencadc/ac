@@ -68,15 +68,14 @@
 
 package org.opencadc.posix.mapper.web.group;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.Group;
-
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URI;
 import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.Group;
 
 public class TSVGroupWriterTest {
     @Test

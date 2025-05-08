@@ -68,25 +68,22 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 
-public class RemoveUserMemberAction extends AbstractGroupAction
-{
+public class RemoveUserMemberAction extends AbstractGroupAction {
     private final String groupName;
     private final String userID;
     private final String userIDType;
 
-    public RemoveUserMemberAction(String groupName, String userID, String userIDType)
-    {
+    public RemoveUserMemberAction(String groupName, String userID, String userIDType) {
         super();
         this.groupName = groupName;
         this.userID = userID;
@@ -94,16 +91,14 @@ public class RemoveUserMemberAction extends AbstractGroupAction
     }
 
     @Override
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Group group = groupPersistence.getGroup(this.groupName);
 
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
 
         User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
 
-        if (!group.getUserMembers().remove(user))
-        {
+        if (!group.getUserMembers().remove(user)) {
             throw new MemberNotFoundException();
         }
         groupPersistence.modifyGroup(group);
@@ -113,8 +108,7 @@ public class RemoveUserMemberAction extends AbstractGroupAction
         logGroupInfo(group.getID().getName(), deletedMembers, null);
     }
 
-    protected UserPersistence getUserPersistence()
-    {
+    protected UserPersistence getUserPersistence() {
         PluginFactory pluginFactory = new PluginFactory();
         return pluginFactory.createUserPersistence();
     }

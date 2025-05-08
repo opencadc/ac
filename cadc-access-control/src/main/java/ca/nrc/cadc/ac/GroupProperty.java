@@ -70,34 +70,29 @@ package ca.nrc.cadc.ac;
 
 /**
  * A property representing metadata for a group.
- *
  */
-public class GroupProperty
-{
+public class GroupProperty {
     // The property identifier
     private String key;
-    
+
     // The value of the property
     private Object value;
-    
+
     // true if the property cannot be modified.
     private boolean readOnly;
 
     /**
      * GroupProperty constructor.
-     * 
-     * @param key The property key. Cannot be null.
-     * @param value The property value.
+     *
+     * @param key      The property key. Cannot be null.
+     * @param value    The property value.
      * @param readOnly
      */
-    public GroupProperty(String key, Object value, boolean readOnly)
-    {
-        if (key == null)
-        {
+    public GroupProperty(String key, Object value, boolean readOnly) {
+        if (key == null) {
             throw new IllegalArgumentException("Null key");
         }
-        if (value == null)
-        {
+        if (value == null) {
             throw new IllegalArgumentException("Null value");
         }
         this.key = key;
@@ -108,24 +103,21 @@ public class GroupProperty
     /**
      * @return property key
      */
-    public String getKey()
-    {
+    public String getKey() {
         return key;
     }
 
     /**
      * @return value
      */
-    public Object getValue()
-    {
+    public Object getValue() {
         return value;
     }
 
     /**
      * @return read only
      */
-    public boolean isReadOnly()
-    {
+    public boolean isReadOnly() {
         return readOnly;
     }
 
@@ -133,8 +125,7 @@ public class GroupProperty
      * @see java.lang.Object#hashCode()
      */
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + (key == null ? 0 : key.hashCode());
@@ -145,18 +136,14 @@ public class GroupProperty
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (obj == null)
-        {
+        if (obj == null) {
             return false;
         }
-        if (!(obj instanceof GroupProperty))
-        {
+        if (!(obj instanceof GroupProperty)) {
             return false;
         }
         GroupProperty other = (GroupProperty) obj;
@@ -164,8 +151,7 @@ public class GroupProperty
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return getClass().getSimpleName() + "[" + key + ": " + value + "]";
     }
 }

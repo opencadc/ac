@@ -71,10 +71,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.xml.XmlUtil;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -84,16 +80,18 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 /**
  * Class to read an XML representation of a List of Groups
  * into a Collection of Group objects.
  */
-public class GroupListReader extends AbstractReaderWriter
-{
+public class GroupListReader extends AbstractReaderWriter {
     /**
      * Construct a list of Group's from an XML String source.
-     * 
+     *
      * @param xml String of the XML.
      * @return Groups List of Group.
      * @throws ReaderException
@@ -101,10 +99,8 @@ public class GroupListReader extends AbstractReaderWriter
      * @throws java.net.URISyntaxException
      */
     public List<Group> read(String xml)
-        throws ReaderException, IOException, URISyntaxException
-    {
-        if (xml == null)
-        {
+            throws ReaderException, IOException, URISyntaxException {
+        if (xml == null) {
             throw new IllegalArgumentException("XML must not be null");
         }
         return read(new StringReader(xml));
@@ -112,7 +108,7 @@ public class GroupListReader extends AbstractReaderWriter
 
     /**
      * Construct a List of Group's from a InputStream.
-     * 
+     *
      * @param in InputStream.
      * @return Groups List of Group.
      * @throws ReaderException
@@ -120,19 +116,14 @@ public class GroupListReader extends AbstractReaderWriter
      * @throws java.net.URISyntaxException
      */
     public List<Group> read(InputStream in)
-        throws ReaderException, IOException, URISyntaxException
-    {
-        if (in == null)
-        {
+            throws ReaderException, IOException, URISyntaxException {
+        if (in == null) {
             throw new IOException("stream closed");
         }
         InputStreamReader reader;
-        try
-        {
+        try {
             reader = new InputStreamReader(in, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("UTF-8 encoding not supported");
         }
         return read(reader);
@@ -140,7 +131,7 @@ public class GroupListReader extends AbstractReaderWriter
 
     /**
      * Construct a List of Group's from a Reader.
-     * 
+     *
      * @param reader Reader.
      * @return Groups List of Group.
      * @throws ReaderException
@@ -148,20 +139,15 @@ public class GroupListReader extends AbstractReaderWriter
      * @throws java.net.URISyntaxException
      */
     public List<Group> read(Reader reader)
-        throws ReaderException, IOException, URISyntaxException
-    {
-        if (reader == null)
-        {
+            throws ReaderException, IOException, URISyntaxException {
+        if (reader == null) {
             throw new IllegalArgumentException("reader must not be null");
         }
 
         Document document;
-        try
-        {
+        try {
             document = XmlUtil.buildDocument(reader);
-        }
-        catch (JDOMException jde)
-        {
+        } catch (JDOMException jde) {
             String error = "XML failed validation: " + jde.getMessage();
             throw new ReaderException(error, jde);
         }
@@ -170,8 +156,7 @@ public class GroupListReader extends AbstractReaderWriter
 
         String groupElemName = root.getName();
 
-        if (!groupElemName.equalsIgnoreCase(GROUPS))
-        {
+        if (!groupElemName.equalsIgnoreCase(GROUPS)) {
             String error = "Expected groups element, found " + groupElemName;
             throw new ReaderException(error);
         }
@@ -188,13 +173,12 @@ public class GroupListReader extends AbstractReaderWriter
      * @throws ReaderException
      */
     protected final List<Group> getGroupList(Element element)
-        throws URISyntaxException, ReaderException
-    {;
+            throws URISyntaxException, ReaderException {
+        ;
         List<Group> groups = new ArrayList<Group>();
 
         List<Element> groupElements = element.getChildren(GROUP);
-        for (Element groupElement : groupElements)
-        {
+        for (Element groupElement : groupElements) {
             groups.add(getGroup(groupElement));
         }
 

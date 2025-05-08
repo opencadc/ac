@@ -68,24 +68,20 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import java.security.Principal;
-import java.util.Set;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import java.security.Principal;
+import java.util.Set;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
 
 
-public class CommandRunner
-{
+public class CommandRunner {
     private final static Logger LOGGER = Logger.getLogger(CommandRunner.class);
     private final CmdLineParser commandLineParser;
     private final UserPersistence userPersistence;
@@ -94,8 +90,7 @@ public class CommandRunner
 
     public CommandRunner(final CmdLineParser commandLineParser,
                          final UserPersistence userPersistence,
-                         final GroupPersistence groupPersistence)
-    {
+                         final GroupPersistence groupPersistence) {
         this.commandLineParser = commandLineParser;
         this.userPersistence = userPersistence;
         this.groupPersistence = groupPersistence;
@@ -104,24 +99,19 @@ public class CommandRunner
 
     /**
      * Run a suitable action command.
-     *
      */
-    public void run() throws UserNotFoundException, TransientException
-    {
+    public void run() throws UserNotFoundException, TransientException {
         AbstractCommand command = commandLineParser.getCommand();
         command.setUserPersistence(userPersistence);
         command.setGroupPersistence(groupPersistence);
 
         Subject operatorSubject = new Subject();
 
-        if (command instanceof AbstractUserCommand)
-        {
+        if (command instanceof AbstractUserCommand) {
             Principal userIDPrincipal = ((AbstractUserCommand) command).getPrincipal();
             operatorSubject.getPrincipals().add(userIDPrincipal);
             operatorSubject.getPublicCredentials().add(AuthMethod.PASSWORD);
-        }
-        else
-        {
+        } else {
             // run as the operator using their cert
             Subject subjectFromCert = commandLineParser.getSubjectFromCert();
 

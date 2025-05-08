@@ -68,27 +68,13 @@
  */
 package ca.nrc.cadc.ac.server.ldap;
 
-import ca.nrc.cadc.ac.UserSet;
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import java.util.SortedSet;
-import java.util.TreeSet;
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.UserSet;
 import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.GroupPersistence;
@@ -99,23 +85,30 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.util.ObjectUtil;
-import java.net.URI;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
 import org.opencadc.auth.PosixGroup;
 
-public class LdapGroupPersistence extends LdapPersistence implements GroupPersistence
-{
+public class LdapGroupPersistence extends LdapPersistence implements GroupPersistence {
     private static final Logger log =
             Logger.getLogger(LdapGroupPersistence.class);
 
     private GroupDetailSelector detailSelector;
 
-    public LdapGroupPersistence()
-    {
+    public LdapGroupPersistence() {
         super();
     }
 
-    public void setDetailSelector(GroupDetailSelector gds)
-    {
+    public void setDetailSelector(GroupDetailSelector gds) {
         this.detailSelector = gds;
     }
 
@@ -123,19 +116,16 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
      * No-op.  UserPersistence will shutdown the
      * connection pool.
      */
-    public void destroy()
-    {
+    public void destroy() {
     }
 
     public Collection<PosixGroup> getGroupNames()
-        throws TransientException, AccessControlException
-    {
+            throws TransientException, AccessControlException {
         return getGroupNames(null, null);
     }
-    
+
     public Collection<PosixGroup> getGroupNames(List<String> groupNameSubset, List<Integer> gidSubset)
-        throws TransientException, AccessControlException
-    {
+            throws TransientException, AccessControlException {
         // current policy: group names and gids are visible to all authenticated users
         Subject caller = AuthenticationUtil.getCurrentSubject();
         checkAuthenticatedWithAccount(caller);
@@ -180,71 +170,61 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
     }
 
     public Group getGroup(String groupName)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException {
+            throws GroupNotFoundException, TransientException,
+            AccessControlException {
         return getGroup(groupName, true);
     }
-            
+
     public Group getGroup(String groupName, boolean doPermissionCheck)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException
-    {
+            throws GroupNotFoundException, TransientException,
+            AccessControlException {
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
         boolean allowed = !doPermissionCheck || isMember(callerSubject, groupName) || isAdmin(callerSubject, groupName);
-        
+
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
+        try {
             userDAO = new LdapUserDAO(conns);
             groupDAO = new LdapGroupDAO(conns, userDAO);
             Group ret = groupDAO.getGroup(groupName, true);
             if (allowed || isOwner(callerSubject, ret))
                 return ret;
             throw new AccessControlException("permission denied");
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }
 
     public Group addGroup(Group group)
-        throws GroupAlreadyExistsException, TransientException,
-               AccessControlException, UserNotFoundException,
-               GroupNotFoundException
-    {
+            throws GroupAlreadyExistsException, TransientException,
+            AccessControlException, UserNotFoundException,
+            GroupNotFoundException {
         Subject caller = AuthenticationUtil.getCurrentSubject();
         checkAuthenticatedWithAccount(caller);
         Principal userID = getUser(caller);
 
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
+        try {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
             User owner = userDAO.getAugmentedUser(userID, false);
             ObjectUtil.setField(group, owner, "owner");
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             return groupDAO.addGroup(group);
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }
 
     public void deleteGroup(String groupName)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException
-    {
+            throws GroupNotFoundException, TransientException,
+            AccessControlException {
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
 
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
+        try {
             userDAO = new LdapUserDAO(conns);
             groupDAO = new LdapGroupDAO(conns, userDAO);
             Group g = groupDAO.getGroup(groupName, false);
@@ -252,29 +232,24 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 groupDAO.deleteGroup(groupName);
             else
                 throw new AccessControlException("permission denied");
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }
 
     public Group modifyGroup(Group group)
-        throws GroupNotFoundException, TransientException,
-               AccessControlException, UserNotFoundException
-    {
+            throws GroupNotFoundException, TransientException,
+            AccessControlException, UserNotFoundException {
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
         boolean allowed = isAdmin(callerSubject, group.getID().getName());
 
         LdapGroupDAO groupDAO = null;
         LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
+        try {
             userDAO = new LdapUserDAO(conns);
             groupDAO = new LdapGroupDAO(conns, userDAO);
-            if (!allowed)
-            {
+            if (!allowed) {
                 Group g = groupDAO.getGroup(group.getID().getName(), false);
                 if (isOwner(callerSubject, g))
                     allowed = true;
@@ -284,15 +259,12 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 return groupDAO.modifyGroup(group);
             else
                 throw new AccessControlException("permission denied");
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }
 
     /**
-     *
      * @param role
      * @param groupID check membership in a specific group or null to get all groups
      * @return the groups
@@ -302,67 +274,50 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
      * @throws AccessControlException
      */
     public Collection<Group> getGroups(Role role, String groupID)
-        throws UserNotFoundException, GroupNotFoundException,
-               TransientException, AccessControlException
-    {
+            throws UserNotFoundException, GroupNotFoundException,
+            TransientException, AccessControlException {
         Subject caller = AuthenticationUtil.getCurrentSubject();
 
         LdapConnections conns = new LdapConnections(this);
-        try
-        {
+        try {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
-            LdapGroupDAO  groupDAO = new LdapGroupDAO(conns, userDAO);
-            
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
+
             Profiler profiler = new Profiler(LdapGroupPersistence.class);
 
-            if ( Role.OWNER.equals(role))
-            {
+            if (Role.OWNER.equals(role)) {
                 DNPrincipal p = getInternalID(caller);
                 Collection<Group> ret = groupDAO.getOwnerGroups(p, groupID);
                 profiler.checkpoint("get owner groups");
                 return ret;
-            }
-            else
-            {
+            } else {
                 List<Group> groups = getGroupCache(caller, role);
                 log.debug("getGroups  " + role + ": " + groups.size());
                 Collection<Group> ret = new ArrayList<Group>(groups.size());
                 Iterator<Group> i = groups.iterator();
                 String posixUserName = null;
-                if (caller.getPrincipals(HttpPrincipal.class).size() == 1)
-                {
+                if (caller.getPrincipals(HttpPrincipal.class).size() == 1) {
                     posixUserName = caller.getPrincipals(
-                        HttpPrincipal.class).iterator().next().getName();
+                            HttpPrincipal.class).iterator().next().getName();
                 }
-                while ( i.hasNext() )
-                {
+                while (i.hasNext()) {
                     Group g = i.next();
-                    
+
                     // filter out the user's posix group
-                    if (posixUserName != null && g.getID().getName().equals(posixUserName))
-                    {
+                    if (posixUserName != null && g.getID().getName().equals(posixUserName)) {
                         log.debug("Filtering out posix group: " + posixUserName);
-                    }
-                    else
-                    {
-                        if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID))
-                        {
-                            if (detailSelector != null && detailSelector.isDetailedSearch(g, role))
-                            {
-                                try
-                                {
+                    } else {
+                        if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID)) {
+                            if (detailSelector != null && detailSelector.isDetailedSearch(g, role)) {
+                                try {
                                     Group g2 = groupDAO.getGroup(g.getID().getName(), false);
                                     log.debug("role " + role + " loaded: " + g2);
                                     ret.add(g2);
-                                }
-                                catch(GroupNotFoundException contentBug)
-                                {
+                                } catch (GroupNotFoundException contentBug) {
                                     log.error("group: " + g.getID() + " in cache but not found", contentBug);
                                     // skip and continue so user gets something
                                 }
-                            }
-                            else
-                            {
+                            } else {
                                 ret.add(g);
                             }
                         }
@@ -371,14 +326,10 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 profiler.checkpoint("get membership groups");
                 return ret;
             }
-        }
-        catch(TransientException ex)
-        {
+        } catch (TransientException ex) {
             log.error("getGroups fail", ex);
             throw ex;
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }
@@ -389,19 +340,18 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
      *
      * @param groupName The group name.
      * @return A sorted set of email address.
-     * @throws TransientException If a temporary unexpected problem occurred.
+     * @throws TransientException     If a temporary unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     public SortedSet<String> getMemberEmailsForGroup(String groupName)
-        throws GroupNotFoundException, TransientException, AccessControlException {
+            throws GroupNotFoundException, TransientException, AccessControlException {
         Subject caller = AuthenticationUtil.getCurrentSubject();
         checkAuthenticatedWithAccount(caller);
 
         LdapConnections conns = new LdapConnections(this);
         LdapUserDAO userDAO = null;
         LdapGroupDAO groupDAO = null;
-        try
-        {
+        try {
             SortedSet<String> emails = new TreeSet<>();
             userDAO = new LdapUserDAO(conns);
             groupDAO = new LdapGroupDAO(conns, userDAO);
@@ -414,16 +364,13 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 }
             }
             return emails;
-        }
-        finally
-        {
+        } finally {
             conns.releaseConnections();
         }
     }
 
     // GroupMemberships cache created by AuthenticatorImpl
-    private List<Group> getGroupCache(Subject caller, Role role)
-    {
+    private List<Group> getGroupCache(Subject caller, Role role) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
@@ -435,38 +382,31 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
     }
 
     // true if the current subject is a member: using GroupMemberships cache
-    private boolean isMember(Subject caller, String groupName)
-    {
+    private boolean isMember(Subject caller, String groupName) {
         List<Group> groups = getGroupCache(caller, Role.MEMBER);
-        for (Group g : groups)
-        {
+        for (Group g : groups) {
             if (g.getID().getName().equalsIgnoreCase(groupName))
                 return true;
         }
         return false;
     }
 
-    private boolean isAdmin(Subject caller, String groupName)
-    {
+    private boolean isAdmin(Subject caller, String groupName) {
         List<Group> groups = getGroupCache(caller, Role.ADMIN);
-        for (Group g : groups)
-        {
+        for (Group g : groups) {
             if (g.getID().getName().equalsIgnoreCase(groupName))
                 return true;
         }
         return false;
     }
 
-    private boolean isOwner(Subject caller, Group g)
-    {
+    private boolean isOwner(Subject caller, Group g) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
         // check owner
-        for (Principal pc : caller.getPrincipals())
-        {
-            for (Principal po : g.getOwner().getIdentities())
-            {
+        for (Principal pc : caller.getPrincipals()) {
+            for (Principal po : g.getOwner().getIdentities()) {
                 if (AuthenticationUtil.equals(pc, po))
                     return true;
             }
@@ -474,8 +414,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         return false;
     }
 
-    private DNPrincipal getInternalID(Subject caller)
-    {
+    private DNPrincipal getInternalID(Subject caller) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
@@ -485,8 +424,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         return ds.iterator().next();
     }
 
-    private Principal getUser(Subject caller)
-    {
+    private Principal getUser(Subject caller) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 
@@ -497,8 +435,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         return gms.getUserID();
     }
 
-    private void checkAuthenticatedWithAccount(Subject caller)
-    {
+    private void checkAuthenticatedWithAccount(Subject caller) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
             throw new AccessControlException("Caller is not authenticated");
 

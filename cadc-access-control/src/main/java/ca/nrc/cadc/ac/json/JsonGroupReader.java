@@ -72,19 +72,17 @@ import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.xml.JsonInputter;
-import org.jdom2.Document;
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Scanner;
+import org.jdom2.Document;
+import org.json.JSONException;
 
 /**
  * Class to read an JSON representation of a list of Groups
  * into a list of Group objects.
  */
-public class JsonGroupReader extends GroupReader
-{
+public class JsonGroupReader extends GroupReader {
     /**
      * Construct a Group from a Reader.
      *
@@ -95,26 +93,21 @@ public class JsonGroupReader extends GroupReader
      */
     @Override
     public Group read(Reader reader)
-        throws ReaderException, IOException
-    {
-        if (reader == null)
-        {
+            throws ReaderException, IOException {
+        if (reader == null) {
             throw new IllegalArgumentException("reader must not be null");
         }
 
         Scanner s = new Scanner(reader).useDelimiter("\\A");
         String json = s.hasNext() ? s.next() : "";
 
-        try
-        {
+        try {
             JsonInputter jsonInputter = new JsonInputter();
             Document document = jsonInputter.input(json);
             return getGroup(document.getRootElement());
-        }
-        catch (JSONException e)
-        {
+        } catch (JSONException e) {
             String error = "Unable to parse JSON to Group because " +
-                e.getMessage();
+                    e.getMessage();
             throw new ReaderException(error, e);
         }
     }

@@ -69,35 +69,29 @@
 
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.Role;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.Log4jInit;
 
-
-public class GMSClientTest
-{
-    public GMSClientTest()
-    {
+public class GMSClientTest {
+    public GMSClientTest() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
 
     @Test
-    public void testUserIsSubject() throws Exception
-    {
+    public void testUserIsSubject() throws Exception {
         Subject subject = new Subject();
         HttpPrincipal userID = new HttpPrincipal("test");
         HttpPrincipal userID2 = new HttpPrincipal("test2");
@@ -121,8 +115,7 @@ public class GMSClientTest
     }
 
     @Test
-    public void testGroupCaching() throws Exception
-    {
+    public void testGroupCaching() throws Exception {
         Subject subject = new Subject();
         final HttpPrincipal test1UserID = new HttpPrincipal("test");
         subject.getPrincipals().add(test1UserID);
@@ -130,11 +123,9 @@ public class GMSClientTest
         final URI serviceID = URI.create("ivo://mysite.com/users");
         final GMSClient client = new GMSClient(serviceID);
 
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             @Override
-            public Object run() throws Exception
-            {
+            public Object run() throws Exception {
 
                 List<Group> initial = client
                         .getCachedGroups(test1UserID, Role.MEMBER, true);
@@ -189,11 +180,9 @@ public class GMSClientTest
         subject.getPrincipals().add(test2UserID);
 
         // do the same but as a different user
-        Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
+        Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             @Override
-            public Object run() throws Exception
-            {
+            public Object run() throws Exception {
 
                 List<Group> initial = client
                         .getCachedGroups(test2UserID, Role.MEMBER, true);

@@ -72,32 +72,28 @@ import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.UserListWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
-import org.jdom2.Document;
-import org.jdom2.Element;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.security.Principal;
 import java.util.Collection;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 /**
  * Class to write out, as JSON, a list of user entries.
  */
-public class JsonUserListWriter extends UserListWriter
-{
+public class JsonUserListWriter extends UserListWriter {
     /**
      * Write a Collection of Users to a Writer.
      *
      * @param users  Users to write.
      * @param writer Writer to write to.
-     * @throws IOException     if the writer fails to write.
+     * @throws IOException if the writer fails to write.
      */
     @Override
     public <T extends Principal> void write(Collection<User> users, Writer writer)
-        throws WriterException, IOException
-    {
-        if (users == null)
-        {
+            throws WriterException, IOException {
+        if (users == null) {
             throw new WriterException("null users");
         }
 

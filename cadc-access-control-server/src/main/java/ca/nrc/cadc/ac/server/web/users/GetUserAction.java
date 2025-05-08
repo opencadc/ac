@@ -65,23 +65,20 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac.server.web.users;
-
-import java.security.AccessController;
-import java.security.Principal;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Logger;
+ */
+package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.profiler.Profiler;
+import java.security.AccessController;
+import java.security.Principal;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
 
 
-public class GetUserAction extends AbstractUserAction
-{
+public class GetUserAction extends AbstractUserAction {
     private static final Logger log = Logger.getLogger(GetUserAction.class);
 
     private Profiler profiler = new Profiler(GetUserAction.class);
@@ -89,23 +86,20 @@ public class GetUserAction extends AbstractUserAction
     private final Principal userID;
     private final String detail;
 
-    GetUserAction(Principal userID, String detail)
-    {
+    GetUserAction(Principal userID, String detail) {
         super();
         this.userID = userID;
         this.detail = detail;
     }
 
-	public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         User user = getUser(this.userID);
         profiler.checkpoint("getUser");
         writeUser(user);
         profiler.checkpoint("writeUser");
     }
 
-    protected User getUser(Principal principal) throws Exception
-    {
+    protected User getUser(Principal principal) throws Exception {
         User user;
 
         /**
@@ -113,8 +107,7 @@ public class GetUserAction extends AbstractUserAction
          * If the calling Subject user is the notAugmentedX500User, AND it is
          * a GET, call the userDAO to get the User with all identities.
          */
-        if (isPrivilegedUser())
-        {
+        if (isPrivilegedUser()) {
             log.debug("getting augmented user " + principal.getName());
             user = userPersistence.getAugmentedUser(principal, false);
             profiler.checkpoint("getAugmentedUser");
@@ -127,36 +120,28 @@ public class GetUserAction extends AbstractUserAction
          * Subject which has already been augmented.
          */
         else if (detail != null &&
-                 detail.equalsIgnoreCase("identity") &&
-                 isSubjectUser(principal))
-        {
+                detail.equalsIgnoreCase("identity") &&
+                isSubjectUser(principal)) {
             log.debug("augmenting " + principal.getName() + " from subject");
             Subject subject = Subject.getSubject(AccessController.getContext());
             user = new User();
             user.getIdentities().addAll(subject.getPrincipals());
             profiler.checkpoint("added identities");
-        }
-        else
-        {
+        } else {
             log.debug("getting user " + principal.getName());
-            try
-            {
+            try {
                 user = userPersistence.getUser(principal);
                 profiler.checkpoint("getUser");
-            }
-            catch (UserNotFoundException e)
-            {
+            } catch (UserNotFoundException e) {
                 user = userPersistence.getUserRequest(principal);
                 profiler.checkpoint("getUserRequest");
             }
 
             // Only return user profile info, first and last name.
-            if (detail != null && detail.equalsIgnoreCase("display"))
-            {
+            if (detail != null && detail.equalsIgnoreCase("display")) {
                 user.getIdentities().clear();
                 user.posixDetails = null;
-                if (user.personalDetails == null)
-                {
+                if (user.personalDetails == null) {
                     String error = principal.getName() + " missing required PersonalDetails";
                     throw new IllegalStateException(error);
                 }
@@ -165,23 +150,19 @@ public class GetUserAction extends AbstractUserAction
             }
         }
 
-    	return user;
+        return user;
     }
 
-    protected boolean isSubjectUser(Principal userPrincipal)
-    {
-    	boolean isSubjectUser = false;
+    protected boolean isSubjectUser(Principal userPrincipal) {
+        boolean isSubjectUser = false;
         Subject subject = Subject.getSubject(AccessController.getContext());
-        if (subject != null)
-        {
-        	for (Principal subjectPrincipal : subject.getPrincipals())
-        	{
-        		if (subjectPrincipal.getName().equals(userPrincipal.getName()))
-        		{
+        if (subject != null) {
+            for (Principal subjectPrincipal : subject.getPrincipals()) {
+                if (subjectPrincipal.getName().equals(userPrincipal.getName())) {
                     isSubjectUser = true;
-        			break;
-        		}
-        	}
+                    break;
+                }
+            }
         }
         profiler.checkpoint("isSubjectUser");
         return isSubjectUser;

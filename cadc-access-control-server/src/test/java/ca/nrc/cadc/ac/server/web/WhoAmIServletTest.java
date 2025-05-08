@@ -68,83 +68,66 @@
 
 package ca.nrc.cadc.ac.server.web;
 
+import ca.nrc.cadc.ac.server.EndpointConstants;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
+import java.security.PrivilegedExceptionAction;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
-import java.net.URI;
-import java.net.URL;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collections;
 
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import ca.nrc.cadc.ac.server.EndpointConstants;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
-
-
-public class WhoAmIServletTest
-{
+public class WhoAmIServletTest {
     private final static Logger log = Logger.getLogger(WhoAmIServletTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
-    public void doGetWithHttpPrincipal() throws Exception
-    {
+    public void doGetWithHttpPrincipal() throws Exception {
         final Subject subject = new Subject();
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         doGet(subject, AuthMethod.PASSWORD, "CADCtest", "http");
     }
 
     @Test
-    public void doGetWithCert() throws Exception
-    {
+    public void doGetWithCert() throws Exception {
         final Subject subject = new Subject();
         subject.getPrincipals().add(new X500Principal("CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca"));
         doGet(subject, AuthMethod.CERT, "CN=cadcauthtest1_24c,OU=cadc,O=hia,C=ca", "x500");
     }
 
-    public void doGet(final Subject subject, final AuthMethod authMethod, final String restUserid, final String restType) throws Exception
-    {
+    public void doGet(final Subject subject, final AuthMethod authMethod, final String restUserid, final String restType) throws Exception {
 
-        final WhoAmIServlet testSubject = new WhoAmIServlet()
-        {
+        final WhoAmIServlet testSubject = new WhoAmIServlet() {
             @Override
-            Subject getSubject(final HttpServletRequest request)
-            {
+            Subject getSubject(final HttpServletRequest request) {
                 return subject;
             }
 
             @Override
-            public AuthMethod getAuthMethod(Subject subject)
-            {
+            public AuthMethod getAuthMethod(Subject subject) {
                 return authMethod;
             }
 
@@ -178,11 +161,9 @@ public class WhoAmIServletTest
         replay(mockRequest, mockResponse);
 
 
-        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
-        {
+        Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
             @Override
-            public Void run() throws Exception
-            {
+            public Void run() throws Exception {
                 testSubject.doGet(mockRequest, mockResponse);
                 return null;
             }

@@ -65,34 +65,29 @@
  *  $Revision: 4 $
  *
  ************************************************************************
- */package ca.nrc.cadc.ac;
+ */
+package ca.nrc.cadc.ac;
 
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
- *
  * @author jburke
  */
-public class PersonalDetailsTest
-{
+public class PersonalDetailsTest {
     private static Logger log = Logger.getLogger(PersonalDetailsTest.class);
-    
+
     @Test
-    public void simplePersonalDetailsTest() throws Exception
-    {
+    public void simplePersonalDetailsTest() throws Exception {
         PersonalDetails pd1 = new PersonalDetails("john", "doe");
         pd1.email = "john.doe@jd.com";
         pd1.address = "1234 john doe street";
         pd1.institute = "JD insttitute";
         pd1.city = "JD city";
         pd1.country = "JD country";
-        
+
         assertEquals("john", pd1.getFirstName());
         assertEquals("doe", pd1.getLastName());
 
@@ -100,37 +95,30 @@ public class PersonalDetailsTest
         assertEquals(pd1.hashCode(), pd2.hashCode());
         assertEquals(pd1, pd2);
         assertTrue(pd1 == pd2);
-        
+
         // test toString
         System.out.println(pd1);
         System.out.print(pd1.toStringFormatted());
     }
-    
+
     @Test
-    public void exceptionTests()
-    {
+    public void exceptionTests() {
         boolean thrown = false;
-        try
-        {
+        try {
             new PersonalDetails(null, "lastname");
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
-        
-        
+
+
         thrown = false;
-        try
-        {
+        try {
             new PersonalDetails("firstname", null);
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
-    }    
-    
+    }
+
 }

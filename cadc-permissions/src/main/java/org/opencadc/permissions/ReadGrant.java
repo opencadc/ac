@@ -74,9 +74,8 @@ import java.util.Date;
 
 /**
  * Holds read grant information about an artifact.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class ReadGrant extends Grant {
 
@@ -85,8 +84,9 @@ public class ReadGrant extends Grant {
 
     /**
      * Construct a read grant for the given artifactURI and expiry date.
-     * @param artifactURI The applicable targetURI.
-     * @param expiryDate The expiry date of the grant.
+     *
+     * @param artifactURI     The applicable targetURI.
+     * @param expiryDate      The expiry date of the grant.
      * @param anonymousAccess true is the artifact has anonymous access, false otherwise.
      */
     public ReadGrant(URI artifactURI, Date expiryDate, boolean anonymousAccess) {
@@ -96,6 +96,7 @@ public class ReadGrant extends Grant {
 
     /**
      * Check if artifact is accessible by anonymous (all) users.
+     *
      * @return true if the artifact has anonymous access, false otherwise.
      */
     public boolean isAnonymousAccess() {

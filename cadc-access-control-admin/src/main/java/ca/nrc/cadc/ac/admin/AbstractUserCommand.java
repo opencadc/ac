@@ -69,74 +69,63 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import java.security.AccessControlException;
-import java.security.Principal;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import java.security.Principal;
+import java.util.Set;
+import org.apache.log4j.Logger;
 
 /**
  * Base class for commands that require the user ID to be provided.
- * @author yeunga
  *
+ * @author yeunga
  */
-public abstract class AbstractUserCommand extends AbstractCommand
-{
+public abstract class AbstractUserCommand extends AbstractCommand {
     private static final Logger log = Logger.getLogger(AbstractUserCommand.class);
 
     private HttpPrincipal principal;
+
     protected abstract void execute()
-    		throws UserNotFoundException, AccessControlException, TransientException;
+            throws UserNotFoundException, AccessControlException, TransientException;
 
     /**
      * Constructor
+     *
      * @param userID Id of the user to associated with the command
      */
-    public AbstractUserCommand(final String userID)
-    {
-    	this.principal = new HttpPrincipal(userID);
+    public AbstractUserCommand(final String userID) {
+        this.principal = new HttpPrincipal(userID);
     }
 
-    protected Principal getPrincipal()
-    {
-    	return this.principal;
+    protected Principal getPrincipal() {
+        return this.principal;
     }
 
-    protected void doRun() throws AccessControlException, TransientException
-    {
-        try
-        {
+    protected void doRun() throws AccessControlException, TransientException {
+        try {
             this.execute();
-        }
-        catch (UserNotFoundException e1)
-        {
+        } catch (UserNotFoundException e1) {
             String msg = "User " + this.getPrincipal().getName() + " was not found.";
             this.systemOut.println(msg);
         }
     }
 
-    protected void printUser(final User user)
-    {
-        if (user != null)
-        {
+    protected void printUser(final User user) {
+        if (user != null) {
             // print all user identities
             this.systemOut.println();
             this.systemOut.println("Identities");
             Set<Principal> principals = user.getIdentities();
-            for (final Principal p : principals)
-            {
+            for (final Principal p : principals) {
                 this.systemOut.println(p.toString());
             }
 
             // print user's personal details
             this.systemOut.println();
-            if (user.personalDetails != null)
-            {
+            if (user.personalDetails != null) {
                 this.systemOut.println(user.personalDetails.toStringFormatted());
             }
         }

@@ -97,13 +97,14 @@ public class GrantReader {
         type(), ReadGrant(), WriteGrant();
     }
 
-    public GrantReader() { }
+    public GrantReader() {
+    }
 
-    public Grant read(String xml)  throws IOException {
+    public Grant read(String xml) throws IOException {
         return read(new StringReader(xml));
     }
 
-    public Grant read(InputStream istream)  throws IOException {
+    public Grant read(InputStream istream) throws IOException {
         return read(new InputStreamReader(istream));
     }
 

@@ -68,8 +68,14 @@
 
 package ca.nrc.cadc.ac.client;
 
-import static org.junit.Assert.assertEquals;
-
+import ca.nrc.cadc.ac.InternalID;
+import ca.nrc.cadc.ac.PersonalDetails;
+import ca.nrc.cadc.ac.TestUtil;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.json.JsonUserListWriter;
+import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -79,47 +85,33 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import ca.nrc.cadc.ac.InternalID;
-import ca.nrc.cadc.ac.PersonalDetails;
-import ca.nrc.cadc.ac.TestUtil;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.json.JsonUserListWriter;
-import ca.nrc.cadc.ac.xml.AbstractReaderWriter;
-import ca.nrc.cadc.util.Log4jInit;
-import ca.nrc.cadc.util.PropertiesReader;
+import static org.junit.Assert.assertEquals;
 
 
-public class JsonUserListInputStreamWrapperTest
-{
+public class JsonUserListInputStreamWrapperTest {
     private static final Logger log = Logger.getLogger(JsonUserListInputStreamWrapperTest.class);
 
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
-    public void readInputStream() throws Exception
-    {
+    public void readInputStream() throws Exception {
         final List<User> output = new ArrayList<User>();
         final JsonUserListInputStreamWrapper testSubject =
                 new JsonUserListInputStreamWrapper(output);

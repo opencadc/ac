@@ -75,27 +75,24 @@ import java.util.UUID;
 /**
  * Class that represents a numeric id. This is useful for
  * representing an internal user key reference.
- *
+ * <p>
  * The expected format of the URI is scheme://authority?uuid
  */
-public class InternalID
-{
+public class InternalID {
     private URI uri;
     private UUID uuid;
 
     /**
      * Ctor
+     *
      * @param uri unique identifier
      */
-    public InternalID(URI uri)
-    {
-        if (uri == null)
-        {
+    public InternalID(URI uri) {
+        if (uri == null) {
             throw new IllegalArgumentException("uri is null");
         }
 
-        if (uri.getFragment() != null)
-        {
+        if (uri.getFragment() != null) {
             throw new IllegalArgumentException("fragment not allowed");
         }
 
@@ -105,28 +102,24 @@ public class InternalID
 
     /**
      * Ctor
+     *
      * @param uri unique identifier
-     * @param id The uuid of the identifier
+     * @param id  The uuid of the identifier
      */
-    public InternalID(URI uri, UUID id)
-    {
-        if (uri == null)
-        {
+    public InternalID(URI uri, UUID id) {
+        if (uri == null) {
             throw new IllegalArgumentException("uri is null");
         }
 
-        if (id == null)
-        {
+        if (id == null) {
             throw new IllegalArgumentException("id is null");
         }
 
-        if (uri.getQuery() != null)
-        {
+        if (uri.getQuery() != null) {
             throw new IllegalArgumentException("query not allowed in base uri");
         }
 
-        if (uri.getFragment() != null)
-        {
+        if (uri.getFragment() != null) {
             throw new IllegalArgumentException("fragment not allowed");
         }
 
@@ -134,13 +127,11 @@ public class InternalID
         this.uuid = id;
     }
 
-    public URI getURI()
-    {
+    public URI getURI() {
         return uri;
     }
 
-    public UUID getUUID()
-    {
+    public UUID getUUID() {
         return uuid;
     }
 
@@ -148,8 +139,7 @@ public class InternalID
      * @see java.lang.Object#hashCode()
      */
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int prime = 31;
         int result = 1;
         result = prime * result + uri.hashCode();
@@ -160,31 +150,25 @@ public class InternalID
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (obj == null)
-        {
+        if (obj == null) {
             return false;
         }
-        if (!(obj instanceof InternalID))
-        {
+        if (!(obj instanceof InternalID)) {
             return false;
         }
         InternalID other = (InternalID) obj;
-        if (uri.equals(other.uri))
-        {
+        if (uri.equals(other.uri)) {
             return true;
         }
         return false;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return getClass().getSimpleName() + "[" + uri + "]";
     }
 

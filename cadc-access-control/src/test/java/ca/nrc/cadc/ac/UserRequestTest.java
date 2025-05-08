@@ -72,17 +72,14 @@ package ca.nrc.cadc.ac;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import org.apache.log4j.Logger;
 import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 
-public class UserRequestTest
-{
+public class UserRequestTest {
 
     private static Logger log = Logger.getLogger(UserRequestTest.class);
 
     @Test
-    public void simpleEqualityTests() throws Exception
-    {
+    public void simpleEqualityTests() throws Exception {
         User user = new User();
         user.getIdentities().add(new HttpPrincipal("foo"));
         UserRequest ur1 = new UserRequest(user, "password".toCharArray());

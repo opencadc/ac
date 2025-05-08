@@ -71,36 +71,30 @@ import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
-
 import java.io.OutputStreamWriter;
-import java.net.URI;
 import java.util.Set;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 
 /**
- * 
  * Return user info claims.  This class responds to HTTP GET calls.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class UserInfoAction extends RestAction {
-    
+
     private static final Logger log = Logger.getLogger(UserInfoAction.class);
 
     @Override
     public void doAction() throws Exception {
-        
+
         if (log.isDebugEnabled()) {
             log.debug("params:");
             for (String s : syncInput.getParameterNames()) {
                 log.debug("param: " + s + "=" + syncInput.getParameter(s));
             }
         }
-        
+
         final Subject subject = AuthenticationUtil.getCurrentSubject();
         log.debug("Subject: " + subject);
 
@@ -111,7 +105,7 @@ public class UserInfoAction extends RestAction {
         if (subject == null || subject.getPrincipals().isEmpty()) {
             throw new NotAuthenticatedException("unauthorized");
         }
-        
+
         // validate the scope and extract the client id
         Set<AuthorizationToken> tokens = subject.getPublicCredentials(AuthorizationToken.class);
         String clientID = null;
@@ -121,7 +115,7 @@ public class UserInfoAction extends RestAction {
             if (t.getScope() != null) {
                 String tScope = t.getScope().toString();
                 if (tScope.startsWith(OIDCUtil.ACCESS_TOKEN_SCOPE) &&
-                    tScope.length() > OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
+                        tScope.length() > OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
                     int slashIndex = tScope.lastIndexOf("/");
                     if (slashIndex == OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
                         clientID = tScope.substring(slashIndex + 1);
@@ -141,7 +135,7 @@ public class UserInfoAction extends RestAction {
 
         String jsonJWTClaims = OIDCUtil.buildUserInfoResponse(rp, syncInput.getRequestURI());
         log.debug("set headers and return json: \n" + jsonJWTClaims);
-        
+
         // signed
         //syncOutput.setHeader("Content-Type", "application/jwt");
 
@@ -149,13 +143,13 @@ public class UserInfoAction extends RestAction {
         syncOutput.setHeader("Content-Type", "application/json");
         syncOutput.setHeader("Cache-Control", "no-store");
         syncOutput.setHeader("Pragma", "no-cache");
-      
+
         OutputStreamWriter writer = new OutputStreamWriter(syncOutput.getOutputStream());
         writer.write(jsonJWTClaims);
         writer.flush();
-        
+
     }
-    
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;

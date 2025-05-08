@@ -68,33 +68,27 @@
  */
 package ca.nrc.cadc.ac.server.web.users;
 
-import java.io.InputStream;
-import java.net.URL;
-import java.security.Principal;
-
-import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
-
-import ca.nrc.cadc.ac.json.JsonUserWriter;
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import java.io.InputStream;
+import java.net.URL;
+import java.security.Principal;
+import javax.security.auth.x500.X500Principal;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.log4j.Logger;
 
 
-public class ModifyUserAction extends AbstractUserAction
-{
+public class ModifyUserAction extends AbstractUserAction {
     private static final Logger log = Logger.getLogger(ModifyUserAction.class);
 
     private final InputStream inputStream;
     private final HttpServletRequest request;
 
 
-    ModifyUserAction(final InputStream inputStream, final HttpServletRequest request)
-    {
+    ModifyUserAction(final InputStream inputStream, final HttpServletRequest request) {
         super();
 
         this.inputStream = inputStream;
@@ -102,8 +96,7 @@ public class ModifyUserAction extends AbstractUserAction
     }
 
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         final User user = readUser(this.inputStream);
         final User modifiedUser = userPersistence.modifyUserPersonalDetails(user);
         logUserInfo(modifiedUser.getHttpPrincipal().getName());
@@ -113,8 +106,7 @@ public class ModifyUserAction extends AbstractUserAction
         sb.append(requestURL.getProtocol());
         sb.append("://");
         sb.append(requestURL.getHost());
-        if (requestURL.getPort() > 0)
-        {
+        if (requestURL.getPort() > 0) {
             sb.append(":");
             sb.append(requestURL.getPort());
         }
@@ -125,34 +117,24 @@ public class ModifyUserAction extends AbstractUserAction
 
         // Need to find the principal type for this userID
         String idType = null;
-        for (Principal principal : user.getIdentities())
-        {
-            if (principal.getName().equals(modifiedUser.getHttpPrincipal().getName()))
-            {
-                if (principal instanceof HttpPrincipal)
-                {
+        for (Principal principal : user.getIdentities()) {
+            if (principal.getName().equals(modifiedUser.getHttpPrincipal().getName())) {
+                if (principal instanceof HttpPrincipal) {
                     idType = IdentityType.USERNAME.getValue();
-                }
-                else if (principal instanceof X500Principal)
-                {
+                } else if (principal instanceof X500Principal) {
                     idType = IdentityType.X500.getValue();
-                }
-                else if (principal instanceof NumericPrincipal)
-                {
+                } else if (principal instanceof NumericPrincipal) {
                     idType = IdentityType.CADC.getValue();
-                }
-                else if (principal instanceof CookiePrincipal)
-                {
+                } else if (principal instanceof CookiePrincipal) {
                     idType = IdentityType.COOKIE.getValue();
                 }
             }
         }
 
-        if (idType == null)
-        {
+        if (idType == null) {
             throw new IllegalArgumentException(
-                "Bad POST request to " + request.getServletPath() +
-                    " because unknown userID Principal");
+                    "Bad POST request to " + request.getServletPath() +
+                            " because unknown userID Principal");
         }
 
         sb.append(idType);

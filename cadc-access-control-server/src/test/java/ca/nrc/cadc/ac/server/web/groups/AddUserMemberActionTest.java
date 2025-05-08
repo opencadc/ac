@@ -68,18 +68,6 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
-
-import java.security.Principal;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.User;
@@ -87,27 +75,31 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.util.Log4jInit;
+import java.security.Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class AddUserMemberActionTest
-{
+public class AddUserMemberActionTest {
     private final static Logger log = Logger.getLogger(AddUserMemberActionTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testExceptions()
-    {
-        try
-        {
+    public void testExceptions() {
+        try {
             String userID = "foo";
             String userIDType = IdentityType.USERNAME.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
@@ -124,15 +116,12 @@ public class AddUserMemberActionTest
             AddUserMemberAction action = new AddUserMemberAction("group", userID, userIDType);
             action.groupPersistence = groupPersistence;
 
-            try
-            {
+            try {
                 action.doAction();
                 fail("duplicate group member should throw MemberAlreadyExistsException");
+            } catch (MemberAlreadyExistsException ignore) {
             }
-            catch (MemberAlreadyExistsException ignore) {}
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }
@@ -140,10 +129,8 @@ public class AddUserMemberActionTest
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testRun() throws Exception
-    {
-        try
-        {
+    public void testRun() throws Exception {
+        try {
             String userID = "foo";
             String userIDType = IdentityType.USERNAME.getValue();
             Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
@@ -166,9 +153,7 @@ public class AddUserMemberActionTest
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);
             action.doAction();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }

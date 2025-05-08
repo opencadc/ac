@@ -79,37 +79,33 @@ import org.apache.log4j.Logger;
  * This class updates the information on a user.  Currently it is just
  * the email address.
  */
-public class ModifyUser extends AbstractUserCommand
-{
+public class ModifyUser extends AbstractUserCommand {
     private static final Logger log = Logger.getLogger(ModifyUser.class);
-    
+
     private String emailAddress;
 
     /**
      * Constructor
-     * @param userID Id of the user to be updated
+     *
+     * @param userID       Id of the user to be updated
      * @param emailAddress The new email address for the user
      */
-    public ModifyUser(final String userID, final String emailAddress)
-    {
-    	super(userID);
-    	this.emailAddress = emailAddress;
+    public ModifyUser(final String userID, final String emailAddress) {
+        super(userID);
+        this.emailAddress = emailAddress;
     }
 
     protected void execute()
-        throws AccessControlException, UserNotFoundException, TransientException
-    {
+            throws AccessControlException, UserNotFoundException, TransientException {
         try {
 
             User user = this.getUserPersistence().getUser(this.getPrincipal());
             user.personalDetails.email = emailAddress;
-            
+
             this.getUserPersistence().modifyUserPersonalDetails(user);
             String msg = "User " + this.getPrincipal().getName() + " now has email address " + emailAddress;
             this.systemOut.println(msg);
-        }
-        catch (UserNotFoundException u)
-        {
+        } catch (UserNotFoundException u) {
             String msg = "User " + this.getPrincipal().getName() + ": not found.";
             this.systemOut.println(msg);
         }

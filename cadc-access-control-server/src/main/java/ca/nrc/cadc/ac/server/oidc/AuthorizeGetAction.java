@@ -67,27 +67,25 @@
 package ca.nrc.cadc.ac.server.oidc;
 
 import ca.nrc.cadc.rest.InlineContentHandler;
-
 import org.apache.log4j.Logger;
 
 /**
  * This class responds to HTTP GET requests to /authorize.  Since authorize can
  * be called with a POST as well, the work for authorize is done in AuthorizeAction.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class AuthorizeGetAction extends AuthorizeAction {
-    
+
     private static final Logger log = Logger.getLogger(AuthorizeGetAction.class);
 
     @Override
     public void loadRequestInput() {
-        
+
         for (String s : syncInput.getParameterNames()) {
             log.debug("input param: " + s + "=" + syncInput.getParameter(s));
         }
-        
+
         scope = syncInput.getParameter("scope");
         responseType = syncInput.getParameter("response_type");
         clientID = syncInput.getParameter("client_id");
@@ -102,7 +100,7 @@ public class AuthorizeGetAction extends AuthorizeAction {
         idTokenHint = syncInput.getParameter("id_token_hint");
         loginHint = syncInput.getParameter("login_hint");
     }
-    
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;

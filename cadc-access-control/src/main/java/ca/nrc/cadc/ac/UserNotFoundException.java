@@ -70,12 +70,9 @@ package ca.nrc.cadc.ac;
 
 /**
  * Thrown when a user could not be found.
- *
  */
-public class UserNotFoundException extends Exception
-{
-    public UserNotFoundException(String message)
-    {
+public class UserNotFoundException extends Exception {
+    public UserNotFoundException(String message) {
         super(message);
     }
 

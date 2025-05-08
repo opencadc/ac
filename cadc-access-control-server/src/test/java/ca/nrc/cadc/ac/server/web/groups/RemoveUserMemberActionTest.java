@@ -99,32 +99,26 @@ import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.PropertiesReader;
 
 /**
- *
  * @author jburke
  */
-public class RemoveUserMemberActionTest
-{
-   private final static Logger log = Logger.getLogger(RemoveUserMemberActionTest.class);
+public class RemoveUserMemberActionTest {
+    private final static Logger log = Logger.getLogger(RemoveUserMemberActionTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testExceptions()
-    {
-        try
-        {
+    public void testExceptions() {
+        try {
             User user = new User();
 
             URI umsServiceURI = URI.create("ivo://example.org/ums");
@@ -149,25 +143,20 @@ public class RemoveUserMemberActionTest
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 
-            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType)
-            {
+            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType) {
                 @Override
-                protected UserPersistence getUserPersistence()
-                {
+                protected UserPersistence getUserPersistence() {
                     return mockUserPersistence;
                 }
             };
             action.groupPersistence = mockGroupPersistence;
 
-            try
-            {
+            try {
                 action.doAction();
                 fail("unknown group member should throw MemberNotFoundException");
+            } catch (MemberNotFoundException ignore) {
             }
-            catch (MemberNotFoundException ignore) {}
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }
@@ -175,10 +164,8 @@ public class RemoveUserMemberActionTest
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testRun() throws Exception
-    {
-        try
-        {
+    public void testRun() throws Exception {
+        try {
             User user = new User();
             URI umsServiceURI = URI.create("ivo://example.org/ums");
             InternalID internalID = new InternalID(new URI(umsServiceURI.toString() + "?" + UUID.randomUUID()));
@@ -203,16 +190,14 @@ public class RemoveUserMemberActionTest
 
             EasyMock.replay(mockGroupPersistence, mockUserPersistence);
 
-            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType)
-            {
+            RemoveUserMemberAction action = new RemoveUserMemberAction("group", userID, userIDType) {
                 @Override
-                protected UserPersistence getUserPersistence()
-                {
+                protected UserPersistence getUserPersistence() {
                     return mockUserPersistence;
                 }
+
                 @Override
-                public URI getServiceURI(URI standard)
-                {
+                public URI getServiceURI(URI standard) {
                     return URI.create("ivo://example.org/gms");
                 }
             };
@@ -223,9 +208,7 @@ public class RemoveUserMemberActionTest
             action.doAction();
 
             EasyMock.verify(mockGroupPersistence, mockUserPersistence);
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }

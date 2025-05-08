@@ -1,68 +1,68 @@
 /**
- ************************************************************************
- *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
- **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
- *
- *  (c) 2018.                            (c) 2018.
- *  Government of Canada                 Gouvernement du Canada
- *  National Research Council            Conseil national de recherches
- *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
- *  All rights reserved                  Tous droits réservés
- *
- *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
- *  expressed, implied, or               énoncée, implicite ou légale,
- *  statutory, of any kind with          de quelque nature que ce
- *  respect to the software,             soit, concernant le logiciel,
- *  including without limitation         y compris sans restriction
- *  any warranty of merchantability      toute garantie de valeur
- *  or fitness for a particular          marchande ou de pertinence
- *  purpose. NRC shall not be            pour un usage particulier.
- *  liable in any event for any          Le CNRC ne pourra en aucun cas
- *  damages, whether direct or           être tenu responsable de tout
- *  indirect, special or general,        dommage, direct ou indirect,
- *  consequential or incidental,         particulier ou général,
- *  arising from the use of the          accessoire ou fortuit, résultant
- *  software.  Neither the name          de l'utilisation du logiciel. Ni
- *  of the National Research             le nom du Conseil National de
- *  Council of Canada nor the            Recherches du Canada ni les noms
- *  names of its contributors may        de ses  participants ne peuvent
- *  be used to endorse or promote        être utilisés pour approuver ou
- *  products derived from this           promouvoir les produits dérivés
- *  software without specific prior      de ce logiciel sans autorisation
- *  written permission.                  préalable et particulière
- *                                       par écrit.
- *
- *  This file is part of the             Ce fichier fait partie du projet
- *  OpenCADC project.                    OpenCADC.
- *
- *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
- *  you can redistribute it and/or       vous pouvez le redistribuer ou le
- *  modify it under the terms of         modifier suivant les termes de
- *  the GNU Affero General Public        la “GNU Affero General Public
- *  License as published by the          License” telle que publiée
- *  Free Software Foundation,            par la Free Software Foundation
- *  either version 3 of the              : soit la version 3 de cette
- *  License, or (at your option)         licence, soit (à votre gré)
- *  any later version.                   toute version ultérieure.
- *
- *  OpenCADC is distributed in the       OpenCADC est distribué
- *  hope that it will be useful,         dans l’espoir qu’il vous
- *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
- *  without even the implied             GARANTIE : sans même la garantie
- *  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
- *  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
- *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
- *  General Public License for           Générale Publique GNU Affero
- *  more details.                        pour plus de détails.
- *
- *  You should have received             Vous devriez avoir reçu une
- *  a copy of the GNU Affero             copie de la Licence Générale
- *  General Public License along         Publique GNU Affero avec
- *  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
- *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
- *                                       <http://www.gnu.org/licenses/>.
- *
- ************************************************************************
+ * ***********************************************************************
+ * ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+ * *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+ * <p>
+ * (c) 2018.                            (c) 2018.
+ * Government of Canada                 Gouvernement du Canada
+ * National Research Council            Conseil national de recherches
+ * Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+ * All rights reserved                  Tous droits réservés
+ * <p>
+ * NRC disclaims any warranties,        Le CNRC dénie toute garantie
+ * expressed, implied, or               énoncée, implicite ou légale,
+ * statutory, of any kind with          de quelque nature que ce
+ * respect to the software,             soit, concernant le logiciel,
+ * including without limitation         y compris sans restriction
+ * any warranty of merchantability      toute garantie de valeur
+ * or fitness for a particular          marchande ou de pertinence
+ * purpose. NRC shall not be            pour un usage particulier.
+ * liable in any event for any          Le CNRC ne pourra en aucun cas
+ * damages, whether direct or           être tenu responsable de tout
+ * indirect, special or general,        dommage, direct ou indirect,
+ * consequential or incidental,         particulier ou général,
+ * arising from the use of the          accessoire ou fortuit, résultant
+ * software.  Neither the name          de l'utilisation du logiciel. Ni
+ * of the National Research             le nom du Conseil National de
+ * Council of Canada nor the            Recherches du Canada ni les noms
+ * names of its contributors may        de ses  participants ne peuvent
+ * be used to endorse or promote        être utilisés pour approuver ou
+ * products derived from this           promouvoir les produits dérivés
+ * software without specific prior      de ce logiciel sans autorisation
+ * written permission.                  préalable et particulière
+ * par écrit.
+ * <p>
+ * This file is part of the             Ce fichier fait partie du projet
+ * OpenCADC project.                    OpenCADC.
+ * <p>
+ * OpenCADC is free software:           OpenCADC est un logiciel libre ;
+ * you can redistribute it and/or       vous pouvez le redistribuer ou le
+ * modify it under the terms of         modifier suivant les termes de
+ * the GNU Affero General Public        la “GNU Affero General Public
+ * License as published by the          License” telle que publiée
+ * Free Software Foundation,            par la Free Software Foundation
+ * either version 3 of the              : soit la version 3 de cette
+ * License, or (at your option)         licence, soit (à votre gré)
+ * any later version.                   toute version ultérieure.
+ * <p>
+ * OpenCADC is distributed in the       OpenCADC est distribué
+ * hope that it will be useful,         dans l’espoir qu’il vous
+ * but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+ * without even the implied             GARANTIE : sans même la garantie
+ * warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+ * or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+ * PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+ * General Public License for           Générale Publique GNU Affero
+ * more details.                        pour plus de détails.
+ * <p>
+ * You should have received             Vous devriez avoir reçu une
+ * a copy of the GNU Affero             copie de la Licence Générale
+ * General Public License along         Publique GNU Affero avec
+ * with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+ * <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+ * <http://www.gnu.org/licenses/>.
+ * <p>
+ * ***********************************************************************
  */
 
 package ca.nrc.cadc.ac.server.ldap;
@@ -79,61 +79,51 @@ import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
-
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.UUID;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opencadc.auth.PosixGroup;
 import org.opencadc.gms.GroupURI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class LdapGroupDAOTest extends AbstractLdapDAOTest
-{
+public class LdapGroupDAOTest extends AbstractLdapDAOTest {
     private static final Logger log = Logger.getLogger(LdapGroupDAOTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
-    String getGroupID()
-    {
+    String getGroupID() {
         return "CadcDaoTestGroup-" + System.currentTimeMillis();
     }
 
-    String createUsername()
-    {
+    String createUsername() {
         return "CadcDaoTestUser-" + System.currentTimeMillis();
     }
 
-    protected long uuid2long(UUID uuid)
-    {
+    protected long uuid2long(UUID uuid) {
         return uuid.getLeastSignificantBits();
     }
 
-    private User addUserRequest() throws Exception 
-    {
+    private User addUserRequest() throws Exception {
         // add user using HttpPrincipal
         final String username = createUsername();
         final HttpPrincipal userID = new HttpPrincipal(username);
@@ -155,17 +145,12 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         subject.getPrincipals().add(dnPrincipal);
 
         // do everything as owner
-        final User newUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
-        {
+        final User newUser = (User) Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             public Object run()
-                throws Exception
-            {
-                try
-                {
+                    throws Exception {
+                try {
                     return userDAO.getUserRequest(userID);
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     throw new Exception("Problems", e);
                 }
             }
@@ -174,25 +159,19 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         return newUser;
     }
 
-    private Group addUserAssociatedGroup(final User newUser, final Group expectGroup) throws Exception
-    {
-        Group newGroup = (Group) Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
+    private Group addUserAssociatedGroup(final User newUser, final Group expectGroup) throws Exception {
+        Group newGroup = (Group) Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                try {
                     final int numericID = (int) uuid2long(newUser.getID().getUUID());
                     getGroupDAO().addUserAssociatedGroup(expectGroup, numericID);
-                    
+
                     Group actualGroup = getGroupDAO().getUserAssociatedGroup(expectGroup.getID().getName(), true);
                     log.info("addGroup: " + expectGroup.getID());
                     assertGroupsEqual(expectGroup, actualGroup);
-                  
+
                     return actualGroup;
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     log.error("unexpected exception", e);
                     throw new Exception("Problems", e);
                 }
@@ -201,10 +180,9 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
         return newGroup;
     }
-    
-    @Test 
-    public void testDeactivationReactivation() throws Exception
-    {
+
+    @Test
+    public void testDeactivationReactivation() throws Exception {
         // create the test group
         User newUser = addUserRequest();
 
@@ -213,16 +191,16 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
         expectGroup.getUserMembers().add(newUser);
         Group group = addUserAssociatedGroup(newUser, expectGroup);
-        
+
         // test group reactivation
         LdapGroupDAO groupDAO = getGroupDAO();
         boolean activated = groupDAO.reactivateGroup(group);
         Assert.assertTrue("failed to activate group", activated);
-        
+
         // test group deactivation
         boolean deactivated = groupDAO.deactivateGroup(group);
         Assert.assertTrue("failed to deactivate group", deactivated);
-        
+
         String groupName = group.getID().getName();
         groupDAO.deleteUserAssociatedGroup(groupName);
         try {
@@ -235,10 +213,9 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             getUserDAO().deleteUserRequest(newUser.getHttpPrincipal());
         }
     }
-    
+
     @Test
-    public void testAddUserAssociatedGroup() throws Exception
-    {
+    public void testAddUserAssociatedGroup() throws Exception {
         // add user using HttpPrincipal
         User newUser = addUserRequest();
 
@@ -250,8 +227,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
     }
 
     @Test
-    public void testDeleteUserAssociatedGroup() throws Exception
-    {
+    public void testDeleteUserAssociatedGroup() throws Exception {
         // add user using HttpPrincipal
         User newUser = addUserRequest();
 
@@ -263,7 +239,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
         // delete the user associated group
         LocalAuthority localAuthority = new LocalAuthority();
-        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());            
+        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
         GroupURI groupID = new GroupURI(gmsServiceURI.toString() + "?" + newUser.getHttpPrincipal().getName());
         getGroupDAO().deleteUserAssociatedGroup(groupID.getName());
         try {
@@ -276,17 +252,13 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
             getUserDAO().deleteUserRequest(newUser.getHttpPrincipal());
         }
     }
-    
+
     @Test
-    public void testOneGroup() throws Exception
-    {
+    public void testOneGroup() throws Exception {
         // do everything as owner
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                try {
                     // authority as specified in src/test/resources/LocalAuthority
                     Group expectGroup = new Group(new GroupURI("ivo://example.net/gms?" + getGroupID()));
                     setField(expectGroup, cadcDaoTest1_AugmentedUser, "owner");
@@ -380,12 +352,11 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
                     // delete the group
                     getGroupDAO().deleteGroup(expectGroup.getID().getName());
-                    try
-                    {
+                    try {
                         getGroupDAO().getGroup(expectGroup.getID().getName(), false);
                         fail("get on deleted group should throw exception");
+                    } catch (GroupNotFoundException ignore) {
                     }
-                    catch (GroupNotFoundException ignore) {}
                     log.info("deleted group: " + expectGroup.getID());
 
                     // reactivate the group
@@ -423,9 +394,7 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     assertGroupsEqual(expectGroup2, actualGroup2);
 
                     return null;
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     log.error("unexpected exception", e);
                     throw new Exception("Problems", e);
                 }
@@ -433,19 +402,15 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         });
     }
 
-//    @Test
-    public void testGetGroupNames() throws Exception
-    {
+    //    @Test
+    public void testGetGroupNames() throws Exception {
         final String groupID = getGroupID();
         final String testGroup1ID = groupID + ".1";
         final String testGroup2ID = groupID + ".2";
 
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                try {
                     // authority as specified in src/test/resources/LocalAuthority
                     Group testGroup1 = new Group(new GroupURI("ivo://example.net/gms?" + testGroup1ID));
                     getGroupDAO().addGroup(testGroup1);
@@ -457,21 +422,16 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
                     testGroup2 = getGroupDAO().getGroup(testGroup2.getID().getName(), true);
                     log.debug("add group: " + testGroup2ID);
                     //Thread.sleep(1000); // sleep to let memberof plugin do its work
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     throw new Exception("Problems", e);
                 }
                 return null;
             }
         });
 
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                try {
                     Collection<PosixGroup> groups = getGroupDAO().getGroupNames();
 
                     log.debug("testGetGroupNames groups found: " + groups.size());
@@ -480,46 +440,34 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
                     boolean found1 = false;
                     boolean found2 = false;
-                    for (PosixGroup name : groups)
-                    {
+                    for (PosixGroup name : groups) {
                         log.debug("group: " + name);
-                        if (name.getGroupURI().getName().equals(testGroup1ID))
-                        {
+                        if (name.getGroupURI().getName().equals(testGroup1ID)) {
                             found1 = true;
                         }
-                        if (name.getGroupURI().getName().equals(testGroup2ID))
-                        {
+                        if (name.getGroupURI().getName().equals(testGroup2ID)) {
                             found2 = true;
                         }
                     }
-                    if (!found1)
-                    {
+                    if (!found1) {
                         fail("Admin group " + testGroup1ID + " not found");
                     }
-                    if (!found2)
-                    {
+                    if (!found2) {
                         fail("Admin group " + testGroup2ID + " not found");
                     }
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     throw new Exception("Problems", e);
                 }
                 return null;
             }
         });
 
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                try {
                     getGroupDAO().deleteGroup(testGroup1ID);
                     getGroupDAO().deleteGroup(testGroup2ID);
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     throw new Exception("Problems", e);
                 }
                 return null;
@@ -527,30 +475,25 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         });
     }
 
-//    @Test
-    public void testGetGroupExceptions() throws Exception
-    {
+    //    @Test
+    public void testGetGroupExceptions() throws Exception {
         final String groupID = getGroupID();
 
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
-                try
-                {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                try {
                     getGroupDAO().getGroup(groupID, false);
                     fail("getGroup with unknown group should throw " +
-                         "GroupNotFoundException");
+                            "GroupNotFoundException");
+                } catch (GroupNotFoundException ignore) {
                 }
-                catch (GroupNotFoundException ignore) {}
 
-                try
-                {
+                try {
                     getGroupDAO().getGroup(groupID, true);
                     fail("getGroup with unknown group should throw " +
-                         "GroupNotFoundException");
+                            "GroupNotFoundException");
+                } catch (GroupNotFoundException ignore) {
                 }
-                catch (GroupNotFoundException ignore) {}
 
                 // authority as specified in src/test/resources/LocalAuthority
                 getGroupDAO().addGroup(new Group(new GroupURI("ivo://example.net/gms?" + groupID)));
@@ -559,49 +502,40 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
         });
     }
 
-//    @Test
-    public void testModifyGroupExceptions() throws Exception
-    {
+    //    @Test
+    public void testModifyGroupExceptions() throws Exception {
         final String groupID = getGroupID();
 
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
                 //getGroupDAO().addGroup(new Group(groupID, cadcDaoTest1_User));
-                try
-                {
+                try {
                     // authority as specified in src/test/resources/LocalAuthority
                     getGroupDAO().modifyGroup(new Group(new GroupURI("ivo://example.net/gms?" + "fooBOGUSASFgomsi")));
                     fail("modifyGroup with unknown user should throw " +
-                         "GroupNotFoundException");
+                            "GroupNotFoundException");
+                } catch (GroupNotFoundException ignore) {
                 }
-                catch (GroupNotFoundException ignore) {}
 
                 return null;
             }
         });
     }
 
-//    @Test
-    public void testDeleteGroupExceptions() throws Exception
-    {
+    //    @Test
+    public void testDeleteGroupExceptions() throws Exception {
         final String groupID = getGroupID();
 
-        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>()
-        {
-            public Object run() throws Exception
-            {
+        Subject.doAs(cadcDaoTest1_Subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
                 getGroupDAO().deleteGroup(groupID); // should silently succeed
                 return null;
             }
         });
     }
 
-    private void assertGroupsEqual(Group gr1, Group gr2)
-    {
-        if ((gr1 == null) && (gr2 == null))
-        {
+    private void assertGroupsEqual(Group gr1, Group gr2) {
+        if ((gr1 == null) && (gr2 == null)) {
             return;
         }
         assertEquals(gr1, gr2);
@@ -612,35 +546,30 @@ public class LdapGroupDAOTest extends AbstractLdapDAOTest
 
         assertEquals(gr1.getGroupMembers(), gr2.getGroupMembers());
         assertEquals(gr1.getGroupMembers().size(), gr2.getGroupMembers().size());
-        for (Group gr : gr1.getGroupMembers())
-        {
+        for (Group gr : gr1.getGroupMembers()) {
             assertTrue(gr2.getGroupMembers().contains(gr));
         }
 
         assertEquals(gr1.getUserMembers().size(), gr2.getUserMembers().size());
         assertTrue(gr1.getUserMembers().containsAll(gr2.getUserMembers()));
         assertTrue(gr2.getUserMembers().containsAll(gr1.getUserMembers()));
-        for (User user : gr1.getUserMembers())
-        {
+        for (User user : gr1.getUserMembers()) {
             assertTrue(gr2.getUserMembers().contains(user));
         }
 
         assertEquals(gr1.getGroupAdmins(), gr2.getGroupAdmins());
         assertEquals(gr1.getGroupAdmins().size(), gr2.getGroupAdmins().size());
-        for (Group gr : gr1.getGroupAdmins())
-        {
+        for (Group gr : gr1.getGroupAdmins()) {
             assertTrue(gr2.getGroupAdmins().contains(gr));
         }
 
         assertEquals(gr1.getUserAdmins().size(), gr2.getUserAdmins().size());
-        for (User user : gr1.getUserAdmins())
-        {
+        for (User user : gr1.getUserAdmins()) {
             assertTrue(gr2.getUserAdmins().contains(user));
         }
 
         assertEquals(gr1.getProperties(), gr2.getProperties());
-        for (GroupProperty prop : gr1.getProperties())
-        {
+        for (GroupProperty prop : gr1.getProperties()) {
             assertTrue(gr2.getProperties().contains(prop));
         }
     }

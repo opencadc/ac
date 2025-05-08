@@ -68,32 +68,28 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import java.io.InputStream;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import org.opencadc.gms.GroupURI;
 
-public class CreateGroupAction extends AbstractGroupAction
-{
+public class CreateGroupAction extends AbstractGroupAction {
     private final InputStream inputStream;
 
-    CreateGroupAction(InputStream inputStream)
-    {
+    CreateGroupAction(InputStream inputStream) {
         super();
         this.inputStream = inputStream;
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         GroupReader groupReader = new GroupReader();
         Group group = groupReader.read(this.inputStream);
-        
+
         // restriction: prevent hierarchical group names now that GroupURI allows it
         GroupURI gid = group.getID();
         String name = gid.getName();
@@ -108,18 +104,14 @@ public class CreateGroupAction extends AbstractGroupAction
 
         List<String> addedMembers = null;
         if ((group.getUserMembers().size() > 0) ||
-            (group.getGroupMembers().size() > 0))
-        {
+                (group.getGroupMembers().size() > 0)) {
             addedMembers = new ArrayList<String>();
-            for (Group gr : group.getGroupMembers())
-            {
+            for (Group gr : group.getGroupMembers()) {
                 addedMembers.add(gr.getID().getName());
             }
-            for (User usr : group.getUserMembers())
-            {
+            for (User usr : group.getUserMembers()) {
                 Principal p = usr.getHttpPrincipal();
-                if (p == null)
-                {
+                if (p == null) {
                     p = usr.getX500Principal();
                 }
                 addedMembers.add(p.getName());

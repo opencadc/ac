@@ -71,12 +71,10 @@ package ca.nrc.cadc.ac.server.web.users;
 import ca.nrc.cadc.log.ServletLogInfo;
 import javax.servlet.http.HttpServletRequest;
 
-public class UserLogInfo extends ServletLogInfo
-{
+public class UserLogInfo extends ServletLogInfo {
     public String userName;
 
-    public UserLogInfo(HttpServletRequest request)
-    {
+    public UserLogInfo(HttpServletRequest request) {
         super(request);
     }
 

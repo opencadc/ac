@@ -68,28 +68,25 @@ package ca.nrc.cadc.ac.server.oidc;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
 /**
- * 
  * Represents a single rely party.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class RelyParty {
-    
+
     private static final Logger log = Logger.getLogger(RelyParty.class);
-    
+
     private String clientID;
     private String clientSecret;
     private GroupURI accessGroup = null;   // optional
     private String clientDescription;
     private List<Claim> claims = new ArrayList<Claim>();
     private boolean signDocuments;
-    
+
     public RelyParty(String clientID, String clientSecret, String clientDescription, List<Claim> claims, boolean signDocuments) {
         this.clientID = clientID;
         this.clientSecret = clientSecret;
@@ -99,11 +96,11 @@ public class RelyParty {
         }
         this.signDocuments = signDocuments;
     }
-    
+
     public String getClientID() {
         return clientID;
     }
-    
+
     public String getClientSecret() {
         return clientSecret;
     }
@@ -111,19 +108,19 @@ public class RelyParty {
     public GroupURI getAccessGroup() {
         return accessGroup;
     }
-    
+
     public void setAccessGroup(GroupURI group) {
         this.accessGroup = group;
     }
-    
+
     public String getClientDescription() {
         return clientDescription;
     }
-    
+
     public List<Claim> getClaims() {
         return claims;
     }
-    
+
     public boolean isSignDocuments() {
         return signDocuments;
     }
@@ -135,12 +132,12 @@ public class RelyParty {
         }
         return ((RelyParty) o).clientID.equals(this.clientID);
     }
-    
+
     public enum Claim {
         NAME("name", "Name"),
         EMAIL("email", "Email Address"),
         GROUPS("memberOf", "Group Memberships");
-        
+
         private final String value;
         private final String description;
 
@@ -161,7 +158,7 @@ public class RelyParty {
         public String getValue() {
             return value;
         }
-        
+
         public String getDescription() {
             return description;
         }
@@ -171,5 +168,5 @@ public class RelyParty {
             return "Claim[" + value + "]";
         }
     }
-    
+
 }

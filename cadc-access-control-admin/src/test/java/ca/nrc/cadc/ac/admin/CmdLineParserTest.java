@@ -70,7 +70,6 @@
 package ca.nrc.cadc.ac.admin;
 
 import java.io.PrintStream;
-
 import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
@@ -79,265 +78,200 @@ import org.junit.Test;
 /**
  *
  */
-public class CmdLineParserTest
-{
-	static String TMP_DIR = "build/resources/test";
-	static String USER_HOME = System.getProperty("user.home");
+public class CmdLineParserTest {
+    static String TMP_DIR = "build/resources/test";
+    static String USER_HOME = System.getProperty("user.home");
 
     private static PrintStream sysOut = System.out;
     private static PrintStream sysErr = System.err;
 
     @Test
-	public void testHelp()
-	{
-		// case 1: short form
-    	try
-    	{
-    	    String[] mArgs = {"-h"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+    public void testHelp() {
+        // case 1: short form
+        try {
+            String[] mArgs = {"-h"};
+            CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.WARN, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-		// case 2: long form
-    	try
-    	{
-    	    String[] mArgs = {"--help"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        // case 2: long form
+        try {
+            String[] mArgs = {"--help"};
+            CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.WARN, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-		// case 3: mixed with a command
-    	try
-    	{
-    	    String[] mArgs = {"--list", "-h"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        // case 3: mixed with a command
+        try {
+            String[] mArgs = {"--list", "-h"};
+            CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.WARN, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-		// case 4: mixed with a command and log level
-    	try
-    	{
-    	    String[] mArgs = {"--list", "-h", "-v"};
-    	    CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.INFO, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
-	}
-
-    @Test
-    public void testSetLogLevel()
-    {
-    	// case 1: no level
-    	try
-    	{
-    	    String[] args = {"--list",};
-    	    CmdLineParser parser = new CmdLineParser(args, sysOut, sysErr);
-    	    Assert.assertEquals(Level.WARN, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
-
-    	// case 2: verbose level
-    	try
-    	{
-    	    String[] vArgs = {"--list", "-v"};
-    	    CmdLineParser parser = new CmdLineParser(vArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.INFO, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
-
-    	// case 3: debug level
-    	try
-    	{
-    	    String[] dArgs = {"--list", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
-
-    	// case 4: debug level
-    	CmdLineParser parser = null;
-
-    	try
-    	{
-    	    String[] mArgs = {"--list", "-d", "-v"};
-    	    parser = new CmdLineParser(mArgs, sysOut, sysErr);
-    	    Assert.fail("Should have received a UsageException.");
-    	}
-    	catch (UsageException e)
-    	{
-            String expected = "--verbose and --debug are mutually exclusive options";
-            Assert.assertTrue(e.getMessage().contains(expected));
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
-
-    	Assert.assertNull(parser);
+        // case 4: mixed with a command and log level
+        try {
+            String[] mArgs = {"--list", "-h", "-v"};
+            CmdLineParser parser = new CmdLineParser(mArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.INFO, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
     }
 
     @Test
-    public void testCommandValidation()
-    {
-    	// case 1: no command
-    	try
-    	{
-    	    String[] dArgs = {"-d"};
-    	    new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.fail("Should have received a UsageException.");
-    	}
-    	catch (UsageException e)
-    	{
+    public void testSetLogLevel() {
+        // case 1: no level
+        try {
+            String[] args = {"--list",};
+            CmdLineParser parser = new CmdLineParser(args, sysOut, sysErr);
+            Assert.assertEquals(Level.WARN, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
+
+        // case 2: verbose level
+        try {
+            String[] vArgs = {"--list", "-v"};
+            CmdLineParser parser = new CmdLineParser(vArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.INFO, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
+
+        // case 3: debug level
+        try {
+            String[] dArgs = {"--list", "-d"};
+            CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
+
+        // case 4: debug level
+        CmdLineParser parser = null;
+
+        try {
+            String[] mArgs = {"--list", "-d", "-v"};
+            parser = new CmdLineParser(mArgs, sysOut, sysErr);
+            Assert.fail("Should have received a UsageException.");
+        } catch (UsageException e) {
+            String expected = "--verbose and --debug are mutually exclusive options";
+            Assert.assertTrue(e.getMessage().contains(expected));
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
+
+        Assert.assertNull(parser);
+    }
+
+    @Test
+    public void testCommandValidation() {
+        // case 1: no command
+        try {
+            String[] dArgs = {"-d"};
+            new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.fail("Should have received a UsageException.");
+        } catch (UsageException e) {
             String expected = "Missing command or command is not supported";
             Assert.assertTrue(e.getMessage().contains(expected));
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 2: one --list command
-    	try
-    	{
-    	    String[] dArgs = {"--list", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof ListUsers);
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        // case 2: one --list command
+        try {
+            String[] dArgs = {"--list", "-d"};
+            CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
+            Assert.assertTrue(parser.getCommand() instanceof ListUsers);
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 3: one --list-pending command
-    	try
-    	{
-    	    String[] dArgs = {"--list-pending", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof ListUserRequests);
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        // case 3: one --list-pending command
+        try {
+            String[] dArgs = {"--list-pending", "-d"};
+            CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
+            Assert.assertTrue(parser.getCommand() instanceof ListUserRequests);
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 4: one --view command
-    	try
-    	{
-    	    String[] dArgs = {"--view=jdoe", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof ViewUser);
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        // case 4: one --view command
+        try {
+            String[] dArgs = {"--view=jdoe", "-d"};
+            CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
+            Assert.assertTrue(parser.getCommand() instanceof ViewUser);
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 5: one --reject command
-    	try
-    	{
-    	    String[] dArgs = {"--reject=jdoe", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof RejectUser);
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        // case 5: one --reject command
+        try {
+            String[] dArgs = {"--reject=jdoe", "-d"};
+            CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
+            Assert.assertTrue(parser.getCommand() instanceof RejectUser);
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 6: one --approve command
-    	try
-    	{
-			System.setProperty("user.home", TMP_DIR);
-    	    String[] dArgs = {"--approve=jdoe", "--dn=dn", "-d"};
-    	    CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
-    	    Assert.assertTrue(parser.getCommand() instanceof ApproveUser);
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	} finally {
-			System.setProperty("user.home", USER_HOME);
-		}
+        // case 6: one --approve command
+        try {
+            System.setProperty("user.home", TMP_DIR);
+            String[] dArgs = {"--approve=jdoe", "--dn=dn", "-d"};
+            CmdLineParser parser = new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.assertEquals(Level.DEBUG, parser.getLogLevel());
+            Assert.assertTrue(parser.getCommand() instanceof ApproveUser);
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        } finally {
+            System.setProperty("user.home", USER_HOME);
+        }
 
-    	// case 7: one command with no user ID
-    	try
-    	{
-    	    String[] dArgs = {"--approve", "--dn=dn", "-d"};
-    	    new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.fail("Should have received a UsageException.");
-    	}
-    	catch (UsageException e)
-    	{
+        // case 7: one command with no user ID
+        try {
+            String[] dArgs = {"--approve", "--dn=dn", "-d"};
+            new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.fail("Should have received a UsageException.");
+        } catch (UsageException e) {
             String expected = "Missing userID";
             Assert.assertTrue(e.getMessage().contains(expected));
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 8: one command with no user ID
-    	try
-    	{
-    	    String[] dArgs = {"--approve=", "--dn=dn", "-d"};
-    	    new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.fail("Should have received a UsageException.");
-    	}
-    	catch (UsageException e)
-    	{
+        // case 8: one command with no user ID
+        try {
+            String[] dArgs = {"--approve=", "--dn=dn", "-d"};
+            new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.fail("Should have received a UsageException.");
+        } catch (UsageException e) {
             String expected = "Missing userID";
             Assert.assertTrue(e.getMessage().contains(expected));
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
-    	// case 8: more than one command
-    	try
-    	{
-    	    String[] dArgs = {"--list", "--list-pending", "-d"};
-    	    new CmdLineParser(dArgs, sysOut, sysErr);
-    	    Assert.fail("Should have received a UsageException.");
-    	}
-    	catch (UsageException e)
-    	{
+        // case 8: more than one command
+        try {
+            String[] dArgs = {"--list", "--list-pending", "-d"};
+            new CmdLineParser(dArgs, sysOut, sysErr);
+            Assert.fail("Should have received a UsageException.");
+        } catch (UsageException e) {
             String expected = "Only one command can be specified";
             Assert.assertTrue(e.getMessage().contains(expected));
-    	}
-    	catch (Exception e)
-    	{
-    	    Assert.fail("Caught an unexpected exception, " + e.getMessage());
-    	}
+        } catch (Exception e) {
+            Assert.fail("Caught an unexpected exception, " + e.getMessage());
+        }
 
     }
 }
