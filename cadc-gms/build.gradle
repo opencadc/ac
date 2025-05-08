@@ -1,6 +1,5 @@
 plugins {
-    id 'java'
-    id 'maven'
+    id 'java-library'
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -12,11 +11,11 @@ repositories {
 
 apply from: '../opencadc.gradle'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '1.0.14'
+version = '1.0.15'
 
 description = 'OpenCADC GMS API library'
 def git_url = 'https://github.com/opencadc/ac'

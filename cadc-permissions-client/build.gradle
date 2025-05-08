@@ -1,6 +1,5 @@
 plugins {
-    id 'java'
-    id 'maven'
+    id 'java-library'
     id 'maven-publish'
     id 'checkstyle'
 }
@@ -10,22 +9,23 @@ repositories {
     mavenLocal()
 }
 
-sourceCompatibility = 1.8
+apply from: '../opencadc.gradle'
+
+sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '0.3.1'
+version = '0.3.2'
 
 description = 'OpenCADC Permissions client library'
 def git_url = 'https://github.com/opencadc/ac'
 
 dependencies {
     implementation 'org.opencadc:cadc-cdp:[1.4.0,2.0)'
-    implementation 'org.opencadc:cadc-permissions:[0.2,)'
+    api 'org.opencadc:cadc-permissions:[0.2,)'
     implementation 'org.opencadc:cadc-registry:[1.0,2.0)'
     implementation 'org.opencadc:cadc-util:[1.6,2.0)'
 
     testImplementation 'junit:junit:[4.0,)'
 }
 
-apply from: '../opencadc.gradle'
