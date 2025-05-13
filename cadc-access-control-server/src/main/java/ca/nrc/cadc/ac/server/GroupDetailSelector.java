@@ -80,8 +80,8 @@ public interface GroupDetailSelector {
      * Check if group details should be filled in for the group when
      * querying for role.
      *
-     * @param g
-     * @param r
+     * @param g Group
+     * @param r Role
      * @return true if group details should be filled
      */
     boolean isDetailedSearch(Group g, Role r);

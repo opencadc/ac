@@ -103,7 +103,6 @@ public class PluginFactory {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public <T extends Principal> GroupPersistence createGroupPersistence() {
         String name = GroupPersistence.class.getName();
         String cname = config.getProperty(name);
@@ -112,14 +111,13 @@ public class PluginFactory {
         } else {
             try {
                 Class<?> c = Class.forName(cname);
-                return (GroupPersistence) c.newInstance();
+                return (GroupPersistence) c.getConstructor().newInstance();
             } catch (Exception ex) {
                 throw new RuntimeException("config error: failed to create GroupPersistence " + cname, ex);
             }
         }
     }
 
-    @SuppressWarnings("unchecked")
     public <T extends Principal> UserPersistence createUserPersistence() {
         String name = UserPersistence.class.getName();
         String cname = config.getProperty(name);
@@ -129,7 +127,7 @@ public class PluginFactory {
         } else {
             try {
                 Class<?> c = Class.forName(cname);
-                return (UserPersistence) c.newInstance();
+                return (UserPersistence) c.getConstructor().newInstance();
             } catch (Exception ex) {
                 throw new RuntimeException("config error: failed to create UserPersistence " + cname, ex);
             }
