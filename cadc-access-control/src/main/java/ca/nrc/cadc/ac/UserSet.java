@@ -9,8 +9,8 @@ import java.util.Set;
 
 /**
  * A custom set built on a list implementation.
- * <p>
- * Ordering will not be deterministic as per the Set specification.
+ *
+ * <p>Ordering will not be deterministic as per the Set specification.
  */
 public class UserSet implements Set<User> {
 

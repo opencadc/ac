@@ -105,8 +105,8 @@ public class JsonUserListReader extends UserListReader {
             Document document = jsonInputter.input(json);
             return getUserList(document.getRootElement());
         } catch (JSONException e) {
-            String error = "Unable to parse JSON to list of Users because " +
-                    e.getMessage();
+            String error = "Unable to parse JSON to list of Users because "
+                    + e.getMessage();
             throw new ReaderException(error, e);
         }
     }

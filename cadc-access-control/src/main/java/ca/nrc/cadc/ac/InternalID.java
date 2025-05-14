@@ -75,8 +75,8 @@ import java.util.UUID;
 /**
  * Class that represents a numeric id. This is useful for
  * representing an internal user key reference.
- * <p>
- * The expected format of the URI is scheme://authority?uuid
+ *
+ * <p>The expected format of the URI is scheme://authority?uuid
  */
 public class InternalID {
     private URI uri;

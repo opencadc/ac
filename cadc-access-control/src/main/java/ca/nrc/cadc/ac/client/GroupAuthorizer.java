@@ -120,8 +120,9 @@ public class GroupAuthorizer implements Authorizer {
         try {
             if (CredUtil.checkCredentials()) {
                 GMSClient gms = new GMSClient(groupURI.getServiceID());
-                if (gms.isMember(groupURI.getName(), Role.MEMBER))
+                if (gms.isMember(groupURI.getName(), Role.MEMBER)) {
                     return;
+                }
 
                 throw new AccessControlException("permission denied");
             }

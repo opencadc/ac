@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.client;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -156,8 +157,7 @@ public class UserClient {
             download.run();
 
             int responseCode = download.getResponseCode();
-            if (responseCode == 404) // not found
-            {
+            if (responseCode == 404) {
                 return;
             }
             if (responseCode != 200) {
@@ -271,8 +271,7 @@ public class UserClient {
         if (responseCode == 400) {
             throw new IllegalArgumentException(message);
         }
-        if (responseCode == 409) // conflict
-        {
+        if (responseCode == 409) {  // conflict
             throw new UserAlreadyExistsException(message);
         }
         if (responseCode == 403) {
@@ -392,8 +391,8 @@ public class UserClient {
     protected String getIdType(Principal principal) {
         String idTypeStr = AuthenticationUtil.getPrincipalType(principal);
         if (idTypeStr == null) {
-            final String msg = "Subject has unsupported principal " +
-                    principal.getClass();
+            final String msg = "Subject has unsupported principal "
+                    + principal.getClass();
             throw new IllegalArgumentException(msg);
         }
 
@@ -432,8 +431,8 @@ public class UserClient {
 
     /**
      * Obtain the current User for the given Subject.
-     * <p>
-     * This requires that a Subject is in the current context.
+     *
+     * <p>This requires that a Subject is in the current context.
      *
      * @return User instance.
      * @throws IOException           Any reader/writer errors.

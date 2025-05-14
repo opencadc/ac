@@ -126,29 +126,30 @@ public class GroupMemberships implements Comparable {
 
     public void add(Group group, Role role) {
         List<Group> groups = memberships.get(role);
-        if (!groups.contains(group))
+        if (!groups.contains(group)) {
             groups.add(group);
+        }
     }
 
     public void add(List<Group> groups, Role role) {
         List<Group> cur = memberships.get(role);
         for (Group group : groups) {
-            if (!cur.contains(group))
+            if (!cur.contains(group)) {
                 cur.add(group);
+            }
             complete.put(role, Boolean.TRUE);
         }
     }
 
     // only allow one in a set - makes clearCache simple too
     public boolean equals(Object rhs) {
-        if (rhs != null && rhs instanceof GroupMemberships)
-            return true;
-        return false;
+        return rhs instanceof GroupMemberships;
     }
 
     public int compareTo(Object t) {
-        if (this.equals(t))
+        if (this.equals(t)) {
             return 0;
+        }
         return -1; // wonder if this is sketchy
     }
 }

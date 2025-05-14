@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.ReaderException;
@@ -105,8 +106,8 @@ public class JsonUserRequestReader extends UserRequestReader {
             Document document = jsonInputter.input(json);
             return getUserRequest(document.getRootElement());
         } catch (JSONException e) {
-            String error = "Unable to parse JSON to User because " +
-                    e.getMessage();
+            String error = "Unable to parse JSON to User because "
+                    + e.getMessage();
             throw new ReaderException(error, e);
         }
     }

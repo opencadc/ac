@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.Group;
@@ -106,8 +107,8 @@ public class JsonGroupReader extends GroupReader {
             Document document = jsonInputter.input(json);
             return getGroup(document.getRootElement());
         } catch (JSONException e) {
-            String error = "Unable to parse JSON to Group because " +
-                    e.getMessage();
+            String error = "Unable to parse JSON to Group because "
+                    + e.getMessage();
             throw new ReaderException(error, e);
         }
     }

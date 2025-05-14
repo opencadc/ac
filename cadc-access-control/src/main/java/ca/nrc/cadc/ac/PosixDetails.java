@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 /**
@@ -181,8 +182,8 @@ public class PosixDetails {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + username + "," + uid + ", " +
-                gid + ", " + homeDirectory + "]";
+        return getClass().getSimpleName() + "[" + username + "," + uid + ", " + gid + ", "
+                + homeDirectory + "]";
     }
 
 }

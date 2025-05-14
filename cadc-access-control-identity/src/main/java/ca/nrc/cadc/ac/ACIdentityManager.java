@@ -304,48 +304,44 @@ public class ACIdentityManager implements IdentityManager {
         if (o == null) {
             return null;
         }
-        try {
-            Long n = null;
-            if (o instanceof String) {
-                n = Long.valueOf((String) o);
-            } else if (o instanceof Integer) {
-                n = ((Integer) o).longValue();
-            } else if (o instanceof Long) {
-                n = (Long) o;
-            } else {
-                throw new IllegalStateException("cannot reconstruct Subject from a "
-                        + o.getClass().getName());
-            }
+        Long n = null;
+        if (o instanceof String) {
+            n = Long.valueOf((String) o);
+        } else if (o instanceof Integer) {
+            n = ((Integer) o).longValue();
+        } else if (o instanceof Long) {
+            n = (Long) o;
+        } else {
+            throw new IllegalStateException("cannot reconstruct Subject from a "
+                    + o.getClass().getName());
+        }
 
-            if (n <= 0) {
-                // identities <= 0 are internal
-                return new Subject();
-            }
+        if (n <= 0) {
+            // identities <= 0 are internal
+            return new Subject();
+        }
 
-            UUID uuid = new UUID(0L, n);
-            NumericPrincipal p = new NumericPrincipal(uuid);
+        UUID uuid = new UUID(0L, n);
+        NumericPrincipal p = new NumericPrincipal(uuid);
 
-            Subject s = AuthenticationUtil.getCurrentSubject();
-            if (s != null) {
-                for (Principal cp : s.getPrincipals()) {
-                    if (AuthenticationUtil.equals(p, cp)) {
-                        log.debug("[cache hit] caller Subject matches " + p + ": " + s);
-                        return s;
-                    }
+        Subject s = AuthenticationUtil.getCurrentSubject();
+        if (s != null) {
+            for (Principal cp : s.getPrincipals()) {
+                if (AuthenticationUtil.equals(p, cp)) {
+                    log.debug("[cache hit] caller Subject matches " + p + ": " + s);
+                    return s;
                 }
             }
-
-            Set<Principal> pset = new HashSet<Principal>();
-            pset.add(p);
-            Subject ret = new Subject(false, pset, new HashSet(), new HashSet());
-
-            Profiler prof = new Profiler(ACIdentityManager.class);
-            ret = augment(ret);
-            prof.checkpoint("CadcIdentityManager.augmentSubject");
-
-            return ret;
-        } finally {
-
         }
+
+        Set<Principal> pset = new HashSet<Principal>();
+        pset.add(p);
+        Subject ret = new Subject(false, pset, new HashSet(), new HashSet());
+
+        Profiler prof = new Profiler(ACIdentityManager.class);
+        ret = augment(ret);
+        prof.checkpoint("CadcIdentityManager.augmentSubject");
+
+        return ret;
     }
 }

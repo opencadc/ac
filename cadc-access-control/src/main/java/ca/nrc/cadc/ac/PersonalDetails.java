@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 public class PersonalDetails {
@@ -137,9 +138,9 @@ public class PersonalDetails {
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + firstName + ", " +
-                lastName + ", " + email + ", " + address + ", " +
-                institute + ", " + city + ", " + country + "]";
+        return getClass().getSimpleName() + "[" + firstName + ", "
+                + lastName + ", " + email + ", " + address + ", "
+                + institute + ", " + city + ", " + country + "]";
     }
 
     /**

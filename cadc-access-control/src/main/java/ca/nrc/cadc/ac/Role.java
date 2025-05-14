@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 /**
@@ -83,9 +84,11 @@ public enum Role {
     }
 
     public static Role toValue(String s) {
-        for (Role role : values())
-            if (role.value.equals(s))
+        for (Role role : values()) {
+            if (role.value.equals(s)) {
                 return role;
+            }
+        }
         throw new IllegalArgumentException("invalid value: " + s);
     }
 

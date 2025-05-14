@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 public class GroupNotFoundException extends Exception {

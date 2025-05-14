@@ -248,15 +248,15 @@ public abstract class AbstractReaderWriter {
         }
 
         if (!element.getName().equals(IDENTITY)) {
-            String error = "expected identity element name, found " +
-                    element.getName();
+            String error = "expected identity element name, found "
+                    + element.getName();
             throw new ReaderException(error);
         }
 
         String type = element.getAttributeValue(TYPE);
         if (type == null) {
-            String error = "type attribute not found in identity element" +
-                    element.getName();
+            String error = "type attribute not found in identity element"
+                    + element.getName();
             throw new ReaderException(error);
         }
 
@@ -300,7 +300,6 @@ public abstract class AbstractReaderWriter {
             String error = "posixDetails missing required element username";
             throw new ReaderException(error);
         }
-        String username = userNameElement.getText();
 
         // uid
         Element uidElement = element.getChild(UID);
@@ -338,6 +337,7 @@ public abstract class AbstractReaderWriter {
         }
         String homeDirectory = homeDirElement.getText();
 
+        String username = userNameElement.getText();
         return new PosixDetails(username, uid, gid, homeDirectory);
     }
 
@@ -533,8 +533,8 @@ public abstract class AbstractReaderWriter {
         }
 
         if (!element.getName().equals(PROPERTY)) {
-            String error = "expected property element name, found " +
-                    element.getName();
+            String error = "expected property element name, found "
+                    + element.getName();
             throw new ReaderException(error);
         }
 
@@ -588,8 +588,7 @@ public abstract class AbstractReaderWriter {
 
         // identities
         Set<Principal> identities = user.getIdentities();
-        if (!identities.isEmpty()) // includes alternate identities
-        {
+        if (!identities.isEmpty()) {  // includes alternate identities
             Element identitiesElement = new Element(IDENTITIES);
             for (Principal identity : identities) {
                 identitiesElement.addContent(getElement(identity));
@@ -688,8 +687,8 @@ public abstract class AbstractReaderWriter {
         } else if ((identity instanceof PosixPrincipal)) {
             identityElement.setAttribute(TYPE, IdentityType.POSIX.getValue());
         } else {
-            String error = "Unsupported Principal type " +
-                    identity.getClass().getSimpleName();
+            String error = "Unsupported Principal type "
+                    + identity.getClass().getSimpleName();
             throw new IllegalArgumentException(error);
         }
         identityElement.setText(identity.getName());
@@ -923,8 +922,8 @@ public abstract class AbstractReaderWriter {
         } else if ((value instanceof Integer)) {
             propertyElement.setAttribute(TYPE, INTEGER);
         } else {
-            String error = "Unsupported value type: " +
-                    value.getClass().getSimpleName();
+            String error = "Unsupported value type: "
+                    + value.getClass().getSimpleName();
             throw new IllegalArgumentException(error);
         }
         propertyElement.setText(String.valueOf(property.getValue()));
@@ -958,12 +957,12 @@ public abstract class AbstractReaderWriter {
             field.setAccessible(true);
             field.set(object, value);
         } catch (NoSuchFieldException e) {
-            final String error = object.getClass().getSimpleName() +
-                    " field " + name + "not found";
+            final String error = object.getClass().getSimpleName()
+                    + " field " + name + "not found";
             throw new RuntimeException(error, e);
         } catch (IllegalAccessException e) {
-            final String error = "unable to update " + name + " in " +
-                    object.getClass().getSimpleName();
+            final String error = "unable to update " + name + " in "
+                    + object.getClass().getSimpleName();
             throw new RuntimeException(error, e);
         }
     }

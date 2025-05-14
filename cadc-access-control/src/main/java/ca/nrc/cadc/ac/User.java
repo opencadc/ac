@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -107,14 +108,14 @@ public class User {
         return identities;
     }
 
-    /**
-     * Obtain a set of identities whose type match the given one.
-     *
-     * @param identityClass The class to search on.
-     * @param <S>           The Principal type.
-     * @return Set of matched identities, or empty Set.
-     * Never null.
-     */
+    /*
+    * Obtain a set of identities whose type match the given one.
+    *
+    * @param identityClass The class to search on.
+    * @param <S>           The Principal type.
+    * @return Set of matched identities, or empty Set.
+    * Never null.
+    */
     public <S extends Principal> Set<S> getIdentities(final Class<S> identityClass) {
         PrincipalComparator p = new PrincipalComparator();
         UserPrincipalComparator u = new UserPrincipalComparator(p);
@@ -202,19 +203,21 @@ public class User {
 
     public String toPrettyString() {
         HttpPrincipal p1 = this.getHttpPrincipal();
-        if (p1 != null)
+        if (p1 != null) {
             return p1.getName();
+        }
         X500Principal p2 = this.getX500Principal();
-        if (p2 != null)
+        if (p2 != null) {
             return p2.getName();
+        }
         return toString();
     }
 
     private class UserPrincipalComparator implements Comparator<Principal> {
-        private PrincipalComparator p;
+        private PrincipalComparator principalComparator;
 
         UserPrincipalComparator(PrincipalComparator p) {
-            this.p = p;
+            this.principalComparator = p;
         }
 
         @Override
@@ -227,7 +230,7 @@ public class User {
                 return 0;
             }
 
-            return p.compare(o1, o2);
+            return principalComparator.compare(o1, o2);
         }
     }
 

@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 import java.util.Date;
@@ -75,7 +76,7 @@ import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
 public class Group {
-    private final static Logger log = Logger.getLogger(Group.class);
+    private static final Logger log = Logger.getLogger(Group.class);
 
     private GroupURI groupID;
 

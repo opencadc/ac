@@ -76,11 +76,11 @@ import org.apache.log4j.Logger;
 /**
  * This class is acting as a bridge between the GroupClient in cadc-gms
  * and the cadc-access-control implementation named GMSClient.
- * <p>
- * In cadc-gms, GroupUtil, the group client is loaded by trying to load
+ *
+ * <p>In cadc-gms, GroupUtil, the group client is loaded by trying to load
  * a class with the name ca.nrc.cadc.gms.GroupClientImpl.
- * <p>
- * This class will be removed when GMSClient is renamed to be the name
+ *
+ * <p>This class will be removed when GMSClient is renamed to be the name
  * of this class.
  *
  * @author majorb

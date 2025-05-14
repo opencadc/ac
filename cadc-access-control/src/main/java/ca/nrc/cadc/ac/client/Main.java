@@ -135,8 +135,9 @@ public class Main implements PrivilegedAction<Object> {
             Log4jInit.setLevel("ca.nrc.cadc.net", Level.DEBUG);
         } else if (argMap.isSet(ARG_VERBOSE) || argMap.isSet(ARG_V)) {
             Log4jInit.setLevel("ca.nrc.cadc.ac.client", Level.INFO);
-        } else
+        } else {
             Log4jInit.setLevel("ca", Level.WARN);
+        }
 
         Main main = new Main(argMap);
 
@@ -144,35 +145,43 @@ public class Main implements PrivilegedAction<Object> {
 
         final Object response;
 
-        if (subject != null)
+        if (subject != null) {
             response = Subject.doAs(subject, main);
-        else
+        } else {
             response = main.run();
+        }
 
         log.debug("Response: " + response);
     }
 
     private String getCommand() {
-        if (argMap.isSet(ARG_ADD_MEMBER))
+        if (argMap.isSet(ARG_ADD_MEMBER)) {
             return ARG_ADD_MEMBER;
+        }
 
-        if (argMap.isSet(ARG_CREATE_GROUP))
+        if (argMap.isSet(ARG_CREATE_GROUP)) {
             return ARG_CREATE_GROUP;
+        }
 
-        if (argMap.isSet(ARG_GET_GROUP))
+        if (argMap.isSet(ARG_GET_GROUP)) {
             return ARG_GET_GROUP;
+        }
 
-        if (argMap.isSet(ARG_DELETE_GROUP))
+        if (argMap.isSet(ARG_DELETE_GROUP)) {
             return ARG_DELETE_GROUP;
+        }
 
-        if (argMap.isSet(ARG_DEL_MEMBER))
+        if (argMap.isSet(ARG_DEL_MEMBER)) {
             return ARG_DEL_MEMBER;
+        }
 
-        if (argMap.isSet(ARG_ADD_ADMIN))
+        if (argMap.isSet(ARG_ADD_ADMIN)) {
             return ARG_ADD_ADMIN;
+        }
 
-        if (argMap.isSet(ARG_DEL_ADMIN))
+        if (argMap.isSet(ARG_DEL_ADMIN)) {
             return ARG_DEL_ADMIN;
+        }
 
         return null;
     }
@@ -209,8 +218,9 @@ public class Main implements PrivilegedAction<Object> {
             }
 
             String suri = argMap.getValue(ARG_GROUP);
-            if (suri == null)
+            if (suri == null) {
                 throw new IllegalArgumentException("No group specified");
+            }
 
             GroupURI guri = new GroupURI(new URI(suri));
             GMSClient client = new GMSClient(guri.getServiceID());
@@ -220,8 +230,9 @@ public class Main implements PrivilegedAction<Object> {
 
             if (command.equals(ARG_ADD_MEMBER)) {
 
-                if (members.isEmpty())
+                if (members.isEmpty()) {
                     throw new IllegalArgumentException("No members specified");
+                }
 
                 for (String member : members) {
                     try {
@@ -234,8 +245,9 @@ public class Main implements PrivilegedAction<Object> {
                     }
                 }
             } else if (command.equals(ARG_DEL_MEMBER)) {
-                if (members.isEmpty())
+                if (members.isEmpty()) {
                     throw new IllegalArgumentException("No members specified");
+                }
 
                 for (String member : members) {
                     try {
@@ -248,8 +260,9 @@ public class Main implements PrivilegedAction<Object> {
                     }
                 }
             } else if (command.equals(ARG_ADD_ADMIN)) {
-                if (members.isEmpty())
+                if (members.isEmpty()) {
                     throw new IllegalArgumentException("No members specified");
+                }
 
                 Group cur = client.getGroup(group);
                 boolean changes = false;
@@ -267,40 +280,40 @@ public class Main implements PrivilegedAction<Object> {
 
                     boolean update = true;
                     if (hp != null) {
-                        if (hp != null) {
-                            for (User admin : cur.getUserAdmins()) {
-                                for (Principal p : admin.getIdentities()) {
-                                    if (p instanceof HttpPrincipal) {
-                                        HttpPrincipal ahp = (HttpPrincipal) p;
-                                        if (hp.equals(ahp)) {
-                                            update = false;
-                                            break;
-                                        }
+                        for (User admin : cur.getUserAdmins()) {
+                            for (Principal p : admin.getIdentities()) {
+                                if (p instanceof HttpPrincipal) {
+                                    HttpPrincipal ahp = (HttpPrincipal) p;
+                                    if (hp.equals(ahp)) {
+                                        update = false;
+                                        break;
                                     }
                                 }
                             }
-                            if (update) {
-                                User adminUser = new User();
-                                adminUser.getIdentities().add(hp);
-                                cur.getUserAdmins().add(adminUser);
-                                log.info("admin added: " + member);
-                                changes = true;
-                            } else
-                                log.info("admin found: " + member);
+                        }
+                        if (update) {
+                            User adminUser = new User();
+                            adminUser.getIdentities().add(hp);
+                            cur.getUserAdmins().add(adminUser);
+                            log.info("admin added: " + member);
+                            changes = true;
                         } else {
-                            for (Group admin : cur.getGroupAdmins()) {
-                                if (admin.getID().equals(memberURI)) {
-                                    update = false;
-                                    break;
-                                }
+                            log.info("admin found: " + member);
+                        }
+                    } else {
+                        for (Group admin : cur.getGroupAdmins()) {
+                            if (admin.getID().equals(memberURI)) {
+                                update = false;
+                                break;
                             }
-                            if (update) {
-                                Group adminGroup = new Group(memberURI);
-                                cur.getGroupAdmins().add(adminGroup);
-                                log.info("group admin added: " + member);
-                                changes = true;
-                            } else
-                                log.info("group admin found: " + member);
+                        }
+                        if (update) {
+                            Group adminGroup = new Group(memberURI);
+                            cur.getGroupAdmins().add(adminGroup);
+                            log.info("group admin added: " + member);
+                            changes = true;
+                        } else {
+                            log.info("group admin found: " + member);
                         }
                     }
                 }
@@ -310,8 +323,9 @@ public class Main implements PrivilegedAction<Object> {
                     log.info("Group updated.");
                 }
             } else if (command.equals(ARG_DEL_ADMIN)) {
-                if (members.isEmpty())
+                if (members.isEmpty()) {
                     throw new IllegalArgumentException("No members specified");
+                }
 
                 Group cur = client.getGroup(group);
                 boolean changes = false;
@@ -346,8 +360,9 @@ public class Main implements PrivilegedAction<Object> {
                         if (update) {
                             log.info("admin removed: " + member);
                             changes = true;
-                        } else
+                        } else {
                             log.info("admin not found: " + member);
+                        }
                     } else {
                         Iterator<Group> iter = cur.getGroupAdmins().iterator();
                         while (iter.hasNext()) {
@@ -361,8 +376,9 @@ public class Main implements PrivilegedAction<Object> {
                         if (update) {
                             log.info("group admin removed: " + member);
                             changes = true;
-                        } else
+                        } else {
                             log.info("group admin not found: " + member);
+                        }
                     }
                 }
 
@@ -371,8 +387,9 @@ public class Main implements PrivilegedAction<Object> {
                     log.info("Group updated.");
                 }
             } else if (command.equals(ARG_CREATE_GROUP)) {
-                if (group == null)
+                if (group == null) {
                     throw new IllegalArgumentException("No group specified");
+                }
 
                 AccessControlContext accessControlContext = AccessController.getContext();
                 Subject subject = Subject.getSubject(accessControlContext);
@@ -386,30 +403,37 @@ public class Main implements PrivilegedAction<Object> {
                 g.getUserMembers().add(member);
                 client.createGroup(g);
             } else if (command.equals(ARG_GET_GROUP)) {
-                if (group == null)
+                if (group == null) {
                     throw new IllegalArgumentException("No group specified");
+                }
 
                 Group g = client.getGroup(group);
                 System.out.println("found: " + g.getID());
-                if (g.description != null)
+                if (g.description != null) {
                     System.out.println("\t" + g.description);
+                }
                 System.out.println("owner: " + g.getOwner());
 
-                for (User u : g.getUserAdmins())
+                for (User u : g.getUserAdmins()) {
                     System.out.println("admin: " + u.toPrettyString());
+                }
 
-                for (Group ga : g.getGroupAdmins())
+                for (Group ga : g.getGroupAdmins()) {
                     System.out.println("admin: " + ga);
+                }
 
-                for (User u : g.getUserMembers())
+                for (User u : g.getUserMembers()) {
                     System.out.println("member: " + u.toPrettyString());
+                }
 
-                for (Group gm : g.getGroupMembers())
+                for (Group gm : g.getGroupMembers()) {
                     System.out.println("member: " + gm);
+                }
 
             } else if (command.equals(ARG_DELETE_GROUP)) {
-                if (group == null)
+                if (group == null) {
                     throw new IllegalArgumentException("No group specified");
+                }
 
                 client.deleteGroup(group);
             }

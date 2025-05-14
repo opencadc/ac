@@ -132,16 +132,19 @@ public class GMSClient implements TransferListener, GroupClient {
      * @param serviceID The service ID.
      */
     public GMSClient(URI serviceID) {
-        if (serviceID == null)
+        if (serviceID == null) {
             throw new IllegalArgumentException("invalid serviceID: " + serviceID);
-        if (serviceID.getFragment() != null)
+        }
+        if (serviceID.getFragment() != null) {
             throw new IllegalArgumentException("invalid serviceID (fragment not allowed): " + serviceID);
+        }
         this.serviceID = serviceID;
     }
 
     public void transferEvent(TransferEvent te) {
-        if (TransferEvent.RETRYING == te.getState())
+        if (TransferEvent.RETRYING == te.getState()) {
             log.debug("retry after request failed, reason: " + te.getError());
+        }
     }
 
     public String getEventHeader() {
@@ -151,10 +154,10 @@ public class GMSClient implements TransferListener, GroupClient {
 
     /**
      * GMSClient Interface compliance.
-     * <p>
-     * Default 'role' within a group is 'membership'
-     * <p>
-     * Ensure serviceIDs match.
+     *
+     * <p>Default 'role' within a group is 'membership'
+     *
+     * <p>Ensure serviceIDs match.
      */
     @Override
     public boolean isMember(GroupURI group) {
@@ -172,9 +175,42 @@ public class GMSClient implements TransferListener, GroupClient {
     }
 
     /**
+     * Check group membership of the current Subject.
+     *
+     * @param groupName
+     * @return true if the current Subject is a member of the group, false otherwise
+     * @throws UserNotFoundException  If user does not exist in the system.
+     * @throws AccessControlException If user is not authenticated.
+     * @throws IOException            If an unknown error occured.
+     */
+    public boolean isMember(String groupName)
+            throws UserNotFoundException, AccessControlException, IOException {
+        return isMember(groupName, Role.MEMBER);
+    }
+
+    /**
+     * @param groupName
+     * @param role
+     * @return true if the current Subject is a member of the group with the specified role, false otherwise
+     * @throws UserNotFoundException  If user does not exist in the system.
+     * @throws AccessControlException If user is not authenticated.
+     * @throws IOException            If an unknown error occured.
+     */
+    public boolean isMember(String groupName, Role role)
+            throws UserNotFoundException, AccessControlException, IOException {
+        return isMember(getCurrentUserID(), groupName, role);
+    }
+
+    private boolean isMember(Principal userID, String groupName, Role role)
+            throws UserNotFoundException, AccessControlException, IOException {
+        Group group = getMembership(groupName, role);
+        return group != null;
+    }
+
+    /**
      * GMSClient Interface compliance.
-     * <p>
-     * Default 'role' within a group is 'membership'
+     *
+     * <p>Default 'role' within a group is 'membership'
      */
     @Override
     public List<GroupURI> getMemberships() {
@@ -187,6 +223,77 @@ public class GMSClient implements TransferListener, GroupClient {
             return ret;
         } catch (Throwable e) {
             throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * Get memberships for the current user (subject).
+     *
+     * @param role
+     * @return A list of groups for which the current user has the role.
+     * @throws AccessControlException               If user is not authenticated.
+     * @throws ca.nrc.cadc.ac.UserNotFoundException
+     * @throws java.io.IOException                  If any other error occurs.
+     */
+    public List<Group> getMemberships(Role role)
+            throws UserNotFoundException, AccessControlException, IOException {
+        return getMemberships(null, role);
+    }
+
+
+    private List<Group> getMemberships(Principal ignore, Role role)
+            throws UserNotFoundException, AccessControlException, IOException {
+        if (role == null) {
+            throw new IllegalArgumentException("role are required.");
+        }
+
+        Principal userID = getCurrentUserID();
+        if (userID != null) {
+            List<Group> cachedGroups = getCachedGroups(userID, role, true);
+            if (cachedGroups != null) {
+                return cachedGroups;
+            }
+        }
+
+        String roleString = role.getValue();
+        URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_01);
+        URL getMembershipsURL = new URL(searchURL.toExternalForm()
+                + "?ROLE="
+                + NetUtil.encode(roleString));
+
+        log.debug("getMemberships request to " + getMembershipsURL.toString());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        HttpDownload transfer = new HttpDownload(getMembershipsURL, out);
+        transfer.run();
+
+        Throwable error = transfer.getThrowable();
+        if (error != null) {
+            log.debug("getMemberships throwable", error);
+            // transfer returns a -1 code for anonymous access.
+            if ((transfer.getResponseCode() == -1) || (transfer.getResponseCode() == 401)
+                    || (transfer.getResponseCode() == 403)) {
+                throw new AccessControlException(error.getMessage());
+            }
+            if (transfer.getResponseCode() == 404) {
+                throw new UserNotFoundException(error.getMessage());
+            }
+            if (transfer.getResponseCode() == 400) {
+                throw new IllegalArgumentException(error.getMessage());
+            }
+            throw new IOException(error);
+        }
+
+        try {
+            String groupsXML = new String(out.toByteArray(), "UTF-8");
+            log.debug("getMemberships returned: " + groupsXML);
+            GroupListReader groupListReader = new GroupListReader();
+            List<Group> groups = groupListReader.read(groupsXML);
+            setCachedGroups(userID, groups, role);
+            return groups;
+        } catch (Exception bug) {
+            log.error("Unexpected exception", bug);
+            throw new RuntimeException(bug);
         }
     }
 
@@ -236,9 +343,9 @@ public class GMSClient implements TransferListener, GroupClient {
         if (error != null) {
             log.debug("createGroup throwable", error);
             // transfer returns a -1 code for anonymous uploads.
-            if ((transfer.getResponseCode() == -1) ||
-                    (transfer.getResponseCode() == 401) ||
-                    (transfer.getResponseCode() == 403)) {
+            if ((transfer.getResponseCode() == -1)
+                    || (transfer.getResponseCode() == 401)
+                    ||  (transfer.getResponseCode() == 403)) {
                 throw new AccessControlException(error.getMessage());
             }
             if (transfer.getResponseCode() == 400) {
@@ -287,9 +394,9 @@ public class GMSClient implements TransferListener, GroupClient {
         if (error != null) {
             log.debug("getGroup throwable (" + transfer.getResponseCode() + ")", error);
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) ||
-                    (transfer.getResponseCode() == 401) ||
-                    (transfer.getResponseCode() == 403)) {
+            if ((transfer.getResponseCode() == -1)
+                   || (transfer.getResponseCode() == 401)
+                   ||  (transfer.getResponseCode() == 403)) {
                 throw new AccessControlException(error.getMessage());
             }
             if (transfer.getResponseCode() == 400) {
@@ -354,11 +461,10 @@ public class GMSClient implements TransferListener, GroupClient {
             final String errMessage = error.getMessage();
             final int responseCode = httpDownload.getResponseCode();
 
-            log.debug("getGroupNames response " + responseCode + ": " +
-                    errMessage);
+            log.debug("getGroupNames response " + responseCode + ": "
+                    + errMessage);
 
-            if ((responseCode == 401) || (responseCode == 403) ||
-                    (responseCode == -1)) {
+            if ((responseCode == 401) || (responseCode == 403) || (responseCode == -1)) {
                 throw new AccessControlException(errMessage);
             }
             if (responseCode == 400) {
@@ -401,7 +507,8 @@ public class GMSClient implements TransferListener, GroupClient {
         groupWriter.write(group, groupXML);
         log.debug("updateGroup: " + groupXML);
 
-        HttpPost transfer = new HttpPost(updateGroupURL, new FileContent(groupXML.toString(), "application/xml", Charset.forName("UTF-8")), false);
+        HttpPost transfer = new HttpPost(updateGroupURL, new FileContent(groupXML.toString(),
+                "application/xml", Charset.forName("UTF-8")), false);
         transfer.setTransferListener(this);
         transfer.run();
 
@@ -409,19 +516,19 @@ public class GMSClient implements TransferListener, GroupClient {
         Throwable error = transfer.getThrowable();
         if (error != null) {
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) ||
-                    (transfer.getResponseCode() == 401) ||
-                    (transfer.getResponseCode() == 403)) {
+            if ((transfer.getResponseCode() == -1) || (transfer.getResponseCode() == 401)
+                    || (transfer.getResponseCode() == 403)) {
                 throw new AccessControlException(error.getMessage());
             }
             if (transfer.getResponseCode() == 400) {
                 throw new IllegalArgumentException(error.getMessage());
             }
             if (transfer.getResponseCode() == 404) {
-                if (error.getMessage() != null && error.getMessage().toLowerCase().contains("user"))
+                if (error.getMessage() != null && error.getMessage().toLowerCase().contains("user")) {
                     throw new UserNotFoundException(error.getMessage());
-                else
+                } else {
                     throw new GroupNotFoundException(error.getMessage());
+                }
             }
             throw new IOException(error);
         }
@@ -497,9 +604,7 @@ public class GMSClient implements TransferListener, GroupClient {
             final int responseCode = httpUpload.getResponseCode();
             final String errMessage = error.getMessage();
 
-            if ((responseCode == -1) ||
-                    (responseCode == 401) ||
-                    (responseCode == 403)) {
+            if ((responseCode == -1) || (responseCode == 401) || (responseCode == 403)) {
                 throw new AccessControlException(errMessage);
             }
             if (responseCode == 400) {
@@ -524,11 +629,13 @@ public class GMSClient implements TransferListener, GroupClient {
      */
     public void addUserMember(String targetGroupName, Principal userID)
             throws GroupNotFoundException, UserNotFoundException, AccessControlException, IOException {
-        if (targetGroupName == null)
+        if (targetGroupName == null) {
             throw new IllegalArgumentException("targetGroupName required");
+        }
 
-        if (userID == null)
+        if (userID == null) {
             throw new IllegalArgumentException("userID required");
+        }
 
         log.debug("addUserMember: " + targetGroupName + " + " + userID.getName());
 
@@ -551,19 +658,18 @@ public class GMSClient implements TransferListener, GroupClient {
             final int responseCode = httpUpload.getResponseCode();
             final String errMessage = error.getMessage();
 
-            if ((responseCode == -1) ||
-                    (responseCode == 401) ||
-                    (responseCode == 403)) {
+            if ((responseCode == -1) || (responseCode == 401) || (responseCode == 403)) {
                 throw new AccessControlException(errMessage);
             }
             if (responseCode == 400) {
                 throw new IllegalArgumentException(errMessage);
             }
             if (responseCode == 404) {
-                if (errMessage != null && errMessage.toLowerCase().contains("user"))
+                if (errMessage != null && errMessage.toLowerCase().contains("user")) {
                     throw new UserNotFoundException(errMessage);
-                else
+                } else {
                     throw new GroupNotFoundException(errMessage);
+                }
             }
             throw new IOException(errMessage);
         }
@@ -585,8 +691,7 @@ public class GMSClient implements TransferListener, GroupClient {
         String path = "/" + targetGroupName + "/groupMembers/" + groupMemberName;
         URL groupsURL = lookupServiceURL(Standards.GMS_GROUPS_01);
         URL removeGroupMemberURL = new URL(groupsURL.toExternalForm() + path);
-        log.debug("removeGroupMember request to " +
-                removeGroupMemberURL.toString());
+        log.debug("removeGroupMember request to " + removeGroupMemberURL.toString());
 
         // reset the state of the cache
         clearCache();
@@ -649,10 +754,11 @@ public class GMSClient implements TransferListener, GroupClient {
             }
             if (error instanceof ResourceNotFoundException) {
                 String errMessage = error.getMessage();
-                if (errMessage != null && errMessage.toLowerCase().contains("user"))
+                if (errMessage != null && errMessage.toLowerCase().contains("user")) {
                     throw new UserNotFoundException(errMessage);
-                else
+                } else {
                     throw new GroupNotFoundException(errMessage);
+                }
             }
 
             throw new IOException(error);
@@ -661,93 +767,24 @@ public class GMSClient implements TransferListener, GroupClient {
 
     private Principal getCurrentUserID() {
         Subject cur = AuthenticationUtil.getCurrentSubject();
-        if (cur == null)
+        if (cur == null) {
             return null; // throw new IllegalArgumentException("no subject");
+        }
         Set<HttpPrincipal> ps = cur.getPrincipals(HttpPrincipal.class); // hack
-        if (ps.isEmpty())
+        if (ps.isEmpty()) {
             return null; // throw new IllegalArgumentException("no principals");
+        }
         Principal p = ps.iterator().next();
         log.debug("getCurrentID: " + p.getClass());
         return p;
     }
 
     /**
-     * Get memberships for the current user (subject).
-     *
-     * @param role
-     * @return A list of groups for which the current user has the role.
-     * @throws AccessControlException               If user is not authenticated.
-     * @throws ca.nrc.cadc.ac.UserNotFoundException
-     * @throws java.io.IOException                  If any other error occurs.
-     */
-    public List<Group> getMemberships(Role role)
-            throws UserNotFoundException, AccessControlException, IOException {
-        return getMemberships(null, role);
-    }
-
-
-    private List<Group> getMemberships(Principal ignore, Role role)
-            throws UserNotFoundException, AccessControlException, IOException {
-        if (role == null) {
-            throw new IllegalArgumentException("role are required.");
-        }
-
-        Principal userID = getCurrentUserID();
-        if (userID != null) {
-            List<Group> cachedGroups = getCachedGroups(userID, role, true);
-            if (cachedGroups != null) {
-                return cachedGroups;
-            }
-        }
-
-        String roleString = role.getValue();
-        URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_01);
-        URL getMembershipsURL = new URL(searchURL.toExternalForm()
-                + "?ROLE="
-                + NetUtil.encode(roleString));
-
-        log.debug("getMemberships request to " + getMembershipsURL.toString());
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        HttpDownload transfer = new HttpDownload(getMembershipsURL, out);
-        transfer.run();
-
-        Throwable error = transfer.getThrowable();
-        if (error != null) {
-            log.debug("getMemberships throwable", error);
-            // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) ||
-                    (transfer.getResponseCode() == 401) ||
-                    (transfer.getResponseCode() == 403)) {
-                throw new AccessControlException(error.getMessage());
-            }
-            if (transfer.getResponseCode() == 404) {
-                throw new UserNotFoundException(error.getMessage());
-            }
-            if (transfer.getResponseCode() == 400) {
-                throw new IllegalArgumentException(error.getMessage());
-            }
-            throw new IOException(error);
-        }
-
-        try {
-            String groupsXML = new String(out.toByteArray(), "UTF-8");
-            log.debug("getMemberships returned: " + groupsXML);
-            GroupListReader groupListReader = new GroupListReader();
-            List<Group> groups = groupListReader.read(groupsXML);
-            setCachedGroups(userID, groups, role);
-            return groups;
-        } catch (Exception bug) {
-            log.error("Unexpected exception", bug);
-            throw new RuntimeException(bug);
-        }
-    }
-
-    /**
      * Return the group, specified by parameter groupName, if the user,
      * identified by userID, is a member of that group.  Return null
      * otherwise.
-     * <p>
-     * This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
+     *
+     * <p>This call is identical to getMemberShip(userID, groupName, Role.MEMBER)
      *
      * @param groupName Identifies the group.
      * @return The group or null of the user is not a member.
@@ -790,8 +827,8 @@ public class GMSClient implements TransferListener, GroupClient {
 
         String roleString = role.getValue();
 
-        String searchGroupPath = "?ROLE=" + NetUtil.encode(roleString) +
-                "&GROUPID=" + NetUtil.encode(groupName);
+        String searchGroupPath = "?ROLE=" + NetUtil.encode(roleString)
+                + "&GROUPID=" + NetUtil.encode(groupName);
 
         URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_01);
         URL getMembershipURL = new URL(searchURL.toExternalForm() + searchGroupPath);
@@ -805,9 +842,8 @@ public class GMSClient implements TransferListener, GroupClient {
         if (error != null) {
             log.debug("getMembership throwable", error);
             // transfer returns a -1 code for anonymous access.
-            if ((transfer.getResponseCode() == -1) ||
-                    (transfer.getResponseCode() == 401) ||
-                    (transfer.getResponseCode() == 403)) {
+            if ((transfer.getResponseCode() == -1) || (transfer.getResponseCode() == 401)
+                    || (transfer.getResponseCode() == 403)) {
                 throw new AccessControlException(error.getMessage());
             }
             if (transfer.getResponseCode() == 404) {
@@ -840,39 +876,6 @@ public class GMSClient implements TransferListener, GroupClient {
         }
     }
 
-    /**
-     * Check group membership of the current Subject.
-     *
-     * @param groupName
-     * @return true if the current Subject is a member of the group, false otherwise
-     * @throws UserNotFoundException  If user does not exist in the system.
-     * @throws AccessControlException If user is not authenticated.
-     * @throws IOException            If an unknown error occured.
-     */
-    public boolean isMember(String groupName)
-            throws UserNotFoundException, AccessControlException, IOException {
-        return isMember(groupName, Role.MEMBER);
-    }
-
-    /**
-     * @param groupName
-     * @param role
-     * @return true if the current Subject is a member of the group with the specified role, false otherwise
-     * @throws UserNotFoundException  If user does not exist in the system.
-     * @throws AccessControlException If user is not authenticated.
-     * @throws IOException            If an unknown error occured.
-     */
-    public boolean isMember(String groupName, Role role)
-            throws UserNotFoundException, AccessControlException, IOException {
-        return isMember(getCurrentUserID(), groupName, role);
-    }
-
-    private boolean isMember(Principal userID, String groupName, Role role)
-            throws UserNotFoundException, AccessControlException, IOException {
-        Group group = getMembership(groupName, role);
-        return group != null;
-    }
-
     protected void clearCache() {
         AccessControlContext acContext = AccessController.getContext();
         Subject subject = Subject.getSubject(acContext);
@@ -897,8 +900,8 @@ public class GMSClient implements TransferListener, GroupClient {
 
             // check to ensure they have the same service URI
             if (!serviceID.toString().equals(mems.getServiceURI())) {
-                log.debug("Not using cache because of differing service URIs: " +
-                        "[" + serviceID.toString() + "][" + mems.getServiceURI() + "]");
+                log.debug("Not using cache because of differing service URIs: "
+                        + "[" + serviceID.toString() + "][" + mems.getServiceURI() + "]");
                 return null;
             }
 
@@ -909,23 +912,27 @@ public class GMSClient implements TransferListener, GroupClient {
 
     protected Group getCachedGroup(Principal userID, String groupID, Role role) {
         List<Group> groups = getCachedGroups(userID, role, false);
-        if (groups == null)
+        if (groups == null) {
             return null; // no cache
+        }
         for (Group g : groups) {
-            if (g.getID().getName().equals(groupID))
+            if (g.getID().getName().equals(groupID)) {
                 return g;
+            }
         }
         return null;
     }
 
     protected List<Group> getCachedGroups(Principal userID, Role role, boolean complete) {
         GroupMemberships mems = getGroupCache(userID);
-        if (mems == null)
+        if (mems == null) {
             return null; // no cache
+        }
 
         Boolean cacheState = mems.isComplete(role);
-        if (!complete || Boolean.TRUE.equals(cacheState))
+        if (!complete || Boolean.TRUE.equals(cacheState)) {
             return mems.getMemberships(role);
+        }
 
         // caller wanted complete and we don't have that
         return null;
@@ -933,16 +940,18 @@ public class GMSClient implements TransferListener, GroupClient {
 
     protected void addCachedGroup(Principal userID, Group group, Role role) {
         GroupMemberships mems = getGroupCache(userID);
-        if (mems == null)
+        if (mems == null) {
             return; // no cache
+        }
 
         mems.add(group, role);
     }
 
     protected void setCachedGroups(Principal userID, List<Group> groups, Role role) {
         GroupMemberships mems = getGroupCache(userID);
-        if (mems == null)
+        if (mems == null) {
             return; // no cache
+        }
 
         mems.add(groups, role);
     }
