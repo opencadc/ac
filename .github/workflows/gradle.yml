@@ -27,7 +27,7 @@ jobs:
       run: cd cadc-permissions-client && ../gradlew --info clean build javadoc install
       
     - name: build and test cadc-gms
-      run: cd cadc-gms && ../gradlew --info clean build javadoc install
+      run: cd cadc-gms && ../gradlew --info clean build checkstyleMain javadoc install
       
     - name: build and test cadc-access-control
       run: cd cadc-access-control && ../gradlew --info clean build checkstyleMain javadoc install
