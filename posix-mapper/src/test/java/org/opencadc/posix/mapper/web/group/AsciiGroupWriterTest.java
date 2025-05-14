@@ -68,15 +68,14 @@
 
 package org.opencadc.posix.mapper.web.group;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.Group;
-
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URI;
 import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
+import org.opencadc.posix.mapper.Group;
 
 public class AsciiGroupWriterTest {
     @Test
@@ -88,7 +87,7 @@ public class AsciiGroupWriterTest {
         testSubject.write(List.of(testGroup).iterator());
 
         Assert.assertEquals("Wrong output", "TESTGROUP1:x:(Not yet persisted):\n",
-                            writer.toString());
+                writer.toString());
     }
 
     @Test
@@ -101,6 +100,6 @@ public class AsciiGroupWriterTest {
         testSubject.write(List.of(testGroup).iterator());
 
         Assert.assertEquals("Wrong output", "TESTGROUP4:x:441:\n",
-                            writer.toString());
+                writer.toString());
     }
 }

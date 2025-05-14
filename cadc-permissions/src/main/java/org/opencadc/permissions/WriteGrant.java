@@ -74,16 +74,16 @@ import java.util.Date;
 
 /**
  * Holds grant information about an artifact.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class WriteGrant extends Grant {
 
     /**
      * Construct a write grant for the given artifactURI.
+     *
      * @param artifactURI The applicable targetURI.
-     * @param expiryDate The expiry date of the grant.
+     * @param expiryDate  The expiry date of the grant.
      */
     public WriteGrant(URI artifactURI, Date expiryDate) {
         super(artifactURI, expiryDate);

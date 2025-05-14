@@ -68,34 +68,27 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.util.ArrayList;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.User;
+import java.util.ArrayList;
 
-public class DeleteGroupAction extends AbstractGroupAction
-{
+public class DeleteGroupAction extends AbstractGroupAction {
     private final String groupName;
 
-    DeleteGroupAction(String groupName)
-    {
+    DeleteGroupAction(String groupName) {
         super();
         this.groupName = groupName;
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Group deletedGroup = groupPersistence.getGroup(this.groupName);
         groupPersistence.deleteGroup(this.groupName);
-        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0))
-        {
+        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0)) {
             this.logInfo.deletedMembers = new ArrayList<String>();
-            for (Group gr : deletedGroup.getGroupMembers())
-            {
+            for (Group gr : deletedGroup.getGroupMembers()) {
                 this.logInfo.deletedMembers.add(gr.getID().getName());
             }
-            for (User usr : deletedGroup.getUserMembers())
-            {
+            for (User usr : deletedGroup.getUserMembers()) {
                 this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
             }
         }

@@ -68,37 +68,31 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.opencadc.gms.GroupURI;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.reg.Standards;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import org.opencadc.gms.GroupURI;
 
-public class AddGroupMemberAction extends AbstractGroupAction
-{
+public class AddGroupMemberAction extends AbstractGroupAction {
     private final String groupName;
     private final String groupMemberName;
 
     AddGroupMemberAction(String groupName,
-                         String groupMemberName)
-    {
+                         String groupMemberName) {
         super();
         this.groupName = groupName;
         this.groupMemberName = groupMemberName;
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Group group = groupPersistence.getGroup(this.groupName);
         URI gmsServiceURI = getServiceURI(Standards.GMS_GROUPS_01);
         GroupURI toAddID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
         Group toAdd = new Group(toAddID);
-        if (!group.getGroupMembers().add(toAdd))
-        {
+        if (!group.getGroupMembers().add(toAdd)) {
             throw new GroupAlreadyExistsException(this.groupMemberName);
         }
         groupPersistence.modifyGroup(group);

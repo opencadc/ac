@@ -68,96 +68,82 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.util.PropertiesReader;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class GroupListReaderWriterTest
-{
+public class GroupListReaderWriterTest {
     private static Logger log = Logger.getLogger(GroupListReaderWriterTest.class);
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             String s = null;
             GroupListReader groupListReader = new GroupListReader();
             List<Group> g = groupListReader.read(s);
             fail("null String should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
 
-        try
-        {
+        try {
             InputStream in = null;
             GroupListReader groupListReader = new GroupListReader();
             List<Group> g = groupListReader.read(in);
             fail("null InputStream should throw IOException");
+        } catch (IOException e) {
         }
-        catch (IOException e) {}
 
-        try
-        {
+        try {
             Reader r = null;
             GroupListReader groupListReader = new GroupListReader();
             List<Group> g = groupListReader.read(r);
             fail("null element should throw ReaderException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             GroupListWriter groupListWriter = new GroupListWriter();
             groupListWriter.write(null, new StringBuilder());
             fail("null Group should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
     }
 
     @Test
     public void testMinimalReadWrite()
-        throws Exception
-    {
+            throws Exception {
         List<Group> expected = new ArrayList<Group>();
         expected.add(new Group(new GroupURI("ivo://example.org/gms?group1")));
         expected.add(new Group(new GroupURI("ivo://example.org/gms?group2")));

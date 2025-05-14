@@ -70,58 +70,49 @@ package ca.nrc.cadc.ac;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
- *
  * @author jburke
  */
-public class GroupPropertyTest
-{
+public class GroupPropertyTest {
     private static Logger log = Logger.getLogger(GroupPropertyTest.class);
-    
+
     @Test
-    public void simpleGroupPropertyTest() throws Exception
-    {
+    public void simpleGroupPropertyTest() throws Exception {
         GroupProperty gp1 = new GroupProperty("key", "value", false);
-        
+
         assertEquals("key", gp1.getKey());
         assertEquals("value", gp1.getValue());
         assertEquals(false, gp1.isReadOnly());
-        
+
         GroupProperty gp2 = gp1;
         assertEquals(gp1.hashCode(), gp2.hashCode());
         assertEquals(gp1, gp2);
-        
+
         // test toString
         System.out.println(gp1);
     }
-    
+
     @Test
-    public void exceptionTests()
-    {
+    public void exceptionTests() {
         boolean thrown = false;
-        try
-        {
+        try {
             new GroupProperty(null, "value", true);
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
-        
-        
+
+
         thrown = false;
-        try
-        {
+        try {
             new GroupProperty("key", null, true);
-        }
-        catch(IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             thrown = true;
         }
         assertTrue(thrown);
     }
-    
+
 }

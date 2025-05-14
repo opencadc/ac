@@ -1,11 +1,16 @@
 package org.opencadc.posix.mapper;
 
-import jakarta.persistence.*;
-import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
 import org.opencadc.gms.GroupURI;
-import org.opencadc.posix.mapper.db.GroupIDSequenceGenerator;
 import org.opencadc.posix.mapper.db.GroupURIType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 
 @NamedQuery(name = "findGroupByURI", query = "SELECT g FROM Groups g WHERE g.groupURI = :groupURI")
@@ -53,8 +58,8 @@ public class Group {
     @Override
     public String toString() {
         return "Group{" +
-               "gid=" + gid +
-               ", groupURI='" + groupURI + '\'' +
-               '}';
+                "gid=" + gid +
+                ", groupURI='" + groupURI + '\'' +
+                '}';
     }
 }

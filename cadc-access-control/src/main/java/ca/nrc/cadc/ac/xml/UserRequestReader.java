@@ -66,27 +66,26 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.xml;
 
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.xml.XmlUtil;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 /**
  * Class to read a XML representation of a UserRequest to a UserRequest object.
  */
-public class UserRequestReader extends AbstractReaderWriter
-{
+public class UserRequestReader extends AbstractReaderWriter {
     /**
      * Construct a UserRequest from an XML String source.
      *
@@ -95,10 +94,8 @@ public class UserRequestReader extends AbstractReaderWriter
      * @throws java.io.IOException
      */
     public UserRequest read(String xml)
-        throws ReaderException, IOException
-    {
-        if (xml == null)
-        {
+            throws ReaderException, IOException {
+        if (xml == null) {
             throw new IllegalArgumentException("XML must not be null");
         }
         return read(new StringReader(xml));
@@ -113,19 +110,14 @@ public class UserRequestReader extends AbstractReaderWriter
      * @throws java.io.IOException
      */
     public UserRequest read(InputStream in)
-        throws ReaderException, IOException
-    {
-        if (in == null)
-        {
+            throws ReaderException, IOException {
+        if (in == null) {
             throw new IOException("stream closed");
         }
         InputStreamReader reader;
-        try
-        {
+        try {
             reader = new InputStreamReader(in, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("UTF-8 encoding not supported");
         }
         return read(reader);
@@ -140,25 +132,20 @@ public class UserRequestReader extends AbstractReaderWriter
      * @throws java.io.IOException
      */
     public UserRequest read(Reader reader)
-        throws ReaderException, IOException
-    {
-        if (reader == null)
-        {
+            throws ReaderException, IOException {
+        if (reader == null) {
             throw new IllegalArgumentException("reader must not be null");
         }
 
         // Create a JDOM Document from the XML
         Document document;
-        try
-        {
+        try {
             document = XmlUtil.buildDocument(reader);
-        }
-        catch (JDOMException jde)
-        {
+        } catch (JDOMException jde) {
             String error = "XML failed validation: " + jde.getMessage();
             throw new ReaderException(error, jde);
         }
-        
+
         // Root element and namespace of the Document
         Element root = document.getRootElement();
 

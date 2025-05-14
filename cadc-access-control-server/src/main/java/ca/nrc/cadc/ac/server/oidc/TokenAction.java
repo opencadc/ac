@@ -73,38 +73,33 @@ import ca.nrc.cadc.auth.InvalidSignedTokenException;
 import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
-
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 
 /**
- * 
  * Verify authorization code and issue an OAuth2 token.   This class responds to
  * HTTP POST calls.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class TokenAction extends RestAction {
-    
+
     private static final Logger log = Logger.getLogger(TokenAction.class);
 
     @Override
     public void doAction() throws Exception {
-        
+
         if (log.isDebugEnabled()) {
             log.debug("params:");
             for (String s : syncInput.getParameterNames()) {
                 log.debug("param: " + s + "=" + syncInput.getParameter(s));
             }
         }
-        
+
         // Authenticate the Client
         log.debug("authenticating client");
         final String clientID = syncInput.getParameter("client_id");
@@ -126,20 +121,20 @@ public class TokenAction extends RestAction {
             sendError("invalid_client");
             return;
         }
-        
+
         // Check the grant type
         String grantType = syncInput.getParameter("grant_type");
         log.debug("checking grant type: " + grantType);
         SignedToken st = null;
-        
+
         if ("refresh_token".equals(grantType)) {
-            
+
             String refreshToken = syncInput.getParameter("refresh_token");
             if (refreshToken == null) {
                 sendError("invalid_request");
                 return;
             }
-            
+
             try {
                 st = SignedToken.parse(refreshToken);
             } catch (InvalidSignedTokenException e) {
@@ -147,7 +142,7 @@ public class TokenAction extends RestAction {
                 sendError("invalid_scope");
                 return;
             }
-            
+
         } else if ("authorization_code".equals(grantType)) {
             // Verify that the Authorization Code is valid.
             log.debug("validating code");
@@ -156,9 +151,9 @@ public class TokenAction extends RestAction {
                 sendError("invalid_request");
                 return;
             }
-            
+
             // TODO: Ensure the Authorization Code was issued to the authenticated Client.
-            
+
             try {
                 st = SignedToken.parse(code);
             } catch (InvalidSignedTokenException e) {
@@ -166,7 +161,7 @@ public class TokenAction extends RestAction {
                 sendError("invalid_scope");
                 return;
             }
-            
+
         } else {
             log.debug("returning unsupported_grant_type");
             sendError("unsupported_grant_type");
@@ -174,17 +169,17 @@ public class TokenAction extends RestAction {
         }
 
         // TODO: If possible, verify that the Authorization Code has not been previously used.
-        
+
         // TODO: Ensure that the redirect_uri parameter value is identical to the redirect_uri
         //   parameter value that was included in the initial Authorization Request. If the
         //   redirect_uri parameter value is not present when there is only one registered redirect_uri
         //   value, the Authorization Server MAY return an error (since the Client should have included
         //   the parameter) or MAY proceed without an error (since OAuth 2.0 permits the parameter to be
         //   omitted in this case).
-        
+
         // TODO: Verify that the Authorization Code used was issued in response to an OpenID Connect
         //   Authentication Request (so that an ID Token will be returned from the Token Endpoint).
-        
+
         // Create and run as the target subject
         final HttpPrincipal useridPrincipal = st.getPrincipalByClass(HttpPrincipal.class);
         Subject subject = new Subject();
@@ -197,36 +192,36 @@ public class TokenAction extends RestAction {
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             @Override
             public Object run() throws Exception {
-                
+
                 String jwt = createJWT(useridPrincipal.getName(), rp);
-                
+
                 log.debug("set headers and return json: \n" + jwt);
                 syncOutput.setHeader("Content-Type", "application/json");
                 syncOutput.setHeader("Cache-Control", "no-store");
                 syncOutput.setHeader("Pragma", "no-cache");
-                
+
                 OutputStreamWriter writer = new OutputStreamWriter(syncOutput.getOutputStream());
                 writer.write(jwt.toString());
                 writer.flush();
                 return null;
             }
         });
-        
+
     }
-    
+
     private String createJWT(String userid, RelyParty rp) throws Exception {
-        
+
         log.debug("building jwt");
         String jws = OIDCUtil.buildIDToken(rp, syncInput.getRequestURI());
-        
+
         log.debug("building access token");
-        
+
         // include the clientID in the scope for use by the UserInfo endpoint.
-        URI accessTokenScope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE +"/" + rp.getClientID());
+        URI accessTokenScope = URI.create(OIDCUtil.ACCESS_TOKEN_SCOPE + "/" + rp.getClientID());
         URI refreshTokenScope = URI.create(OIDCUtil.REFRESH_TOKEN_SCOPE);
         String accessToken = OIDCUtil.getToken(userid, accessTokenScope, OIDCUtil.ACCESS_CODE_EXPIRY_MINUTES);
         String refreshToken = OIDCUtil.getToken(userid, refreshTokenScope, OIDCUtil.REFRESH_TOKEN_EXPIRY_MINUTES);
-        
+
         StringBuilder json = new StringBuilder();
         json.append("{ ");
         json.append("  \"access_token\": \"" + accessToken + "\",");
@@ -235,7 +230,7 @@ public class TokenAction extends RestAction {
         json.append("  \"expires_in\": \"").append(OIDCUtil.JWT_EXPIRY_MINUTES).append("\",");
         json.append("  \"id_token\": \"").append(jws).append("\"");
         json.append(" }");
-        
+
         return json.toString();
     }
 
@@ -243,7 +238,7 @@ public class TokenAction extends RestAction {
     protected InlineContentHandler getInlineContentHandler() {
         return null;
     }
-    
+
     private void sendError(String message) throws IOException {
         syncOutput.setHeader("Content-Type", "application/json");
         syncOutput.setHeader("Cache-Control", "no-store");

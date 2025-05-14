@@ -66,10 +66,10 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
-public class PersonalDetails
-{
+public class PersonalDetails {
     private String firstName;
     private String lastName;
     public String email;
@@ -78,14 +78,11 @@ public class PersonalDetails
     public String city;
     public String country;
 
-    public PersonalDetails(String firstName, String lastName)
-    {
-        if (firstName == null)
-        {
+    public PersonalDetails(String firstName, String lastName) {
+        if (firstName == null) {
             throw new IllegalArgumentException("null firstName");
         }
-        if (lastName == null)
-        {
+        if (lastName == null) {
             throw new IllegalArgumentException("null lastName");
         }
 
@@ -93,13 +90,11 @@ public class PersonalDetails
         this.lastName = lastName;
     }
 
-    public String getFirstName()
-    {
+    public String getFirstName() {
         return firstName;
     }
 
-    public String getLastName()
-    {
+    public String getLastName() {
         return lastName;
     }
 
@@ -107,8 +102,7 @@ public class PersonalDetails
      * @see ca.nrc.cadc.auth.model.UserDetails#hashCode()
      */
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int prime = 31;
         int result = 1;
         result = prime * result + firstName.hashCode();
@@ -118,27 +112,22 @@ public class PersonalDetails
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (obj == null)
-        {
+        if (obj == null) {
             return false;
         }
-        if (!(obj instanceof PersonalDetails))
-        {
+        if (!(obj instanceof PersonalDetails)) {
             return false;
         }
         PersonalDetails other = (PersonalDetails) obj;
-        if (!firstName.equals(other.firstName))
-        {
+        if (!firstName.equals(other.firstName)) {
             return false;
         }
         return lastName.equals(other.lastName);
@@ -148,11 +137,10 @@ public class PersonalDetails
      * @see ca.nrc.cadc.auth.model.UserDetails#toString()
      */
     @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + firstName + ", " + 
-               lastName + ", " + email + ", " + address + ", " + 
-               institute + ", " + city + ", " + country + "]";
+    public String toString() {
+        return getClass().getSimpleName() + "[" + firstName + ", "
+                + lastName + ", " + email + ", " + address + ", "
+                + institute + ", " + city + ", " + country + "]";
     }
 
     /**
@@ -161,20 +149,19 @@ public class PersonalDetails
      * For example:
      * firstName: John
      * lastName: Doe
-     * email: john.Doe@jd.com 
+     * email: john.Doe@jd.com
      */
-    public String toStringFormatted()
-    {
-    	StringBuffer sb = new StringBuffer("PersonalDetails" + "\n");
-    	sb.append("firstName" + ": " + firstName +"\n");
-    	sb.append("lastName" + ": " + lastName +"\n");
-    	sb.append("email" + ": " + email +"\n");
-    	sb.append("address" + ": " + address +"\n");
-    	sb.append("institute" + ": " + institute +"\n");
-    	sb.append("city" + ": " + city +"\n");
-    	sb.append("country" + ": " + country +"\n");
-	
-    	
-    	return sb.toString();
+    public String toStringFormatted() {
+        StringBuffer sb = new StringBuffer("PersonalDetails" + "\n");
+        sb.append("firstName" + ": " + firstName + "\n");
+        sb.append("lastName" + ": " + lastName + "\n");
+        sb.append("email" + ": " + email + "\n");
+        sb.append("address" + ": " + address + "\n");
+        sb.append("institute" + ": " + institute + "\n");
+        sb.append("city" + ": " + city + "\n");
+        sb.append("country" + ": " + country + "\n");
+
+
+        return sb.toString();
     }
 }

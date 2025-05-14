@@ -71,11 +71,9 @@ package ca.nrc.cadc.ac.server.web.userrequests;
 
 import org.junit.Test;
 
-public class CreateUserRequestActionTest
-{
+public class CreateUserRequestActionTest {
     @Test
-    public void testCreateUser() throws Exception
-    {
+    public void testCreateUser() throws Exception {
 
     }
 }

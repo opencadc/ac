@@ -68,23 +68,6 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
-import java.util.UUID;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.InternalID;
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.TestUtil;
@@ -94,82 +77,84 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.UUID;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class UserRequestReaderWriterTest
-{
+public class UserRequestReaderWriterTest {
     private static Logger log = Logger.getLogger(UserRequestReaderWriterTest.class);
 
-    public UserRequestReaderWriterTest()
-    {
+    public UserRequestReaderWriterTest() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
         System.out.println("set config dir to: " + System.getProperty(PropertiesReader.class.getName() + ".dir"));
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             String s = null;
             UserRequestReader userRequestReader = new UserRequestReader();
             UserRequest u = userRequestReader.read(s);
             fail("null String should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
 
-        try
-        {
+        try {
             InputStream in = null;
             UserRequestReader userRequestReader = new UserRequestReader();
             UserRequest u = userRequestReader.read(in);
             fail("null InputStream should throw IOException");
+        } catch (IOException e) {
         }
-        catch (IOException e) {}
 
-        try
-        {
+        try {
             Reader r = null;
             UserRequestReader userRequestReader = new UserRequestReader();
             UserRequest u = userRequestReader.read(r);
             fail("null Reader should throw IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             UserRequestWriter userRequestWriter = new UserRequestWriter();
             userRequestWriter.write(null, new StringBuilder());
             fail("null UserRequest should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
     }
 
     @Test
     public void testReadWrite()
-        throws Exception
-    {
+            throws Exception {
         User expectedUser = new User();
         UUID uuid = UUID.randomUUID();
         URI uri = new URI("ivo://cadc.nrc.ca/user?" + uuid);
@@ -181,7 +166,7 @@ public class UserRequestReaderWriterTest
         char[] expectedPassword = "123456".toCharArray();
 
         UserRequest expected =
-            new UserRequest(expectedUser, expectedPassword);
+                new UserRequest(expectedUser, expectedPassword);
 
         StringBuilder xml = new StringBuilder();
         UserRequestWriter userRequestWriter = new UserRequestWriter();
@@ -193,7 +178,7 @@ public class UserRequestReaderWriterTest
         assertNotNull(actual);
         assertEquals(expected.getUser(), actual.getUser());
         assertEquals(String.valueOf(expected.getPassword()),
-                     String.valueOf(actual.getPassword()));
+                String.valueOf(actual.getPassword()));
     }
 
 }

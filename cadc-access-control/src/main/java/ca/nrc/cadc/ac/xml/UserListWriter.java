@@ -71,8 +71,6 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
-import org.jdom2.Element;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -81,12 +79,12 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.security.Principal;
 import java.util.Collection;
+import org.jdom2.Element;
 
 /**
  * Class to write a XML representation of a List of User's.
  */
-public class UserListWriter extends AbstractReaderWriter
-{
+public class UserListWriter extends AbstractReaderWriter {
     /**
      * Write a Collection of User's to a StringBuilder.
      *
@@ -96,8 +94,7 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws WriterException
      */
     public <T extends Principal> void write(Collection<User> users, StringBuilder builder)
-        throws IOException, WriterException
-    {
+            throws IOException, WriterException {
         write(users, new StringBuilderWriter(builder));
     }
 
@@ -110,15 +107,11 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws WriterException
      */
     public <T extends Principal> void write(Collection<User> users, OutputStream out)
-        throws IOException, WriterException
-    {
+            throws IOException, WriterException {
         OutputStreamWriter outWriter;
-        try
-        {
+        try {
             outWriter = new OutputStreamWriter(out, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("UTF-8 encoding not supported", e);
         }
         write(users, new BufferedWriter(outWriter));
@@ -133,10 +126,8 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws WriterException
      */
     public <T extends Principal> void write(Collection<User> users, Writer writer)
-        throws IOException, WriterException
-    {
-        if (users == null)
-        {
+            throws IOException, WriterException {
+        if (users == null) {
             throw new WriterException("null users");
         }
 
@@ -152,12 +143,10 @@ public class UserListWriter extends AbstractReaderWriter
      * @throws WriterException
      */
     protected final <T extends Principal> Element getElement(
-            Collection<User> users) throws WriterException
-    {
+            Collection<User> users) throws WriterException {
         Element usersElement = new Element("users");
 
-        for (User user : users)
-        {
+        for (User user : users) {
             usersElement.addContent(getElement(user));
         }
 

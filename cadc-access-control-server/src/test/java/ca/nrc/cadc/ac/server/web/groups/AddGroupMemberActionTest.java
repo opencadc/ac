@@ -68,44 +68,36 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.fail;
-
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class AddGroupMemberActionTest
-{
+public class AddGroupMemberActionTest {
     private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
-    public void testExceptions()
-    {
-        try
-        {
+    public void testExceptions() {
+        try {
             URI gmsServiceURI = URI.create("ivo://example.org/gms");
 
             Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
@@ -117,35 +109,28 @@ public class AddGroupMemberActionTest
             //expect(groupPersistence.getGroup("member")).andReturn(member);
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-            {
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
                 @Override
-                public URI getServiceURI(URI standard)
-                {
+                public URI getServiceURI(URI standard) {
                     return URI.create("ivo://example.org/gms");
                 }
             };
             action.groupPersistence = groupPersistence;
 
-            try
-            {
+            try {
                 action.doAction();
                 fail("duplicate group member should throw GroupAlreadyExistsException");
+            } catch (GroupAlreadyExistsException ignore) {
             }
-            catch (GroupAlreadyExistsException ignore) {}
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }
     }
 
     @Test
-    public void testRun() throws Exception
-    {
-        try
-        {
+    public void testRun() throws Exception {
+        try {
             URI gmsServiceURI = URI.create("ivo://example.org/gms");
 
             Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
@@ -163,14 +148,12 @@ public class AddGroupMemberActionTest
 
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member")
-                {
-                    @Override
-                    public URI getServiceURI(URI standard)
-                    {
-                        return URI.create("ivo://example.org/gms");
-                    }
-                };
+            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
+                @Override
+                public URI getServiceURI(URI standard) {
+                    return URI.create("ivo://example.org/gms");
+                }
+            };
             action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
@@ -178,9 +161,7 @@ public class AddGroupMemberActionTest
 
             action.doAction();
 
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }

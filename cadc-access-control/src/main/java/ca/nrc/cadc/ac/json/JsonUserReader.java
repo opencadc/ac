@@ -66,24 +66,23 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.xml.JsonInputter;
-import org.jdom2.Document;
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Scanner;
+import org.jdom2.Document;
+import org.json.JSONException;
 
 /**
  * Class to read a JSON representation of a User to a User object.
  */
-public class JsonUserReader extends UserReader
-{
+public class JsonUserReader extends UserReader {
     /**
      * Construct a User from a Reader.
      *
@@ -94,26 +93,21 @@ public class JsonUserReader extends UserReader
      */
     @Override
     public User read(Reader reader)
-        throws ReaderException, IOException
-    {
-        if (reader == null)
-        {
+            throws ReaderException, IOException {
+        if (reader == null) {
             throw new IllegalArgumentException("reader must not be null");
         }
 
         Scanner s = new Scanner(reader).useDelimiter("\\A");
         String json = s.hasNext() ? s.next() : "";
 
-        try
-        {
+        try {
             JsonInputter jsonInputter = new JsonInputter();
             Document document = jsonInputter.input(json);
             return getUser(document.getRootElement());
-        }
-        catch (JSONException e)
-        {
-            String error = "Unable to parse JSON to User because " +
-                e.getMessage();
+        } catch (JSONException e) {
+            String error = "Unable to parse JSON to User because "
+                    + e.getMessage();
             throw new ReaderException(error, e);
         }
     }

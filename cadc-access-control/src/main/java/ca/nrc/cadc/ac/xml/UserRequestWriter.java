@@ -72,26 +72,23 @@ package ca.nrc.cadc.ac.xml;
 import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.StringBuilderWriter;
-
 import java.io.IOException;
 import java.io.Writer;
 
 /**
  * Class to write a XML representation of a UserRequest object.
  */
-public class UserRequestWriter extends AbstractReaderWriter
-{
+public class UserRequestWriter extends AbstractReaderWriter {
     /**
      * Write a UserRequest to a StringBuilder.
      *
      * @param userRequest UserRequest to write.
-     * @param builder StringBuilder to write to.
+     * @param builder     StringBuilder to write to.
      * @throws java.io.IOException if the writer fails to write.
      * @throws WriterException
      */
     public void write(UserRequest userRequest, StringBuilder builder)
-        throws IOException, WriterException
-    {
+            throws IOException, WriterException {
         write(userRequest, new StringBuilderWriter(builder));
     }
 
@@ -99,15 +96,13 @@ public class UserRequestWriter extends AbstractReaderWriter
      * Write a UserRequest to a Writer.
      *
      * @param userRequest UserRequest to write.
-     * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
+     * @param writer      Writer to write to.
+     * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
     public void write(UserRequest userRequest, Writer writer)
-        throws IOException, WriterException
-    {
-        if (userRequest == null)
-        {
+            throws IOException, WriterException {
+        if (userRequest == null) {
             throw new WriterException("null UserRequest");
         }
 

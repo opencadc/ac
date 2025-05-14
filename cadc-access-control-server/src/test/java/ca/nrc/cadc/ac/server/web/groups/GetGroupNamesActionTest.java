@@ -80,34 +80,29 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opencadc.auth.PosixGroup;
 import org.opencadc.gms.GroupURI;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class GetGroupNamesActionTest
-{
+public class GetGroupNamesActionTest {
     private final static Logger log = Logger.getLogger(GetGroupNamesActionTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
     @Ignore
-    public void testRun() throws Exception
-    {
-        try
-        {
+    public void testRun() throws Exception {
+        try {
             PosixGroup pg1 = new PosixGroup(8888, new GroupURI(URI.create("ivo://example.net/gms?foo")));
             PosixGroup pg2 = new PosixGroup(9999, new GroupURI(URI.create("ivo://example.net/gms?bar")));
             Collection<PosixGroup> groupNames = new ArrayList<>();
@@ -145,9 +140,7 @@ public class GetGroupNamesActionTest
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);
             action.doAction();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }

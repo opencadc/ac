@@ -68,19 +68,16 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.MemberAlreadyExistsException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.log4j.Logger;
 
-public class AddUserMemberAction extends AbstractGroupAction
-{
+public class AddUserMemberAction extends AbstractGroupAction {
     private static final Logger log = Logger.getLogger(AddUserMemberAction.class);
 
     private final String groupName;
@@ -88,8 +85,7 @@ public class AddUserMemberAction extends AbstractGroupAction
     private final String userIDType;
 
     AddUserMemberAction(String groupName, String userID,
-                        String userIDType)
-    {
+                        String userIDType) {
         super();
         this.groupName = groupName;
         this.userID = userID;
@@ -97,15 +93,13 @@ public class AddUserMemberAction extends AbstractGroupAction
     }
 
     @Override
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         Group group = groupPersistence.getGroup(this.groupName);
         Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
         User toAdd = new User();
 
         toAdd.getIdentities().add(userPrincipal);
-        if (!group.getUserMembers().add(toAdd))
-        {
+        if (!group.getUserMembers().add(toAdd)) {
             throw new MemberAlreadyExistsException();
         }
 

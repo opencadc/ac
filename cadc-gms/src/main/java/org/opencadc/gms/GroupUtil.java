@@ -71,18 +71,16 @@ package org.opencadc.gms;
 
 import java.lang.reflect.Constructor;
 import java.net.URI;
-
 import org.apache.log4j.Logger;
 
 /**
  * Group Utilities
- * 
- * @author majorb
  *
+ * @author majorb
  */
 @Deprecated
 public class GroupUtil {
-    
+
     /**
      * Construct a GMS Client from the classpath or fallback to
      * the default, no-op implementation if a GMS Client has not
@@ -90,22 +88,22 @@ public class GroupUtil {
      * must provide a constructor that takes the service URI as
      * an argument.
      * <p></p>
+     *
      * @param serviceID GMS Service ID.  If null, the default no-op
-     *      implementation of GMS Client is returned.
-     * 
+     *                  implementation of GMS Client is returned.
      * @return A GMSClient instance.
      */
     public static GroupClient getGroupClient(URI serviceID) {
-        
+
         Logger log = Logger.getLogger(GroupClient.class);
-        
+
         String defaultImplClass = GroupClient.class.getName() + "Impl";
         String cname = System.getProperty(GroupClient.class.getName());
         Class c = null;
         if (cname == null) {
             cname = defaultImplClass;
         }
-        
+
         if (serviceID != null) {
             try {
                 c = Class.forName(cname);
@@ -123,10 +121,10 @@ public class GroupUtil {
         } else {
             log.debug("null serviceID, using default NoOpGMSClient");
         }
-        
+
         log.debug("GMSClient: " + NoOpGroupClient.class.getName());
         return new NoOpGroupClient();
-        
+
     }
 
 }

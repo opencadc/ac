@@ -1,68 +1,68 @@
 /*
-************************************************************************
-*******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-**************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
-*
-*  (c) 2020.                            (c) 2020.
-*  Government of Canada                 Gouvernement du Canada
-*  National Research Council            Conseil national de recherches
-*  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
-*  All rights reserved                  Tous droits réservés
-*
-*  NRC disclaims any warranties,        Le CNRC dénie toute garantie
-*  expressed, implied, or               énoncée, implicite ou légale,
-*  statutory, of any kind with          de quelque nature que ce
-*  respect to the software,             soit, concernant le logiciel,
-*  including without limitation         y compris sans restriction
-*  any warranty of merchantability      toute garantie de valeur
-*  or fitness for a particular          marchande ou de pertinence
-*  purpose. NRC shall not be            pour un usage particulier.
-*  liable in any event for any          Le CNRC ne pourra en aucun cas
-*  damages, whether direct or           être tenu responsable de tout
-*  indirect, special or general,        dommage, direct ou indirect,
-*  consequential or incidental,         particulier ou général,
-*  arising from the use of the          accessoire ou fortuit, résultant
-*  software.  Neither the name          de l'utilisation du logiciel. Ni
-*  of the National Research             le nom du Conseil National de
-*  Council of Canada nor the            Recherches du Canada ni les noms
-*  names of its contributors may        de ses  participants ne peuvent
-*  be used to endorse or promote        être utilisés pour approuver ou
-*  products derived from this           promouvoir les produits dérivés
-*  software without specific prior      de ce logiciel sans autorisation
-*  written permission.                  préalable et particulière
-*                                       par écrit.
-*
-*  This file is part of the             Ce fichier fait partie du projet
-*  OpenCADC project.                    OpenCADC.
-*
-*  OpenCADC is free software:           OpenCADC est un logiciel libre ;
-*  you can redistribute it and/or       vous pouvez le redistribuer ou le
-*  modify it under the terms of         modifier suivant les termes de
-*  the GNU Affero General Public        la “GNU Affero General Public
-*  License as published by the          License” telle que publiée
-*  Free Software Foundation,            par la Free Software Foundation
-*  either version 3 of the              : soit la version 3 de cette
-*  License, or (at your option)         licence, soit (à votre gré)
-*  any later version.                   toute version ultérieure.
-*
-*  OpenCADC is distributed in the       OpenCADC est distribué
-*  hope that it will be useful,         dans l’espoir qu’il vous
-*  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
-*  without even the implied             GARANTIE : sans même la garantie
-*  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
-*  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
-*  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
-*  General Public License for           Générale Publique GNU Affero
-*  more details.                        pour plus de détails.
-*
-*  You should have received             Vous devriez avoir reçu une
-*  a copy of the GNU Affero             copie de la Licence Générale
-*  General Public License along         Publique GNU Affero avec
-*  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
-*  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
-*                                       <http://www.gnu.org/licenses/>.
-*
-************************************************************************
+ ************************************************************************
+ *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+ **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+ *
+ *  (c) 2020.                            (c) 2020.
+ *  Government of Canada                 Gouvernement du Canada
+ *  National Research Council            Conseil national de recherches
+ *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+ *  All rights reserved                  Tous droits réservés
+ *
+ *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
+ *  expressed, implied, or               énoncée, implicite ou légale,
+ *  statutory, of any kind with          de quelque nature que ce
+ *  respect to the software,             soit, concernant le logiciel,
+ *  including without limitation         y compris sans restriction
+ *  any warranty of merchantability      toute garantie de valeur
+ *  or fitness for a particular          marchande ou de pertinence
+ *  purpose. NRC shall not be            pour un usage particulier.
+ *  liable in any event for any          Le CNRC ne pourra en aucun cas
+ *  damages, whether direct or           être tenu responsable de tout
+ *  indirect, special or general,        dommage, direct ou indirect,
+ *  consequential or incidental,         particulier ou général,
+ *  arising from the use of the          accessoire ou fortuit, résultant
+ *  software.  Neither the name          de l'utilisation du logiciel. Ni
+ *  of the National Research             le nom du Conseil National de
+ *  Council of Canada nor the            Recherches du Canada ni les noms
+ *  names of its contributors may        de ses  participants ne peuvent
+ *  be used to endorse or promote        être utilisés pour approuver ou
+ *  products derived from this           promouvoir les produits dérivés
+ *  software without specific prior      de ce logiciel sans autorisation
+ *  written permission.                  préalable et particulière
+ *                                       par écrit.
+ *
+ *  This file is part of the             Ce fichier fait partie du projet
+ *  OpenCADC project.                    OpenCADC.
+ *
+ *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
+ *  you can redistribute it and/or       vous pouvez le redistribuer ou le
+ *  modify it under the terms of         modifier suivant les termes de
+ *  the GNU Affero General Public        la “GNU Affero General Public
+ *  License as published by the          License” telle que publiée
+ *  Free Software Foundation,            par la Free Software Foundation
+ *  either version 3 of the              : soit la version 3 de cette
+ *  License, or (at your option)         licence, soit (à votre gré)
+ *  any later version.                   toute version ultérieure.
+ *
+ *  OpenCADC is distributed in the       OpenCADC est distribué
+ *  hope that it will be useful,         dans l’espoir qu’il vous
+ *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+ *  without even the implied             GARANTIE : sans même la garantie
+ *  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+ *  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+ *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+ *  General Public License for           Générale Publique GNU Affero
+ *  more details.                        pour plus de détails.
+ *
+ *  You should have received             Vous devriez avoir reçu une
+ *  a copy of the GNU Affero             copie de la Licence Générale
+ *  General Public License along         Publique GNU Affero avec
+ *  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+ *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+ *                                       <http://www.gnu.org/licenses/>.
+ *
+ ************************************************************************
  */
 
 package org.opencadc.permissions;
@@ -81,9 +81,8 @@ import org.apache.log4j.Logger;
 /**
  * Utilities the generation and validation of pre-authorized tokens for artifact
  * download and upload.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class TokenTool {
 
@@ -92,14 +91,15 @@ public class TokenTool {
     private static final String KEY_META_URI = "uri";
     private static final String KEY_META_GRANT = "gnt";
     private static final String KEY_META_SUBJECT = "sub";
-    
+
     private final RsaSignatureGenerator sg;
     private final RsaSignatureVerifier sv;
-    
+
     private static final String TOKEN_DELIM = "~";
-    
+
     /**
      * Constructor for a TokenTool that can validate tokens.
+     *
      * @param publicKey public key file to validate
      */
     public TokenTool(File publicKey) {
@@ -109,11 +109,11 @@ public class TokenTool {
         this.sv = new RsaSignatureVerifier(publicKey);
         this.sg = null;
     }
-    
+
     /**
      * Constructor for a TokenTool that can generate and validate tokens.
-     * 
-     * @param publicKey public key file to validate
+     *
+     * @param publicKey  public key file to validate
      * @param privateKey private key file to generate
      */
     public TokenTool(File publicKey, File privateKey) {
@@ -123,7 +123,8 @@ public class TokenTool {
         if (privateKey == null) {
             throw new IllegalArgumentException("privateKey cannot be null");
         }
-        this.sv = new RsaSignatureVerifier(publicKey);;
+        this.sv = new RsaSignatureVerifier(publicKey);
+        ;
         this.sg = new RsaSignatureGenerator(privateKey);
     }
 
@@ -133,17 +134,18 @@ public class TokenTool {
     }
 
     public TokenTool(byte[] publicKey, byte[] privateKey) {
-        this.sv = new RsaSignatureVerifier(publicKey);;
+        this.sv = new RsaSignatureVerifier(publicKey);
+        ;
         this.sg = new RsaSignatureGenerator(privateKey);
     }
 
 
-
     /**
      * Generate an artifact token given the input parameters.
-     * @param uri The artifact URI
+     *
+     * @param uri        The artifact URI
      * @param grantClass The grant to be applied to the artifact.
-     * @param user The user initiating the action on the artifact.
+     * @param user       The user initiating the action on the artifact.
      * @return A pre-authorized signed token.
      */
     public String generateToken(URI uri, Class<? extends Grant> grantClass, String user) {
@@ -194,18 +196,18 @@ public class TokenTool {
 
         return token.toString();
     }
-    
+
     /**
      * Validate the given token with the expectations expressed in the parameters.
-     * 
-     * @param token The token to validate.
-     * @param expectedURI The expected artifact URI.
+     *
+     * @param token              The token to validate.
+     * @param expectedURI        The expected artifact URI.
      * @param expectedGrantClass one or more expected grant types (single match is valid)
      * @return The user contained in the token.
      * @throws AccessControlException If any of the expectations are not met or if the token is invalid.
-     * @throws IOException If a processing error occurs.
+     * @throws IOException            If a processing error occurs.
      */
-    public String validateToken(String token, URI expectedURI, Class<? extends Grant>... expectedGrantClass) 
+    public String validateToken(String token, URI expectedURI, Class<? extends Grant>... expectedGrantClass)
             throws AccessControlException, IOException {
 
         log.debug("validating token: " + token);
@@ -270,7 +272,7 @@ public class TokenTool {
             log.debug("[TokenTool.validateToken]: wrong grant class: " + grant);
             throw new AccessControlException("Invalid auth token");
         }
-        
+
         // validation passed, return the user for logging
         return user;
 
@@ -278,6 +280,7 @@ public class TokenTool {
 
     /**
      * Make a base 64 string safe for URLs.
+     *
      * @param s The string to encode.
      * @return The encoded string.
      */
@@ -290,6 +293,7 @@ public class TokenTool {
 
     /**
      * Decode a URL encoded base 64 string.
+     *
      * @param s The string to decode.
      * @return The decoded string.
      */

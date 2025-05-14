@@ -1,15 +1,11 @@
-
 package org.opencadc.gms;
 
-import java.net.URISyntaxException;
-
+import ca.nrc.cadc.util.Log4jInit;
+import java.net.URI;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-
-import ca.nrc.cadc.util.Log4jInit;
-import java.net.URI;
 
 public class GroupURITest {
 
@@ -28,12 +24,12 @@ public class GroupURITest {
 
     @Test
     public void testMalformed() {
-        
+
         try {
-            
+
             assertIllegalArgument(URI.create("ivo://example.org/gms?first.last@idp.com"));
             assertIllegalArgument(URI.create("ivo://example.org/gms"), "first.last@idp.com");
-            
+
             // no scheme
             assertIllegalArgument(URI.create("example.org/gms?gname"));
             assertIllegalArgument(URI.create("example.org/gms"), "gname");
@@ -49,19 +45,19 @@ public class GroupURITest {
             // no path
             assertIllegalArgument(URI.create("ivo://example.org?gname"));
             assertIllegalArgument(URI.create("ivo://example.org"), "gname");
-            
+
             // no group name
             assertIllegalArgument(URI.create("ivo://example.org/gms"));
             assertIllegalArgument(URI.create("ivo://example.org/gms"), null);
             assertIllegalArgument(URI.create("ivo://example.org/gms"), "");
             assertIllegalArgument(URI.create("ivo://example.org/gms"), " ");
-            
+
             // fragment not allowed
             assertIllegalArgument(URI.create("ivo://my.authority/gms#name"));
             assertIllegalArgument(URI.create("ivo://my.authority/gms#name"), null);
             assertIllegalArgument(URI.create("ivo://my.authority/gms?name#name"));
             assertIllegalArgument(URI.create("ivo://my.authority/gms?name#name"));
-            
+
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
             Assert.fail("unexpected exception: " + unexpected);
@@ -110,7 +106,7 @@ public class GroupURITest {
             Assert.fail("unexpected exception: " + unexpected);
         }
     }
-    
+
     private void assertIllegalArgument(URI resourceID, String name) {
         try {
             GroupURI gu = new GroupURI(resourceID, name);

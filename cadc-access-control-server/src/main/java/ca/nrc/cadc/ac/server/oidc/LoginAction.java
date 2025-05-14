@@ -73,26 +73,21 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
-
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
 /**
- * 
  * Authenticate username password and redirect to the RelyParty.  This class responds
  * to HTTP POST calls.
  *
  * @author majorb
- *
  */
 public class LoginAction extends RestAction {
-    
+
     private static final Logger log = Logger.getLogger(LoginAction.class);
 
     @Override
@@ -118,7 +113,7 @@ public class LoginAction extends RestAction {
         if (clientID == null) {
             throw new IllegalArgumentException("missing required param 'clientID'");
         }
-        
+
         UserPersistence userPersistence = new LdapUserPersistence();
         Boolean loginResult = null;
         try {
@@ -131,7 +126,7 @@ public class LoginAction extends RestAction {
             // check just in case.
             throw new AccessControlException("login failed");
         }
-        
+
         // check client id
         RelyParty rp = OIDCUtil.getRelyParty(clientID);
         if (rp == null) {
@@ -154,7 +149,7 @@ public class LoginAction extends RestAction {
                 return null;
             }
         });
-        
+
         // formulate the authenticate redirect response
         StringBuilder redirect = new StringBuilder(redirectURI);
         URI scope = URI.create(OIDCUtil.AUTHORIZE_TOKEN_SCOPE);
@@ -171,7 +166,7 @@ public class LoginAction extends RestAction {
         syncOutput.setHeader("Content-Type", "text/plain");
         syncOutput.getOutputStream().write(redirect.toString().getBytes());
     }
-    
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;

@@ -72,20 +72,15 @@ package ca.nrc.cadc.ac.server.web.users;
 
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
 
-
-public class GetUserListAction extends AbstractUserAction
-{
+public class GetUserListAction extends AbstractUserAction {
 
     private static final Logger log = Logger.getLogger(GetUserListAction.class);
 
-    GetUserListAction()
-    {
+    GetUserListAction() {
     }
 
-    public void doAction() throws Exception
-    {
+    public void doAction() throws Exception {
         writeUsers(userPersistence.getUsers());
     }
 }

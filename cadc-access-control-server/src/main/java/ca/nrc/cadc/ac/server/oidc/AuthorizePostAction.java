@@ -70,27 +70,23 @@ import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.xml.JsonInputter;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.Element;
 
 /**
- * 
  * This class responds to HTTP POST requests to /authorize.  Since authorize can
  * be called with a GET as well, the work for authorize is done in AuthorizeAction.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class AuthorizePostAction extends AuthorizeAction implements InlineContentHandler {
-    
+
     private static final Logger log = Logger.getLogger(AuthorizePostAction.class);
     private static final String CONTENT_JSON = "json";
 
@@ -150,7 +146,7 @@ public class AuthorizePostAction extends AuthorizeAction implements InlineConten
             }
         }
     }
-    
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return this;
@@ -159,7 +155,7 @@ public class AuthorizePostAction extends AuthorizeAction implements InlineConten
     @Override
     public Content accept(String name, String contentType, InputStream inputStream)
             throws InlineContentException, IOException, ResourceNotFoundException {
-        
+
         log.debug("Content-Type: " + contentType);
         if ("application/json".equals(contentType)) {
             InputStreamReader inReader = new InputStreamReader(inputStream);

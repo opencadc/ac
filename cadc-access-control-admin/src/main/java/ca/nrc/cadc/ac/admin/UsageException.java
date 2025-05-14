@@ -66,19 +66,17 @@
  *
  ************************************************************************
  */
- 
- package ca.nrc.cadc.ac.admin;
+
+package ca.nrc.cadc.ac.admin;
 
 /**
  * Exception thrown when a problem with the command line arguments is
  * encountered.
  */
-public class UsageException extends Exception
-{
+public class UsageException extends Exception {
     private static final long serialVersionUID = -661234412216725414L;
 
-    public UsageException(String message)
-    {
+    public UsageException(String message) {
         super(message);
     }
 }

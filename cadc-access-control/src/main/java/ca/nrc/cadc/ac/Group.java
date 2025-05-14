@@ -66,21 +66,20 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
-public class Group
-{
-    private final static Logger log = Logger.getLogger(Group.class);
+public class Group {
+    private static final Logger log = Logger.getLogger(Group.class);
 
     private GroupURI groupID;
-    
+
     // posix gid
     public Integer gid;
 
@@ -104,8 +103,7 @@ public class Group
     public String description;
     public Date lastModified;
 
-    public Group()
-    {
+    public Group() {
     }
 
     /**
@@ -113,10 +111,8 @@ public class Group
      *
      * @param groupID The URI identifying the group.
      */
-    public Group(GroupURI groupID)
-    {
-        if (groupID == null)
-        {
+    public Group(GroupURI groupID) {
+        if (groupID == null) {
             throw new IllegalArgumentException("null groupID");
         }
 
@@ -128,62 +124,51 @@ public class Group
      *
      * @return String group ID.
      */
-    public GroupURI getID()
-    {
+    public GroupURI getID() {
         return groupID;
     }
 
     /**
      * Obtain this group's owner
+     *
      * @return owner of the group
      */
-    public User getOwner()
-    {
+    public User getOwner() {
         return owner;
     }
 
     /**
-     *
      * @return a set of properties associated with a group
      */
-    public Set<GroupProperty> getProperties()
-    {
+    public Set<GroupProperty> getProperties() {
         return properties;
     }
 
     /**
-     *
      * @return individual user members of this group
      */
-    public UserSet getUserMembers()
-    {
+    public UserSet getUserMembers() {
         return userMembers;
     }
 
     /**
-     *
      * @return group members of this group
      */
-    public Set<Group> getGroupMembers()
-    {
+    public Set<Group> getGroupMembers() {
         return groupMembers;
     }
 
     /**
-     *
      * @return individual user admins of this group
      */
-    public UserSet getUserAdmins()
-    {
+    public UserSet getUserAdmins() {
         return userAdmins;
     }
 
     /**
-     *
      * @return group admins of this group
      */
-    public Set<Group> getGroupAdmins()
-    {
+    public Set<Group> getGroupAdmins() {
         return groupAdmins;
     }
 
@@ -191,24 +176,19 @@ public class Group
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (obj == null)
-        {
+        if (obj == null) {
             return false;
         }
-        if (!(obj instanceof Group))
-        {
+        if (!(obj instanceof Group)) {
             return false;
         }
         Group other = (Group) obj;
 
-        if (!groupID.equals(other.groupID))
-        {
+        if (!groupID.equals(other.groupID)) {
             return false;
         }
         return true;
@@ -218,18 +198,15 @@ public class Group
      * @see java.lang.Object#hashCode()
      */
     @Override
-    public int hashCode()
-    {
-        if (groupID != null)
-        {
+    public int hashCode() {
+        if (groupID != null) {
             return 31 + groupID.getURI().toString().toLowerCase().hashCode();
         }
         return 0;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return getClass().getSimpleName() + "[" + groupID + "]";
     }
 

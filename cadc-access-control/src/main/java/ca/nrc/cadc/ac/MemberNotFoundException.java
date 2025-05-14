@@ -66,21 +66,18 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 /**
  * Thrown when a member could not be found.
- *
  */
-public class MemberNotFoundException extends Exception
-{
-    public MemberNotFoundException()
-    {
+public class MemberNotFoundException extends Exception {
+    public MemberNotFoundException() {
         super();
     }
-    
-    public MemberNotFoundException(String message)
-    {
+
+    public MemberNotFoundException(String message) {
         super(message);
     }
 }

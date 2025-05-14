@@ -80,15 +80,14 @@ import org.apache.log4j.Logger;
 
 /**
  * @author majorb
- * 
+ * <p>
  * Write the CADC OpenID Connection configuration.  This responds to an HTTP GET
  * to requests to /.well-known/openid-configuration
- *
  */
 public class GetConfigAction extends RestAction {
-    
+
     private static final Logger log = Logger.getLogger(GetConfigAction.class);
-    
+
     private static final String OID_CONFIG_FILE = "oidConfiguration.json";
 
     @Override
@@ -108,12 +107,12 @@ public class GetConfigAction extends RestAction {
         out.write(json.getBytes());
         out.flush();
     }
-    
+
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;
     }
-    
+
     String getHostname() throws IOException, ResourceNotFoundException {
         String req = syncInput.getRequestURI();
         URL url = new URL(req);

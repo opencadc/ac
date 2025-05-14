@@ -80,8 +80,8 @@ public class AdminUtil {
 
     private static final String USER_CONFIG_DIR = System.getProperty("user.home") + "/config/";
 
-    public static  PropertyResourceBundle getProperties(String propsFilename, List<String> propsRequired)
-        throws UsageException {
+    public static PropertyResourceBundle getProperties(String propsFilename, List<String> propsRequired)
+            throws UsageException {
 
         PropertyResourceBundle resourceBundle;
         try {

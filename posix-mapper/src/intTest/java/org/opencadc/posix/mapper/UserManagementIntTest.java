@@ -78,25 +78,22 @@ import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
+import javax.security.auth.Subject;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class UserManagementIntTest {
     private static final Logger log = Logger.getLogger(UserManagementIntTest.class);
@@ -115,16 +112,16 @@ public class UserManagementIntTest {
     public UserManagementIntTest() throws Exception {
         RegistryClient regClient = new RegistryClient();
         userMapperURL = regClient.getServiceURL(UserManagementIntTest.POSIX_MAPPER_SERVICE_ID,
-                                                Standards.POSIX_USERMAP, AuthMethod.TOKEN);
+                Standards.POSIX_USERMAP, AuthMethod.TOKEN);
         log.info("User Mapping URL: " + userMapperURL);
 
         File bearerTokenFile = FileUtil.getFileFromResource("posix-mapper-test.token",
-                                                            UserManagementIntTest.class);
+                UserManagementIntTest.class);
         final String bearerToken = new String(Files.readAllBytes(bearerTokenFile.toPath()));
         userSubject = new Subject();
         userSubject.getPublicCredentials().add(
                 new AuthorizationToken("Bearer", bearerToken.replaceAll("\n", ""),
-                                       List.of(NetUtil.getDomainName(userMapperURL))));
+                        List.of(NetUtil.getDomainName(userMapperURL))));
         log.debug("bearer token: " + bearerToken);
     }
 
@@ -152,21 +149,21 @@ public class UserManagementIntTest {
             try {
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[]{username},
-                         new int[0]);
+                        new int[0]);
                 String output = byteArrayOutputStream.toString();
                 final int uid = Integer.parseInt(output.trim().split(":")[2]);
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 getUsers(byteArrayOutputStream, UserManagementIntTest.TEXT_PLAIN_CONTENT_TYPE, new String[0],
-                          new int[]{uid});
+                        new int[]{uid});
                 Assert.assertEquals("Wrong output", output, byteArrayOutputStream.toString());
 
                 Assert.assertTrue("Wrong output",
-                                  output.contains(String.format("%s:x:%d:%d:::", username, uid, uid)));
+                        output.contains(String.format("%s:x:%d:%d:::", username, uid, uid)));
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 getUsers(byteArrayOutputStream, UserManagementIntTest.TSV_CONTENT_TYPE, new String[0], new int[]{uid});
                 output = byteArrayOutputStream.toString();
                 Assert.assertEquals("Wrong TSV output", username + "\t" + uid + "\t" + uid,
-                                    output.trim());
+                        output.trim());
             } catch (Throwable throwable) {
                 throw new Exception(throwable.getMessage(), throwable);
             }
@@ -193,7 +190,7 @@ public class UserManagementIntTest {
         if (uids.length > 0) {
             urlBuilder.append("uid=");
             urlBuilder.append(String.join("&uid=",
-                                          Arrays.stream(uids).mapToObj(Integer::toString).toArray(String[]::new)));
+                    Arrays.stream(uids).mapToObj(Integer::toString).toArray(String[]::new)));
         }
 
         final HttpGet httpGet = new HttpGet(new URL(urlBuilder.toString()), inputStreamWrapper);

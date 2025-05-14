@@ -66,15 +66,12 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 
-import java.lang.reflect.Field;
-
-public class ActivatedGroup extends Group
-{
-    public ActivatedGroup(Group group)
-    {
+public class ActivatedGroup extends Group {
+    public ActivatedGroup(Group group) {
         super(group.getID());
         this.description = group.description;
         this.properties = group.getProperties();
