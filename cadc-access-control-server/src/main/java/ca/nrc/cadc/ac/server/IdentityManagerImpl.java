@@ -128,7 +128,7 @@ public class IdentityManagerImpl implements IdentityManager {
     }
 
     /**
-     * @param subject
+     * @param subject Subject to augment
      * @return the possibly modified subject
      */
     @Override
@@ -141,7 +141,7 @@ public class IdentityManagerImpl implements IdentityManager {
             return subject;
         }
 
-        if (subject != null && subject.getPrincipals().size() > 0) {
+        if (!subject.getPrincipals().isEmpty()) {
             Profiler prof = new Profiler(IdentityManagerImpl.class);
             this.augmentSubject(subject);
             prof.checkpoint("userDAO.augmentSubject()");
