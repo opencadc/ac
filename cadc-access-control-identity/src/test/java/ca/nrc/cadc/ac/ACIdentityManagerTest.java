@@ -73,6 +73,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
@@ -106,6 +107,7 @@ public class ACIdentityManagerTest {
             Subject subject = new Subject();
             subject.getPrincipals().add(new X500Principal(dn));
             subject.getPublicCredentials().add(AuthMethod.CERT);
+            System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
             subject = ai.validate(subject);
 
             Assert.assertEquals(AuthMethod.CERT, AuthenticationUtil.getAuthMethod(subject));

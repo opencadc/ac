@@ -117,7 +117,7 @@ public class StandardIdentityManager implements IdentityManager {
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
 
-    private final OIDCClient oidcClient;
+    private final org.opencadc.auth.OIDCClient oidcClient;
 
     // need these to construct an AuthorizationToken
     private final RegistryClient reg = new RegistryClient();
@@ -128,8 +128,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
-        String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        oidcClient = new OIDCClient(loc.getServiceURI(key));
+        oidcClient = new org.opencadc.auth.OIDCClient(loc.getResourceID(Standards.SECURITY_METHOD_OPENID));
 
         URL u = oidcClient.getIssuerURL();
         oidcDomains.add(u.getHost());
@@ -185,14 +184,14 @@ public class StandardIdentityManager implements IdentityManager {
                 URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
-                    PosixMapperClient pmc;
+                    org.opencadc.auth.PosixMapperClient pmc;
                     String host = null;
                     if ("ivo".equals(posixUserMap.getScheme())) {
-                        pmc = new PosixMapperClient(posixUserMap);
+                        pmc = new org.opencadc.auth.PosixMapperClient(posixUserMap);
                     } else if ("https".equals(posixUserMap.getScheme()) || "http".equals(posixUserMap.getScheme())) {
                         URL url = posixUserMap.toURL();
                         host = url.getHost();
-                        pmc = new PosixMapperClient(url);
+                        pmc = new org.opencadc.auth.PosixMapperClient(url);
                     } else {
                         throw new RuntimeException("CONFIG: unsupported posix-mapping identifier scheme: " + posixUserMap);
                     }

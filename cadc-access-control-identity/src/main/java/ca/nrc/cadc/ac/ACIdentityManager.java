@@ -71,7 +71,6 @@ package ca.nrc.cadc.ac;
 
 import ca.nrc.cadc.ac.client.UserClient;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
@@ -137,16 +136,16 @@ public class ACIdentityManager implements IdentityManager {
     @Override
     public Subject validate(Subject subject) throws NotAuthenticatedException {
         Subject sub = TokenValidator.validateTokens(subject);
-            StandardIdentityManager sim = new StandardIdentityManager();
-            return sim.validate(sub);
+        StandardIdentityManager sim = new StandardIdentityManager();
+        return sim.validate(sub);
     }
 
     @Override
     public Subject augment(final Subject subject) {
         log.debug("augment START: " + subject);
         if (subject == null) {
-            log.debug("augment DONE null: " + subject);
-            return subject;
+            log.debug("augment DONE null: ");
+            return null;
         }
         if (subject.getPrincipals().isEmpty()) {
             log.debug("augment DONE no principals: " + subject);
@@ -260,8 +259,8 @@ public class ACIdentityManager implements IdentityManager {
 
     private NumericPrincipal createAuthUser(final Principal principal) {
         if (!(principal instanceof X500Principal) && !(principal instanceof OpenIdPrincipal)) {
-            throw new IllegalArgumentException("principal must be a valid principal " +
-                    "(X500Principal or OpenIdPrincipal)");
+            throw new IllegalArgumentException("principal must be a valid principal "
+                    + "(X500Principal or OpenIdPrincipal)");
         }
         PrivilegedExceptionAction<NumericPrincipal> action = () -> {
             LocalAuthority localAuth = new LocalAuthority();
@@ -281,7 +280,7 @@ public class ACIdentityManager implements IdentityManager {
         try {
             return Subject.doAs(servopsSubject, action);
         } catch (Exception e) {
-            throw new IllegalStateException("failed to create internal id for user " + x500Principal.getName(), e);
+            throw new IllegalStateException("failed to create internal id for user " + principal.getName(), e);
         }
     }
 
