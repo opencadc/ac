@@ -73,10 +73,13 @@ import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.net.NetUtil;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.Principal;
 import java.util.UUID;
 import javax.security.auth.x500.X500Principal;
@@ -218,6 +221,16 @@ public abstract class UserActionFactory {
             return new NumericPrincipal(UUID.fromString(userName));
         } else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue())) {
             return new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, userName);
+        } else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue())) {
+            String[] parts = userName.split(" ", 2);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Bad value for openid id type");
+            }
+            try {
+                return new OpenIdPrincipal(new URL(parts[0]), parts[1]);
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException("Bad value for openid id type: " + parts[0]);
+            }
         } else if (idType.equalsIgnoreCase(IdentityType.POSIX.getValue())) {
             try {
                 int value = Integer.parseInt(userName);

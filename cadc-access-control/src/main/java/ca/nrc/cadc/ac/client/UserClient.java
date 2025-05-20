@@ -80,6 +80,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpUpload;
@@ -143,6 +144,10 @@ public class UserClient {
         if (principal != null) {
 
             String userID = principal.getName();
+            if (principal instanceof OpenIdPrincipal) {
+                userID = ((OpenIdPrincipal) principal).getIssuer()
+                        + " " + principal.getName();
+            }
             String path = "/" + NetUtil.encode(userID) + "?idType=" + this
                     .getIdType(principal); // "&detail=identity";
 
@@ -342,8 +347,14 @@ public class UserClient {
         }
 
         // in the case that there is more than one principal in the
-        // subject, favor x500 principals, then numeric principals,
+        // subject, favor OpenID principals, then x500 principals, then numeric principals,
         // then http principals.
+        Set<OpenIdPrincipal> openIdPrincipals = subject
+                .getPrincipals(OpenIdPrincipal.class);
+        if (openIdPrincipals.size() > 0) {
+            return openIdPrincipals.iterator().next();
+        }
+
         Set<X500Principal> x500Principals = subject
                 .getPrincipals(X500Principal.class);
         if (x500Principals.size() > 0) {
