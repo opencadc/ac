@@ -82,13 +82,16 @@ import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.date.DateUtil;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -270,6 +273,20 @@ public abstract class AbstractReaderWriter {
             principal = new X500Principal(identity);
         } else if (type.equals(IdentityType.ENTRY_DN.getValue())) {
             principal = new DNPrincipal(identity);
+        } else if (type.equals(IdentityType.OPENID.getValue())) {
+            String[] parts = identity.split(" ");
+            if (parts.length != 2) {
+                String error = "Invalid OpenID identity: " + identity;
+                throw new ReaderException(error);
+            }
+            URL issuer = null;
+            try {
+                issuer = new URL(parts[0]);
+            } catch (MalformedURLException e) {
+                String error = "Invalid issuer OpenID identiy: " + identity;
+                throw new ReaderException(error);
+            }
+            principal = new OpenIdPrincipal(issuer, parts[1]);
         } else if (type.equals(IdentityType.POSIX.getValue())) {
             principal = new PosixPrincipal(Integer.parseInt(identity));
         } else {
@@ -684,6 +701,8 @@ public abstract class AbstractReaderWriter {
             identityElement.setAttribute(TYPE, IdentityType.X500.getValue());
         } else if ((identity instanceof DNPrincipal)) {
             identityElement.setAttribute(TYPE, IdentityType.ENTRY_DN.getValue());
+        } else if ((identity instanceof OpenIdPrincipal)) {
+            identityElement.setAttribute(TYPE, IdentityType.OPENID.getValue());
         } else if ((identity instanceof PosixPrincipal)) {
             identityElement.setAttribute(TYPE, IdentityType.POSIX.getValue());
         } else {
@@ -691,7 +710,11 @@ public abstract class AbstractReaderWriter {
                     + identity.getClass().getSimpleName();
             throw new IllegalArgumentException(error);
         }
-        identityElement.setText(identity.getName());
+        if ((identity instanceof OpenIdPrincipal)) {
+            identityElement.setText(((OpenIdPrincipal) identity).getIssuer() + " " + identity.getName());
+        } else {
+            identityElement.setText(identity.getName());
+        }
 
         return identityElement;
     }

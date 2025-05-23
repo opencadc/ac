@@ -67,108 +67,51 @@
 
 package org.opencadc.auth;
 
-import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.CachingFile;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.util.InvalidConfigException;
-import java.io.IOException;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.json.JSONObject;
+import org.apache.log4j.Logger;
 
 
 /**
- * Client to the currently configured OpenID Connect provider.  This Client class is intended to have a very short lifespan.
- * This Client can also be expanded to look up Token or Authorization Endpoints.
- * TODO: Generic enough to be more central?
- *
- * @see LocalAuthority for configuration
- * @see ca.nrc.cadc.reg.client.RegistryClient for configuration
+ * Cache object that manages the cache file for the public keys of the OIDC Provider.
  */
-class OIDCClient {
-    private static final String USERINFO_ENDPOINT_KEY = "userinfo_endpoint";
-    private static final String ISSUER_LOOKUP_KEY = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-    private static final String CACHE_DIRECTORY_NAME = "cadc-gms-1.0";
+public class OIDCProviderPubKey {
+    private static final Logger log = Logger.getLogger(OIDCProviderPubKey.class);
 
-    // Cached Well Known JSON for quick access on-demand.
-    final OIDCDiscovery oidcDiscovery;
+    private URL jwksUrl;
 
     final URI issuer;
 
-
-    /**
-     * Public constructor.
-     *
-     * @param issuer The URI of the OpenID Connect Provider.  Must be URL compatible.
-     */
-    public OIDCClient(URI issuer) {
+    public OIDCProviderPubKey(URI issuer, URL jwksUrl) {
         if (issuer == null) {
-            throw new IllegalStateException("OpenID Connect Issuer URI is required.");
+            throw new IllegalStateException("OIDC Issuer URI is required.");
+        }
+        if (jwksUrl == null) {
+            throw new IllegalStateException("JWKS URI is required.");
         }
         this.issuer = issuer;
-        this.oidcDiscovery = new OIDCDiscovery(this.issuer);
+        this.jwksUrl = jwksUrl;
     }
 
-    /**
-     * Obtain the Issuer base URL.  Mainly used to validate this as a URL.
-     *
-     * @return URL of the Issuer.  Never null.
-     * @throws InvalidConfigException If the configured Issuer URL is not a valid URL.
-     */
-    URL getIssuerURL() {
-        try {
-            return this.issuer.toURL();
-        } catch (MalformedURLException ex) {
-            throw new InvalidConfigException("found " + OIDCClient.ISSUER_LOOKUP_KEY + " = " + this.issuer + " - expected valid URL", ex);
-        }
+    public CachingFile getCachingFile() {
+        return new CachingFile(getCachedFile(), jwksUrl);
     }
 
-    /**
-     * Obtain the .well-known endpoint JSON document.  This does very simple caching to ensure a single read of the well-known endpoint per request.
-     *
-     * @return The JSON Object of the response data.
-     * @throws IOException If the underlying cache file cannot be read.
-     */
-    JSONObject getWellKnownJSON() throws IOException {
-        final CachingFile cachingFile = this.oidcDiscovery.getCachingFile();
-        return new JSONObject(cachingFile.getContent());
+    private File getCachedFile() {
+        final Path baseCacheDir = OIDCClient.getBaseCacheDirectory();
+        final String issuerAuthority = this.issuer.getAuthority();
+        final Path resourceCacheDir = Paths.get(baseCacheDir.toString(), issuerAuthority);
+
+        // Create a path to the cache file itself
+        final Path path = Paths.get(resourceCacheDir.toString(), this.issuer.getPath(), "jwks.json");
+        log.debug("Caching file [" + path + "] in dir [" + resourceCacheDir + "]");
+
+        return path.toFile();
     }
 
-    /**
-     * Pull the User Info Endpoint URL from the Well Known JSON document.
-     *
-     * @return URL of the User Info Endpoint to validate a bearer token.  Never null.
-     */
-    URL getUserInfoEndpoint() {
-        try {
-            final JSONObject jsonObject = getWellKnownJSON();
-            final String userInfoEndpointString = jsonObject.getString(OIDCClient.USERINFO_ENDPOINT_KEY);
-            return new URL(userInfoEndpointString);
-        } catch (MalformedURLException malformedURLException) {
-            throw new RuntimeException("BUG: failed to create valid oidc userinfo url", malformedURLException);
-        } catch (IOException ioException) {
-            throw new IllegalStateException(ioException.getMessage(), ioException);
-        }
-    }
-
-    static Path getBaseCacheDirectory() {
-        final String tmpDir = System.getProperty("java.io.tmpdir");
-        final String userName = System.getProperty("user.name");
-
-        if (tmpDir == null) {
-            throw new RuntimeException("No tmp system dir defined.");
-        }
-
-        final Path baseCacheDir;
-        if (userName == null) {
-            baseCacheDir = Paths.get(tmpDir, CACHE_DIRECTORY_NAME);
-        } else {
-            baseCacheDir = Paths.get(tmpDir, userName, CACHE_DIRECTORY_NAME);
-        }
-
-        return baseCacheDir;
-    }
 }

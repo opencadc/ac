@@ -221,16 +221,6 @@ public abstract class UserActionFactory {
             return new NumericPrincipal(UUID.fromString(userName));
         } else if (idType.equalsIgnoreCase(IdentityType.COOKIE.getValue())) {
             return new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, userName);
-        } else if (idType.equalsIgnoreCase(IdentityType.OPENID.getValue())) {
-            String[] parts = userName.split(" ", 2);
-            if (parts.length != 2) {
-                throw new IllegalArgumentException("Bad value for openid id type");
-            }
-            try {
-                return new OpenIdPrincipal(new URL(parts[0]), parts[1]);
-            } catch (MalformedURLException e) {
-                throw new IllegalArgumentException("Bad value for openid id type: " + parts[0]);
-            }
         } else if (idType.equalsIgnoreCase(IdentityType.POSIX.getValue())) {
             try {
                 int value = Integer.parseInt(userName);
@@ -239,7 +229,14 @@ public abstract class UserActionFactory {
                 throw new IllegalArgumentException("Bad value for posix id type");
             }
         } else {
-            throw new IllegalArgumentException("Unrecognized idType");
+            // OpenID maybe?
+            try {
+                return new OpenIdPrincipal(new URL(idType), userName);
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException("Bad value for issuer: " + idType);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Unknown idType (" + idType + ") - userName: " + userName, e);
+            }
         }
     }
 

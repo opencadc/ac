@@ -71,6 +71,7 @@ package ca.nrc.cadc.ac;
 
 import ca.nrc.cadc.ac.client.UserClient;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
@@ -180,8 +181,11 @@ public class ACIdentityManager implements IdentityManager {
                 }
             };
 
-            Subject servopsSubject = CredUtil.createOpsSubject();
-            Subject.doAs(servopsSubject, action);
+            Subject actionSubject = subject;
+            if (subject.getPublicCredentials(AuthorizationToken.class).isEmpty()) {
+               actionSubject = CredUtil.createOpsSubject();
+            }
+            Subject.doAs(actionSubject, action);
             log.debug("augment DONE w/ UserClient: " + subject);
             return subject;
         } catch (PrivilegedActionException e) {

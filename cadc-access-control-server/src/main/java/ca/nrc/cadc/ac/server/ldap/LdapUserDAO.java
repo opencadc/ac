@@ -98,7 +98,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -335,7 +334,7 @@ public class LdapUserDAO extends LdapDAO {
         return principal.getIssuer().toExternalForm() + " " + principal.getName();
     }
 
-    OpenIdPrincipal toPrincipal(String value) {
+    OpenIdPrincipal toOpenIdPrincipal(String value) {
         String[] parts = value.split(" ");
         if (parts.length != 2) {
             throw new IllegalArgumentException("Invalid OpenIdPrincipal value: " + value);
@@ -622,6 +621,14 @@ public class LdapUserDAO extends LdapDAO {
             newUser.getIdentities().add(new X500Principal(x500str));
         }
 
+        String[] oidc = userEntry.getAttributeValues(userLdapAttrib.get(OpenIdPrincipal.class));
+        logger.debug("makeUserFromResult: OpenIdPrincipal = " + oidc);
+        if (oidc != null) {
+            for (String next : oidc) {
+                newUser.getIdentities().add(toOpenIdPrincipal(next));
+            }
+        }
+
         logger.debug("makeUserFromResult: posixPrincipal = " + uidNumberString);
         if (uidNumberString != null) {
             newUser.getIdentities().add(new PosixPrincipal(Integer.parseInt(uidNumberString)));
@@ -671,6 +678,8 @@ public class LdapUserDAO extends LdapDAO {
             String name;
             if (userID instanceof NumericPrincipal) {
                 name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
+            } else if (userID instanceof OpenIdPrincipal) {
+                name = toLdapValue((OpenIdPrincipal) userID);
             } else {
                 name = userID.getName();
             }
@@ -730,6 +739,8 @@ public class LdapUserDAO extends LdapDAO {
             String name;
             if (userID instanceof NumericPrincipal) {
                 name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
+            } else if (userID instanceof OpenIdPrincipal) {
+                name = toLdapValue((OpenIdPrincipal) userID);
             } else {
                 name = userID.getName();
             }
@@ -832,6 +843,13 @@ public class LdapUserDAO extends LdapDAO {
             if (x500str != null)
                 user.getIdentities().add(new X500Principal(x500str));
 
+            String[] oidcid = searchResult.getAttributeValues(userLdapAttrib.get(OpenIdPrincipal.class));
+            if (oidcid != null) {
+                for (String next : oidcid) {
+                    logger.debug("getUserByEmailAddress: OpenIdPrincipal = " + next);
+                    user.getIdentities().add(toOpenIdPrincipal(next));
+                }
+            }
 
             String firstName = searchResult.getAttributeValue(LDAP_FIRST_NAME);
             String lastName = searchResult.getAttributeValue(LDAP_LAST_NAME);
@@ -877,6 +895,8 @@ public class LdapUserDAO extends LdapDAO {
             String name;
             if (userID instanceof NumericPrincipal) {
                 name = String.valueOf(uuid2long(UUID.fromString(userID.getName())));
+            } else if (userID instanceof OpenIdPrincipal) {
+                name = toLdapValue((OpenIdPrincipal) userID);
             } else {
                 name = userID.getName();
             }
@@ -939,9 +959,12 @@ public class LdapUserDAO extends LdapDAO {
                 user.getIdentities().add(new X500Principal(dn));
             }
             user.getIdentities().add(new DNPrincipal(userFromSearch.getAttributeValue(LDAP_ENTRYDN)));
-            String openId = userFromSearch.getAttributeValue(LDAP_OIDCID);
+            String[] openId = userFromSearch.getAttributeValues(LDAP_OIDCID);
             if (openId != null) {
-                user.getIdentities().add(toPrincipal(openId));
+                for (String next : openId) {
+                    logger.debug("getAugmentedUser: OpenIdPrincipal = " + next);
+                    user.getIdentities().add(toOpenIdPrincipal(next));
+                }
             }
 
             String uidNumberString = userFromSearch.getAttributeValue(LDAP_UID_NUMBER);

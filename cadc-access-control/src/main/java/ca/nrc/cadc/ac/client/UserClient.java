@@ -78,11 +78,13 @@ import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.reg.Standards;
@@ -144,21 +146,20 @@ public class UserClient {
         if (principal != null) {
 
             String userID = principal.getName();
-            if (principal instanceof OpenIdPrincipal) {
-                userID = ((OpenIdPrincipal) principal).getIssuer()
-                        + " " + principal.getName();
+            String path = "/" + NetUtil.encode(userID) + "?idType=" + NetUtil.encode(this.getIdType(principal));
+            URL usersURL;
+            if (principal instanceof AuthorizationToken) {
+                usersURL = getRegistryClient()
+                        .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.TOKEN);
+            } else {
+                usersURL = getRegistryClient()
+                        .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
             }
-            String path = "/" + NetUtil.encode(userID) + "?idType=" + this
-                    .getIdType(principal); // "&detail=identity";
-
-            // augment subject calls are always https with client certs
-            URL usersURL = getRegistryClient()
-                    .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
             URL getUserURL = new URL(usersURL.toExternalForm() + path);
 
-            log.debug("augmentSubject request to " + getUserURL.toString());
+            log.debug("augmentSubject request to " + getUserURL);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            HttpDownload download = new HttpDownload(getUserURL, out);
+            HttpGet download = new HttpGet(getUserURL, out);
             download.run();
 
             int responseCode = download.getResponseCode();

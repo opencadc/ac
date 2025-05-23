@@ -763,7 +763,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
 
     private boolean isMatch(Subject caller, Principal identity) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
-            throw new AccessControlException("Caller is not authenticated");
+            throw new AccessControlException("Caller is not authenticated - " + caller + " -- " + identity);
 
         for (Principal pc : caller.getPrincipals()) {
             if (AuthenticationUtil.equals(pc, identity))
