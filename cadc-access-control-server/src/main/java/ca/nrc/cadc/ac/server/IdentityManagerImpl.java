@@ -80,6 +80,8 @@ import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.auth.InvalidSignedTokenException;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
@@ -128,14 +130,12 @@ public class IdentityManagerImpl implements IdentityManager {
     @Override
     public Subject validate(Subject subject) throws AccessControlException {
         Subject sub = TokenValidator.validateTokens(subject);
-        if (sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
-            log.debug("validateTokens: no token principals");
-            return sub;
-        } else {
-            log.debug("validateTokens: found " + sub.getPrincipals(AuthorizationTokenPrincipal.class).size() + " token principals");
+        if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
+            // JWT tokens to validate?
             StandardIdentityManager sim = new StandardIdentityManager();
-            return sim.validate(subject);
+            return sim.validate(sub);
         }
+        return sub;
     }
 
     /**
@@ -160,7 +160,7 @@ public class IdentityManagerImpl implements IdentityManager {
             // if the caller had an invalid or forged CADC_SSO cookie, we could get
             // in here and then not match any known identity: drop to anon
             if (subject.getPrincipals(NumericPrincipal.class).isEmpty() &&
-                    !subject.getPrincipals(OpenIdPrincipal.class).isEmpty()) // no matching internal account
+                    subject.getPrincipals(OpenIdPrincipal.class).isEmpty()) // no matching internal account
             {
                 log.debug("NumericPrincipal not found - dropping to anon: " + subject);
                 subject = AuthenticationUtil.getAnonSubject();
@@ -251,7 +251,7 @@ public class IdentityManagerImpl implements IdentityManager {
             ret = p;
             if ((p instanceof HttpPrincipal) || (p instanceof X500Principal)
                     || (p instanceof NumericPrincipal) || (p instanceof DNPrincipal)
-                    || (p instanceof PosixPrincipal)) {
+                    || (p instanceof PosixPrincipal) || (p instanceof OpenIdPrincipal)) {
                 return ret;
             }
         }

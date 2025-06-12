@@ -72,6 +72,7 @@ package ca.nrc.cadc.ac;
 import ca.nrc.cadc.ac.client.UserClient;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.AuthorizationToken;
+import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
@@ -137,15 +138,18 @@ public class ACIdentityManager implements IdentityManager {
     @Override
     public Subject validate(Subject subject) throws NotAuthenticatedException {
         Subject sub = TokenValidator.validateTokens(subject);
-        StandardIdentityManager sim = new StandardIdentityManager();
-        return sim.validate(sub);
+        if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
+            StandardIdentityManager sim = new StandardIdentityManager();
+            return sim.validate(sub); // validates and resolves JWT tokens
+        }
+        return sub;
     }
 
     @Override
     public Subject augment(final Subject subject) {
         log.debug("augment START: " + subject);
         if (subject == null) {
-            log.debug("augment DONE null: ");
+            log.debug("augment DONE: null");
             return null;
         }
         if (subject.getPrincipals().isEmpty()) {
@@ -280,9 +284,14 @@ public class ACIdentityManager implements IdentityManager {
             return set.iterator().next();
         };
 
-        Subject servopsSubject = CredUtil.createOpsSubject();
+        Subject acSubject;
+        if (principal instanceof OpenIdPrincipal) {
+            acSubject = AuthenticationUtil.getCurrentSubject();
+        } else {
+            acSubject = CredUtil.createOpsSubject();
+        }
         try {
-            return Subject.doAs(servopsSubject, action);
+            return Subject.doAs(acSubject, action);
         } catch (Exception e) {
             throw new IllegalStateException("failed to create internal id for user " + principal.getName(), e);
         }

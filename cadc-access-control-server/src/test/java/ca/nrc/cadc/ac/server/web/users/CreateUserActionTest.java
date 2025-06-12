@@ -69,11 +69,51 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.util.StringUtil;
+import java.net.URL;
+import java.security.PrivilegedExceptionAction;
+import javax.security.auth.Subject;
 import org.junit.Test;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class CreateUserActionTest {
     @Test
-    public void testCreateUser() throws Exception {
+    public void testCanSelfCreate() throws Exception {
+        Subject subject = new Subject();
+        OpenIdPrincipal userPrincipal = new OpenIdPrincipal(new URL("http://issuer.com/"), "testuser");
+        User user = new User();
+        user.getIdentities().add(userPrincipal);
+        CreateUserAction cau = new CreateUserAction(null);
+        assertFalse("User should not be able to self-create no subject", cau.canSelfCreate(user));
+        assertFalse("User should not be able to self-create with anon subject", doAs(subject, user));
+        subject.getPrincipals().add(userPrincipal);
+        assertTrue("User should be able to self-create with user subject", doAs(subject, user));
+        // add HttpPrincipal to User
+        user.getIdentities().add(new HttpPrincipal("testuser"));
+        assertTrue("User should be able to self-create with OpenIDPrincipal and HttpPrincipal",
+                doAs(subject, user));
 
+        // add extra OpenIDPrincipal to Subject
+        subject.getPrincipals().add(new OpenIdPrincipal(new URL("http://anotherissuer.com/"), "testuser2"));
+        assertFalse("User should not be able to self-create no subject with subject 2 OpenIDPrincipals",
+                cau.canSelfCreate(user));
+        // add extra OpenIDPrincipal to User
+        subject = new Subject();
+        subject.getPrincipals().add(userPrincipal);
+        user.getIdentities().add(new OpenIdPrincipal(new URL("http://anotherissuer.com/"), "testuser2"));
+        assertFalse("User should not be able to self-create with 2 user OpenIDPrincipals", doAs(subject, user));
+    }
+
+    private boolean doAs(Subject subject, User user) throws Exception {
+        return (boolean)Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                CreateUserAction cau = new CreateUserAction(null);
+                return cau.canSelfCreate(user);
+            }
+        });
     }
 }

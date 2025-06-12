@@ -148,7 +148,7 @@ public class UserClient {
             String userID = principal.getName();
             String path = "/" + NetUtil.encode(userID) + "?idType=" + NetUtil.encode(this.getIdType(principal));
             URL usersURL;
-            if (principal instanceof AuthorizationToken) {
+            if ((principal instanceof OpenIdPrincipal) || (principal instanceof AuthorizationToken)) {
                 usersURL = getRegistryClient()
                         .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.TOKEN);
             } else {

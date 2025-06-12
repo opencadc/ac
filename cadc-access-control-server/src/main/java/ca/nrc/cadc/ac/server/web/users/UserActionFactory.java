@@ -229,7 +229,6 @@ public abstract class UserActionFactory {
                 throw new IllegalArgumentException("Bad value for posix id type");
             }
         } else {
-            // OpenID maybe?
             try {
                 return new OpenIdPrincipal(new URL(idType), userName);
             } catch (MalformedURLException e) {
