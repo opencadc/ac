@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2024.                            (c) 2024.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,89 +62,56 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 4 $
- *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.users;
 
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
-import java.io.InputStream;
-import java.security.AccessControlException;
-import java.util.Set;
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
+package org.opencadc.auth;
+
+import ca.nrc.cadc.reg.client.CachingFile;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.apache.log4j.Logger;
 
-public class CreateUserAction extends AbstractUserAction {
-    private static final Logger log = Logger.getLogger(CreateUserAction.class);
-    private final InputStream inputStream;
 
-    CreateUserAction(final InputStream inputStream) {
-        super();
-        this.inputStream = inputStream;
+/**
+ * Cache object that manages the cache file for the public keys of the OIDC Provider.
+ */
+public class OIDCProviderPubKey {
+    private static final Logger log = Logger.getLogger(OIDCProviderPubKey.class);
+
+    private URL jwksUrl;
+
+    final URI issuer;
+
+    public OIDCProviderPubKey(URI issuer, URL jwksUrl) {
+        if (issuer == null) {
+            throw new IllegalStateException("OIDC Issuer URI is required.");
+        }
+        if (jwksUrl == null) {
+            throw new IllegalStateException("JWKS URI is required.");
+        }
+        this.issuer = issuer;
+        this.jwksUrl = jwksUrl;
     }
 
-
-    boolean canSelfCreate(final User user) {
-        // Only OpenID users can create their own CADC accounts automatically
-        Subject sub = AuthenticationUtil.getCurrentSubject();
-        if (sub == null || sub.getPrincipals().isEmpty()) {
-            log.debug("Can't self-create CADC account: no subject or principals");
-            return false; // no subject or principals
-        }
-        Set<OpenIdPrincipal> validPrinc = sub.getPrincipals(OpenIdPrincipal.class);
-
-        log.debug("Can't self-create user account. Multiple OpenID Identities: " + validPrinc);
-        if (validPrinc.size() > 1) {
-            log.debug("Can't aut: " + validPrinc);
-            return false; // more than one OpenID principal is not allowed
-        }
-        if (validPrinc.size() == 1) {
-            // user and subject OpenID principals must match. Optionally, user might have a HttpPrincipal
-            OpenIdPrincipal subjOpenIdPrincipal = validPrinc.iterator().next();
-            Set<OpenIdPrincipal> userPrinc = user.getIdentities(OpenIdPrincipal.class);
-            log.debug("User OpenID principals: " + userPrinc);
-            if (userPrinc.size() == 1) {
-                // only optional HttpPrincipal is allowed to create a user with OpenID
-                if ((user.getIdentities().size() == 1) ||
-                        (user.getIdentities().size() == 2 && user.getIdentities(HttpPrincipal.class).size() == 1)) {
-                    OpenIdPrincipal userOpenIdPrincipal = userPrinc.iterator().next();
-                    if (subjOpenIdPrincipal.equals(userOpenIdPrincipal)) {
-                        log.debug("Auto-create CADC account for : " + subjOpenIdPrincipal);
-                        return true;
-                    } else {
-                        log.debug("Can't auto-create CADC account: subject (" + subjOpenIdPrincipal
-                                + ") != user(" + userOpenIdPrincipal + ")");
-                    }
-                }
-            }
-        }
-        return false;
-
+    public CachingFile getCachingFile() {
+        return new CachingFile(getCachedFile(), jwksUrl);
     }
 
-    public void doAction() throws Exception {
-        final User user = readUser(this.inputStream);
+    private File getCachedFile() {
+        final Path baseCacheDir = OIDCClient.getBaseCacheDirectory();
+        final String issuerAuthority = this.issuer.getAuthority();
+        final Path resourceCacheDir = Paths.get(baseCacheDir.toString(), issuerAuthority);
 
-        if (!isPrivilegedSubject && !canSelfCreate(user)) {
-            throw new AccessControlException("non-privileged user cannot create a user");
-        }
+        // Create a path to the cache file itself
+        final Path path = Paths.get(resourceCacheDir.toString(), this.issuer.getPath(), "jwks.json");
+        log.debug("Caching file [" + path + "] in dir [" + resourceCacheDir + "]");
 
-
-        final User returnUser = userPersistence.addUser(user);
-
-        syncOut.setCode(201);
-        writeUser(returnUser);
-        Set<X500Principal> x500Principals = user.getIdentities(X500Principal.class);
-        if (!x500Principals.isEmpty()) {
-            X500Principal x500Principal = x500Principals.iterator().next();
-            logUserInfo(x500Principal.getName());
-            this.logInfo.setMessage("User created: " + x500Principal.getName());
-        }
+        return path.toFile();
     }
 
 }
