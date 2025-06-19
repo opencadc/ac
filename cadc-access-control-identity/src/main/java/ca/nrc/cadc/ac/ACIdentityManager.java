@@ -139,8 +139,13 @@ public class ACIdentityManager implements IdentityManager {
     public Subject validate(Subject subject) throws NotAuthenticatedException {
         Subject sub = TokenValidator.validateTokens(subject);
         if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
-            StandardIdentityManager sim = new StandardIdentityManager();
-            return sim.validate(sub); // validates and resolves JWT tokens
+            try {
+                StandardIdentityManager sim = new StandardIdentityManager();
+                return sim.validate(sub); // validates and resolves JWT tokens
+            } catch (RuntimeException e) {
+                log.debug("Error validating with StandardIdentityManager: " + e.getMessage(), e);
+                throw new NotAuthenticatedException("Error validating subject: " + e.getMessage(), e);
+            }
         }
         return sub;
     }
@@ -253,6 +258,7 @@ public class ACIdentityManager implements IdentityManager {
             // not have an account (no numeric principal).
             // Create an auto-approved account with their OpenIdPrincipal.
             numericPrincipal = createAuthUser(openIdPrincipal);
+            //TODO link accounts if x500Principal is also present
         } else if (x500Principal != null) {
             // The user has connected with a valid client cert but does
             // not have an account (no numeric principal).
