@@ -238,7 +238,7 @@ class LdapConnections {
      * Best-effort manual pool shutdown.
      */
     @Override
-    public void finalize() {
+    protected void finalize() {
         if (readOnlyPool != null && persistence == null) {
             log.debug("Closing manual config readonly connection pool--should only see this " +
                     "message when running unit tests.");

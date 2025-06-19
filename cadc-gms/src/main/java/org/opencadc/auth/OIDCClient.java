@@ -75,6 +75,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.json.JSONObject;
 
 
@@ -89,6 +91,7 @@ import org.json.JSONObject;
 class OIDCClient {
     private static final String USERINFO_ENDPOINT_KEY = "userinfo_endpoint";
     private static final String ISSUER_LOOKUP_KEY = Standards.SECURITY_METHOD_OPENID.toASCIIString();
+    private static final String CACHE_DIRECTORY_NAME = "cadc-gms-1.0";
 
     // Cached Well Known JSON for quick access on-demand.
     final OIDCDiscovery oidcDiscovery;
@@ -149,5 +152,23 @@ class OIDCClient {
         } catch (IOException ioException) {
             throw new IllegalStateException(ioException.getMessage(), ioException);
         }
+    }
+
+    static Path getBaseCacheDirectory() {
+        final String tmpDir = System.getProperty("java.io.tmpdir");
+        final String userName = System.getProperty("user.name");
+
+        if (tmpDir == null) {
+            throw new RuntimeException("No tmp system dir defined.");
+        }
+
+        final Path baseCacheDir;
+        if (userName == null) {
+            baseCacheDir = Paths.get(tmpDir, CACHE_DIRECTORY_NAME);
+        } else {
+            baseCacheDir = Paths.get(tmpDir, userName, CACHE_DIRECTORY_NAME);
+        }
+
+        return baseCacheDir;
     }
 }
