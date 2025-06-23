@@ -253,6 +253,12 @@ public class ACIdentityManager implements IdentityManager {
         }
 
         NumericPrincipal numericPrincipal;
+        if (openIdPrincipal != null && x500Principal != null) {
+            log.debug("Simultaneus OpenIdPrincipal and X500Principal authentication not supported: "
+                    + openIdPrincipal + ", " + x500Principal);
+            return null; // cannot have both OpenIdPrincipal and X500Principal
+        }
+
         if (openIdPrincipal != null) {
             // The user has connected with a valid OpenID but does
             // not have an account (no numeric principal).
