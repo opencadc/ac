@@ -73,10 +73,13 @@ import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.net.NetUtil;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.Principal;
 import java.util.UUID;
 import javax.security.auth.x500.X500Principal;
@@ -226,7 +229,13 @@ public abstract class UserActionFactory {
                 throw new IllegalArgumentException("Bad value for posix id type");
             }
         } else {
-            throw new IllegalArgumentException("Unrecognized idType");
+            try {
+                return new OpenIdPrincipal(new URL(idType), userName);
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException("Bad value for issuer: " + idType);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Unknown idType (" + idType + ") - userName: " + userName, e);
+            }
         }
     }
 
