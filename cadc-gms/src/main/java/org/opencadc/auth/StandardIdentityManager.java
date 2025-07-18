@@ -128,8 +128,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
-        String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        oidcClient = new OIDCClient(loc.getServiceURI(key));
+        oidcClient = new OIDCClient(loc.getResourceID(Standards.SECURITY_METHOD_OPENID));
 
         URL u = oidcClient.getIssuerURL();
         oidcDomains.add(u.getHost());
@@ -152,7 +151,7 @@ public class StandardIdentityManager implements IdentityManager {
     // lookup the local/trusted provider of an API and extract the hostname
     private String getProviderHostname(LocalAuthority loc, URI standardID) {
         try {
-            URI resourceID = loc.getServiceURI(standardID.toASCIIString());
+            URI resourceID = loc.getResourceID(standardID);
             if (resourceID != null) {
                 URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
                 if (srv != null) {
@@ -168,7 +167,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     @Override
     public Subject validate(Subject subject) throws NotAuthenticatedException {
-        validateOidcAccessToken(subject);
+        validateAuthorizationTokens(subject);
         return subject;
     }
 
@@ -182,7 +181,7 @@ public class StandardIdentityManager implements IdentityManager {
         if (needAugment) {
             try {
                 LocalAuthority loc = new LocalAuthority();
-                URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
+                URI posixUserMap = loc.getResourceID(Standards.POSIX_USERMAP);
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
                     PosixMapperClient pmc;
@@ -307,7 +306,7 @@ public class StandardIdentityManager implements IdentityManager {
         return null;
     }
 
-    private void validateOidcAccessToken(Subject s) {
+    private void validateAuthorizationTokens(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
 
@@ -335,43 +334,53 @@ public class StandardIdentityManager implements IdentityManager {
                 log.debug("credentials: " + credentials);
 
                 // validate
-                if (challengeType != null && credentials != null) {
-                    try {
-                        HttpGet get = new HttpGet(u, true);
-                        get.setRequestProperty("authorization", raw.getHeaderValue());
-                        get.prepare();
+                if (credentials != null) {
+                    // Bearer tokens are handled specially by validating with the Identity Provider
+                    if (AuthenticationUtil.CHALLENGE_TYPE_BEARER.equalsIgnoreCase(challengeType)) {
+                        try {
+                            HttpGet get = new HttpGet(u, true);
+                            get.setRequestProperty("authorization", raw.getHeaderValue());
+                            get.prepare();
 
-                        InputStream istream = get.getInputStream();
-                        String str = StringUtil.readFromInputStream(istream, "UTF-8");
-                        JSONObject json = new JSONObject(str);
-                        String sub = json.getString("sub");
-                        String username = json.getString("preferred_username");
-                        // TODO: register an X509 DN with IAM and see if I can get it back here
+                            InputStream istream = get.getInputStream();
+                            String str = StringUtil.readFromInputStream(istream, "UTF-8");
+                            JSONObject json = new JSONObject(str);
+                            String sub = json.getString("sub");
+                            String username = json.getString("preferred_username");
+                            // TODO: register an X509 DN with IAM and see if I can get it back here
 
-                        OpenIdPrincipal oip = new OpenIdPrincipal(oidcClient.getIssuerURL(), sub);
-                        HttpPrincipal hp = new HttpPrincipal(username);
+                            OpenIdPrincipal oip = new OpenIdPrincipal(oidcClient.getIssuerURL(), sub);
+                            HttpPrincipal hp = new HttpPrincipal(username);
 
-                        s.getPrincipals().remove(raw);
-                        s.getPrincipals().add(oip);
-                        s.getPrincipals().add(hp);
+                            s.getPrincipals().remove(raw);
+                            s.getPrincipals().add(oip);
+                            s.getPrincipals().add(hp);
 
+                            AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
+                            s.getPublicCredentials().add(authToken);
+                        } catch (NotAuthenticatedException ex) {
+                            JSONObject json = new JSONObject(ex.getMessage());
+                            String error = json.getString("error");
+                            String details = json.getString("error_description");
+                            // details usually includes the invalid access token: truncate
+                            StringBuilder sb = new StringBuilder(error);
+                            sb.append(" reason: ");
+                            int max = Math.min(details.length(), 32);
+                            sb.append(details.subSequence(0, max));
+                            if (max < details.length()) {
+                                sb.append("...");
+                            }
+                            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
+                        } catch (Exception ex) {
+                            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
+                        }
+                    } else {
+                        // Otherwise it's a custom token, so we just create an AuthorizationToken and let whatever
+                        // application is looking for it handle it.
                         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
                         s.getPublicCredentials().add(authToken);
-                    } catch (NotAuthenticatedException ex) {
-                        JSONObject json = new JSONObject(ex.getMessage());
-                        String error = json.getString("error");
-                        String details = json.getString("error_description");
-                        // details usually includes the invalid access token: truncate
-                        StringBuilder sb = new StringBuilder(error);
-                        sb.append(" reason: ");
-                        int max = Math.min(details.length(), 32);
-                        sb.append(details.subSequence(0, max));
-                        if (max < details.length()) {
-                            sb.append("...");
-                        }
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
-                    } catch (Exception ex) {
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
+
+                        s.getPrincipals().remove(raw);
                     }
                 }
             }
