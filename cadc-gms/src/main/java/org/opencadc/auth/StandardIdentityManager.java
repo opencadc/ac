@@ -117,12 +117,6 @@ public class StandardIdentityManager implements IdentityManager {
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
 
-    // Challenge Types that will require remote validation
-    private static final String[] VALIDATE_CHALLENGE_TYPES = new String[] {
-            AuthenticationUtil.CHALLENGE_TYPE_BASIC,
-            AuthenticationUtil.CHALLENGE_TYPE_BEARER
-    };
-
     private final OIDCClient oidcClient;
 
     // need these to construct an AuthorizationToken
@@ -312,20 +306,6 @@ public class StandardIdentityManager implements IdentityManager {
         return null;
     }
 
-    /**
-     * Check if the challenge type requires remote validation.
-     * @param challengeType The discovered challenge type.
-     * @return  True if the challenge type requires remote validation, false otherwise.
-     */
-    private static boolean requiresRemoteValidation(String challengeType) {
-        for (String valid : StandardIdentityManager.VALIDATE_CHALLENGE_TYPES) {
-            if (valid.equalsIgnoreCase(challengeType)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void validateAuthorizationTokens(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
@@ -354,9 +334,10 @@ public class StandardIdentityManager implements IdentityManager {
                 log.debug("credentials: " + credentials);
 
                 // validate
-                if (challengeType != null && credentials != null) {
-                    try {
-                        if (StandardIdentityManager.requiresRemoteValidation(challengeType)) {
+                if (credentials != null) {
+                    // Bearer tokens are handled specially by validating with the Identity Provider
+                    if (AuthenticationUtil.CHALLENGE_TYPE_BEARER.equalsIgnoreCase(challengeType)) {
+                        try {
                             HttpGet get = new HttpGet(u, true);
                             get.setRequestProperty("authorization", raw.getHeaderValue());
                             get.prepare();
@@ -374,27 +355,32 @@ public class StandardIdentityManager implements IdentityManager {
                             s.getPrincipals().remove(raw);
                             s.getPrincipals().add(oip);
                             s.getPrincipals().add(hp);
-                        } else {
-                            log.debug("Validating token locally: " + challengeType);
-                        }
 
+                            AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
+                            s.getPublicCredentials().add(authToken);
+                        } catch (NotAuthenticatedException ex) {
+                            JSONObject json = new JSONObject(ex.getMessage());
+                            String error = json.getString("error");
+                            String details = json.getString("error_description");
+                            // details usually includes the invalid access token: truncate
+                            StringBuilder sb = new StringBuilder(error);
+                            sb.append(" reason: ");
+                            int max = Math.min(details.length(), 32);
+                            sb.append(details.subSequence(0, max));
+                            if (max < details.length()) {
+                                sb.append("...");
+                            }
+                            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
+                        } catch (Exception ex) {
+                            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
+                        }
+                    } else {
+                        // Otherwise it's a custom token, so we just create an AuthorizationToken and let whatever
+                        // application is looking for it handle it.
                         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
                         s.getPublicCredentials().add(authToken);
-                    } catch (NotAuthenticatedException ex) {
-                        JSONObject json = new JSONObject(ex.getMessage());
-                        String error = json.getString("error");
-                        String details = json.getString("error_description");
-                        // details usually includes the invalid access token: truncate
-                        StringBuilder sb = new StringBuilder(error);
-                        sb.append(" reason: ");
-                        int max = Math.min(details.length(), 32);
-                        sb.append(details.subSequence(0, max));
-                        if (max < details.length()) {
-                            sb.append("...");
-                        }
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, sb.toString());
-                    } catch (Exception ex) {
-                        throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN, ex.getMessage(), ex);
+
+                        s.getPrincipals().remove(raw);
                     }
                 }
             }
