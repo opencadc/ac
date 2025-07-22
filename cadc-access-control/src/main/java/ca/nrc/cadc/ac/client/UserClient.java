@@ -81,7 +81,6 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpGet;
