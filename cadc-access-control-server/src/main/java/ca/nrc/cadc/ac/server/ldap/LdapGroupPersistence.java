@@ -130,12 +130,10 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         Subject caller = AuthenticationUtil.getCurrentSubject();
         checkAuthenticatedWithAccount(caller);
 
-        LdapGroupDAO groupDAO = null;
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
-            groupDAO = new LdapGroupDAO(conns, userDAO);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             boolean all = (groupNameSubset == null && gidSubset == null);
             if (all) {
                 return groupDAO.getGroupNames();
@@ -181,12 +179,10 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
         boolean allowed = !doPermissionCheck || isMember(callerSubject, groupName) || isAdmin(callerSubject, groupName);
 
-        LdapGroupDAO groupDAO = null;
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
-            groupDAO = new LdapGroupDAO(conns, userDAO);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             Group ret = groupDAO.getGroup(groupName, true);
             if (allowed || isOwner(callerSubject, ret))
                 return ret;
@@ -221,12 +217,10 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             AccessControlException {
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
 
-        LdapGroupDAO groupDAO = null;
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
-            groupDAO = new LdapGroupDAO(conns, userDAO);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             Group g = groupDAO.getGroup(groupName, false);
             if (isOwner(callerSubject, g))
                 groupDAO.deleteGroup(groupName);
@@ -243,12 +237,10 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         Subject callerSubject = AuthenticationUtil.getCurrentSubject();
         boolean allowed = isAdmin(callerSubject, group.getID().getName());
 
-        LdapGroupDAO groupDAO = null;
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
-            groupDAO = new LdapGroupDAO(conns, userDAO);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             if (!allowed) {
                 Group g = groupDAO.getGroup(group.getID().getName(), false);
                 if (isOwner(callerSubject, g))
@@ -265,17 +257,14 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
     }
 
     /**
-     * @param role
+     * @param role Role used to get the groups
      * @param groupID check membership in a specific group or null to get all groups
      * @return the groups
-     * @throws UserNotFoundException
-     * @throws GroupNotFoundException
-     * @throws TransientException
-     * @throws AccessControlException
+     * @throws TransientException Unexpected temporary error
+     * @throws AccessControlException User is not authorized
      */
     public Collection<Group> getGroups(Role role, String groupID)
-            throws UserNotFoundException, GroupNotFoundException,
-            TransientException, AccessControlException {
+            throws TransientException, AccessControlException {
         Subject caller = AuthenticationUtil.getCurrentSubject();
 
         LdapConnections conns = new LdapConnections(this);
@@ -293,7 +282,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             } else {
                 List<Group> groups = getGroupCache(caller, role);
                 log.debug("getGroups  " + role + ": " + groups.size());
-                Collection<Group> ret = new ArrayList<Group>(groups.size());
+                Collection<Group> ret = new ArrayList<>(groups.size());
                 Iterator<Group> i = groups.iterator();
                 String posixUserName = null;
                 if (caller.getPrincipals(HttpPrincipal.class).size() == 1) {
@@ -349,12 +338,10 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
         checkAuthenticatedWithAccount(caller);
 
         LdapConnections conns = new LdapConnections(this);
-        LdapUserDAO userDAO = null;
-        LdapGroupDAO groupDAO = null;
         try {
             SortedSet<String> emails = new TreeSet<>();
-            userDAO = new LdapUserDAO(conns);
-            groupDAO = new LdapGroupDAO(conns, userDAO);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
+            LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             Group group = groupDAO.getGroup(groupName, true);
             UserSet userMembers = group.getUserMembers();
             for (User userMember : userMembers) {
@@ -375,7 +362,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             throw new AccessControlException("Caller is not authenticated");
 
         Set<GroupMemberships> gset = caller.getPrivateCredentials(GroupMemberships.class);
-        if (gset == null || gset.isEmpty())
+        if (gset.isEmpty())
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
         return gms.getMemberships(role);
@@ -429,7 +416,7 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
             throw new AccessControlException("Caller is not authenticated");
 
         Set<GroupMemberships> gset = caller.getPrivateCredentials(GroupMemberships.class);
-        if (gset == null || gset.isEmpty())
+        if (gset.isEmpty())
             throw new RuntimeException("BUG: no GroupMemberships cache in Subject");
         GroupMemberships gms = gset.iterator().next();
         return gms.getUserID();

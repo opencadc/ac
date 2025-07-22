@@ -98,12 +98,12 @@ public class LdapConnectionPool {
     private static final Logger logger = Logger.getLogger(LdapConnectionPool.class);
 
     protected LdapConfig currentConfig;
-    private String poolName;
+    private final String poolName;
     private LDAPConnectionPool pool;
-    private Object poolMonitor = new Object();
-    private LDAPConnectionOptions connectionOptions;
-    private boolean readOnly;
-    private SystemState systemState;
+    private final Object poolMonitor = new Object();
+    private final LDAPConnectionOptions connectionOptions;
+    private final boolean readOnly;
+    private final SystemState systemState;
 
     public LdapConnectionPool(LdapConfig config, LdapPool poolConfig, String poolName, boolean boundPool, boolean readOnly) {
         if (config == null)
@@ -130,10 +130,8 @@ public class LdapConnectionPool {
                 else
                     pool = createPool(config, poolConfig, poolName, config.getAdminUserDN(), config.getAdminPasswd());
 
-                if (pool != null) {
-                    logger.debug(poolName + " statistics after create:\n" + pool.getConnectionPoolStatistics());
-                    profiler.checkpoint("Create read only pool.");
-                }
+                logger.debug(poolName + " statistics after create:\n" + pool.getConnectionPoolStatistics());
+                profiler.checkpoint("Create read only pool.");
             }
         } else {
             logger.debug("Not creating pool " + poolName + " because system state is " + systemState);
@@ -155,7 +153,7 @@ public class LdapConnectionPool {
 
         try {
             Profiler profiler = new Profiler(LdapConnectionPool.class);
-            LDAPConnection conn = null;
+            LDAPConnection conn;
             synchronized (poolMonitor) {
                 conn = pool.getConnection();
 
@@ -224,7 +222,7 @@ public class LdapConnectionPool {
             int[] ports = new int[poolConfig.getServers().size()];
             Arrays.fill(ports, poolConfig.getPort());
 
-            ServerSet serverSet = null;
+            ServerSet serverSet;
             if (poolConfig.getPolicy().equals(PoolPolicy.roundRobin)) {
                 serverSet = new RoundRobinServerSet(hosts, ports, LdapDAO.getSocketFactory(poolConfig));
             } else if (poolConfig.getPolicy().equals(PoolPolicy.fewestConnections)) {
