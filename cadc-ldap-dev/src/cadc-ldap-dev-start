@@ -1,0 +1,29 @@
+#!/bin/bash
+
+echo -n "START: "
+date 
+
+#export DS_SUFFIX_NAME="dc=canfar,dc=net"
+
+# start ldap server
+/usr/lib/dirsrv/dscontainer -r &
+
+sleep 10
+
+# enable dynamic plugin activation
+/usr/sbin/dsconf -D "cn=config" localhost config replace nsslapd-dynamic-plugins=on
+
+
+# enable memberof plugin
+/usr/sbin/dsconf -D "cn=Directory Manager" localhost plugin memberof enable
+
+# create backend
+/usr/sbin/dsconf localhost backend create --suffix "dc=canfar,dc=net" --be-name userRoot
+
+echo 
+echo -n "config DONE: "
+date
+
+echo "waiting for postmaster to terminate..."
+wait
+echo "wait returned... exiting"
