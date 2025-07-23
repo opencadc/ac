@@ -137,13 +137,6 @@ public class StandardIdentityManager implements IdentityManager {
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
 
-    private static final Set<URI> OIDC_ISSUERS;
-
-    static {
-        LocalAuthority loc = new LocalAuthority();
-        OIDC_ISSUERS = loc.getServiceURIs(Standards.SECURITY_METHOD_OPENID);
-    }
-
     // need these to construct an AuthorizationToken
     private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
@@ -187,15 +180,10 @@ public class StandardIdentityManager implements IdentityManager {
                 log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
             }
         } catch (NoSuchElementException ignore) {
-            log.debug("not found: " + standardID);
+            // ignored
         }
 
-        URI resourceID = servicesURIs.iterator().next();
-        URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
-        if (srv != null) {
-            return srv.getHost();
-        }
-        log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
+        log.debug("not found: " + standardID);
         return null;
     }
 
@@ -383,6 +371,10 @@ public class StandardIdentityManager implements IdentityManager {
         URI jwtIssuer = null;
         try {
             jwtIssuer = getJwtIssuer(credentials);
+            if (!jwtIssuer.normalize().equals(oidcClient.issuer.normalize())) {
+                log.debug("Token from untrusted issuer: " + jwtIssuer + " ignored");
+                jwtIssuer = null; // not the configured issuer, so don't use it
+            }
         } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
             log.debug("Cannot determine issuer from token", e);
         }
@@ -486,12 +478,7 @@ public class StandardIdentityManager implements IdentityManager {
         return new CacheVerificationKeyResolver(jwtIssuer, jwksUrl);
     }
 
-    private static JSONObject getJsonObject(URI jwtIssuer, String challengeType) {
-        if (!OIDC_ISSUERS.contains(jwtIssuer)) {
-            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
-                    "Unsupported issuer: " + jwtIssuer, null);
-        }
-        OIDCClient oidcClient = new OIDCClient(jwtIssuer);
+    private JSONObject getJsonObject(URI jwtIssuer, String challengeType) {
         try {
             return oidcClient.getWellKnownJSON();
         } catch (IOException e) {
