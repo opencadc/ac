@@ -128,8 +128,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
-        String key = Standards.SECURITY_METHOD_OPENID.toASCIIString();
-        oidcClient = new OIDCClient(loc.getServiceURI(key));
+        oidcClient = new OIDCClient(loc.getResourceID(Standards.SECURITY_METHOD_OPENID));
 
         URL u = oidcClient.getIssuerURL();
         oidcDomains.add(u.getHost());
@@ -152,7 +151,7 @@ public class StandardIdentityManager implements IdentityManager {
     // lookup the local/trusted provider of an API and extract the hostname
     private String getProviderHostname(LocalAuthority loc, URI standardID) {
         try {
-            URI resourceID = loc.getServiceURI(standardID.toASCIIString());
+            URI resourceID = loc.getResourceID(standardID);
             if (resourceID != null) {
                 URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
                 if (srv != null) {
@@ -182,7 +181,7 @@ public class StandardIdentityManager implements IdentityManager {
         if (needAugment) {
             try {
                 LocalAuthority loc = new LocalAuthority();
-                URI posixUserMap = loc.getServiceURI(Standards.POSIX_USERMAP.toASCIIString());
+                URI posixUserMap = loc.getResourceID(Standards.POSIX_USERMAP);
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
                     PosixMapperClient pmc;
@@ -335,7 +334,7 @@ public class StandardIdentityManager implements IdentityManager {
                 log.debug("credentials: " + credentials);
 
                 // validate
-                if (challengeType != null && credentials != null) {
+                if (AuthenticationUtil.CHALLENGE_TYPE_BEARER.equalsIgnoreCase(challengeType) && credentials != null) {
                     try {
                         HttpGet get = new HttpGet(u, true);
                         get.setRequestProperty("authorization", raw.getHeaderValue());
