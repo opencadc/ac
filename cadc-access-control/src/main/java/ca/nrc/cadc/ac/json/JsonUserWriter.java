@@ -66,37 +66,34 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.UserWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
-import org.jdom2.Document;
-import org.jdom2.Element;
-
 import java.io.IOException;
 import java.io.Writer;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 /**
  * Class to write a JSON representation of a User object.
  */
-public class JsonUserWriter extends UserWriter
-{
+public class JsonUserWriter extends UserWriter {
     /**
      * Write a User as a JSON string to a Writer.
      *
-     * @param user User to write.
+     * @param user   User to write.
      * @param writer Writer to write to.
-     * @throws IOException if the writer fails to write.
+     * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
     @Override
     public void write(User user, Writer writer)
-        throws WriterException, IOException
-    {
-        if (user == null)
-        {
+            throws WriterException, IOException {
+        if (user == null) {
             throw new WriterException("null User");
         }
 
@@ -113,7 +110,7 @@ public class JsonUserWriter extends UserWriter
         jsonOutputter.getListElementNames().add(GROUP_ADMINS);
         jsonOutputter.getListElementNames().add(USER_MEMBERS);
         jsonOutputter.getListElementNames().add(USER_ADMINS);
-        
+
         jsonOutputter.output(document, writer);
     }
 

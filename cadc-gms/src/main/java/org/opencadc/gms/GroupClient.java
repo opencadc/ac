@@ -75,26 +75,25 @@ import java.util.List;
 /**
  * This interface defines the methods available in a Group Membership
  * Service.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 @Deprecated
 public interface GroupClient {
-    
+
     /**
      * Return true if the calling user is a member of
      * the group.
-     * 
+     *
      * @param group The group membership to check
      * @return true if the user is a member.
      */
     public boolean isMember(GroupURI group);
-    
+
     /**
      * Return the list of groups in which the calling user
      * is a member.
-     * 
+     *
      * @return The group memberships for the user.
      */
     public List<GroupURI> getMemberships();

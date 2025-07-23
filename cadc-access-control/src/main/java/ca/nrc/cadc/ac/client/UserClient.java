@@ -66,8 +66,26 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.client;
 
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserAlreadyExistsException;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.UserReader;
+import ca.nrc.cadc.ac.xml.UserWriter;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpUpload;
+import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -81,33 +99,16 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
-import ca.nrc.cadc.auth.*;
-import ca.nrc.cadc.reg.Standards;
 import org.apache.log4j.Logger;
-
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserAlreadyExistsException;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.UserReader;
-import ca.nrc.cadc.ac.xml.UserWriter;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpUpload;
-import ca.nrc.cadc.net.NetUtil;
-import ca.nrc.cadc.reg.client.RegistryClient;
 
 
 /**
  * Client class for performing user searching and user actions
  * with the access control web service.
  */
-public class UserClient
-{
+public class UserClient {
     private static final Logger log = Logger.getLogger(UserClient.class);
 
     private URI serviceID;
@@ -119,14 +120,11 @@ public class UserClient
      *                  obtained from the registry.
      */
     public UserClient(URI serviceID)
-            throws IllegalArgumentException
-    {
-        if (serviceID == null)
-        {
+            throws IllegalArgumentException {
+        if (serviceID == null) {
             throw new IllegalArgumentException("Service URI cannot be null.");
         }
-        if (serviceID.getFragment() != null)
-        {
+        if (serviceID.getFragment() != null) {
             throw new IllegalArgumentException("invalid serviceURI (fragment not allowed): " + serviceID);
         }
         this.serviceID = serviceID;
@@ -140,11 +138,9 @@ public class UserClient
      * @param subject The Subject to pull Princials for.
      * @throws MalformedURLException
      */
-    public void augmentSubject(Subject subject) throws MalformedURLException
-    {
+    public void augmentSubject(Subject subject) throws MalformedURLException {
         Principal principal = this.getPrincipal(subject);
-        if (principal != null)
-        {
+        if (principal != null) {
 
             String userID = principal.getName();
             String path = "/" + NetUtil.encode(userID) + "?idType=" + this
@@ -161,15 +157,12 @@ public class UserClient
             download.run();
 
             int responseCode = download.getResponseCode();
-            if (responseCode == 404) // not found
-            {
+            if (responseCode == 404) {
                 return;
             }
-            if (responseCode != 200)
-            {
+            if (responseCode != 200) {
                 String message = "Error calling /ac to augment subject";
-                if (download.getThrowable() != null)
-                {
+                if (download.getThrowable() != null) {
                     throw new IllegalStateException(message, download
                             .getThrowable());
                 }
@@ -187,40 +180,33 @@ public class UserClient
      * @return List of HTTP Principal users.
      * @throws IOException Any errors in reading.
      */
-    public List<User> getDisplayUsers() throws IOException
-    {
-        
+    public List<User> getDisplayUsers() throws IOException {
+
         AuthMethod am = getAuthMethod();
         URL usersURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
         final List<User> webUsers = new ArrayList<User>();
         HttpDownload httpDownload =
                 new HttpDownload(usersURL,
-                                 new JsonUserListInputStreamWrapper(webUsers));
+                        new JsonUserListInputStreamWrapper(webUsers));
         httpDownload.setRequestProperty("Accept", "application/json");
         httpDownload.run();
 
         final Throwable error = httpDownload.getThrowable();
 
-        if (error != null)
-        {
+        if (error != null) {
             final String errMessage = error.getMessage();
             final int responseCode = httpDownload.getResponseCode();
             log.debug("getDisplayUsers response " + responseCode + ": "
-                      + errMessage);
+                    + errMessage);
             if ((responseCode == 401) || (responseCode == 403)
-                || (responseCode == -1))
-            {
+                    || (responseCode == -1)) {
                 throw new AccessControlException(errMessage);
-            }
-            else if (responseCode == 400)
-            {
+            } else if (responseCode == 400) {
                 throw new IllegalArgumentException(errMessage);
-            }
-            else
-            {
+            } else {
                 throw new IOException("HttpResponse (" + responseCode + ") - "
-                                      + errMessage);
+                        + errMessage);
             }
         }
 
@@ -243,10 +229,8 @@ public class UserClient
      */
     public User createUser(Principal principal)
             throws UserAlreadyExistsException, IOException, WriterException,
-                   ReaderException, URISyntaxException
-    {
-        if (principal == null)
-        {
+            ReaderException, URISyntaxException {
+        if (principal == null) {
             throw new IllegalArgumentException("principal required");
         }
 
@@ -255,48 +239,42 @@ public class UserClient
         UserWriter userWriter = new UserWriter();
         StringBuilder userXML = new StringBuilder();
         userWriter.write(user, userXML);
-        
+
         AuthMethod am = getAuthMethod();
 
         URL createUserURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_USERS_01, am);
 
-        if (createUserURL == null)
-        {
+        if (createUserURL == null) {
             throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_REQS_01);
         }
         log.debug("createUser request to " + createUserURL.toString());
 
         ByteArrayInputStream in = new ByteArrayInputStream(userXML.toString()
-                                                                   .getBytes());
+                .getBytes());
         HttpUpload put = new HttpUpload(in, createUserURL);
 
         put.run();
         int responseCode = put.getResponseCode();
 
-        if (responseCode == 200 || responseCode == 201)
-        {
+        if (responseCode == 200 || responseCode == 201) {
             UserReader userReader = new UserReader();
             return userReader.read(put.getResponseBody());
         }
 
         String message = "";
-        if (put.getThrowable() != null)
-        {
+        if (put.getThrowable() != null) {
             log.debug("error calling createX509User", put.getThrowable());
             message = put.getThrowable().getMessage();
         }
 
-        if (responseCode == 400)
-        {
+        if (responseCode == 400) {
             throw new IllegalArgumentException(message);
         }
-        if (responseCode == 409) // conflict
-        {
+        if (responseCode == 409) {  // conflict
             throw new UserAlreadyExistsException(message);
         }
-        if (responseCode == 403)
-        {
+        if (responseCode == 403) {
             throw new AccessControlException(message);
         }
         throw new IllegalStateException(message);
@@ -313,8 +291,7 @@ public class UserClient
      */
     public User getUser(Principal principal)
             throws ReaderException, IOException, URISyntaxException,
-                   UserNotFoundException
-    {
+            UserNotFoundException {
         String id = NetUtil.encode(principal.getName());
         String path = "/" + id + "?idType=" + AuthenticationUtil
                 .getPrincipalType(principal);
@@ -331,44 +308,36 @@ public class UserClient
         get.run();
         int responseCode = get.getResponseCode();
 
-        if (responseCode == 200)
-        {
+        if (responseCode == 200) {
             UserReader userReader = new UserReader();
             return userReader.read(out.toString());
         }
 
         String message = "";
-        if (get.getThrowable() != null)
-        {
+        if (get.getThrowable() != null) {
             log.debug("error calling get user", get.getThrowable());
             message = get.getThrowable().getMessage();
         }
 
-        if (responseCode == 400)
-        {
+        if (responseCode == 400) {
             throw new IllegalArgumentException(message);
         }
-        if (responseCode == 404)
-        {
+        if (responseCode == 404) {
             throw new UserNotFoundException(message);
         }
-        if (responseCode == 403)
-        {
+        if (responseCode == 403) {
             throw new AccessControlException(message);
         }
         throw new IllegalStateException(message);
     }
 
-    protected Principal getPrincipal(final Subject subject)
-    {
+    protected Principal getPrincipal(final Subject subject) {
         if (subject == null || subject.getPrincipals() == null || subject
-                .getPrincipals().isEmpty())
-        {
+                .getPrincipals().isEmpty()) {
             return null;
         }
 
-        if (subject.getPrincipals().size() == 1)
-        {
+        if (subject.getPrincipals().size() == 1) {
             return subject.getPrincipals().iterator().next();
         }
 
@@ -377,22 +346,19 @@ public class UserClient
         // then http principals.
         Set<X500Principal> x500Principals = subject
                 .getPrincipals(X500Principal.class);
-        if (x500Principals.size() > 0)
-        {
+        if (x500Principals.size() > 0) {
             return x500Principals.iterator().next();
         }
 
         Set<NumericPrincipal> numericPrincipals = subject
                 .getPrincipals(NumericPrincipal.class);
-        if (numericPrincipals.size() > 0)
-        {
+        if (numericPrincipals.size() > 0) {
             return numericPrincipals.iterator().next();
         }
-        
+
         Set<HttpPrincipal> httpPrincipals = subject
                 .getPrincipals(HttpPrincipal.class);
-        if (httpPrincipals.size() > 0)
-        {
+        if (httpPrincipals.size() > 0) {
             return httpPrincipals.iterator().next();
         }
 
@@ -400,15 +366,13 @@ public class UserClient
         return subject.getPrincipals().iterator().next();
     }
 
-    protected Set<Principal> getPrincipals(ByteArrayOutputStream out)
-    {
-        try
-        {
+    protected Set<Principal> getPrincipals(ByteArrayOutputStream out) {
+        try {
             String userXML = new String(out.toByteArray(), "UTF-8");
             log.debug("userXML Input to getPrincipals(): " + userXML);
 
             User user = new UserReader().read(userXML);
-            
+
             // PROTO: include minimal posiz info in PosixPrincipal
             if (user.posixDetails != null) {
                 for (PosixPrincipal pp : user.getIdentities(PosixPrincipal.class)) {
@@ -419,43 +383,37 @@ public class UserClient
                 }
             }
             return user.getIdentities();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    protected String getIdType(Principal principal)
-    {
+    protected String getIdType(Principal principal) {
         String idTypeStr = AuthenticationUtil.getPrincipalType(principal);
-        if (idTypeStr == null)
-        {
-            final String msg = "Subject has unsupported principal " +
-                               principal.getClass();
+        if (idTypeStr == null) {
+            final String msg = "Subject has unsupported principal "
+                    + principal.getClass();
             throw new IllegalArgumentException(msg);
         }
 
         return idTypeStr;
     }
 
-    protected RegistryClient getRegistryClient()
-    {
+    protected RegistryClient getRegistryClient() {
         return new RegistryClient();
     }
 
     /**
      * Used for tests to override.
      *
-     * @param url               The URL to download from.
-     * @param outputStream      The OutputStream to write to.
-     * @return                  HttpDownload instance used.
-     * @throws IOException      Any errors.
+     * @param url          The URL to download from.
+     * @param outputStream The OutputStream to write to.
+     * @return HttpDownload instance used.
+     * @throws IOException Any errors.
      */
     protected HttpDownload download(final URL url,
                                     final OutputStream outputStream)
-            throws IOException
-    {
+            throws IOException {
         final HttpDownload get = new HttpDownload(url, outputStream);
         get.run();
 
@@ -464,31 +422,29 @@ public class UserClient
 
     /**
      * Override for tests to write to a different output.
-     * @return      OutputStream instance.
+     *
+     * @return OutputStream instance.
      */
-    protected OutputStream getOutputStream()
-    {
+    protected OutputStream getOutputStream() {
         return new ByteArrayOutputStream();
     }
 
     /**
      * Obtain the current User for the given Subject.
-     * <p>
-     * This requires that a Subject is in the current context.
+     *
+     * <p>This requires that a Subject is in the current context.
      *
      * @return User instance.
-     * @throws IOException      Any reader/writer errors.
-     * @throws UserNotFoundException    If there is no such user.
+     * @throws IOException           Any reader/writer errors.
+     * @throws UserNotFoundException If there is no such user.
      */
-    public User whoAmI() throws IOException, UserNotFoundException
-    {
+    public User whoAmI() throws IOException, UserNotFoundException {
         AuthMethod am = getAuthMethod();
         final URL whoAmIURL = getRegistryClient()
                 .getServiceURL(this.serviceID, Standards.UMS_WHOAMI_01, am);
-        if (whoAmIURL == null)
-        {
+        if (whoAmIURL == null) {
             throw new IllegalArgumentException("No service endpoint for uri "
-                                               + Standards.UMS_WHOAMI_01);
+                    + Standards.UMS_WHOAMI_01);
         }
 
         log.debug("getUser request to " + whoAmIURL.toString());
@@ -497,42 +453,34 @@ public class UserClient
         final HttpDownload get = download(whoAmIURL, out);
 
         final int responseCode = get.getResponseCode();
-        if (responseCode == 200)
-        {
+        if (responseCode == 200) {
             final UserReader userReader = new UserReader();
 
-            try
-            {
+            try {
                 return userReader.read(out.toString());
-            }
-            catch (URISyntaxException | ReaderException e)
-            {
+            } catch (URISyntaxException | ReaderException e) {
                 throw new IllegalStateException(e);
             }
         }
 
         String message = "";
-        if (get.getThrowable() != null)
-        {
+        if (get.getThrowable() != null) {
             log.debug("error calling get user", get.getThrowable());
             message = get.getThrowable().getMessage();
         }
 
-        if (responseCode == 400)
-        {
+        if (responseCode == 400) {
             throw new IllegalArgumentException(message);
         }
-        if (responseCode == 404)
-        {
+        if (responseCode == 404) {
             throw new UserNotFoundException(message);
         }
-        if (responseCode == 403)
-        {
+        if (responseCode == 403) {
             throw new AccessControlException(message);
         }
         throw new IllegalStateException(message);
     }
-    
+
     private AuthMethod getAuthMethod() throws AccessControlException {
         Subject subject = AuthenticationUtil.getCurrentSubject();
         AuthMethod am = AuthenticationUtil.getAuthMethodFromCredentials(subject);
@@ -541,5 +489,5 @@ public class UserClient
         }
         return am;
     }
-    
+
 }

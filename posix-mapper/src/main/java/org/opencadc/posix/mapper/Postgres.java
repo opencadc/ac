@@ -1,7 +1,5 @@
 package org.opencadc.posix.mapper;
 
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.TypedQuery;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +12,8 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.exception.ConstraintViolationException;
 import org.opencadc.posix.mapper.web.PosixInitAction;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.TypedQuery;
 
 public class Postgres {
 
@@ -42,7 +42,7 @@ public class Postgres {
         properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.hbm2ddl.auto", "validate");
         properties.put("hibernate.current_session_context_class",
-                       "org.hibernate.context.internal.JTASessionContext");
+                "org.hibernate.context.internal.JTASessionContext");
         return properties;
     }
 

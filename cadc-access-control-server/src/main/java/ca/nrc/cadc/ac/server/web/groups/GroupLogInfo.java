@@ -76,14 +76,12 @@ import javax.servlet.http.HttpServletRequest;
  * Extension of regular servlet log info that tracks
  * group membership changes.
  */
-public class GroupLogInfo extends ServletLogInfo
-{
+public class GroupLogInfo extends ServletLogInfo {
     public String groupID;
     public List<String> addedMembers;
     public List<String> deletedMembers;
 
-    public GroupLogInfo(HttpServletRequest request)
-    {
+    public GroupLogInfo(HttpServletRequest request) {
         super(request);
     }
 

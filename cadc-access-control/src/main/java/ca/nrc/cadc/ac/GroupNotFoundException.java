@@ -66,16 +66,14 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
-public class GroupNotFoundException extends Exception
-{
+public class GroupNotFoundException extends Exception {
     /**
      * Thrown when a group cannot be found.
-     *
      */
-    public GroupNotFoundException(String message)
-    {
+    public GroupNotFoundException(String message) {
         super(message);
     }
 }

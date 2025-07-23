@@ -75,8 +75,7 @@ import ca.nrc.cadc.uws.server.SimpleJobManager;
 import ca.nrc.cadc.uws.server.SyncJobExecutor;
 import org.apache.log4j.Logger;
 
-public class ACSearchJobManager extends SimpleJobManager
-{
+public class ACSearchJobManager extends SimpleJobManager {
 
     private static final Logger log = Logger.getLogger(ACSearchJobManager.class);
 
@@ -84,8 +83,7 @@ public class ACSearchJobManager extends SimpleJobManager
     private static final Long MAX_DESTRUCTION = new Long(30L);
     private static final Long MAX_QUOTE = new Long(30L);
 
-    public ACSearchJobManager()
-    {
+    public ACSearchJobManager() {
         super();
         MemoryJobPersistence jp = new MemoryJobPersistence();
 

@@ -66,37 +66,34 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.json;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.xml.JsonOutputter;
-import org.jdom2.Document;
-import org.jdom2.Element;
-
 import java.io.IOException;
 import java.io.Writer;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 /**
  * Class to write a JSON representation of a Group object.
  */
-public class JsonGroupWriter extends GroupWriter
-{
+public class JsonGroupWriter extends GroupWriter {
     /**
      * Write a Group to a Writer.
      *
-     * @param group Group to write.
-     * @param writer  Writer to write to.
-     * @throws IOException if the writer fails to write.
+     * @param group  Group to write.
+     * @param writer Writer to write to.
+     * @throws IOException     if the writer fails to write.
      * @throws WriterException
      */
     @Override
     public void write(Group group, Writer writer)
-        throws WriterException, IOException
-    {
-        if (group == null)
-        {
+            throws WriterException, IOException {
+        if (group == null) {
             throw new WriterException("null group");
         }
 

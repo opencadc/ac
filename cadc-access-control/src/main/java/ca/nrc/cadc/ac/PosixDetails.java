@@ -66,37 +66,34 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 /**
  * Represents the posix account details associated with a user account.
  */
-public class PosixDetails
-{
+public class PosixDetails {
     private String username;
     private int uid;
     private int gid;
     private String homeDirectory;
-    
+
     /**
      * user login shell
      */
     public String loginShell;
 
     /**
-     * @param username user name
-     * @param uid posix uid
-     * @param gid posix gid
+     * @param username      user name
+     * @param uid           posix uid
+     * @param gid           posix gid
      * @param homeDirectory home directory
      */
-    public PosixDetails(String username, int uid, int gid, String homeDirectory)
-    {
-        if (username == null)
-        {
+    public PosixDetails(String username, int uid, int gid, String homeDirectory) {
+        if (username == null) {
             throw new IllegalArgumentException("username is null");
         }
-        if (homeDirectory == null)
-        {
+        if (homeDirectory == null) {
             throw new IllegalArgumentException("homeDirectory in null");
         }
 
@@ -109,43 +106,38 @@ public class PosixDetails
     /**
      * @return the username
      */
-    public String getUsername()
-    {
+    public String getUsername() {
         return username;
     }
 
     /**
      * @return the uid
      */
-    public int getUid()
-    {
+    public int getUid() {
         return uid;
     }
 
     /**
      * @return the gid
      */
-    public int getGid()
-    {
+    public int getGid() {
         return gid;
     }
 
     /**
      * @return the homeDirectory
      */
-    public String getHomeDirectory()
-    {
+    public String getHomeDirectory() {
         return homeDirectory;
     }
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#hashCode()
      */
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int prime = 31;
         int result = 1;
         result = prime * result + username.hashCode();
@@ -157,50 +149,41 @@ public class PosixDetails
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj)
-        {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (obj == null)
-        {
+        if (obj == null) {
             return false;
         }
-        if (!(obj instanceof PosixDetails))
-        {
+        if (!(obj instanceof PosixDetails)) {
             return false;
         }
         PosixDetails other = (PosixDetails) obj;
-        if (!username.equals(other.getUsername()))
-        {
+        if (!username.equals(other.getUsername())) {
             return false;
         }
-        if (uid != other.uid)
-        {
+        if (uid != other.uid) {
             return false;
         }
-        if (gid != other.gid)
-        {
+        if (gid != other.gid) {
             return false;
         }
 
-        if (!homeDirectory.equals(other.homeDirectory))
-        {
+        if (!homeDirectory.equals(other.homeDirectory)) {
             return false;
         }
         return true;
     }
 
     @Override
-    public String toString()
-    {
-        return getClass().getSimpleName() + "[" + username + "," + uid + ", " +
-               gid + ", " + homeDirectory + "]";
+    public String toString() {
+        return getClass().getSimpleName() + "[" + username + "," + uid + ", " + gid + ", "
+                + homeDirectory + "]";
     }
 
 }

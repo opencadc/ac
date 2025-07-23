@@ -79,16 +79,14 @@ import ca.nrc.cadc.ac.server.web.users.UserLogInfo;
 import ca.nrc.cadc.ac.xml.UserRequestReader;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.profiler.Profiler;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
+import org.apache.log4j.Logger;
 
-public abstract class AbstractUserRequestAction implements PrivilegedExceptionAction<Object>
-{
+public abstract class AbstractUserRequestAction implements PrivilegedExceptionAction<Object> {
     private static final Logger log = Logger.getLogger(AbstractUserRequestAction.class);
     public static final String DEFAULT_CONTENT_TYPE = "text/xml";
     public static final String JSON_CONTENT_TYPE = "application/json";
@@ -102,88 +100,66 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
 
     protected String acceptedContentType = DEFAULT_CONTENT_TYPE;
 
-    AbstractUserRequestAction()
-    {
+    AbstractUserRequestAction() {
         this.isAugmentUser = false;
     }
 
     public abstract void doAction() throws Exception;
 
-    public void setAugmentUser(final boolean isAugmentUser)
-    {
-    	this.isAugmentUser = isAugmentUser;
+    public void setAugmentUser(final boolean isAugmentUser) {
+        this.isAugmentUser = isAugmentUser;
     }
 
-    public boolean isAugmentUser()
-    {
-    	return this.isAugmentUser;
+    public boolean isAugmentUser() {
+        return this.isAugmentUser;
     }
 
-    public void setLogInfo(UserLogInfo logInfo)
-    {
+    public void setLogInfo(UserLogInfo logInfo) {
         this.logInfo = logInfo;
     }
 
-    public void setSyncOut(SyncOutput syncOut)
-    {
+    public void setSyncOut(SyncOutput syncOut) {
         this.syncOut = syncOut;
     }
 
-    public void setUserPersistence(UserPersistence userPersistence)
-    {
+    public void setUserPersistence(UserPersistence userPersistence) {
         this.userPersistence = userPersistence;
     }
 
-    public Object run() throws IOException
-    {
-        try
-        {
+    public Object run() throws IOException {
+        try {
             doAction();
             profiler.checkpoint("doAction");
-        }
-        catch (AccessControlException e)
-        {
+        } catch (AccessControlException e) {
             log.debug(e.getMessage(), e);
             String message = "Permission Denied";
             this.logInfo.setMessage(message);
             sendError(403, message);
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             log.debug(e.getMessage(), e);
             String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(400, message);
-        }
-        catch (ReaderException e)
-        {
+        } catch (ReaderException e) {
             log.debug(e.getMessage(), e);
             String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(400, message);
-        }
-        catch (UserNotFoundException e)
-        {
+        } catch (UserNotFoundException e) {
             log.debug(e.getMessage(), e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
-        }
-        catch (UserAlreadyExistsException e)
-        {
+        } catch (UserAlreadyExistsException e) {
             log.debug(e.getMessage(), e);
             String message = e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
-        }
-        catch (UnsupportedOperationException e)
-        {
+        } catch (UnsupportedOperationException e) {
             log.debug(e.getMessage(), e);
             this.logInfo.setMessage("Not yet implemented.");
             sendError(501);
-        }
-        catch (TransientException e)
-        {
+        } catch (TransientException e) {
             String message = "Transient Error: " + e.getMessage();
             this.logInfo.setSuccess(false);
             this.logInfo.setMessage(message);
@@ -191,9 +167,7 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
                 syncOut.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             log.error(message, e);
             sendError(503, message);
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             String message = "Internal Error: " + t.getMessage();
             this.logInfo.setSuccess(false);
             this.logInfo.setMessage(message);
@@ -204,26 +178,20 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
     }
 
     private void sendError(int responseCode)
-        throws IOException
-    {
+            throws IOException {
         sendError(responseCode, null);
     }
 
-    private void sendError(int responseCode, String message)
-    {
+    private void sendError(int responseCode, String message) {
         if (syncOut.isOpen()) {
             log.warn("SynceOutput is open.");
         } else {
             syncOut.setCode(responseCode);
             syncOut.setHeader("Content-Type", "text/plain");
-            if (message != null)
-            {
-                try
-                {
+            if (message != null) {
+                try {
                     syncOut.getWriter().write(message);
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     log.warn("Could not write error message to output stream");
                 }
             }
@@ -231,18 +199,15 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
         profiler.checkpoint("sendError");
     }
 
-    protected void logUserInfo(String userName)
-    {
+    protected void logUserInfo(String userName) {
         this.logInfo.userName = userName;
     }
 
-    public void setPosixGroupOwnerHttpPrincipal(final Principal groupOwnerHttpPrincipal)
-    {
+    public void setPosixGroupOwnerHttpPrincipal(final Principal groupOwnerHttpPrincipal) {
         this.groupOwnerHttpPrincipal = groupOwnerHttpPrincipal;
     }
 
-    public void setAcceptedContentType(final String acceptedContentType)
-    {
+    public void setAcceptedContentType(final String acceptedContentType) {
         this.acceptedContentType = acceptedContentType;
     }
 
@@ -250,30 +215,24 @@ public abstract class AbstractUserRequestAction implements PrivilegedExceptionAc
      * Read a user request (User pending approval) from the HTTP Request's
      * stream.
      *
-     * @param inputStream           The Input Stream to read from.
-     * @return                      User Request instance.
-     * @throws IOException          Any reading errors.
+     * @param inputStream The Input Stream to read from.
+     * @return User Request instance.
+     * @throws IOException Any reading errors.
      */
     protected UserRequest readUserRequest(final InputStream inputStream)
-        throws ReaderException, IOException
-    {
+            throws ReaderException, IOException {
         final UserRequest userRequest;
 
-        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE))
-        {
+        if (acceptedContentType.equals(DEFAULT_CONTENT_TYPE)) {
             UserRequestReader requestReader = new UserRequestReader();
             userRequest = requestReader.read(inputStream);
-        }
-        else if (acceptedContentType.equals(JSON_CONTENT_TYPE))
-        {
+        } else if (acceptedContentType.equals(JSON_CONTENT_TYPE)) {
             JsonUserRequestReader requestReader = new JsonUserRequestReader();
             userRequest = requestReader.read(inputStream);
-        }
-        else
-        {
+        } else {
             // Should never happen.
             throw new IOException("Unknown content being asked for: "
-                                  + acceptedContentType);
+                    + acceptedContentType);
         }
         profiler.checkpoint("readUserRequest");
         return userRequest;

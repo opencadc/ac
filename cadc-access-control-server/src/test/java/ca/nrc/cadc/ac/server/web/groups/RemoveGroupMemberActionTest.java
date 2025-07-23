@@ -68,42 +68,34 @@
  */
 package ca.nrc.cadc.ac.server.web.groups;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
-
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class RemoveGroupMemberActionTest
-{
+public class RemoveGroupMemberActionTest {
     private final static Logger log = Logger.getLogger(RemoveGroupMemberActionTest.class);
 
     @BeforeClass
-    public static void setUpClass()
-    {
+    public static void setUpClass() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
-    public void testExceptions()
-    {
-        try
-        {
+    public void testExceptions() {
+        try {
             Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
             Group member = new Group(new GroupURI("ivo://example.org/gms?member"));
 
@@ -112,35 +104,28 @@ public class RemoveGroupMemberActionTest
             EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction( "group", "member")
-            {
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member") {
                 @Override
-                public URI getServiceURI(URI standard)
-                {
+                public URI getServiceURI(URI standard) {
                     return URI.create("ivo://example.org/gms");
                 }
             };
             action.groupPersistence = groupPersistence;
 
-            try
-            {
+            try {
                 action.doAction();
                 fail("unknown group member should throw GroupNotFoundException");
+            } catch (GroupNotFoundException ignore) {
             }
-            catch (GroupNotFoundException ignore) {}
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }
     }
 
     @Test
-    public void testRun() throws Exception
-    {
-        try
-        {
+    public void testRun() throws Exception {
+        try {
             URI gmsServiceURI = URI.create("ivo://example.org/gms");
             Group member = new Group(new GroupURI(gmsServiceURI.toString() + "?member"));
             Group group = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
@@ -156,22 +141,18 @@ public class RemoveGroupMemberActionTest
             EasyMock.expectLastCall();
             EasyMock.replay(groupPersistence);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member")
-                {
-                    @Override
-                    public URI getServiceURI(URI standard)
-                    {
-                        return URI.create("ivo://example.org/gms");
-                    }
-                };
+            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member") {
+                @Override
+                public URI getServiceURI(URI standard) {
+                    return URI.create("ivo://example.org/gms");
+                }
+            };
             action.groupPersistence = groupPersistence;
 
             GroupLogInfo logInfo = createMock(GroupLogInfo.class);
             action.setLogInfo(logInfo);
             action.doAction();
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
         }

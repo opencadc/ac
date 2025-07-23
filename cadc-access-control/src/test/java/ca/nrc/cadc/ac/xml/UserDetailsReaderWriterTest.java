@@ -68,104 +68,89 @@
  */
 package ca.nrc.cadc.ac.xml;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import org.apache.log4j.Logger;
-import org.jdom2.Element;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.PosixDetails;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.util.PropertiesReader;
+import org.apache.log4j.Logger;
+import org.jdom2.Element;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
- *
  * @author jburke
  */
-public class UserDetailsReaderWriterTest extends AbstractReaderWriter
-{
+public class UserDetailsReaderWriterTest extends AbstractReaderWriter {
     private static Logger log = Logger.getLogger(UserDetailsReaderWriterTest.class);
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     @Test
     public void testReaderExceptions()
-        throws Exception
-    {
+            throws Exception {
         Element element = null;
-        try
-        {
+        try {
             PersonalDetails pd = getPersonalDetails(element);
             fail("null element should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = new Element("foo");
-        try
-        {
+        try {
             PersonalDetails pd = getPersonalDetails(element);
             fail("element not named 'personalDetails' should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = null;
-        try
-        {
+        try {
             PosixDetails pd = getPosixDetails(element);
             fail("null element should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
 
         element = new Element("foo");
-        try
-        {
+        try {
             PosixDetails pd = getPosixDetails(element);
             fail("element not named 'posixDetails' should throw ReaderException");
+        } catch (ReaderException e) {
         }
-        catch (ReaderException e) {}
     }
 
     @Test
     public void testWriterExceptions()
-        throws Exception
-    {
-        try
-        {
+            throws Exception {
+        try {
             PersonalDetails pd = null;
             Element element = getElement(pd);
             fail("null PersonalDetails should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
 
-        try
-        {
+        try {
             PosixDetails pd = null;
             Element element = getElement(pd);
             fail("null PosixDetails should throw WriterException");
+        } catch (WriterException e) {
         }
-        catch (WriterException e) {}
     }
 
     @Test
     public void testReadWritePersonalDetails()
-        throws Exception
-    {
+            throws Exception {
         PersonalDetails expected = new PersonalDetails("firstname", "lastname");
         expected.address = "address";
         expected.city = "city";
@@ -187,8 +172,7 @@ public class UserDetailsReaderWriterTest extends AbstractReaderWriter
 
     @Test
     public void testReadWritePosixDetails()
-        throws Exception
-    {
+            throws Exception {
         PosixDetails expected = new PosixDetails("username", 123, 456, "/dev/null");
         Element element = getElement(expected);
         assertNotNull(element);

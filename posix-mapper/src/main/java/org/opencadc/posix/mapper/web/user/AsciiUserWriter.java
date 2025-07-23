@@ -68,12 +68,11 @@
 
 package org.opencadc.posix.mapper.web.user;
 
-import org.opencadc.posix.mapper.PostgresPosixUtil;
-import org.opencadc.posix.mapper.User;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
+import org.opencadc.posix.mapper.PostgresPosixUtil;
+import org.opencadc.posix.mapper.User;
 
 public class AsciiUserWriter implements UserWriter {
 
@@ -89,9 +88,9 @@ public class AsciiUserWriter implements UserWriter {
             while (userIterator.hasNext()) {
                 final User user = userIterator.next();
                 writer.write(new PostgresPosixUtil()
-                                     .user(user)
-                                     .userName(user.getUsername())
-                                     .posixEntry());
+                        .user(user)
+                        .userName(user.getUsername())
+                        .posixEntry());
                 writer.write("\n");
                 writer.flush();
             }

@@ -68,26 +68,6 @@
 
 package ca.nrc.cadc.ac.server.web;
 
-import static org.easymock.EasyMock.createNiceMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import javax.security.auth.Subject;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.UserAlreadyExistsException;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.UserPersistence;
@@ -97,33 +77,41 @@ import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.List;
+import javax.security.auth.Subject;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.easymock.EasyMock.createNiceMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 
-public class ResetPasswordServletTest
-{
+public class ResetPasswordServletTest {
     private static final String EMAIL_ADDRESS = "email@canada.ca";
 
     @BeforeClass
-    public static void setupClass()
-    {
+    public static void setupClass() {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/resources");
     }
 
     @AfterClass
-    public static void teardownClass()
-    {
+    public static void teardownClass() {
         System.clearProperty(PropertiesReader.class.getName() + ".dir");
     }
 
     public void testSubjectAndEmailAddress(final Subject subject, final String emailAddress,
-            int responseStatus) throws Exception
-    {
-        @SuppressWarnings("serial")
-        final ResetPasswordServlet testSubject = new ResetPasswordServlet()
-        {
+                                           int responseStatus) throws Exception {
+        @SuppressWarnings("serial") final ResetPasswordServlet testSubject = new ResetPasswordServlet() {
             @Override
-            Subject getSubject(final HttpServletRequest request)
-            {
+            Subject getSubject(final HttpServletRequest request) {
                 return subject;
             }
 
@@ -143,8 +131,7 @@ public class ResetPasswordServletTest
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
 //        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
-        if (!StringUtil.hasText(emailAddress))
-        {
+        if (!StringUtil.hasText(emailAddress)) {
             expect(mockRequest.getParameter("emailAddress")).andReturn(emailAddress).once();
         }
 
@@ -153,11 +140,9 @@ public class ResetPasswordServletTest
 
         replay(mockRequest, mockResponse);
 
-        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
-        {
+        Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
             @Override
-            public Void run() throws Exception
-            {
+            public Void run() throws Exception {
                 testSubject.doGet(mockRequest, mockResponse);
                 return null;
             }
@@ -167,49 +152,39 @@ public class ResetPasswordServletTest
     }
 
     @Test
-    public void testGetWithNullSubject() throws Exception
-    {
+    public void testGetWithNullSubject() throws Exception {
         final Subject subject = null;
         testSubjectAndEmailAddress(subject, EMAIL_ADDRESS, HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     @Test
-    public void testGetWithEmptySubject() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithEmptySubject() throws Exception {
+        final Subject subject = new Subject();
+        ;
         testSubjectAndEmailAddress(subject, EMAIL_ADDRESS, HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     public void testPrivilegedSubjectAndEmailAddress(final List<Subject> privSubjects,
-            final Subject subject, int responseStatus, final String emailAddress,
-            final UserPersistence mockUserPersistence) throws Exception
-    {
-        @SuppressWarnings("serial")
-        final ResetPasswordServlet testSubject = new ResetPasswordServlet()
-        {
+                                                     final Subject subject, int responseStatus, final String emailAddress,
+                                                     final UserPersistence mockUserPersistence) throws Exception {
+        @SuppressWarnings("serial") final ResetPasswordServlet testSubject = new ResetPasswordServlet() {
             @Override
-            public void init() throws ServletException
-            {
+            public void init() throws ServletException {
                 privilegedSubjects = privSubjects;
                 userPersistence = mockUserPersistence;
             }
 
             @Override
-            protected boolean isPrivilegedSubject(final HttpServletRequest request)
-            {
-                if (privSubjects == null || privSubjects.isEmpty())
-                {
+            protected boolean isPrivilegedSubject(final HttpServletRequest request) {
+                if (privSubjects == null || privSubjects.isEmpty()) {
                     return false;
-                }
-                else
-                {
+                } else {
                     return true;
                 }
             }
 
             @Override
-            Subject getSubject(final HttpServletRequest request)
-            {
+            Subject getSubject(final HttpServletRequest request) {
                 return subject;
             }
 
@@ -229,14 +204,10 @@ public class ResetPasswordServletTest
         expect(mockRequest.getRemoteAddr()).andReturn("mysite.com").once();
 //        expect(mockRequest.getParameterNames()).andReturn(Collections.<String>emptyEnumeration()).once();
 
-        if (privSubjects != null && !privSubjects.isEmpty())
-        {
-            if (mockUserPersistence == null)
-            {
+        if (privSubjects != null && !privSubjects.isEmpty()) {
+            if (mockUserPersistence == null) {
                 expect(mockRequest.getParameter("emailAddress")).andReturn(emailAddress).once();
-            }
-            else
-            {
+            } else {
                 expect(mockRequest.getParameter("emailAddress")).andReturn(emailAddress).once();
             }
         }
@@ -247,11 +218,9 @@ public class ResetPasswordServletTest
 
         replay(mockRequest, mockResponse, mockUserPersistence);
 
-        Subject.doAs(subject, new PrivilegedExceptionAction<Void>()
-        {
+        Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
             @Override
-            public Void run() throws Exception
-            {
+            public Void run() throws Exception {
                 testSubject.init();
                 testSubject.doGet(mockRequest, mockResponse);
                 return null;
@@ -262,9 +231,9 @@ public class ResetPasswordServletTest
     }
 
     @Test
-    public void testGetWithNullPrivilegedSubjects() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithNullPrivilegedSubjects() throws Exception {
+        final Subject subject = new Subject();
+        ;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         UserPersistence mockUserPersistence =
                 (UserPersistence) createNiceMock(UserPersistence.class);
@@ -273,9 +242,9 @@ public class ResetPasswordServletTest
     }
 
     @Test
-    public void testGetWithEmptyPrivilegedSubjects() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithEmptyPrivilegedSubjects() throws Exception {
+        final Subject subject = new Subject();
+        ;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         UserPersistence mockUserPersistence =
                 (UserPersistence) createNiceMock(UserPersistence.class);
@@ -284,9 +253,9 @@ public class ResetPasswordServletTest
     }
 
     @Test
-    public void testGetWithMissingEmailAddress() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithMissingEmailAddress() throws Exception {
+        final Subject subject = new Subject();
+        ;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
@@ -298,9 +267,9 @@ public class ResetPasswordServletTest
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testGetWithMoreThanOneUserFound() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithMoreThanOneUserFound() throws Exception {
+        final Subject subject = new Subject();
+        ;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
@@ -315,9 +284,9 @@ public class ResetPasswordServletTest
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testGetWithNoUserFound() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithNoUserFound() throws Exception {
+        final Subject subject = new Subject();
+        ;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());
@@ -331,9 +300,9 @@ public class ResetPasswordServletTest
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testGetWithInternalServerError() throws Exception
-    {
-        final Subject subject = new Subject();;
+    public void testGetWithInternalServerError() throws Exception {
+        final Subject subject = new Subject();
+        ;
         subject.getPrincipals().add(new HttpPrincipal("CADCtest"));
         List<Subject> privilegedSubjects = new ArrayList<Subject>();
         privilegedSubjects.add(new Subject());

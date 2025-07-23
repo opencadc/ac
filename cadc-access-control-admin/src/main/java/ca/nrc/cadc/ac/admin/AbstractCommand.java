@@ -70,21 +70,19 @@
 package ca.nrc.cadc.ac.admin;
 
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.net.TransientException;
 import java.io.PrintStream;
 import java.security.AccessControlException;
 import java.security.PrivilegedAction;
 
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.net.TransientException;
-
 
 /**
  * Provide attributes and methods that apply to all commands.
- * @author yeunga
  *
+ * @author yeunga
  */
-public abstract class AbstractCommand implements PrivilegedAction<Object>
-{
+public abstract class AbstractCommand implements PrivilegedAction<Object> {
     protected PrintStream systemOut = System.out;
     protected PrintStream systemErr = System.err;
 
@@ -96,36 +94,30 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
 
     /**
      * Set the system out.
-     * @param printStream       The stream to write System.out to .
+     *
+     * @param printStream The stream to write System.out to .
      */
-    public void setSystemOut(PrintStream printStream)
-    {
+    public void setSystemOut(PrintStream printStream) {
         this.systemOut = printStream;
     }
 
     /**
      * Set the system err.
-     * @param printStream       The stream to write System.err to.
+     *
+     * @param printStream The stream to write System.err to.
      */
-    public void setSystemErr(PrintStream printStream)
-    {
+    public void setSystemErr(PrintStream printStream) {
         this.systemErr = printStream;
     }
 
     @Override
-    public Object run()
-    {
-        try
-        {
+    public Object run() {
+        try {
             this.doRun();
-        }
-        catch (AccessControlException e)
-        {
+        } catch (AccessControlException e) {
             this.systemErr.println("ERROR: " + e.getMessage());
             e.printStackTrace(systemErr);
-        }
-        catch (TransientException e)
-        {
+        } catch (TransientException e) {
             String message = "Internal Transient Error: " + e.getMessage();
             this.systemErr.println("ERROR: " + message);
             e.printStackTrace(systemErr);
@@ -135,24 +127,20 @@ public abstract class AbstractCommand implements PrivilegedAction<Object>
     }
 
     protected void setUserPersistence(
-            final UserPersistence userPersistence)
-    {
+            final UserPersistence userPersistence) {
         this.userPersistence = userPersistence;
     }
 
-    public UserPersistence getUserPersistence()
-    {
+    public UserPersistence getUserPersistence() {
         return this.userPersistence;
     }
 
     protected void setGroupPersistence(
-        final GroupPersistence groupPersistence)
-    {
+            final GroupPersistence groupPersistence) {
         this.groupPersistence = groupPersistence;
     }
 
-    public GroupPersistence getGroupPersistence()
-    {
+    public GroupPersistence getGroupPersistence() {
         return this.groupPersistence;
     }
 }

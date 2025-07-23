@@ -81,14 +81,10 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.RsaSignatureGenerator;
 import ca.nrc.cadc.util.RsaSignatureVerifier;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -106,36 +102,33 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 /**
- * 
  * Utilities for OIDC/OAuth2 support.
- * 
- * @author majorb
  *
+ * @author majorb
  */
 public class OIDCUtil {
-    
+
     public static final String CONFIG = "ac-oidc-clients.properties";
 
     public static final String AUTHORIZE_TOKEN_SCOPE = "cadc:oauth2/authorize_token";
     public static final String REFRESH_TOKEN_SCOPE = "cadc:oauth2/refresh_token";
     public static final String ACCESS_TOKEN_SCOPE = "cadc:oauth2/access_token";
-    
-    public static final Integer ID_TOKEN_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
+
+    public static final Integer ID_TOKEN_EXPIRY_MINUTES = 60 * 24 * 7 * 2; // 2 weeks
     public static final Integer AUTHORIZE_CODE_EXPIRY_MINUTES = 10;
-    public static final Integer ACCESS_CODE_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
-    public static final Integer REFRESH_TOKEN_EXPIRY_MINUTES = 60*24*7*52; // 1 year
-    public static final Integer JWT_EXPIRY_MINUTES = 60*24*7*2; // 2 weeks
-    
+    public static final Integer ACCESS_CODE_EXPIRY_MINUTES = 60 * 24 * 7 * 2; // 2 weeks
+    public static final Integer REFRESH_TOKEN_EXPIRY_MINUTES = 60 * 24 * 7 * 52; // 1 year
+    public static final Integer JWT_EXPIRY_MINUTES = 60 * 24 * 7 * 2; // 2 weeks
+
     //public static final String CLAIM_ISSUER_VALUE = "https://proto.canfar.net/ac";
     public static final String CLAIM_GROUPS_KEY = "memberOf";
 
@@ -145,14 +138,14 @@ public class OIDCUtil {
 
     private static Set<PublicKey> publicKeys = null;
     private static Key privateKey = null;
-    
+
     private static final Logger log = Logger.getLogger(OIDCUtil.class);
-    
+
     // NOTE:  RelyParties should come from a properties file, ac.properties.  The other
     // current properties file ac-domains.properties should be transitioned to use this
     // single per-service file when rely parties are configured there.
     private static Map<String, RelyParty> relyParties = null;
-    
+
     public static Set<PublicKey> getPublicKeys() {
         if (publicKeys == null) {
             File pubFile = new File(System.getProperty("user.home") + "/config/" + PUBLIC_KEY_NAME);
@@ -161,7 +154,7 @@ public class OIDCUtil {
         }
         return publicKeys;
     }
-    
+
     private static Key getPrivateKey() {
         if (privateKey == null) {
             File privFile = new File(System.getProperty("user.home") + "/config/" + PRIVATE_KEY_NAME);
@@ -170,17 +163,17 @@ public class OIDCUtil {
         }
         return privateKey;
     }
-    
+
     private static Set<String> getClientIDs(MultiValuedProperties config) {
         Set<String> clientIDs = new HashSet<String>();
         Set<String> keys = config.keySet();
         for (String k : keys) {
             clientIDs.add(k.split("\\.")[0]);
         }
-        
+
         return clientIDs;
     }
-    
+
     private static void checkKey(MultiValuedProperties config, Set<String> keys, String key) {
         if (!keys.contains(key)) {
             throw new IllegalStateException("missing key " + key + " in " + CONFIG);
@@ -188,25 +181,25 @@ public class OIDCUtil {
             throw new IllegalStateException("missing value for " + key + " in " + CONFIG);
         }
     }
-    
+
     private static String getSecret(MultiValuedProperties config, Set<String> keys, String clientID) {
         String secretKey = clientID + ".secret";
         checkKey(config, keys, secretKey);
         return config.getProperty(secretKey).get(0);
     }
-    
+
     private static String getDescription(MultiValuedProperties config, Set<String> keys, String clientID) {
         String descriptionKey = clientID + ".description";
         checkKey(config, keys, descriptionKey);
         return config.getProperty(descriptionKey).get(0);
     }
-    
+
     private static boolean getSignDocuments(MultiValuedProperties config, Set<String> keys, String clientID) {
         String signDocumentsKey = clientID + ".sign-documents";
         checkKey(config, keys, signDocumentsKey);
         return Boolean.valueOf(config.getProperty(signDocumentsKey).get(0));
     }
-    
+
     private static List<Claim> getClaims(MultiValuedProperties config, Set<String> keys, String clientID) {
         String claimsKey = clientID + ".claims";
         checkKey(config, keys, claimsKey);
@@ -215,21 +208,20 @@ public class OIDCUtil {
         for (String claim : claimsArray) {
             claims.add(RelyParty.Claim.getClaim(claim));
         }
-        
+
         return claims;
     }
-    
+
     private static void loadConfig() {
         log.debug("Reading RelyParties properties from: " + CONFIG);
         relyParties = new HashMap<String, RelyParty>();
         PropertiesReader pr = new PropertiesReader(CONFIG);
         MultiValuedProperties config = pr.getAllProperties();
         Set<String> keys = config.keySet();
-        if (config == null || keys.isEmpty())
-        {
+        if (config == null || keys.isEmpty()) {
             throw new RuntimeException("failed to read any OIDC property ");
         }
-        
+
         Set<String> clientIDs = getClientIDs(config);
         for (String clientID : clientIDs) {
             final String secret = getSecret(config, keys, clientID);
@@ -238,7 +230,7 @@ public class OIDCUtil {
             List<Claim> claims = getClaims(config, keys, clientID);
 
             RelyParty relyParty = new RelyParty(clientID, secret, description, claims, signDocuments);
-            
+
             // access group is optional
             String accessGroupKey = clientID + ".access-group";
             if (keys.contains(accessGroupKey)) {
@@ -253,7 +245,7 @@ public class OIDCUtil {
         }
 
     }
-    
+
     public static RelyParty getRelyParty(String clientID) {
         if (relyParties == null) {
             // add all rely parties
@@ -262,9 +254,9 @@ public class OIDCUtil {
 
         return relyParties.get(clientID);
     }
-    
-    public static boolean accessAllowed(RelyParty rp) 
-        throws AccessControlException, UserNotFoundException, GroupNotFoundException, TransientException {
+
+    public static boolean accessAllowed(RelyParty rp)
+            throws AccessControlException, UserNotFoundException, GroupNotFoundException, TransientException {
         GroupURI accessGroup = rp.getAccessGroup();
         if (accessGroup == null) {
             // access group not specified, allow access
@@ -279,7 +271,7 @@ public class OIDCUtil {
             }
         }
     }
-    
+
     public static String getToken(String username, URI scope, int expiryMinutes) throws InvalidKeyException, IOException {
         return OIDCUtil.getToken(username, scope, expiryMinutes, null);
     }
@@ -292,7 +284,7 @@ public class OIDCUtil {
         SignedToken token = new SignedToken(p, scope, c.getTime(), domains);
         return SignedToken.format(token);
     }
-    
+
     public static String getEmail(HttpPrincipal userID)
             throws AccessControlException, UserNotFoundException, TransientException {
         UserPersistence up = new LdapUserPersistence();
@@ -302,7 +294,7 @@ public class OIDCUtil {
         }
         return "";
     }
-    
+
     public static List<String> getGroupList() throws Exception {
         GroupPersistence gp = new LdapGroupPersistence();
         Collection<Group> groups = gp.getGroups(Role.MEMBER, null);
@@ -314,7 +306,7 @@ public class OIDCUtil {
         return groupNames;
     }
 
-    private static Map<String, Object> buildTokenClaimsSet(RelyParty rp, String requestURI) throws Exception  {
+    private static Map<String, Object> buildTokenClaimsSet(RelyParty rp, String requestURI) throws Exception {
         final Subject subject = AuthenticationUtil.getCurrentSubject();
 
         String claimIssuer = requestURI.substring(0, requestURI.lastIndexOf("/"));
@@ -331,7 +323,7 @@ public class OIDCUtil {
         claimsMap.put("sub", numericPrincipal.getName());
 
         calendar.add(Calendar.MINUTE, OIDCUtil.ID_TOKEN_EXPIRY_MINUTES);
-        claimsMap.put("exp",calendar.getTime());  // exp
+        claimsMap.put("exp", calendar.getTime());  // exp
 
         if (rp.getClaims().contains(RelyParty.Claim.NAME)) {
             claimsMap.put(RelyParty.Claim.NAME.getValue(), useridPrincipal.getName());
@@ -348,6 +340,7 @@ public class OIDCUtil {
 
     /**
      * Build JSON string with User Info - includes full JWT claims set
+     *
      * @param rp
      * @return
      * @throws Exception
@@ -360,6 +353,7 @@ public class OIDCUtil {
 
     /**
      * Build JWT string, sign if the RelyParty is set to require signing
+     *
      * @param rp
      * @return
      * @throws Exception
@@ -371,7 +365,7 @@ public class OIDCUtil {
         builder.setClaims(claimsMap);
 
         builder.setHeaderParam("typ", "JWT")
-            .setHeaderParam("alg", "RSA256");
+                .setHeaderParam("alg", "RSA256");
 
         Set<PublicKey> pubKeys = OIDCUtil.getPublicKeys();
         RSAPublicKey key = ((RSAPublicKey) pubKeys.iterator().next());
@@ -384,7 +378,7 @@ public class OIDCUtil {
             return builder.compact();
         }
     }
-    
+
     static String getClaimDescriptionString(List<Claim> claims) {
         StringBuilder sb = new StringBuilder();
         int count = 0;

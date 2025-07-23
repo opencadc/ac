@@ -69,31 +69,25 @@
 
 package ca.nrc.cadc.ac.server.ldap;
 
+import ca.nrc.cadc.util.Log4jInit;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
-
-import ca.nrc.cadc.util.Log4jInit;
-
 import com.unboundid.ldap.sdk.LDAPConnection;
 
-public class LdapConnectionsTest
-{
+public class LdapConnectionsTest {
 
     private final static Logger log = Logger.getLogger(LdapConnectionsTest.class);
 
-    public LdapConnectionsTest()
-    {
+    public LdapConnectionsTest() {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
     @Test
-    public void testAutoConfig()
-    {
-        try
-        {
+    public void testAutoConfig() {
+        try {
             LdapConnectionPool readPool = EasyMock.createMock(LdapConnectionPool.class);
             LdapConnectionPool writePool = EasyMock.createMock(LdapConnectionPool.class);
             LdapConnectionPool unReadPool = EasyMock.createMock(LdapConnectionPool.class);
@@ -145,9 +139,7 @@ public class LdapConnectionsTest
 
             EasyMock.verify(persistence, readPool, writePool, unReadPool);
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unexpected exception", e);
             Assert.fail("Unexpected exception");
         }

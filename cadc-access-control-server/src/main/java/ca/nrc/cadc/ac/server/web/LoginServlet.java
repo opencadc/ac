@@ -74,17 +74,16 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.IdentityManagerImpl;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.ac.server.IdentityManagerImpl;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.log.ServletLogInfo;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.util.StringUtil;
-import com.unboundid.ldap.sdk.LDAPException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -100,10 +99,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
+import com.unboundid.ldap.sdk.LDAPException;
 
 @SuppressWarnings("serial")
-public class LoginServlet extends HttpServlet
-{
+public class LoginServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(LoginServlet.class);
 
     private static final String CONTENT_TYPE = "text/plain";
@@ -117,21 +116,19 @@ public class LoginServlet extends HttpServlet
 
     UserPersistence userPersistence;
     GroupPersistence groupPersistence;
-    
+
     boolean addPrincipalsToCookie = false;
 
     @Override
-    public void init(final ServletConfig config) throws ServletException
-    {
+    public void init(final ServletConfig config) throws ServletException {
         super.init(config);
 
-        try
-        {
+        try {
             this.proxyGroup = config.getInitParameter(LoginServlet.class.getName() + ".proxyGroup");
             log.debug("proxyGroup: " + proxyGroup);
             this.nonImpersonGroup = config.getInitParameter(LoginServlet.class.getName() + ".nonImpersonGroup");
             log.debug("nonImpersonGroup: " + nonImpersonGroup);
-            
+
             String principalsFlag = config.getInitParameter("addPrincipalsToCookie");
             if (principalsFlag != null && Boolean.TRUE.toString().equalsIgnoreCase(principalsFlag)) {
                 addPrincipalsToCookie = true;
@@ -142,9 +139,7 @@ public class LoginServlet extends HttpServlet
             userPersistence = pluginFactory.createUserPersistence();
             groupPersistence = pluginFactory.createGroupPersistence();
 
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             throw new ExceptionInInitializerError(ex);
         }
     }
@@ -152,14 +147,12 @@ public class LoginServlet extends HttpServlet
     /**
      * Attempt to login for userid/password.
      */
-	@SuppressWarnings("rawtypes")
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws IOException
-    {
+    @SuppressWarnings("rawtypes")
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         long start = System.currentTimeMillis();
         ServletLogInfo logInfo = new ServletLogInfo(request);
-        try
-        {
+        try {
             log.info(logInfo.start());
             String userID = request.getParameter("username");
             String password = request.getParameter("password");
@@ -175,17 +168,15 @@ public class LoginServlet extends HttpServlet
 
             String proxyUser = null;
             String[] fields = userID.split(PROXY_USER_DELIM);
-            if (fields.length == 2 )
-            {
+            if (fields.length == 2) {
                 proxyUser = fields[0].trim();
                 userID = fields[1].trim();
                 checkCanImpersonate(userID, proxyUser);
             }
             if ((StringUtil.hasText(proxyUser) &&
                     userPersistence.doLogin(proxyUser, password)) ||
-                (!StringUtil.hasText(proxyUser) &&
-                        userPersistence.doLogin(userID, password)))
-            {
+                    (!StringUtil.hasText(proxyUser) &&
+                            userPersistence.doLogin(userID, password))) {
                 String token = null;
                 HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
 
@@ -199,62 +190,47 @@ public class LoginServlet extends HttpServlet
                 }
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
 
-                if (scope != null)
-                {
+                if (scope != null) {
                     // This cookie will be scope to a certain URI,
                     // such as a VOSpace node
                     URI uri = null;
-                    try
-                    {
+                    try {
                         uri = new URI(scope);
-                    }
-                    catch (URISyntaxException e)
-                    {
+                    } catch (URISyntaxException e) {
                         throw new IllegalArgumentException("Invalid scope: " + scope);
                     }
 
                     token = new SSOCookieManager().generate(userPrincipals, uri);
-                }
-                else
-                {
+                } else {
                     // Create token with default scope and expiry date
                     token = new SSOCookieManager().generate(userPrincipals, null);
                 }
 
-        	    response.setContentType(CONTENT_TYPE);
-        	    response.setContentLength(token.length());
+                response.setContentType(CONTENT_TYPE);
+                response.setContentLength(token.length());
                 response.setHeader(AuthenticationUtil.VO_AUTHENTICATED_HEADER, userID);
                 response.setHeader(AuthenticationUtil.VO_TOKEN_BEARER, token);
-        	    response.getWriter().write(token);
-        	}
-        }
-        catch (IllegalArgumentException e)
-        {
-            String msg = e.getMessage();
-            if (msg.startsWith(PROXY_ACCESS))
-            {
-                log.warn(msg, e);
+                response.getWriter().write(token);
             }
-            else
-            {
+        } catch (IllegalArgumentException e) {
+            String msg = e.getMessage();
+            if (msg.startsWith(PROXY_ACCESS)) {
+                log.warn(msg, e);
+            } else {
                 log.debug(msg, e);
             }
             logInfo.setMessage(msg);
-    	    response.setContentType(CONTENT_TYPE);
+            response.setContentType(CONTENT_TYPE);
             response.getWriter().write(msg);
             response.setStatus(400);
-        }
-        catch (AccessControlException e)
-        {
+        } catch (AccessControlException e) {
             String message = e.getMessage();
             log.debug(e.getMessage(), e);
             logInfo.setMessage(message);
-    	    response.setContentType(CONTENT_TYPE);
+            response.setContentType(CONTENT_TYPE);
             response.getWriter().write(message);
             response.setStatus(401);
-        }
-        catch (TransientException e)
-        {
+        } catch (TransientException e) {
             log.debug(e.getMessage(), e);
             String message = e.getMessage();
             logInfo.setMessage(message);
@@ -264,31 +240,26 @@ public class LoginServlet extends HttpServlet
                 response.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             response.getWriter().write("Transient Error: " + message);
             response.setStatus(503);
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             String message = "Internal Server Error: " + t.getMessage();
             log.error(message, t);
             logInfo.setSuccess(false);
             logInfo.setMessage(message);
-    	    response.setContentType(CONTENT_TYPE);
+            response.setContentType(CONTENT_TYPE);
             response.getWriter().write(message);
             response.setStatus(500);
-        }
-        finally
-        {
+        } finally {
             logInfo.setElapsedTime(System.currentTimeMillis() - start);
             log.info(logInfo.end());
         }
     }
 
-	/**
-	 * Checks if user can impersonate another user
-	 */
+    /**
+     * Checks if user can impersonate another user
+     */
     protected void checkCanImpersonate(final String userID, final String proxyUser)
             throws AccessControlException, UserNotFoundException,
-            TransientException, Throwable
-    {
+            TransientException, Throwable {
 
         // Users (proxy and the user to be impersonated) are not authenticated
         // at this point so in order to make the calls to check their group
@@ -298,16 +269,12 @@ public class LoginServlet extends HttpServlet
         Subject proxySubject = new Subject();
         proxySubject.getPrincipals().add(new HttpPrincipal(proxyUser));
         ai.augmentSubject(proxySubject);
-        try
-        {
-            Subject.doAs(proxySubject, new PrivilegedExceptionAction<Object>()
-            {
+        try {
+            Subject.doAs(proxySubject, new PrivilegedExceptionAction<Object>() {
                 @Override
-                public Object run() throws Exception
-                {
+                public Object run() throws Exception {
 
-                    if (groupPersistence.getGroups(Role.MEMBER, proxyGroup).isEmpty())
-                    {
+                    if (groupPersistence.getGroups(Role.MEMBER, proxyGroup).isEmpty()) {
                         throw new AccessControlException(PROXY_ACCESS
                                 + proxyUser + " as " + userID
                                 + " failed - not allowed to impersonate ("
@@ -321,51 +288,41 @@ public class LoginServlet extends HttpServlet
             Subject userSubject = new Subject();
             userSubject.getPrincipals().add(new HttpPrincipal(userID));
             ai.augmentSubject(userSubject);
-            Subject.doAs(userSubject, new PrivilegedExceptionAction<Object>()
-            {
+            Subject.doAs(userSubject, new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run()
-                    throws Exception
-                {
-                    if (!groupPersistence.getGroups(Role.MEMBER, nonImpersonGroup).isEmpty())
-                    {
+                        throws Exception {
+                    if (!groupPersistence.getGroups(Role.MEMBER, nonImpersonGroup).isEmpty()) {
                         throw new AccessControlException(PROXY_ACCESS
-                            + proxyUser + " as " + userID
-                            + " failed - non impersonable (" + userID
-                            + " in " + nonImpersonGroup + " group)");
+                                + proxyUser + " as " + userID
+                                + " failed - non impersonable (" + userID
+                                + " in " + nonImpersonGroup + " group)");
                     }
                     return null;
                 }
             });
-        }
-        catch (PrivilegedActionException e)
-        {
+        } catch (PrivilegedActionException e) {
             Throwable cause = e.getCause();
-            if (cause != null)
-            {
+            if (cause != null) {
                 throw cause;
             }
             Exception exception = e.getException();
-            if (exception != null)
-            {
+            if (exception != null) {
                 throw exception;
             }
             throw e;
         }
     }
 
-    protected LdapGroupPersistence getLdapGroupPersistence() throws AccessControlException, LDAPException
-    {
+    protected LdapGroupPersistence getLdapGroupPersistence() throws AccessControlException, LDAPException {
         LdapGroupPersistence gp = new LdapGroupPersistence();
-        gp.setDetailSelector(new GroupDetailSelector()
-        {
+        gp.setDetailSelector(new GroupDetailSelector() {
             @Override
-            public boolean isDetailedSearch(Group g, Role r)
-            {
+            public boolean isDetailedSearch(Group g, Role r) {
                 return false;
             }
         });
         return gp;
     }
-    
+
 }

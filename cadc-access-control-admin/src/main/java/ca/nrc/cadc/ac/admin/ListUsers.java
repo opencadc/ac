@@ -69,38 +69,34 @@
 
 package ca.nrc.cadc.ac.admin;
 
-import java.security.AccessControlException;
-import java.util.Collection;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import java.util.Collection;
+import org.apache.log4j.Logger;
 
 /**
  * This class provides a list of all active users in the LDAP server.
  * Active users are users in the main tree.
- * @author yeunga
  *
+ * @author yeunga
  */
-public class ListUsers extends AbstractListUsers
-{
+public class ListUsers extends AbstractListUsers {
     private static final Logger log = Logger.getLogger(ListUsers.class);
 
     private String emailAddress;
-    
+
     public ListUsers() {
         super();
     }
-    
+
     public ListUsers(String emailAddress) {
         super();
         this.emailAddress = emailAddress;
     }
 
     protected Collection<User> getUsers()
-    		throws AccessControlException, TransientException
-    {
+            throws AccessControlException, TransientException {
         if (emailAddress == null) {
             return this.getUserPersistence().getUsers();
         } else {

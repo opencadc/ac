@@ -68,93 +68,69 @@
  */
 package ca.nrc.cadc.ac.server;
 
+import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
+import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import java.net.URL;
 import java.security.Principal;
 import java.util.Properties;
-
 import org.apache.log4j.Logger;
 
-import ca.nrc.cadc.ac.server.ldap.LdapGroupPersistence;
-import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
-
-public class PluginFactory
-{
+public class PluginFactory {
     private static final Logger log = Logger.getLogger(PluginFactory.class);
 
     private static final String CONFIG = PluginFactory.class.getSimpleName() + ".properties";
     private Properties config;
 
-    public PluginFactory()
-    {
+    public PluginFactory() {
         init();
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return getClass().getName() + "[" + config.entrySet().size() + "]";
     }
 
-    private void init()
-    {
+    private void init() {
         config = new Properties();
         URL url = null;
-        try
-        {
+        try {
             url = PluginFactory.class.getClassLoader().getResource(CONFIG);
-            if (url != null)
-            {
+            if (url != null) {
                 config.load(url.openStream());
             }
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw new RuntimeException("failed to read " + CONFIG + " from " + url, ex);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Principal> GroupPersistence createGroupPersistence()
-    {
+    public <T extends Principal> GroupPersistence createGroupPersistence() {
         String name = GroupPersistence.class.getName();
         String cname = config.getProperty(name);
-        if (cname == null)
-        {
+        if (cname == null) {
             return new LdapGroupPersistence();
-        }
-        else
-        {
-            try
-            {
+        } else {
+            try {
                 Class<?> c = Class.forName(cname);
                 return (GroupPersistence) c.newInstance();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw new RuntimeException("config error: failed to create GroupPersistence " + cname, ex);
             }
         }
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Principal> UserPersistence createUserPersistence()
-    {
+    public <T extends Principal> UserPersistence createUserPersistence() {
         String name = UserPersistence.class.getName();
         String cname = config.getProperty(name);
 
-        if (cname == null)
-        {
+        if (cname == null) {
             return new LdapUserPersistence();
-        }
-        else
-        {
-            try
-            {
+        } else {
+            try {
                 Class<?> c = Class.forName(cname);
                 return (UserPersistence) c.newInstance();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw new RuntimeException("config error: failed to create UserPersistence " + cname, ex);
             }
         }

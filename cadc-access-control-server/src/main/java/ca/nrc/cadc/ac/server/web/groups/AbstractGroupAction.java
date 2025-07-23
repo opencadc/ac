@@ -92,121 +92,92 @@ import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 
-public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object>
-{
+public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object> {
     private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
-    
+
     protected boolean isPrivilegedUser = false;
     protected GroupLogInfo logInfo;
     protected HttpServletRequest request;
     protected SyncOutput syncOut;
     protected GroupPersistence groupPersistence;
 
-    public AbstractGroupAction()
-    {
+    public AbstractGroupAction() {
     }
 
     abstract void doAction() throws Exception;
 
-    public void setIsPrivilegedUser(boolean isPrivilegedUser)
-    {
-    	this.isPrivilegedUser = isPrivilegedUser;
+    public void setIsPrivilegedUser(boolean isPrivilegedUser) {
+        this.isPrivilegedUser = isPrivilegedUser;
     }
 
-    public boolean isPrivilegedUser()
-    {
-    	return this.isPrivilegedUser;
+    public boolean isPrivilegedUser() {
+        return this.isPrivilegedUser;
     }
 
-    public void setLogInfo(GroupLogInfo logInfo)
-    {
+    public void setLogInfo(GroupLogInfo logInfo) {
         this.logInfo = logInfo;
     }
 
-    public void setHttpServletRequest(HttpServletRequest request)
-    {
+    public void setHttpServletRequest(HttpServletRequest request) {
         this.request = request;
     }
 
-    public void setSyncOut(SyncOutput syncOut)
-    {
+    public void setSyncOut(SyncOutput syncOut) {
         this.syncOut = syncOut;
     }
 
-    public void setGroupPersistence(GroupPersistence groupPersistence)
-    {
+    public void setGroupPersistence(GroupPersistence groupPersistence) {
         this.groupPersistence = groupPersistence;
     }
 
-    public URI getServiceURI(URI standard)
-    {
+    public URI getServiceURI(URI standard) {
         LocalAuthority localAuthority = new LocalAuthority();
         return localAuthority.getServiceURI(standard.toString());
     }
 
-    public Object run() throws PrivilegedActionException
-    {
-        try
-        {
+    public Object run() throws PrivilegedActionException {
+        try {
             doAction();
-        }
-        catch (AccessControlException e)
-        {
+        } catch (AccessControlException e) {
             log.debug(e.getMessage(), e);
             String message = "Permission Denied: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(403, message);
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             log.debug(e.getMessage(), e);
             String message = "Bad request: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(400, message);
-        }
-        catch (MemberNotFoundException e)
-        {
+        } catch (MemberNotFoundException e) {
             log.debug(e.getMessage(), e);
             String message = "Member not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
-        }
-        catch (GroupNotFoundException e)
-        {
+        } catch (GroupNotFoundException e) {
             log.debug(e.getMessage(), e);
             String message = "Group not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
-        }
-        catch (UserNotFoundException e)
-        {
+        } catch (UserNotFoundException e) {
             log.debug(e.getMessage(), e);
             String message = "User not found: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(404, message);
-        }
-        catch (MemberAlreadyExistsException e)
-        {
+        } catch (MemberAlreadyExistsException e) {
             log.debug(e.getMessage(), e);
             String message = "Member already exists: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
-        }
-        catch (GroupAlreadyExistsException e)
-        {
+        } catch (GroupAlreadyExistsException e) {
             log.debug(e.getMessage(), e);
             String message = "Group already exists: " + e.getMessage();
             this.logInfo.setMessage(message);
             sendError(409, message);
-        }
-        catch (UnsupportedOperationException e)
-        {
+        } catch (UnsupportedOperationException e) {
             log.debug(e.getMessage(), e);
             this.logInfo.setMessage("Not yet implemented.");
             sendError(501);
-        }
-        catch (TransientException e)
-        {
+        } catch (TransientException e) {
             String message = "Transient Error: " + e.getMessage();
             this.logInfo.setSuccess(false);
             this.logInfo.setMessage(message);
@@ -214,9 +185,7 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
                 syncOut.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
             log.error(message, e);
             sendError(503, message);
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             log.error("Internal Error", t);
             String message = "Internal Error: " + t.getMessage();
             this.logInfo.setSuccess(false);
@@ -226,45 +195,36 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
         return null;
     }
 
-    private void sendError(int responseCode)
-    {
+    private void sendError(int responseCode) {
         sendError(responseCode, null);
     }
 
-    private void sendError(int responseCode, String message)
-    {
+    private void sendError(int responseCode, String message) {
         syncOut.setHeader("Content-Type", "text/plain");
         syncOut.setCode(responseCode);
-        if (message != null)
-        {
-            try
-            {
+        if (message != null) {
+            try {
                 syncOut.getWriter().write(message);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 log.warn("Could not write error message to output stream");
             }
         }
     }
 
-    protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers)
-    {
+    protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers) {
         this.logInfo.groupID = groupID;
         this.logInfo.addedMembers = addedMembers;
         this.logInfo.deletedMembers = deletedMembers;
     }
 
-    protected String getUseridForLogging(User u)
-    {
+    protected String getUseridForLogging(User u) {
         if (u.getIdentities().isEmpty())
             return "anonUser";
 
         Iterator<Principal> i = u.getIdentities().iterator();
         String ret = null;
         Principal next = null;
-        while (i.hasNext())
-        {
+        while (i.hasNext()) {
             next = i.next();
             if (next instanceof HttpPrincipal)
                 return next.getName();

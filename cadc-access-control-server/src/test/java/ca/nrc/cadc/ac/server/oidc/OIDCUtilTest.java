@@ -28,41 +28,23 @@
 
 package ca.nrc.cadc.ac.server.oidc;
 
-import java.io.File;
-import java.net.URI;
-import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.opencadc.gms.GroupClient;
-import org.opencadc.gms.GroupURI;
-import org.opencadc.gms.GroupUtil;
-
-import ca.nrc.cadc.ac.client.GMSClient;
 import ca.nrc.cadc.ac.server.oidc.RelyParty.Claim;
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 
 
-public class OIDCUtilTest
-{
+public class OIDCUtilTest {
 
-    static
-    {
+    static {
         Log4jInit.setLevel("ca.nrc.cadc.ac", org.apache.log4j.Level.INFO);
     }
-    
+
     @Test
     public void testGetRelyParty() throws Exception {
         System.setProperty(PropertiesReader.class.getName() + ".dir", "src/test/config");
@@ -73,7 +55,7 @@ public class OIDCUtilTest
         String secret = "client-secret";
         GroupURI accessGroup = new GroupURI(URI.create("ivo://cadc.nrc.ca/gms?CADC_TEST1-Staff"));
         String description = "client description";
-        List<Claim> claims = Arrays.asList(new Claim[] {RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
+        List<Claim> claims = Arrays.asList(new Claim[]{RelyParty.Claim.NAME, RelyParty.Claim.EMAIL, RelyParty.Claim.GROUPS});
         boolean signDocuments = true;
 
         RelyParty actual = OIDCUtil.getRelyParty(oidc);
@@ -88,13 +70,13 @@ public class OIDCUtilTest
         }
 
         Assert.assertEquals("Incorrect signdocuments", signDocuments, actual.isSignDocuments());
-        
+
         // One claim
         oidc = "client-id-1-claim";
         secret = "client-1-claim-secret";
         accessGroup = new GroupURI(URI.create("ivo://cadc.nrc.ca/gms?my-1-claim-group"));
         description = "client-1-claim description";
-        claims = Arrays.asList(new Claim[] {RelyParty.Claim.EMAIL});
+        claims = Arrays.asList(new Claim[]{RelyParty.Claim.EMAIL});
         signDocuments = false;
 
         actual = OIDCUtil.getRelyParty(oidc);
@@ -109,12 +91,12 @@ public class OIDCUtilTest
         }
 
         Assert.assertEquals("Incorrect signdocuments", signDocuments, actual.isSignDocuments());
-        
+
         // No access group
         oidc = "client-id-no-access-group";
         secret = "client-no-access-group-secret";
         description = "client-no-access-group description";
-        claims = Arrays.asList(new Claim[] {RelyParty.Claim.EMAIL});
+        claims = Arrays.asList(new Claim[]{RelyParty.Claim.EMAIL});
         signDocuments = true;
 
         actual = OIDCUtil.getRelyParty(oidc);
@@ -129,12 +111,12 @@ public class OIDCUtilTest
         }
 
         Assert.assertEquals("Incorrect signdocuments", signDocuments, actual.isSignDocuments());
-        
+
         // Empty access group
         oidc = "client-id-empty-access-group";
         secret = "client-empty-access-group-secret";
         description = "client-empty-access-group description";
-        claims = Arrays.asList(new Claim[] {RelyParty.Claim.EMAIL});
+        claims = Arrays.asList(new Claim[]{RelyParty.Claim.EMAIL});
         signDocuments = true;
 
         actual = OIDCUtil.getRelyParty(oidc);

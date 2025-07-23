@@ -66,13 +66,13 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac;
 
 /**
  * Base exception for all Writer class exceptions.
  */
-public class WriterException extends Exception
-{
+public class WriterException extends Exception {
     /**
      * Constructs a new exception with the specified detail message.  The
      * cause is not initialized, and may subsequently be initialized by
@@ -81,8 +81,7 @@ public class WriterException extends Exception
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public WriterException(String message)
-    {
+    public WriterException(String message) {
         super(message);
     }
 
@@ -100,8 +99,7 @@ public class WriterException extends Exception
      *                unknown.)
      * @since 1.4
      */
-    public WriterException(String message, Throwable cause)
-    {
+    public WriterException(String message, Throwable cause) {
         super(message, cause);
     }
 

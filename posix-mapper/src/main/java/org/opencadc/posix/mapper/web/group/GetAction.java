@@ -84,7 +84,7 @@ public class GetAction extends PosixMapperAction {
         try {
             posixClient = getPosixClient();
             posixClient.writeGroups(groupWriter, groupParameters().toArray(new GroupURI[0]),
-                                    gidParameters().toArray(new Integer[0]));
+                    gidParameters().toArray(new Integer[0]));
         } finally {
             if (posixClient != null) {
                 posixClient.close();
@@ -101,9 +101,9 @@ public class GetAction extends PosixMapperAction {
             groupURIConstraints = Collections.emptyList();
         } else {
             groupURIConstraints = groupURIStringParameters.stream()
-                                                          .map(URI::create)
-                                                          .map(GroupURI::new)
-                                                          .collect(Collectors.toList());
+                    .map(URI::create)
+                    .map(GroupURI::new)
+                    .collect(Collectors.toList());
         }
 
         return groupURIConstraints;
@@ -116,8 +116,8 @@ public class GetAction extends PosixMapperAction {
             gidConstraints = Collections.emptyList();
         } else {
             gidConstraints = gidStringParameters.stream()
-                                                .map(Integer::parseInt)
-                                                .collect(Collectors.toList());
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
         }
 
         return gidConstraints;
