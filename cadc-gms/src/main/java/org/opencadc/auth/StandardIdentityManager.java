@@ -448,8 +448,8 @@ public class StandardIdentityManager implements IdentityManager {
             // jwt token
             username = json.getString("preferred_username");
         } else if (json.has("name")) {
-                // TODO not sure if this is correct but this is what the CADC userinfo has for the HttpPrincipal.
-                username = json.getString("name");
+            // TODO not sure if this is correct but this is what the CADC userinfo has for the HttpPrincipal.
+            username = json.getString("name");
         } else {
             log.debug("No username provided for OpenID identity issuer(" + issuerURL + "), sub(" + sub + ")");
         }
