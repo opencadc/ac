@@ -372,8 +372,7 @@ public class StandardIdentityManager implements IdentityManager {
         try {
             jwtIssuer = getJwtIssuer(credentials);
             if (!jwtIssuer.normalize().equals(oidcClient.issuer.normalize())) {
-                log.debug("Token from untrusted issuer: " + jwtIssuer + " ignored");
-                jwtIssuer = null; // not the configured issuer, so don't use it
+                throw new NotAuthenticatedException("Token from untrusted issuer: " + jwtIssuer + " ignored");
             }
         } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
             log.debug("Cannot determine issuer from token", e);
@@ -415,8 +414,6 @@ public class StandardIdentityManager implements IdentityManager {
                 .setRequireExpirationTime()
                 .setExpectedIssuers(true, jwtIssuer.toString())
                 .setVerificationKeyResolver(httpsJwksKeyResolver)
-                .setJwsAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.PERMIT, // whitelist
-                        AlgorithmIdentifiers.RSA_USING_SHA256)) // RS256 only
                 .build(); // create the JwtConsumer instance;
 
         //  Validate the JWT and process it to the Claims
@@ -450,11 +447,11 @@ public class StandardIdentityManager implements IdentityManager {
         if (json.has("preferred_username")) {
             // jwt token
             username = json.getString("preferred_username");
-        } else {
-            if (json.has("name")) {
+        } else if (json.has("name")) {
                 // TODO not sure if this is correct but this is what the CADC userinfo has for the HttpPrincipal.
                 username = json.getString("name");
-            }
+        } else {
+            log.debug("No username provided for OpenID identity issuer(" + issuerURL + "), sub(" + sub + ")");
         }
 
         List<Principal> result = new ArrayList<>();
