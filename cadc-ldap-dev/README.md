@@ -28,7 +28,7 @@ docker run --rm -it cadc-ldap-dev:latest /bin/bash
 
 ## running it
 ```
-docker run -d --rm --publish 389:3389 --name cadc-ldap-dev cadc-ldap-dev:latest
+docker run -d --rm --name cadc-ldap-dev cadc-ldap-dev:latest
 ```
 
 This runs a default container accessible through port 3389. To make data persistent, mount the `/data` directory

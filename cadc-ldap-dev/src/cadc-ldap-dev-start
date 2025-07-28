@@ -24,6 +24,6 @@ echo
 echo -n "config DONE: "
 date
 
-echo "waiting for postmaster to terminate..."
+echo "waiting for dscontainer to terminate..."
 wait
 echo "wait returned... exiting"
