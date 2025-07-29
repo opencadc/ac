@@ -340,7 +340,7 @@ public class StandardIdentityManager implements IdentityManager {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
         if (rawTokens.size() > 1) {
-            throw new NotAuthenticatedException( AuthenticationUtil.CHALLENGE_TYPE_BEARER,
+            throw new NotAuthenticatedException(AuthenticationUtil.CHALLENGE_TYPE_BEARER,
                     NotAuthenticatedException.AuthError.INVALID_REQUEST,
                     "Multiple authorization tokens not supported");
         }
