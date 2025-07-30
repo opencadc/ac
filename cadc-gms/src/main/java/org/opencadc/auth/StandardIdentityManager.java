@@ -100,11 +100,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
-import org.jose4j.jwa.AlgorithmConstraints;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.JsonWebKeySet;
 import org.jose4j.jwk.VerificationJwkSelector;
-import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
@@ -342,7 +340,8 @@ public class StandardIdentityManager implements IdentityManager {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
         if (rawTokens.size() > 1) {
-            throw new NotAuthenticatedException("multiple authorization tokens", NotAuthenticatedException.AuthError.INVALID_REQUEST,
+            throw new NotAuthenticatedException(AuthenticationUtil.CHALLENGE_TYPE_BEARER,
+                    NotAuthenticatedException.AuthError.INVALID_REQUEST,
                     "Multiple authorization tokens not supported");
         }
         AuthorizationTokenPrincipal raw = rawTokens.iterator().next();
@@ -372,7 +371,9 @@ public class StandardIdentityManager implements IdentityManager {
         try {
             jwtIssuer = getJwtIssuer(credentials);
             if (!jwtIssuer.normalize().equals(oidcClient.issuer.normalize())) {
-                throw new NotAuthenticatedException("Token from untrusted issuer: " + jwtIssuer + " ignored");
+                throw new NotAuthenticatedException(AuthenticationUtil.CHALLENGE_TYPE_BEARER,
+                        NotAuthenticatedException.AuthError.INVALID_REQUEST,
+                        "Token from untrusted issuer: " + jwtIssuer + " ignored");
             }
         } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
             log.debug("Cannot determine issuer from token", e);
@@ -381,7 +382,14 @@ public class StandardIdentityManager implements IdentityManager {
         if (jwtIssuer != null) {
             try {
                 validatedPrincipals = validateWithPubKey(jwtIssuer, challengeType, credentials);
-            } catch (MalformedURLException | MalformedClaimException | InvalidJwtException e) {
+            } catch (InvalidJwtException e) {
+                String message = "Invalid JWT token";
+                if (e.hasExpired()) {
+                    message = "Token has expired";
+                }
+                throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
+                        message, e);
+            } catch (MalformedURLException | MalformedClaimException e) {
                 log.debug("Cannot validate token with issuer public key", e);
             }
         }
@@ -391,7 +399,7 @@ public class StandardIdentityManager implements IdentityManager {
                 // makes the assumption that there's only one issuer (the configured one. This allows it to work with
                 // both JWT tokens (issuer specified in the token) and access tokens with no issuer specified
                 validatedPrincipals = validateWithUserInfo(raw, oidcClient.getUserInfoEndpoint());
-            } catch (ResourceAlreadyExistsException | ResourceNotFoundException | IOException | InterruptedException e) {
+            } catch (ResourceAlreadyExistsException | ResourceNotFoundException | IOException | InterruptedException | NotAuthenticatedException e) {
                 throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
                         "Cannot validate token using user info endpoint", e);
             }
@@ -407,7 +415,7 @@ public class StandardIdentityManager implements IdentityManager {
         s.getPublicCredentials().add(authToken);
     }
 
-    private List<Principal> validateWithPubKey(URI jwtIssuer, String challengeType,String credentials)
+    private List<Principal> validateWithPubKey(URI jwtIssuer, String challengeType, String credentials)
             throws MalformedURLException, InvalidJwtException, MalformedClaimException {
         VerificationKeyResolver httpsJwksKeyResolver = getHttpsJwksVerificationKeyResolver(jwtIssuer, challengeType);
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
