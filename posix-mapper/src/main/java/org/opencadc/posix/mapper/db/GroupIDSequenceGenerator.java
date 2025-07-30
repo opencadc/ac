@@ -68,31 +68,33 @@
 
 package org.opencadc.posix.mapper.db;
 
-import java.util.Properties;
-import org.hibernate.MappingException;
+
+import org.apache.log4j.Logger;
+import org.hibernate.HibernateException;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.enhanced.SequenceStyleGenerator;
-import org.hibernate.service.ServiceRegistry;
-import org.hibernate.type.Type;
 import org.opencadc.posix.mapper.Group;
 
+
+/**
+ * A custom sequence generator for Group IDs that allows existing Group IDs to be reused.
+ * If the Group object already has a GID, it will return that GID instead of generating a new one.
+ */
 public class GroupIDSequenceGenerator extends SequenceStyleGenerator {
+    private static final Logger LOGGER = Logger.getLogger(GroupIDSequenceGenerator.class);
     @Override
-    public Object generate(SharedSessionContractImplementor session, Object object) {
+    public Object generate(SharedSessionContractImplementor session, Object object) throws HibernateException {
         if (object instanceof Group) {
             final Integer existingGID = ((Group) object).getGid();
             if (existingGID == null) {
                 return super.generate(session, object);
             } else {
+                LOGGER.debug("Reusing existing GID: " + existingGID + " for Group: " + object);
                 return existingGID;
             }
         } else {
+            LOGGER.warn("Object is not an instance of Group: " + object);
             return super.generate(session, object);
         }
-    }
-
-    @Override
-    public void configure(Type type, Properties parameters, ServiceRegistry serviceRegistry) throws MappingException {
-        super.configure(type, parameters, serviceRegistry);
     }
 }

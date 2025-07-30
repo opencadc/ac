@@ -100,11 +100,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
-import org.jose4j.jwa.AlgorithmConstraints;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.JsonWebKeySet;
 import org.jose4j.jwk.VerificationJwkSelector;
-import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
@@ -155,15 +153,7 @@ public class StandardIdentityManager implements IdentityManager {
 
     public StandardIdentityManager() {
         LocalAuthority loc = new LocalAuthority();
-        Set<URI> oidcServURIs = loc.getResourceIDs(Standards.SECURITY_METHOD_OPENID);
-        if (oidcServURIs.isEmpty()) {
-            throw new RuntimeException("CONFIG: no OpenID Connect issuer configured");
-        }
-        if (oidcServURIs.size() > 1) {
-            // currently not supported until we figure out how to handle multiple issuers and GMSs
-            throw new RuntimeException("CONFIG: multiple OpenID Connect issuers configured");
-        }
-        oidcClient = new OIDCClient(oidcServURIs.iterator().next());
+        this.oidcClient = new OIDCClient(loc.getResourceID(Standards.SECURITY_METHOD_OPENID));
 
         URL u = oidcClient.getIssuerURL();
         oidcDomains.add(u.getHost());
@@ -183,29 +173,28 @@ public class StandardIdentityManager implements IdentityManager {
         return SEC_METHODS;
     }
 
-    // lookup the local/trusted single provider of an API and extract the hostname
+    // lookup the local/trusted provider of an API and extract the hostname
     private String getProviderHostname(LocalAuthority loc, URI standardID) {
+        try {
+            URI resourceID = loc.getResourceID(standardID);
+            if (resourceID != null) {
+                URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
+                if (srv != null) {
+                    return srv.getHost();
+                }
+                log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
+            }
+        } catch (NoSuchElementException ignore) {
+            // ignored
+        }
 
-        Set<URI> servicesURIs = loc.getResourceIDs(standardID);
-        if (servicesURIs.isEmpty()) {
-            return null;
-        }
-        if (servicesURIs.size() > 1) {
-            throw new RuntimeException("CONFIG: multiple services not supported for " + standardID);
-        }
-
-        URI resourceID = servicesURIs.iterator().next();
-        URL srv = reg.getServiceURL(resourceID, standardID, AuthMethod.TOKEN); // should be token
-        if (srv != null) {
-            return srv.getHost();
-        }
-        log.debug("found: " + resourceID + " not found: " + standardID + " + " + AuthMethod.TOKEN);
+        log.debug("not found: " + standardID);
         return null;
     }
 
     @Override
     public Subject validate(Subject subject) throws NotAuthenticatedException {
-        validateJwtAccessToken(subject);
+        validateOidcAccessToken(subject);
         return subject;
     }
 
@@ -219,7 +208,6 @@ public class StandardIdentityManager implements IdentityManager {
         if (needAugment) {
             try {
                 LocalAuthority loc = new LocalAuthority();
-                // TODO how to handle multiple oidc providers. Single posixMapper?
                 URI posixUserMap = loc.getResourceID(Standards.POSIX_USERMAP);
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
@@ -333,6 +321,7 @@ public class StandardIdentityManager implements IdentityManager {
             if (!ps.isEmpty()) {
                 return ps.iterator().next().getName(); // kind of ugh
             }
+
             // default
             Set<Principal> ps2 = subject.getPrincipals();
             if (!ps2.isEmpty()) {
@@ -354,7 +343,7 @@ public class StandardIdentityManager implements IdentityManager {
         return URI.create(jwtContext.getJwtClaims().getIssuer());
     }
 
-    private void validateJwtAccessToken(Subject s) {
+    private void validateOidcAccessToken(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
         if (rawTokens.isEmpty()) {
@@ -391,6 +380,9 @@ public class StandardIdentityManager implements IdentityManager {
         URI jwtIssuer = null;
         try {
             jwtIssuer = getJwtIssuer(credentials);
+            if (!jwtIssuer.normalize().equals(oidcClient.issuer.normalize())) {
+                throw new NotAuthenticatedException("Token from untrusted issuer: " + jwtIssuer + " ignored");
+            }
         } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
             log.debug("Cannot determine issuer from token", e);
         }
@@ -431,8 +423,6 @@ public class StandardIdentityManager implements IdentityManager {
                 .setRequireExpirationTime()
                 .setExpectedIssuers(true, jwtIssuer.toString())
                 .setVerificationKeyResolver(httpsJwksKeyResolver)
-                .setJwsAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.PERMIT, // whitelist
-                        AlgorithmIdentifiers.RSA_USING_SHA256)) // RS256 only
                 .build(); // create the JwtConsumer instance;
 
         //  Validate the JWT and process it to the Claims
@@ -463,15 +453,15 @@ public class StandardIdentityManager implements IdentityManager {
         JSONObject json = new JSONObject(str);
         String sub = json.getString("sub");
         String username = null;
-//        if (json.has("preferred_username")) {
-//            // jwt token
-//            username = json.getString("preferred_username");
-//        } else {
-//            if (json.has("name")) {
-//                // TODO not sure if this is correct but this is what the CADC userinfo has for the HttpPrincipal.
-//                username = json.getString("name");
-//            }
-//        }
+        if (json.has("preferred_username")) {
+            // jwt token
+            username = json.getString("preferred_username");
+        } else if (json.has("name")) {
+            // TODO not sure if this is correct but this is what the CADC userinfo has for the HttpPrincipal.
+            username = json.getString("name");
+        } else {
+            log.debug("No username provided for OpenID identity issuer(" + issuerURL + "), sub(" + sub + ")");
+        }
 
         List<Principal> result = new ArrayList<>();
         OpenIdPrincipal oip = new OpenIdPrincipal(issuerURL, sub);
@@ -494,12 +484,7 @@ public class StandardIdentityManager implements IdentityManager {
         return new CacheVerificationKeyResolver(jwtIssuer, jwksUrl);
     }
 
-    private static JSONObject getJsonObject(URI jwtIssuer, String challengeType) {
-        if (!OIDC_ISSUERS.contains(jwtIssuer)) {
-            throw new NotAuthenticatedException(challengeType, NotAuthenticatedException.AuthError.INVALID_TOKEN,
-                    "Unsupported issuer: " + jwtIssuer, null);
-        }
-        OIDCClient oidcClient = new OIDCClient(jwtIssuer);
+    private JSONObject getJsonObject(URI jwtIssuer, String challengeType) {
         try {
             return oidcClient.getWellKnownJSON();
         } catch (IOException e) {
