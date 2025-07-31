@@ -135,6 +135,13 @@ public class StandardIdentityManager implements IdentityManager {
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
 
+    private static final Set<URI> OIDC_ISSUERS;
+
+    static {
+        LocalAuthority loc = new LocalAuthority();
+        OIDC_ISSUERS = loc.getResourceIDs(Standards.SECURITY_METHOD_OPENID);
+    }
+
     // need these to construct an AuthorizationToken
     private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
@@ -204,14 +211,14 @@ public class StandardIdentityManager implements IdentityManager {
                 URI posixUserMap = loc.getResourceID(Standards.POSIX_USERMAP);
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
-                    PosixMapperClient pmc;
+                    org.opencadc.auth.PosixMapperClient pmc;
                     String host = null;
                     if ("ivo".equals(posixUserMap.getScheme())) {
-                        pmc = new PosixMapperClient(posixUserMap);
+                        pmc = new org.opencadc.auth.PosixMapperClient(posixUserMap);
                     } else if ("https".equals(posixUserMap.getScheme()) || "http".equals(posixUserMap.getScheme())) {
                         URL url = posixUserMap.toURL();
                         host = url.getHost();
-                        pmc = new PosixMapperClient(url);
+                        pmc = new org.opencadc.auth.PosixMapperClient(url);
                     } else {
                         throw new RuntimeException("CONFIG: unsupported posix-mapping identifier scheme: " + posixUserMap);
                     }

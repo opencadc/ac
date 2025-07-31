@@ -69,12 +69,18 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import java.io.InputStream;
 import java.security.AccessControlException;
 import java.util.Set;
+import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
 
 public class CreateUserAction extends AbstractUserAction {
+    private static final Logger log = Logger.getLogger(CreateUserAction.class);
     private final InputStream inputStream;
 
     CreateUserAction(final InputStream inputStream) {
@@ -83,12 +89,52 @@ public class CreateUserAction extends AbstractUserAction {
     }
 
 
+    boolean canSelfCreate(final User user) {
+        // Only OpenID users can create their own CADC accounts automatically
+        Subject sub = AuthenticationUtil.getCurrentSubject();
+        if (sub == null || sub.getPrincipals().isEmpty()) {
+            log.debug("Can't self-create CADC account: no subject or principals");
+            return false; // no subject or principals
+        }
+        Set<OpenIdPrincipal> validPrinc = sub.getPrincipals(OpenIdPrincipal.class);
+
+        log.debug("Can't self-create user account. Multiple OpenID Identities: " + validPrinc);
+        if (validPrinc.size() > 1) {
+            log.debug("Can't aut: " + validPrinc);
+            return false; // more than one OpenID principal is not allowed
+        }
+        if (validPrinc.size() == 1) {
+            // user and subject OpenID principals must match. Optionally, user might have a HttpPrincipal
+            OpenIdPrincipal subjOpenIdPrincipal = validPrinc.iterator().next();
+            Set<OpenIdPrincipal> userPrinc = user.getIdentities(OpenIdPrincipal.class);
+            log.debug("User OpenID principals: " + userPrinc);
+            if (userPrinc.size() == 1) {
+                // only optional HttpPrincipal is allowed to create a user with OpenID
+                if ((user.getIdentities().size() == 1) ||
+                        (user.getIdentities().size() == 2 && user.getIdentities(HttpPrincipal.class).size() == 1)) {
+                    OpenIdPrincipal userOpenIdPrincipal = userPrinc.iterator().next();
+                    if (subjOpenIdPrincipal.equals(userOpenIdPrincipal)) {
+                        log.debug("Auto-create CADC account for : " + subjOpenIdPrincipal);
+                        return true;
+                    } else {
+                        log.debug("Can't auto-create CADC account: subject (" + subjOpenIdPrincipal
+                                + ") != user(" + userOpenIdPrincipal + ")");
+                    }
+                }
+            }
+        }
+        return false;
+
+    }
+
     public void doAction() throws Exception {
-        if (!isPrivilegedSubject) {
+        final User user = readUser(this.inputStream);
+
+        if (!isPrivilegedSubject && !canSelfCreate(user)) {
             throw new AccessControlException("non-privileged user cannot create a user");
         }
 
-        final User user = readUser(this.inputStream);
+
         final User returnUser = userPersistence.addUser(user);
 
         syncOut.setCode(201);
