@@ -81,6 +81,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpGet;
@@ -145,17 +146,27 @@ public class UserClient {
         if (principal != null) {
 
             String userID = principal.getName();
-            String path = "/" + NetUtil.encode(userID) + "?idType=" + NetUtil.encode(this.getIdType(principal));
-            URL usersURL;
+            AuthMethod authMethod;
             if ((principal instanceof OpenIdPrincipal) || (principal instanceof AuthorizationToken)) {
-                usersURL = getRegistryClient()
-                        .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.TOKEN);
+                authMethod = AuthMethod.TOKEN;
             } else {
-                usersURL = getRegistryClient()
-                        .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+                authMethod = AuthMethod.CERT;
             }
-            URL getUserURL = new URL(usersURL.toExternalForm() + path);
+            String userPath;
+            if (authMethod == AuthMethod.TOKEN) {
+                userPath = "/" + NetUtil.encode(userID)
+                        + "?iss=" + NetUtil.encode(((OpenIdPrincipal) principal).getIssuer().toExternalForm());
+            } else {
+                userPath = "/" + NetUtil.encode(userID)
+                        + "?idType=" + NetUtil.encode(this.getIdType(principal));
+            }
+            URL usersURL = getRegistryClient()
+                        .getServiceURL(this.serviceID, Standards.UMS_USERS_01, AuthMethod.CERT);
+            if (usersURL == null) {
+                throw new IllegalArgumentException("No service endpoint for uri " + Standards.UMS_USERS_01 + " and authMethod " + authMethod);
+            }
 
+            URL getUserURL = new URL(usersURL.toExternalForm() + userPath);
             log.debug("augmentSubject request to " + getUserURL);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             HttpGet download = new HttpGet(getUserURL, out);
