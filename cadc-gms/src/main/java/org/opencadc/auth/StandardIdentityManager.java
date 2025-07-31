@@ -339,6 +339,9 @@ public class StandardIdentityManager implements IdentityManager {
     private void validateOidcAccessToken(Subject s) {
         log.debug("validateOidcAccessToken - START");
         Set<AuthorizationTokenPrincipal> rawTokens = s.getPrincipals(AuthorizationTokenPrincipal.class);
+        if (rawTokens.isEmpty()) {
+            return; // anon
+        }
         if (rawTokens.size() > 1) {
             throw new NotAuthenticatedException(AuthenticationUtil.CHALLENGE_TYPE_BEARER,
                     NotAuthenticatedException.AuthError.INVALID_REQUEST,
