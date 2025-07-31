@@ -192,7 +192,7 @@ public class ACIdentityManager implements IdentityManager {
 
             Subject actionSubject = subject;
             if (subject.getPublicCredentials(AuthorizationToken.class).isEmpty()) {
-               actionSubject = CredUtil.createOpsSubject();
+                actionSubject = CredUtil.createOpsSubject();
             }
             Subject.doAs(actionSubject, action);
             log.debug("augment DONE w/ UserClient: " + subject);
