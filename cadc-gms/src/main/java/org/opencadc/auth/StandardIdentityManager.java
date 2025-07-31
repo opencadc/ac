@@ -444,9 +444,9 @@ public class StandardIdentityManager implements IdentityManager {
         OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
         result.add(oip);
 
-//        if (jwtClaims.getClaimValueAsString("preferred_username") != null) {
-//            result.add(new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username")));
-//        }
+        if (jwtClaims.getClaimValueAsString("preferred_username") != null) {
+            result.add(new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username")));
+        }
         log.debug("Validated user via issuer pub key: " + oip);
         return result;
     }
@@ -475,9 +475,9 @@ public class StandardIdentityManager implements IdentityManager {
         List<Principal> result = new ArrayList<>();
         OpenIdPrincipal oip = new OpenIdPrincipal(issuerURL, sub);
         result.add(oip);
-//        if (username != null) {
-//            result.add(new HttpPrincipal(username));
-//        }
+        if (username != null) {
+            result.add(new HttpPrincipal(username));
+        }
         log.debug("Validated user via user info endpoint: " + oip);
         return result;
     }
