@@ -114,6 +114,7 @@ public class ACIdentityManagerTest {
         } catch (Throwable t) {
             log.error("unexpected throwable", t);
             Assert.fail("Unexpected throwable");
+        } finally {
             System.clearProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY);
         }
     }

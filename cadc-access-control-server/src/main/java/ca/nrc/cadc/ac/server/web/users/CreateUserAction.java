@@ -98,9 +98,8 @@ public class CreateUserAction extends AbstractUserAction {
         }
         Set<OpenIdPrincipal> validPrinc = sub.getPrincipals(OpenIdPrincipal.class);
 
-        log.debug("Can't self-create user account. Multiple OpenID Identities: " + validPrinc);
         if (validPrinc.size() > 1) {
-            log.debug("Can't aut: " + validPrinc);
+            log.debug("Can't self-create user account. Multiple OpenID Identities: " + validPrinc);
             return false; // more than one OpenID principal is not allowed
         }
         if (validPrinc.size() == 1) {
@@ -109,7 +108,7 @@ public class CreateUserAction extends AbstractUserAction {
             Set<OpenIdPrincipal> userPrinc = user.getIdentities(OpenIdPrincipal.class);
             log.debug("User OpenID principals: " + userPrinc);
             if (userPrinc.size() == 1) {
-                // only optional HttpPrincipal is allowed to create a user with OpenID
+                // User must not have any other identity, except possibly a HttpPrincipal
                 if ((user.getIdentities().size() == 1) ||
                         (user.getIdentities().size() == 2 && user.getIdentities(HttpPrincipal.class).size() == 1)) {
                     OpenIdPrincipal userOpenIdPrincipal = userPrinc.iterator().next();

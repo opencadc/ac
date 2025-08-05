@@ -264,7 +264,6 @@ public class ACIdentityManager implements IdentityManager {
             // not have an account (no numeric principal).
             // Create an auto-approved account with their OpenIdPrincipal.
             numericPrincipal = createAuthUser(openIdPrincipal);
-            //TODO link accounts if x500Principal is also present
         } else if (x500Principal != null) {
             // The user has connected with a valid client cert but does
             // not have an account (no numeric principal).

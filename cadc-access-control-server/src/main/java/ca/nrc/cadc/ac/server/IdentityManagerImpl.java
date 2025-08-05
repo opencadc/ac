@@ -159,8 +159,7 @@ public class IdentityManagerImpl implements IdentityManager {
 
             // if the caller had an invalid or forged CADC_SSO cookie, we could get
             // in here and then not match any known identity: drop to anon
-            if (subject.getPrincipals(NumericPrincipal.class).isEmpty() &&
-                    subject.getPrincipals(OpenIdPrincipal.class).isEmpty()) // no matching internal account
+            if (subject.getPrincipals(NumericPrincipal.class).isEmpty()) // no matching internal account
             {
                 log.debug("NumericPrincipal not found - dropping to anon: " + subject);
                 subject = AuthenticationUtil.getAnonSubject();
