@@ -80,14 +80,13 @@ import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.InvalidSignedTokenException;
-import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -131,9 +130,11 @@ public class IdentityManagerImpl implements IdentityManager {
     public Subject validate(Subject subject) throws AccessControlException {
         Subject sub = TokenValidator.validateTokens(subject);
         if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
-            // JWT tokens to validate?
-            StandardIdentityManager sim = new StandardIdentityManager();
-            return sim.validate(sub);
+            LocalAuthority loc = new LocalAuthority();
+            if (loc.getResourceID(Standards.SECURITY_METHOD_OPENID) != null) {
+                StandardIdentityManager sim = new StandardIdentityManager();
+                return sim.validate(sub);
+            }
         }
         return sub;
     }
@@ -152,13 +153,11 @@ public class IdentityManagerImpl implements IdentityManager {
             return subject;
         }
 
-        if (!subject.getPrincipals().isEmpty()) {
+        if (subject != null && !subject.getPrincipals().isEmpty()) {
             Profiler prof = new Profiler(IdentityManagerImpl.class);
             this.augmentSubject(subject);
             prof.checkpoint("userDAO.augmentSubject()");
 
-            // if the caller had an invalid or forged CADC_SSO cookie, we could get
-            // in here and then not match any known identity: drop to anon
             if (subject.getPrincipals(NumericPrincipal.class).isEmpty()) // no matching internal account
             {
                 log.debug("NumericPrincipal not found - dropping to anon: " + subject);

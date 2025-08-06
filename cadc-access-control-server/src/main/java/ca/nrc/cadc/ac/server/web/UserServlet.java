@@ -255,7 +255,6 @@ public class UserServlet extends HttpServlet {
                 log.debug("subject not augmented: " + subject);
                 profiler.checkpoint("set privileged user");
             } else {
-                IdentityManager im = AuthenticationUtil.getIdentityManager();
                 subject = AuthenticationUtil.getSubject(request);
                 logInfo.setSubject(subject);
                 log.debug("augmented subject: " + subject);

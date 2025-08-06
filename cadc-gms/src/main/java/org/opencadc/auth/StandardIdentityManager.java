@@ -135,11 +135,11 @@ public class StandardIdentityManager implements IdentityManager {
         SEC_METHODS = Collections.unmodifiableSet(tmp);
     }
 
-    private static final Set<URI> OIDC_ISSUERS;
+    private static final URI OIDC_ISSUER; // not used yet
 
     static {
         LocalAuthority loc = new LocalAuthority();
-        OIDC_ISSUERS = loc.getResourceIDs(Standards.SECURITY_METHOD_OPENID);
+        OIDC_ISSUER = loc.getResourceID(Standards.SECURITY_METHOD_OPENID);
     }
 
     // need these to construct an AuthorizationToken
@@ -211,7 +211,7 @@ public class StandardIdentityManager implements IdentityManager {
                 URI posixUserMap = loc.getResourceID(Standards.POSIX_USERMAP);
                 // LocalAuthority currently throws NoSuchElementException but let's be cautious
                 if (posixUserMap != null) {
-                    org.opencadc.auth.PosixMapperClient pmc;
+                    PosixMapperClient pmc;
                     String host = null;
                     if ("ivo".equals(posixUserMap.getScheme())) {
                         pmc = new org.opencadc.auth.PosixMapperClient(posixUserMap);

@@ -139,12 +139,10 @@ public class ACIdentityManager implements IdentityManager {
     public Subject validate(Subject subject) throws NotAuthenticatedException {
         Subject sub = TokenValidator.validateTokens(subject);
         if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
-            try {
+            LocalAuthority loc = new LocalAuthority();
+            if (loc.getResourceID(Standards.SECURITY_METHOD_OPENID) != null) {
                 StandardIdentityManager sim = new StandardIdentityManager();
-                return sim.validate(sub); // validates and resolves JWT tokens
-            } catch (RuntimeException e) {
-                log.debug("Error validating with StandardIdentityManager: " + e.getMessage(), e);
-                throw new NotAuthenticatedException("Error validating subject: " + e.getMessage(), e);
+                return sim.validate(sub);
             }
         }
         return sub;
@@ -254,9 +252,9 @@ public class ACIdentityManager implements IdentityManager {
 
         NumericPrincipal numericPrincipal;
         if (openIdPrincipal != null && x500Principal != null) {
-            log.debug("Simultaneus OpenIdPrincipal and X500Principal authentication not supported: "
+            throw new NotAuthenticatedException(
+                    "Simultaneous OpenIdPrincipal and X500Principal authentication not supported: "
                     + openIdPrincipal + ", " + x500Principal);
-            return null; // cannot have both OpenIdPrincipal and X500Principal
         }
 
         if (openIdPrincipal != null) {
