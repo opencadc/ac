@@ -22,7 +22,7 @@ def git_url = 'https://github.com/opencadc/ac'
 dependencies {
     implementation 'org.opencadc:cadc-util:[1.10,2.0)'
     implementation 'org.opencadc:cadc-registry:[1.4,2.0)'
-    implementation 'org.opencadc:cadc-access-control:[1.0,2.0)'
+    implementation 'org.opencadc:cadc-access-control:[1.1.30,2.0)'
 
     testImplementation 'junit:junit:[4.0,)'
 }
