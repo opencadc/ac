@@ -1,0 +1,45 @@
+# This workflow will build a Java project with Gradle
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
+
+name: Java CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: 11
+      
+    - name: build and test cadc-permissions
+      run: cd cadc-permissions && ../gradlew --info clean build javadoc install
+      
+    - name: build and test cadc-permissions-client
+      run: cd cadc-permissions-client && ../gradlew --info clean build javadoc install
+      
+    - name: build and test cadc-gms
+      run: cd cadc-gms && ../gradlew --info clean build checkstyleMain javadoc install
+      
+    - name: build and test cadc-access-control
+      run: cd cadc-access-control && ../gradlew --info clean build checkstyleMain javadoc install
+    
+    - name: build and test cadc-access-control-identity
+      run: cd cadc-access-control-identity && ../gradlew --info clean build checkstyleMain javadoc install
+      
+    - name: build and test cadc-access-control-server
+      run: cd cadc-access-control-server && ../gradlew --info clean build javadoc install
+      
+    - name: build and test cadc-access-control
+      run: cd cadc-access-control && ../gradlew --info clean build javadoc install
+
+    - name: build and test posix-mapper
+      run: cd posix-mapper && ../gradlew --info clean build javadoc

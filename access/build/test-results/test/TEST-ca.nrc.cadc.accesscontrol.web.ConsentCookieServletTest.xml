@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.accesscontrol.web.ConsentCookieServletTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-08-06T21:24:12" hostname="NRC-023733" time="0.001">
+  <properties/>
+  <testcase name="doGet1" classname="ca.nrc.cadc.accesscontrol.web.ConsentCookieServletTest" time="0.001"/>
+  <testcase name="doGet2" classname="ca.nrc.cadc.accesscontrol.web.ConsentCookieServletTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

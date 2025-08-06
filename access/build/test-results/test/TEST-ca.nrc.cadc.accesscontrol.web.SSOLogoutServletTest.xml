@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ca.nrc.cadc.accesscontrol.web.SSOLogoutServletTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-08-06T21:24:12" hostname="NRC-023733" time="0.002">
+  <properties/>
+  <testcase name="logout" classname="ca.nrc.cadc.accesscontrol.web.SSOLogoutServletTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

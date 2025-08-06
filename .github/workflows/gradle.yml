@@ -38,6 +38,20 @@ jobs:
     - name: build and test cadc-access-control-server
       run: cd cadc-access-control-server && ../gradlew --info clean build javadoc install
       
+    - name: build and test access
+      run: |
+        cd access
+        # Generate test RSA keys dynamically
+        java -cp "src/test/java:../build/classes/java/main" ca.nrc.cadc.accesscontrol.GenerateTestKey
+        # Build and test
+        ../gradlew --info clean build test
+      
+    - name: generate javadoc for access
+      run: cd access && ../gradlew --info javadoc || true
+      
+    - name: build and test cadc-access-control
+      run: cd cadc-access-control-server && ../gradlew --info clean build javadoc install
+      
     - name: build and test cadc-access-control
       run: cd cadc-access-control && ../gradlew --info clean build javadoc install
 
