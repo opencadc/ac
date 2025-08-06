@@ -1,0 +1,33 @@
+version: '3.2'
+services:
+  proxy.cadc.dao.nrc.ca:
+    hostname: ${HOSTNAME:-proxy.cadc.dao.nrc.ca}
+    image: canfar/web
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - access.cadc.dao.nrc.ca
+    volumes:
+      - server_certs:/usr/share/nginx/certs
+      - ./docker/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - cadc
+  access.cadc.dao.nrc.ca:
+    build: ./
+    image: cadc/access
+    ports:
+      - 5555:5555
+    networks:
+      - cadc
+    volumes:
+      - server_certs:/usr/local/share/ca-certificates
+    environment:
+      CATALINA_OPTS: -DSSO_SERVERS="${HOSTNAME} www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca www.canfar.net www.canfar.phys.uvic.ca"
+
+networks:
+  cadc:
+
+volumes:
+  server_certs:
+    external: true
