@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.accesscontrol.web.WebMailerTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-08-11T23:27:31" hostname="NRC-023733" time="0.02">
-  <properties/>
-  <testcase name="sendMail" classname="ca.nrc.cadc.accesscontrol.web.WebMailerTest" time="0.02"/>
-  <testcase name="createLink" classname="ca.nrc.cadc.accesscontrol.web.WebMailerTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

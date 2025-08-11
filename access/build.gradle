@@ -44,22 +44,3 @@ apply from: '../opencadc.gradle'
 war {
     archiveName project.name + '.war'
 }
-
-task generateTestKeys {
-    doLast {
-        def configDir = new File("${buildDir}/test-config")
-        configDir.mkdirs()
-        
-        // RsaSignatureGenerator.genKeyPair()
-        // point to this directory
-        System.setProperty("user.home", "${buildDir}/test-home")
-        
-        def homeConfigDir = new File("${buildDir}/test-home/config")
-        homeConfigDir.mkdirs()
-        
-        // create empty key file as placeholder
-        new File(homeConfigDir, "RsaSignaturePriv.key").createNewFile()
-    }
-}
-
-test.dependsOn generateTestKeys

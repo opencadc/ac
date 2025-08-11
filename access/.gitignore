@@ -4,4 +4,4 @@ build/
 *.class
 *.key
 .DS_Store
-
+**/.DS_Store
