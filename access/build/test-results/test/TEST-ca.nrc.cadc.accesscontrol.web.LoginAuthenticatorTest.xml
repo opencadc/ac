@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.accesscontrol.web.LoginAuthenticatorTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-08-06T21:24:12" hostname="NRC-023733" time="0.005">
+<testsuite name="ca.nrc.cadc.accesscontrol.web.LoginAuthenticatorTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-08-11T23:27:31" hostname="NRC-023733" time="0.006">
   <properties/>
-  <testcase name="authenticate" classname="ca.nrc.cadc.accesscontrol.web.LoginAuthenticatorTest" time="0.005"/>
+  <testcase name="authenticate" classname="ca.nrc.cadc.accesscontrol.web.LoginAuthenticatorTest" time="0.006"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ca.nrc.cadc.accesscontrol.web.I18NServletTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-08-06T21:24:11" hostname="NRC-023733" time="0.006">
+<testsuite name="ca.nrc.cadc.accesscontrol.web.I18NServletTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-08-11T23:27:31" hostname="NRC-023733" time="0.005">
   <properties/>
-  <testcase name="writeJSON" classname="ca.nrc.cadc.accesscontrol.web.I18NServletTest" time="0.005"/>
+  <testcase name="writeJSON" classname="ca.nrc.cadc.accesscontrol.web.I18NServletTest" time="0.004"/>
   <testcase name="getResourceName" classname="ca.nrc.cadc.accesscontrol.web.I18NServletTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

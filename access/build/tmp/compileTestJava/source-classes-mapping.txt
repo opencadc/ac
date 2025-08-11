@@ -23,8 +23,6 @@ ca/nrc/cadc/accesscontrol/web/SSOCookieAgentImplTest.java
  ca.nrc.cadc.accesscontrol.web.SSOCookieAgentImplTest$2
  ca.nrc.cadc.accesscontrol.web.SSOCookieAgentImplTest$3
  ca.nrc.cadc.accesscontrol.web.SSOCookieAgentImplTest$4
-ca/nrc/cadc/accesscontrol/GenerateTestKey.java
- ca.nrc.cadc.accesscontrol.GenerateTestKey
 ca/nrc/cadc/accesscontrol/web/LoginAuthenticatorTest.java
  ca.nrc.cadc.accesscontrol.web.LoginAuthenticatorTest
 ca/nrc/cadc/accesscontrol/web/ConsentCookieServletTest.java

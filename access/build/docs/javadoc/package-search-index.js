@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"ca.nrc.cadc.accesscontrol.mail"},{"l":"ca.nrc.cadc.accesscontrol.web"},{"l":"ca.nrc.cadc.accesscontrol.web.i18n"}]
