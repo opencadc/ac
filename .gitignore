@@ -14,3 +14,5 @@
 build/
 **/.DS_Store
 >>>>>>> e8b7a424 (Remove tracked .DS_Store files and ignore them)
+*RsaSignature*.key
+**/build/
