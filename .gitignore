@@ -1,18 +1,7 @@
 .DS_Store
-.gradle/
-**/build/
-*.class
-*RsaSignature*.key
-<<<<<<< HEAD
-*.patch
-=======
-
-.gradle/
-.DS_Store
-*.class
-*RsaSignature*.key
-build/
 **/.DS_Store
->>>>>>> e8b7a424 (Remove tracked .DS_Store files and ignore them)
-*RsaSignature*.key
+.gradle/
 **/build/
+*.class
+*RsaSignature*.key
+*.patch
