@@ -425,6 +425,7 @@ public class StandardIdentityManager implements IdentityManager {
                 .setRequireExpirationTime()
                 .setExpectedIssuers(true, jwtIssuer.toString())
                 .setVerificationKeyResolver(httpsJwksKeyResolver)
+                .setSkipDefaultAudienceValidation()
                 .build(); // create the JwtConsumer instance;
 
         //  Validate the JWT and process it to the Claims
