@@ -34,12 +34,51 @@
 package ca.nrc.cadc.accesscontrol;
 
 import org.junit.After;
+import org.junit.BeforeClass;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.util.Base64;
 
 
 public abstract class AbstractAccessControlWebTest<T>
 {
     protected T testSubject;
 
+    @BeforeClass // 如果是 JUnit 5，使用 @BeforeAll
+    public static void generateTestKeys() throws Exception {
+        File resourcesDir = new File("src/test/resources");
+        if (!resourcesDir.exists()) {
+            resourcesDir.mkdirs();
+        }
+        
+        // 检查文件是否已存在，避免重复生成
+        File privKeyFile = new File("src/test/resources/RsaSignaturePriv.key");
+        File pubKeyFile = new File("src/test/resources/RsaSignaturePub.key");
+        
+        if (privKeyFile.exists() && pubKeyFile.exists()) {
+            return; // 文件已存在，跳过生成
+        }
+        
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        
+        String privateKeyPEM = "-----BEGIN PRIVATE KEY-----\n" +
+                Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded()) +
+                "\n-----END PRIVATE KEY-----";
+        try (FileOutputStream fos = new FileOutputStream(privKeyFile)) {
+            fos.write(privateKeyPEM.getBytes());
+        }
+        
+        String publicKeyPEM = "-----BEGIN PUBLIC KEY-----\n" +
+                Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()) +
+                "\n-----END PUBLIC KEY-----";
+        try (FileOutputStream fos = new FileOutputStream(pubKeyFile)) {
+            fos.write(publicKeyPEM.getBytes());
+        }
+    }
 
     @After
     public void tearDown()

@@ -60,48 +60,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.util.Base64;
 
 public class SSOCookieAgentImplTest extends AbstractAccessControlWebTest<SSOCookieAgentImpl> {
     private final HttpServletRequest mockRequest = createMock(HttpServletRequest.class);
     private final HttpServletResponse mockResponse = createMock(HttpServletResponse.class);
-
-    static {
-        try {
-            generateTestKeys();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to generate test keys", e);
-        }
-    }
-
-    private static void generateTestKeys() throws Exception {
-        File resourcesDir = new File("src/test/resources");
-        if (!resourcesDir.exists()) {
-            resourcesDir.mkdirs();
-        }
-        
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        
-        String privateKeyPEM = "-----BEGIN PRIVATE KEY-----\n" +
-            Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded()) +
-            "\n-----END PRIVATE KEY-----";
-        try (FileOutputStream fos = new FileOutputStream("src/test/resources/RsaSignaturePriv.key")) {
-            fos.write(privateKeyPEM.getBytes());
-        }
-        
-        String publicKeyPEM = "-----BEGIN PUBLIC KEY-----\n" +
-            Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()) +
-            "\n-----END PUBLIC KEY-----";
-        try (FileOutputStream fos = new FileOutputStream("src/test/resources/RsaSignaturePub.key")) {
-            fos.write(publicKeyPEM.getBytes());
-        }
-    }
 
     @Test
     public void issueCookie() throws Exception {
