@@ -55,14 +55,13 @@ public abstract class AbstractAccessControlWebTest<T>
     }
 
     private static void generateTestKeys() throws Exception {
-        File resourcesDir = new File("src/test/resources");
-        if (!resourcesDir.exists()) {
-            resourcesDir.mkdirs();
+        File keyDir = new File("build/resources/test");
+        if (!keyDir.exists()) {
+            keyDir.mkdirs();
         }
         
-       
-        File privKeyFile = new File("src/test/resources/RsaSignaturePriv.key");
-        File pubKeyFile = new File("src/test/resources/RsaSignaturePub.key");
+        File privKeyFile = new File(keyDir, "RsaSignaturePriv.key");
+        File pubKeyFile = new File(keyDir, "RsaSignaturePub.key");
         
         if (privKeyFile.exists() && pubKeyFile.exists()) {
             return;
@@ -85,6 +84,7 @@ public abstract class AbstractAccessControlWebTest<T>
         try (FileOutputStream fos = new FileOutputStream(pubKeyFile)) {
             fos.write(publicKeyPEM.getBytes());
         }
+
     }
 
     @After
