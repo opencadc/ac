@@ -46,19 +46,19 @@ public abstract class AbstractAccessControlWebTest<T>
 {
     protected T testSubject;
 
-    @BeforeClass // 如果是 JUnit 5，使用 @BeforeAll
+    @BeforeClass
     public static void generateTestKeys() throws Exception {
         File resourcesDir = new File("src/test/resources");
         if (!resourcesDir.exists()) {
             resourcesDir.mkdirs();
         }
         
-        // 检查文件是否已存在，避免重复生成
+       
         File privKeyFile = new File("src/test/resources/RsaSignaturePriv.key");
         File pubKeyFile = new File("src/test/resources/RsaSignaturePub.key");
         
         if (privKeyFile.exists() && pubKeyFile.exists()) {
-            return; // 文件已存在，跳过生成
+            return;
         }
         
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
