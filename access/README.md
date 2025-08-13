@@ -2,7 +2,7 @@
 The ***access*** service is a helper service for UI authentication activities. It supports relaying authentication to the **ac** service, setting SSO cookies in the browser, and handling various AAI (Authentication, Authorization, and Identity) related activities such as registration page requests.
 
 ## Configuration
-### Access.properties
+### access.properties
 Main configuration file containing runtime properties for SSO server list, cookie domain scope, and token lifetime.
 
 ### RSA Public Key

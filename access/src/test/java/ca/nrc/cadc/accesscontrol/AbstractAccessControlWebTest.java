@@ -40,6 +40,7 @@ import java.io.FileOutputStream;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
+import ca.nrc.cadc.util.RsaSignatureGenerator;
 
 
 public abstract class AbstractAccessControlWebTest<T>
@@ -53,38 +54,17 @@ public abstract class AbstractAccessControlWebTest<T>
             throw new RuntimeException("Failed to generate test keys", e);
         }
     }
-
     private static void generateTestKeys() throws Exception {
         File keyDir = new File("build/resources/test");
-        if (!keyDir.exists()) {
-            keyDir.mkdirs();
+        if (!keyDir.exists() && !keyDir.mkdirs()) {
+           throw new IllegalStateException("Could not create test resources dir: " + keyDir.getAbsolutePath());
         }
-        
         File privKeyFile = new File(keyDir, "RsaSignaturePriv.key");
-        File pubKeyFile = new File(keyDir, "RsaSignaturePub.key");
-        
+        File pubKeyFile  = new File(keyDir, "RsaSignaturePub.key");
         if (privKeyFile.exists() && pubKeyFile.exists()) {
             return;
         }
-        
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        
-        String privateKeyPEM = "-----BEGIN PRIVATE KEY-----\n" +
-                Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded()) +
-                "\n-----END PRIVATE KEY-----";
-        try (FileOutputStream fos = new FileOutputStream(privKeyFile)) {
-            fos.write(privateKeyPEM.getBytes());
-        }
-        
-        String publicKeyPEM = "-----BEGIN PUBLIC KEY-----\n" +
-                Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()) +
-                "\n-----END PUBLIC KEY-----";
-        try (FileOutputStream fos = new FileOutputStream(pubKeyFile)) {
-            fos.write(publicKeyPEM.getBytes());
-        }
-
+        RsaSignatureGenerator.genKeyPair(pubKeyFile, privKeyFile, 2048);
     }
 
     @After
