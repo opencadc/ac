@@ -45,9 +45,16 @@ import java.util.Base64;
 public abstract class AbstractAccessControlWebTest<T>
 {
     protected T testSubject;
+    
+    static {
+        try {
+            generateTestKeys();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate test keys", e);
+        }
+    }
 
-    @BeforeClass
-    public static void generateTestKeys() throws Exception {
+    private static void generateTestKeys() throws Exception {
         File resourcesDir = new File("src/test/resources");
         if (!resourcesDir.exists()) {
             resourcesDir.mkdirs();
