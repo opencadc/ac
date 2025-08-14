@@ -28,33 +28,41 @@
 
 package ca.nrc.cadc.accesscontrol.web;
 
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.Availability;
 import ca.nrc.cadc.vosi.AvailabilityPlugin;
+import ca.nrc.cadc.vosi.avail.CheckResource;
+import ca.nrc.cadc.vosi.avail.CheckWebService;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 
 
 public class ServiceAvailability implements AvailabilityPlugin {
+    private static final Logger log = Logger.getLogger(ServiceAvailability.class);
+    
+    //private static final String configFileLocation =
+    //        System.getProperty("user.home") + "/config/" + SSOLoginServlet.AC_PROPERTIES_FILE;
+    //private static final String CANFAR_SSO_SERVER_KEY = "CANFAR_SSO_SERVER";
+    //private static final String SSO_RESOURCE = "/access/login";
+    //private static final Map<String, Object> parameters;
 
-    private static final Logger LOGGER = Logger.getLogger(ServiceAvailability.class);
-    private static final String configFileLocation =
-            System.getProperty("user.home") + "/config/" + SSOLoginServlet.AC_PROPERTIES_FILE;
-    private static final String CANFAR_SSO_SERVER_KEY = "CANFAR_SSO_SERVER";
-    private static final String SSO_RESOURCE = "/access/login";
-    private static final Map<String, Object> parameters;
-
-    static {
-        parameters = new HashMap<>();
-        parameters.put("USERNAME", "foo");
-        parameters.put("PASSWORD", "bar");
-    }
+    //static {
+    //    parameters = new HashMap<>();
+    //    parameters.put("USERNAME", "foo");
+    //    parameters.put("PASSWORD", "bar");
+    //}
 
 
     private String applicationName;
@@ -90,7 +98,7 @@ public class ServiceAvailability implements AvailabilityPlugin {
             String message = "/access is available";
             return new Availability(true, message);
         } catch (Throwable t) {
-            LOGGER.debug("availability exception", t);
+            log.debug("availability exception", t);
             Throwable cause = t;
             if (t.getCause() != null) {
                 cause = t.getCause();
@@ -115,19 +123,51 @@ public class ServiceAvailability implements AvailabilityPlugin {
     }
 
     private void checkAccess() throws Exception {
-        final File propertyFile = new File(configFileLocation);
-
-        final Properties properties = new Properties();
-        properties.load(Files.newInputStream(propertyFile.toPath()));
-
-        final String canfarSSOServer = properties.getProperty(CANFAR_SSO_SERVER_KEY);
-        final URL url = new URL("https://" + canfarSSOServer + SSO_RESOURCE);
-        final HttpPost post = new HttpPost(url, parameters, true);
-        post.run();
-
-        final int responseCode = post.getResponseCode();
-        if (responseCode != 401) {
-            throw new Exception("Access service returned response code: " + responseCode);
+        // check other services we depend on
+        final RegistryClient reg = new RegistryClient();
+        final LocalAuthority localAuthority = new LocalAuthority();
+        
+        // primary: login
+        URI stdID = Standards.SECURITY_METHOD_PASSWORD;
+        URI loginURI = localAuthority.getResourceID(stdID);
+        log.warn("check: " + stdID + " provider " + loginURI);
+        URL url = reg.getServiceURL(loginURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+        CheckResource checkResource = new CheckWebService(url);
+        checkResource.check();
+        
+        // practically, all these checks wil lbe skipped but we need to verify they are configured
+        // ... not being too careful andf just letting this fail in some ugly way
+        stdID = Standards.UMS_USERS_01;
+        URI usersURI = localAuthority.getResourceID(stdID);
+        log.warn("check: " + stdID + " provider " + usersURI);
+        if (loginURI.equals(usersURI)) {
+            log.debug("already checked: " + stdID + " = " + loginURI);
+        } else {
+            url = reg.getServiceURL(usersURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+            checkResource = new CheckWebService(url);
+            checkResource.check();
+        }
+        
+        stdID = Standards.UMS_RESETPASS_01;
+        URI resetURI = localAuthority.getResourceID(stdID);
+        log.warn("check: " + stdID + " provider " + resetURI);
+        if (loginURI.equals(resetURI)) {
+            log.debug("already checked: " + stdID + " = " + loginURI);
+        } else {
+            url = reg.getServiceURL(resetURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+            checkResource = new CheckWebService(url);
+            checkResource.check();
+        }
+        
+        stdID = Standards.UMS_REQS_01;
+        URI reqURI = localAuthority.getResourceID(stdID);
+        log.warn("check: " + stdID + " provider " + reqURI);
+        if (loginURI.equals(reqURI)) {
+            log.debug("already checked: " + stdID + " = " + loginURI);
+        } else {
+            url = reg.getServiceURL(reqURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+            checkResource = new CheckWebService(url);
+            checkResource.check();
         }
     }
 }
