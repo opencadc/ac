@@ -43,3 +43,6 @@ jobs:
 
     - name: build and test posix-mapper
       run: cd posix-mapper && ../gradlew --info clean build javadoc
+      
+    - name: build and test access
+      run: cd access && ../gradlew --info clean build
