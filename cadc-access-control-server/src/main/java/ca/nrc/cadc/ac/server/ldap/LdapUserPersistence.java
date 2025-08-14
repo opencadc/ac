@@ -116,14 +116,13 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      *
      * @param user The user request to put into the user tree.
      * @return User instance.
-     * @throws UserNotFoundException                     when the user is not found in the main tree.
      * @throws TransientException                        If an temporary, unexpected problem occurred.
      * @throws AccessControlException                    If the operation is not permitted.
-     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException If user already exists.
      */
     public User addUser(User user)
-            throws UserNotFoundException, TransientException, AccessControlException, UserAlreadyExistsException {
-        LdapUserDAO userDAO = null;
+            throws TransientException, AccessControlException, UserAlreadyExistsException {
+        LdapUserDAO userDAO;
         LdapConnections conns = new LdapConnections(this);
         try {
             userDAO = new LdapUserDAO(conns);
@@ -142,21 +141,21 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * @throws UserNotFoundException                     when the user is not found in the main tree.
      * @throws TransientException                        If an temporary, unexpected problem occurred.
      * @throws AccessControlException                    If the operation is not permitted.
-     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException If user already exists.
      */
     public User addUserRequest(UserRequest userRequest, final Principal ownerHttpPrincipal)
             throws UserNotFoundException, TransientException, AccessControlException, UserAlreadyExistsException {
         LdapConnections conns = new LdapConnections(this);
-        LdapUserDAO userDAO = null;
-        LdapGroupDAO groupDAO = null;
+        LdapUserDAO userDAO;
+        LdapGroupDAO groupDAO;
         User user = null;
-        Group group = null;
+        Group group;
         try {
             // create the group to be associated with this userRequest
             userDAO = new LdapUserDAO(conns);
             groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+            URI gmsServiceURI = localAuthority.getResourceID(Standards.GMS_GROUPS_01);
             GroupURI groupID = new GroupURI(gmsServiceURI, userRequest.getUser().getHttpPrincipal().getName());
             group = new Group(groupID);
             User groupOwner = userDAO.getAugmentedUser(ownerHttpPrincipal, false);
@@ -195,10 +194,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.getUser(userID);
         } finally {
             conns.releaseConnections();
@@ -220,7 +218,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
+        LdapUserDAO userDAO;
         LdapConnections conns = new LdapConnections(this);
         try {
             userDAO = new LdapUserDAO(conns);
@@ -246,7 +244,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         try {
             LdapUserDAO userDAO = new LdapUserDAO(conns);
             List<User> users = userDAO.getUsersByEmailAddress(emailAddress);
-            if (users.size() == 0) {
+            if (users.isEmpty()) {
                 throw new UserNotFoundException("user with email address " + emailAddress + " not found");
             }
             if (users.size() > 1) {
@@ -292,10 +290,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.getUserRequest(userID);
         } finally {
             conns.releaseConnections();
@@ -314,11 +311,10 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     public User getAugmentedUser(Principal userID, final boolean primeGroupCache)
             throws UserNotFoundException, TransientException {
         // internal call to return user identities: no permission check
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
             Profiler profiler = new Profiler(LdapUserPersistence.class);
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             profiler.checkpoint("Create LdapUserDAO");
             User user = userDAO.getAugmentedUser(userID, primeGroupCache);
             profiler.checkpoint("getAugmentedUser");
@@ -346,10 +342,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
             throw new AccessControlException("Caller does not have authorized account");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.getUsers();
         } finally {
             conns.releaseConnections();
@@ -367,10 +362,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
             throw new AccessControlException("Caller does not have authorized account");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             boolean all = (usernameSubset == null && uidSubset == null);
             if (all) {
                 Collection<User> users = userDAO.getUsers();
@@ -433,10 +427,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
     public Collection<User> getUserRequests()
             throws TransientException, AccessControlException {
         // admin API: no permission check
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.getUserRequests();
         } finally {
             conns.releaseConnections();
@@ -457,17 +450,16 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             throws UserNotFoundException, TransientException,
             AccessControlException {
         // admin API: no permission check
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
             // get the userRequest
             User userRequest = getUserRequest(userID);
 
             // get the group associated with the userRequest
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
             LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+            URI gmsServiceURI = localAuthority.getResourceID(Standards.GMS_GROUPS_01);
             String userName = userRequest.getHttpPrincipal().getName();
             GroupURI groupID = new GroupURI(gmsServiceURI, userName);
             try {
@@ -512,14 +504,13 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, user))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
             // trim out all but personal details
             user.posixDetails = null;
 
             // do the modification
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.modifyUser(user);
         } finally {
             conns.releaseConnections();
@@ -540,10 +531,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             AccessControlException {
         // no auth check - admin function
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.modifyUser(user);
         } finally {
             conns.releaseConnections();
@@ -565,10 +555,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             userDAO.deleteUser(userID, true);
         } finally {
             conns.releaseConnections();
@@ -590,10 +579,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             userDAO.unlockUser(userID);
         } finally {
             conns.releaseConnections();
@@ -614,10 +602,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
 
         // admin API: permission checks done in action layer
         // and in ACIs.
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             userDAO.deleteUser(userID, false);
         } finally {
             conns.releaseConnections();
@@ -636,15 +623,14 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
             throws UserNotFoundException, TransientException,
             AccessControlException {
         // admin API: no permission check
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             LdapGroupDAO groupDAO = new LdapGroupDAO(conns, userDAO);
 
             // delete the pending group associated with the user
             LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+            URI gmsServiceURI = localAuthority.getResourceID(Standards.GMS_GROUPS_01);
             GroupURI groupID = new GroupURI(gmsServiceURI, userID.getName());
             try {
                 // delete the group and then the userRequest
@@ -664,16 +650,14 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      *
      * @param userID The userID.
      * @return Boolean.
-     * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
     public Boolean doLogin(String userID, String password)
-            throws UserNotFoundException, TransientException, AccessControlException {
-        LdapUserDAO userDAO = null;
+            throws TransientException, AccessControlException {
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.doLogin(userID, password);
         } finally {
             conns.releaseConnections();
@@ -696,10 +680,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             if (userDAO.doLogin(userID.getName(), oldPassword)) {
                 // oldPassword is correct
                 userDAO.setPassword(userID, oldPassword, newPassword);
@@ -724,10 +707,9 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (!isMatch(caller, userID))
             throw new AccessControlException("permission denied: target user does not match current user");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             User user = getUser(userID);
 
             if (user != null) {
@@ -757,28 +739,13 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
         if (caller.getPrincipals(HttpPrincipal.class).isEmpty())
             throw new AccessControlException("Caller does not have authorized account");
 
-        LdapUserDAO userDAO = null;
         LdapConnections conns = new LdapConnections(this);
         try {
-            userDAO = new LdapUserDAO(conns);
+            LdapUserDAO userDAO = new LdapUserDAO(conns);
             return userDAO.getEmailsForAllUsers();
         } finally {
             conns.releaseConnections();
         }
-    }
-
-    private boolean checkIfGroupExists(final Group group, final LdapGroupDAO groupDAO) {
-        boolean groupExists = false;
-        try {
-            groupDAO.getAnyGroup(group.getID().getName());
-            groupExists = true;
-        } catch (GroupNotFoundException ex) {
-            // do nothing
-        } catch (TransientException tex) {
-            // do nothing
-        }
-
-        return groupExists;
     }
 
     private boolean isMatch(Subject caller, User user) {
@@ -796,7 +763,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
 
     private boolean isMatch(Subject caller, Principal identity) {
         if (caller == null || AuthMethod.ANON.equals(AuthenticationUtil.getAuthMethod(caller)))
-            throw new AccessControlException("Caller is not authenticated");
+            throw new AccessControlException("Caller is not authenticated - " + caller + " -- " + identity);
 
         for (Principal pc : caller.getPrincipals()) {
             if (AuthenticationUtil.equals(pc, identity))

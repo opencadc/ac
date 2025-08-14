@@ -97,7 +97,7 @@ public abstract class LdapPersistence {
 
     // static monitor is required for when multiple LdapPersistence objects
     // are created.
-    private static Object jndiMonitor = new Object();
+    private static final Object jndiMonitor = new Object();
 
     protected LdapPersistence() {
         initPools();
@@ -153,7 +153,7 @@ public abstract class LdapPersistence {
 
     private void initPools() {
         try {
-            ConnectionPools pools = null;
+            ConnectionPools pools;
             try {
                 pools = lookupPools();
                 logger.debug("Pool from first JNDI lookup: " + pools);
@@ -198,7 +198,7 @@ public abstract class LdapPersistence {
 
     private ConnectionPools createPools(LdapConfig config) {
         Profiler profiler = new Profiler(LdapPersistence.class);
-        Map<String, LdapConnectionPool> poolMap = new HashMap<String, LdapConnectionPool>(3);
+        Map<String, LdapConnectionPool> poolMap = new HashMap<>(3);
         poolMap.put(POOL_READONLY, new LdapConnectionPool(
                 config, config.getReadOnlyPool(), POOL_READONLY, true, true));
         poolMap.put(POOL_READWRITE, new LdapConnectionPool(

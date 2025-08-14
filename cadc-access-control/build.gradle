@@ -24,10 +24,10 @@ def git_url = 'https://github.com/opencadc/ac'
 mainClassName = 'ca.nrc.cadc.ac.client.Main'
 
 dependencies {
-    api 'org.opencadc:cadc-util:[1.9.11,2.0)'
+    api 'org.opencadc:cadc-util:[1.12.8,2.0)'
     api 'org.opencadc:cadc-registry:[1.5,2.0)'
     api 'org.opencadc:cadc-cdp:[1.0,2.0)'
-    api 'org.opencadc:cadc-gms:[1.0.5,1.1)'
+    api 'org.opencadc:cadc-gms:[1.0.17,1.1)'
 
     testImplementation 'junit:junit:[4.13,5.0)'
     testImplementation 'xerces:xercesImpl:[2.12,3.0)'

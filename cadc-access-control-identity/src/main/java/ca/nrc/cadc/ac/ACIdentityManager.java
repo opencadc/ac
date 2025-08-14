@@ -71,10 +71,13 @@ package ca.nrc.cadc.ac;
 
 import ca.nrc.cadc.ac.client.UserClient;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthorizationToken;
+import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.cred.client.CredUtil;
@@ -93,6 +96,7 @@ import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
+import org.opencadc.auth.StandardIdentityManager;
 
 /**
  * AC implementation of the IdentityManager interface. This
@@ -133,15 +137,23 @@ public class ACIdentityManager implements IdentityManager {
 
     @Override
     public Subject validate(Subject subject) throws NotAuthenticatedException {
-        return TokenValidator.validateTokens(subject);
+        Subject sub = TokenValidator.validateTokens(subject);
+        if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
+            LocalAuthority loc = new LocalAuthority();
+            if (loc.getResourceID(Standards.SECURITY_METHOD_OPENID) != null) {
+                StandardIdentityManager sim = new StandardIdentityManager();
+                return sim.validate(sub);
+            }
+        }
+        return sub;
     }
 
     @Override
     public Subject augment(final Subject subject) {
         log.debug("augment START: " + subject);
         if (subject == null) {
-            log.debug("augment DONE null: " + subject);
-            return subject;
+            log.debug("augment DONE: null");
+            return null;
         }
         if (subject.getPrincipals().isEmpty()) {
             log.debug("augment DONE no principals: " + subject);
@@ -176,8 +188,11 @@ public class ACIdentityManager implements IdentityManager {
                 }
             };
 
-            Subject servopsSubject = CredUtil.createOpsSubject();
-            Subject.doAs(servopsSubject, action);
+            Subject actionSubject = subject;
+            if (subject.getPublicCredentials(AuthorizationToken.class).isEmpty()) {
+                actionSubject = CredUtil.createOpsSubject();
+            }
+            Subject.doAs(actionSubject, action);
             log.debug("augment DONE w/ UserClient: " + subject);
             return subject;
         } catch (PrivilegedActionException e) {
@@ -219,6 +234,7 @@ public class ACIdentityManager implements IdentityManager {
         }
 
         X500Principal x500Principal = null;
+        OpenIdPrincipal openIdPrincipal = null;
         Set<Principal> principals = subject.getPrincipals();
         for (Principal principal : principals) {
             if (principal instanceof NumericPrincipal) {
@@ -229,44 +245,64 @@ public class ACIdentityManager implements IdentityManager {
             if (principal instanceof X500Principal) {
                 x500Principal = (X500Principal) principal;
             }
+            if (principal instanceof OpenIdPrincipal) {
+                openIdPrincipal = (OpenIdPrincipal) principal;
+            }
         }
 
-        if (x500Principal == null) {
+        NumericPrincipal numericPrincipal;
+        if (openIdPrincipal != null && x500Principal != null) {
+            throw new NotAuthenticatedException(
+                    "Simultaneous OpenIdPrincipal and X500Principal authentication not supported: "
+                    + openIdPrincipal + ", " + x500Principal);
+        }
+
+        if (openIdPrincipal != null) {
+            // The user has connected with a valid OpenID but does
+            // not have an account (no numeric principal).
+            // Create an auto-approved account with their OpenIdPrincipal.
+            numericPrincipal = createAuthUser(openIdPrincipal);
+        } else if (x500Principal != null) {
+            // The user has connected with a valid client cert but does
+            // not have an account (no numeric principal).
+            // Create an auto-approved account with their x500Principal.
+            numericPrincipal = createAuthUser(x500Principal);
+        } else {
             return null;
         }
-
-        // The user has connected with a valid client cert but does
-        // not have an account (no numeric principal).
-        // Create an auto-approved account with their x500Principal.
-        NumericPrincipal numericPrincipal = createX500User(x500Principal);
         subject.getPrincipals().add(numericPrincipal);
         return numericPrincipal.getUUID().getLeastSignificantBits();
     }
 
-    private NumericPrincipal createX500User(final X500Principal x500Principal) {
-        PrivilegedExceptionAction<NumericPrincipal> action = new PrivilegedExceptionAction<NumericPrincipal>() {
-            @Override
-            public NumericPrincipal run() throws Exception {
-                LocalAuthority localAuth = new LocalAuthority();
-                URI serviceURI = localAuth.getServiceURI(Standards.UMS_USERS_01.toASCIIString());
+    private NumericPrincipal createAuthUser(final Principal principal) {
+        if (!(principal instanceof X500Principal) && !(principal instanceof OpenIdPrincipal)) {
+            throw new IllegalArgumentException("principal must be a valid principal "
+                    + "(X500Principal or OpenIdPrincipal)");
+        }
+        PrivilegedExceptionAction<NumericPrincipal> action = () -> {
+            LocalAuthority localAuth = new LocalAuthority();
+            URI serviceURI = localAuth.getResourceID(Standards.UMS_USERS_01);
 
-                UserClient userClient = new UserClient(serviceURI);
-                User newUser = userClient.createUser(x500Principal);
+            UserClient userClient = new UserClient(serviceURI);
+            User newUser = userClient.createUser(principal);
 
-                Set<NumericPrincipal> set = newUser.getIdentities(NumericPrincipal.class);
-                if (set.isEmpty()) {
-                    throw new IllegalStateException("missing internal id");
-                }
-                return set.iterator().next();
+            Set<NumericPrincipal> set = newUser.getIdentities(NumericPrincipal.class);
+            if (set.isEmpty()) {
+                throw new IllegalStateException("missing internal id");
             }
+            return set.iterator().next();
         };
 
-        //Subject servopsSubject = SSLUtil.createSubject(privilegedPemFile);
-        Subject servopsSubject = CredUtil.createOpsSubject();
+        Subject acSubject;
+        if (principal instanceof OpenIdPrincipal) {
+            acSubject = AuthenticationUtil.getCurrentSubject();
+        } else {
+            acSubject = CredUtil.createOpsSubject();
+        }
         try {
-            return Subject.doAs(servopsSubject, action);
+            return Subject.doAs(acSubject, action);
         } catch (Exception e) {
-            throw new IllegalStateException("failed to create internal id for user " + x500Principal.getName(), e);
+            throw new IllegalStateException("failed to create internal id for user " + principal.getName(), e);
         }
     }
 
