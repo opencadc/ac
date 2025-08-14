@@ -99,7 +99,12 @@ public abstract class SSOServlet extends HttpServlet {
         agentServers.addAll(accessControlUtil.getSSOServers());
 
         if (agentServers.isEmpty()) {
-            throw new ServletException("SSO Servers not found. Looked for $HOME/config/AccessControl.properties file");
+            
+            throw new ServletException(
+                "SSO Servers not found. Looked for $HOME/config/access.properties file" + 
+                "If your deployment still uses 'AccessControl.properties', please rename it to 'access.properties'."
+            );
+
         }
 
         LOGGER.info("SSO Servers: " + Arrays.toString(agentServers.toArray(new String[0])));

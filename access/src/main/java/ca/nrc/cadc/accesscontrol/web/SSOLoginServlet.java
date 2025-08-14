@@ -61,7 +61,8 @@ public class SSOLoginServlet extends SSOServlet
     private static final Logger LOGGER = Logger
             .getLogger(SSOLoginServlet.class);
 
-    public static final String AC_PROPERTIES_FILE = "AccessControl.properties";
+    // New canonical name per containerized convention
+    public static final String AC_PROPERTIES_FILE = "access.properties"; 
 
     private LoginAuthenticator loginAuthenticator;
 
