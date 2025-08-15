@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+************************************************************************
+*******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+**************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+*
+*  (c) 2019.                            (c) 2019.
+*  Government of Canada                 Gouvernement du Canada
+*  National Research Council            Conseil national de recherches
+*  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+*  All rights reserved                  Tous droits réservés
+*                                       
+*  NRC disclaims any warranties,        Le CNRC dénie toute garantie
+*  expressed, implied, or               énoncée, implicite ou légale,
+*  statutory, of any kind with          de quelque nature que ce
+*  respect to the software,             soit, concernant le logiciel,
+*  including without limitation         y compris sans restriction
+*  any warranty of merchantability      toute garantie de valeur
+*  or fitness for a particular          marchande ou de pertinence
+*  purpose. NRC shall not be            pour un usage particulier.
+*  liable in any event for any          Le CNRC ne pourra en aucun cas
+*  damages, whether direct or           être tenu responsable de tout
+*  indirect, special or general,        dommage, direct ou indirect,
+*  consequential or incidental,         particulier ou général,
+*  arising from the use of the          accessoire ou fortuit, résultant
+*  software.  Neither the name          de l'utilisation du logiciel. Ni
+*  of the National Research             le nom du Conseil National de
+*  Council of Canada nor the            Recherches du Canada ni les noms
+*  names of its contributors may        de ses  participants ne peuvent
+*  be used to endorse or promote        être utilisés pour approuver ou
+*  products derived from this           promouvoir les produits dérivés
+*  software without specific prior      de ce logiciel sans autorisation
+*  written permission.                  préalable et particulière
+*                                       par écrit.
+*                                       
+*  This file is part of the             Ce fichier fait partie du projet
+*  OpenCADC project.                    OpenCADC.
+*                                       
+*  OpenCADC is free software:           OpenCADC est un logiciel libre ;
+*  you can redistribute it and/or       vous pouvez le redistribuer ou le
+*  modify it under the terms of         modifier suivant les termes de
+*  the GNU Affero General Public        la “GNU Affero General Public
+*  License as published by the          License” telle que publiée
+*  Free Software Foundation,            par la Free Software Foundation
+*  either version 3 of the              : soit la version 3 de cette
+*  License, or (at your option)         licence, soit (à votre gré)
+*  any later version.                   toute version ultérieure.
+*                                       
+*  OpenCADC is distributed in the       OpenCADC est distribué
+*  hope that it will be useful,         dans l’espoir qu’il vous
+*  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+*  without even the implied             GARANTIE : sans même la garantie
+*  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+*  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+*  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+*  General Public License for           Générale Publique GNU Affero
+*  more details.                        pour plus de détails.
+*                                       
+*  You should have received             Vous devriez avoir reçu une
+*  a copy of the GNU Affero             copie de la Licence Générale
+*  General Public License along         Publique GNU Affero avec
+*  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+*  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+*                                       <http://www.gnu.org/licenses/>.
+*
+************************************************************************
+-->
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+
+  <display-name>ac_ws</display-name>
+
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+  </welcome-file-list>
+
+  <servlet>
+    <servlet-name>GroupMapServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+    <init-param>
+      <param-name>get</param-name>
+      <param-value>ca.nrc.cadc.ac.server.GetGroupMapAction</param-value>
+    </init-param>
+    
+    <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+  <servlet>
+    <servlet-name>UserMapServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+    <init-param>
+      <param-name>get</param-name>
+      <param-value>ca.nrc.cadc.ac.server.GetUserMapAction</param-value>
+    </init-param>
+    
+    <load-on-startup>3</load-on-startup>
+  </servlet>
+
+  <!--
+    The Servlets to handle Requests.
+  -->
+  <servlet>
+    <servlet-name>GroupServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.ac.server.web.GroupServlet</servlet-class>
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.GroupServlet.PrivilegedX500Principals</param-name>
+      <param-value>cn=servops_4a2,ou=cadc,o=hia,c=ca cn=canfarops_586,ou=cadc,o=hia,c=ca CN=cadcops_376,OU=cadc,O=hia,C=ca</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.GroupServlet.PrivilegedHttpPrincipals</param-name>
+      <param-value>servops canfarops cadcops</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>ResetPasswordServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.ac.server.web.ResetPasswordServlet</servlet-class>
+    
+    <!--  The following two lists of principal names must be of the same
+    length and correspond to each other in order.  Users who do augment
+    subject calls are constructed by taking the principals out of these
+    lists in order.  Principal names are separated by spaces.-->
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedX500Principals</param-name>
+      <param-value>cn=servops_4a2,ou=cadc,o=hia,c=ca cn=canfarops_586,ou=cadc,o=hia,c=ca CN=cadcops_376,OU=cadc,O=hia,C=ca</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.ResetPasswordServlet.PrivilegedHttpPrincipals</param-name>
+      <param-value>servops canfarops cadcops</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>UserServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.ac.server.web.UserServlet</servlet-class>
+    
+    <!--  The following two lists of principal names must be of the same
+    length and correspond to each other in order.  Users who do augment
+    subject calls are constructed by taking the principals out of these
+    lists in order.  Principal names are separated by spaces.-->
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.UserServlet.PrivilegedX500Principals</param-name>
+      <param-value>cn=servops_4a2,ou=cadc,o=hia,c=ca cn=canfarops_586,ou=cadc,o=hia,c=ca CN=cadcops_376,OU=cadc,O=hia,C=ca</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.UserServlet.PrivilegedHttpPrincipals</param-name>
+      <param-value>servops canfarops cadcops</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>UserRequestServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.ac.server.web.UserRequestServlet</servlet-class>
+
+    <!--  The following two lists of principal names must be of the same
+    length and correspond to each other in order.  Users who do augment
+    subject calls are constructed by taking the principals out of these
+    lists in order.  Principal names are separated by spaces.-->
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedX500Principals</param-name>
+      <param-value>cn=servops_4a2,ou=cadc,o=hia,c=ca cn=canfarops_586,ou=cadc,o=hia,c=ca CN=cadcops_376,OU=cadc,O=hia,C=ca</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.UserRequestServlet.PrivilegedHttpPrincipals</param-name>
+      <param-value>servops canfarops cadcops</param-value>
+    </init-param>
+    <init-param>
+      <param-name>posixGroupOwner</param-name>
+      <param-value>cadcops</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.ac.server.web.LoginServlet</servlet-class>
+    <!-- users in the proxyGroup can impersonate other users except users that are 
+         members of the nonImpersonGroup -->
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.LoginServlet.proxyGroup</param-name>
+      <param-value>CADC</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.ac.server.web.LoginServlet.nonImpersonGroup</param-name>
+      <param-value>CADC</param-value>
+    </init-param>
+    <init-param>
+      <param-name>addPrincipalsToCookie</param-name>
+      <param-value>true</param-value>
+    </init-param>
+    <load-on-startup>3</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>WhoAmIServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.ac.server.web.WhoAmIServlet</servlet-class>
+
+    <load-on-startup>3</load-on-startup>
+  </servlet>
+
+  <!-- sync ac search servlet-->
+  <servlet>
+    <servlet-name>ACSearchServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
+    <init-param>
+        <param-name>get</param-name>
+        <param-value>ca.nrc.cadc.uws.web.SyncGetAction</param-value>
+    </init-param>
+    <init-param>
+        <param-name>post</param-name>
+        <param-value>ca.nrc.cadc.uws.web.SyncPostAction</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.uws.web.SyncPostAction.execOnPOST</param-name>
+      <param-value>true</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
+      <param-value>ca.nrc.cadc.ac.server.web.ACSearchJobManager</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+  
+  <!-- OIDC Endpoints -->
+
+  <servlet>
+      <servlet-name>OIDCConfigurationServlet</servlet-name>
+      <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+      <init-param>
+          <param-name>get</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.GetConfigAction</param-value>
+      </init-param>
+      <init-param>
+          <param-name>augmentSubject</param-name>
+          <param-value>false</param-value>
+      </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+  <servlet>
+      <servlet-name>OIDCAuthorizeServlet</servlet-name>
+      <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+      <init-param>
+          <param-name>get</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.AuthorizeGetAction</param-value>
+      </init-param>
+      <init-param>
+          <param-name>post</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.AuthorizePostAction</param-value>
+      </init-param>
+      <init-param>
+          <param-name>augmentSubject</param-name>
+          <param-value>true</param-value>
+      </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+  <servlet>
+      <servlet-name>OIDCLoginServlet</servlet-name>
+      <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+      <init-param>
+          <param-name>post</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.LoginAction</param-value>
+      </init-param>
+      <init-param>
+          <param-name>augmentSubject</param-name>
+          <param-value>false</param-value>
+      </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+    <servlet>
+      <servlet-name>TokenServlet</servlet-name>
+      <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+      <init-param>
+          <param-name>post</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.TokenAction</param-value>
+      </init-param>
+      <init-param>
+          <param-name>augmentSubject</param-name>
+          <param-value>false</param-value>
+      </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+  <servlet>
+      <servlet-name>UserInfoServlet</servlet-name>
+      <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+      <init-param>
+          <param-name>get</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.UserInfoAction</param-value>
+      </init-param>
+      <init-param>
+          <!-- true because auth comes in std Authorization header as bearer token -->
+          <param-name>augmentSubject</param-name>
+          <param-value>true</param-value>
+      </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+  <servlet>
+      <servlet-name>PublicKeyServlet</servlet-name>
+      <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+      <init-param>
+          <param-name>get</param-name>
+          <param-value>ca.nrc.cadc.ac.server.oidc.PublicKeyAction</param-value>
+      </init-param>
+      <init-param>
+          <param-name>augmentSubject</param-name>
+          <param-value>false</param-value>
+      </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+  
+  <!--  VOSI Endpoints -->
+  <servlet>
+      <servlet-name>CapabilitiesServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+        <init-param>
+            <param-name>init</param-name>
+            <param-value>ca.nrc.cadc.vosi.CapInitAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.vosi.CapGetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>head</param-name>
+            <param-value>ca.nrc.cadc.vosi.CapHeadAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>input</param-name>
+            <param-value>/capabilities.xml</param-value>
+        </init-param>
+        <init-param>
+            <param-name>authHeaders</param-name>
+            <param-value>false</param-value>
+        </init-param>
+      <load-on-startup>3</load-on-startup>
+  </servlet>
+
+    <!-- Using the cadc-rest version of capabilities in /ac causes
+    an infite request loop to happen.  This is because the accessURL
+    for the WWW-Authenticate headers is determined by calling
+    /ac/capabilities
+    <servlet>
+        <servlet-name>CapabilitiesServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
+        <init-param>
+            <param-name>init</param-name>
+            <param-value>ca.nrc.cadc.vosi.CapInitAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.vosi.CapGetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>head</param-name>
+            <param-value>ca.nrc.cadc.vosi.CapHeadAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>input</param-name>
+            <param-value>/capabilities.xml</param-value>
+        </init-param>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+   -->
+
+  <servlet>
+    <servlet-name>AvailabilityServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.vosi.AvailabilityServlet</servlet-class>
+    <init-param>
+      <param-name>ca.nrc.cadc.vosi.AvailabilityPlugin</param-name>
+      <param-value>ca.nrc.cadc.ac.server.web.ServiceAvailability</param-value>
+    </init-param>
+    <load-on-startup>3</load-on-startup>
+  </servlet>
+
+    <servlet>
+        <!--
+            To make sure the logging level gets set before any
+            logging gets done, set load-on-startup to a smaller
+            whole number than is used for any other servlet
+            in this webapp.  This assumes Tomcat 5.5 or later.
+        -->
+        <servlet-name>logControl</servlet-name>
+        <servlet-class>ca.nrc.cadc.log.LogControlServlet</servlet-class>
+        <init-param>
+            <param-name>logLevel</param-name>
+            <param-value>info</param-value>
+        </init-param>
+        <init-param>
+            <param-name>logLevelPackages</param-name>
+            <param-value>
+                ca.nrc.cadc.ac
+                ca.nrc.cadc.auth
+                ca.nrc.cadc.rest
+                ca.nrc.cadc.uws
+                ca.nrc.cadc.vosi
+            </param-value>
+        </init-param>
+        <init-param>
+            <param-name>logControlProperties</param-name>
+            <param-value>ac-logControl.properties</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>GroupMapServlet</servlet-name>
+        <url-pattern>/gidmap/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>UserMapServlet</servlet-name>
+        <url-pattern>/uidmap/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>GroupServlet</servlet-name>
+    <url-pattern>/groups/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>GroupServlet</servlet-name>
+    <url-pattern>/auth/groups/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>UserServlet</servlet-name>
+    <url-pattern>/users/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>UserServlet</servlet-name>
+    <url-pattern>/auth/users/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>UserRequestServlet</servlet-name>
+    <url-pattern>/userRequests/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>UserRequestServlet</servlet-name>
+    <url-pattern>/auth/userRequests/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>LoginServlet</servlet-name>
+    <url-pattern>/login</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>ResetPasswordServlet</servlet-name>
+    <url-pattern>/resetPassword</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>ResetPasswordServlet</servlet-name>
+    <url-pattern>/auth/resetPassword</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>ACSearchServlet</servlet-name>
+    <url-pattern>/search/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>ACSearchServlet</servlet-name>
+    <url-pattern>/auth/search/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>WhoAmIServlet</servlet-name>
+    <url-pattern>/whoami</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>WhoAmIServlet</servlet-name>
+    <url-pattern>/auth/whoami</url-pattern>
+  </servlet-mapping>
+  
+  <!--
+    OIDC Mappings
+    -->
+  <servlet-mapping>
+    <servlet-name>OIDCConfigurationServlet</servlet-name>
+    <url-pattern>/.well-known/openid-configuration</url-pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>OIDCAuthorizeServlet</servlet-name>
+    <url-pattern>/authorize</url-pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>OIDCLoginServlet</servlet-name>
+    <url-pattern>/oidc-login</url-pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>TokenServlet</servlet-name>
+    <url-pattern>/token</url-pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>UserInfoServlet</servlet-name>
+    <url-pattern>/userinfo</url-pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>PublicKeyServlet</servlet-name>
+    <url-pattern>/jwks</url-pattern>
+  </servlet-mapping>
+
+  <!--
+    The Capabilities service.
+  -->
+  <servlet-mapping>
+    <servlet-name>CapabilitiesServlet</servlet-name>
+    <url-pattern>/capabilities</url-pattern>
+  </servlet-mapping>
+
+  <!--
+    The Availability service.
+  -->
+  <servlet-mapping>
+    <servlet-name>AvailabilityServlet</servlet-name>
+    <url-pattern>/availability</url-pattern>
+  </servlet-mapping>
+
+  <!--
+    The Log service
+  -->
+  <servlet-mapping>
+    <servlet-name>logControl</servlet-name>
+    <url-pattern>/logControl</url-pattern>
+  </servlet-mapping>
+
+  <!-- Define the public security role -->
+  <security-role>
+    <description>Public security role</description>
+    <role-name>public</role-name>
+  </security-role>
+
+  <!-- Define a security constraint for auth servlet -->
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>auth</web-resource-name>
+      <description/>
+      <url-pattern>/auth/*</url-pattern>
+      <http-method>GET</http-method>
+      <http-method>POST</http-method>
+      <http-method>HEAD</http-method>
+      <http-method>PUT</http-method>
+      <http-method>OPTIONS</http-method>
+      <http-method>TRACE</http-method>
+      <http-method>DELETE</http-method>
+    </web-resource-collection>
+    <auth-constraint>
+      <description>force authentication for all requests</description>
+      <role-name>public</role-name>
+    </auth-constraint>
+  </security-constraint>
+
+  <!--
+    BASIC Http Authentication for logControl
+  -->
+  <login-config>
+    <auth-method>BASIC</auth-method>
+    <realm-name>Canadian Astronomy Data Centre</realm-name>
+  </login-config>
+</web-app>

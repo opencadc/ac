@@ -1,0 +1,36 @@
+{
+ "issuer": "https://replace.me.com/ac",
+ "authorization_endpoint":
+     "https://replace.me.com/ac/authorize",
+ "token_endpoint":
+     "https://replace.me.com/ac/token",
+ "token_endpoint_auth_methods_supported":
+     ["client_secret_post"],
+ "token_endpoint_auth_signing_alg_values_supported":
+     ["RS256"],
+ "userinfo_endpoint":
+     "https://replace.me.com/ac/userinfo",
+ "jwks_uri":
+     "https://replace.me.com/ac/jwks",
+ "registration_endpoint":
+     "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/auth/request.html",
+ "scopes_supported":
+     ["openid"],
+ "response_types_supported":
+     ["code"],
+ "subject_types_supported":
+     ["public", "pairwise"],
+ "display_values_supported":
+     ["page", "popup"],
+ "claim_types_supported":
+     ["normal", "distributed"],
+ "claims_supported":
+     ["sub", "iss", "exp", "iat", "acr",
+      "name", "email", "memberOf"],
+ "claims_parameter_supported":
+     false,
+ "service_documentation":
+     "http://replace.me.com/ac",
+ "ui_locales_supported":
+     ["en-US", "en-GB", "en-CA", "fr-FR", "fr-CA"]
+}
