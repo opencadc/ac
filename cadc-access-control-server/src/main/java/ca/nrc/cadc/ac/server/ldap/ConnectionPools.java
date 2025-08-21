@@ -79,9 +79,9 @@ import org.apache.log4j.Logger;
  */
 public class ConnectionPools {
 
-    private LdapConfig config;
+    private final LdapConfig config;
 
-    private Map<String, LdapConnectionPool> pools;
+    private final Map<String, LdapConnectionPool> pools;
     private static final Logger logger = Logger.getLogger(ConnectionPools.class);
 
     private long lastPoolCheck = System.currentTimeMillis();
@@ -111,9 +111,7 @@ public class ConnectionPools {
 
     public void close() {
         Collection<LdapConnectionPool> allPools = pools.values();
-        Iterator<LdapConnectionPool> i = allPools.iterator();
-        while (i.hasNext()) {
-            LdapConnectionPool next = i.next();
+        for (LdapConnectionPool next : allPools) {
             try {
                 next.shutdown();
             } catch (Throwable t) {

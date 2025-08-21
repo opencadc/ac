@@ -76,7 +76,6 @@ import java.util.Random;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.log4j.Logger;
-import com.unboundid.ldap.sdk.DN;
 import com.unboundid.ldap.sdk.LDAPConnection;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
@@ -93,10 +92,9 @@ public abstract class LdapDAO {
     protected static final String LDAP_INET_USER = "inetuser";
     protected static final String LDAP_NSACCOUNTLOCK = "nsaccountlock";
 
-    private LdapConnections connections;
+    private final LdapConnections connections;
     protected LdapConfig config;
 
-    DN subjDN = null;
 
     public LdapDAO(LdapConnections connections) {
         this.connections = connections;
@@ -126,7 +124,7 @@ public abstract class LdapDAO {
      * Services that support a different mechanism for generating numeric
      * IDs override this method.
      *
-     * @return
+     * @return Next random numeric ID to use.
      */
     protected int genNextNumericId() {
         Random rand = new Random();
@@ -139,7 +137,7 @@ public abstract class LdapDAO {
      * mapping between ldap errors and exception types
      *
      * @param code The code returned from an LDAP request.
-     * @throws TransientException
+     * @throws TransientException If unexpected, temporary error occurs
      */
     protected static void checkLdapResult(ResultCode code)
             throws TransientException {

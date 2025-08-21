@@ -69,12 +69,20 @@
 package ca.nrc.cadc.ac.server.web.users;
 
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
 import java.io.InputStream;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.util.Set;
+import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
 
 public class CreateUserAction extends AbstractUserAction {
+    private static final Logger log = Logger.getLogger(CreateUserAction.class);
     private final InputStream inputStream;
 
     CreateUserAction(final InputStream inputStream) {
@@ -83,12 +91,35 @@ public class CreateUserAction extends AbstractUserAction {
     }
 
 
+    boolean canSelfCreate(final User user) {
+        // Only OpenID and X509 users can create their own CADC accounts automatically and for their identities only
+        Subject sub = AuthenticationUtil.getCurrentSubject();
+        if (sub == null || sub.getPrincipals().isEmpty()) {
+            log.debug("Can't self-create CADC account: no subject or principals");
+            return false; // no subject or principals
+        }
+        if (sub.getPrincipals().size() != 1) {
+            log.debug("Can't self-create CADC account: subject has multiple principals");
+            return false; // multiple principals
+        }
+
+        Principal subPrinc = sub.getPrincipals().iterator().next();
+        if (!(subPrinc instanceof X500Principal) && !(subPrinc instanceof OpenIdPrincipal)) {
+            log.debug("Can't self-create CADC account: subject principal is not X500 or OpenID");
+            return false; // not X500 or OpenID principal
+        }
+
+        return user.getIdentities().size() == 1 && user.getIdentities().contains(subPrinc);
+    }
+
     public void doAction() throws Exception {
-        if (!isPrivilegedSubject) {
+        final User user = readUser(this.inputStream);
+
+        if (!isPrivilegedSubject && !canSelfCreate(user)) {
             throw new AccessControlException("non-privileged user cannot create a user");
         }
 
-        final User user = readUser(this.inputStream);
+
         final User returnUser = userPersistence.addUser(user);
 
         syncOut.setCode(201);

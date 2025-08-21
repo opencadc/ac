@@ -76,14 +76,17 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.client.GroupMemberships;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.DNPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.TokenValidator;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -93,6 +96,7 @@ import java.util.TreeSet;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
+import org.opencadc.auth.StandardIdentityManager;
 
 /**
  * Internal implementation of IdentityManager for AuthenticationUtil in cadc-util.
@@ -124,11 +128,19 @@ public class IdentityManagerImpl implements IdentityManager {
 
     @Override
     public Subject validate(Subject subject) throws AccessControlException {
-        return TokenValidator.validateTokens(subject);
+        Subject sub = TokenValidator.validateTokens(subject);
+        if (!sub.getPrincipals(AuthorizationTokenPrincipal.class).isEmpty()) {
+            LocalAuthority loc = new LocalAuthority();
+            if (loc.getResourceID(Standards.SECURITY_METHOD_OPENID) != null) {
+                StandardIdentityManager sim = new StandardIdentityManager();
+                return sim.validate(sub);
+            }
+        }
+        return sub;
     }
 
     /**
-     * @param subject
+     * @param subject Subject to augment
      * @return the possibly modified subject
      */
     @Override
@@ -141,13 +153,11 @@ public class IdentityManagerImpl implements IdentityManager {
             return subject;
         }
 
-        if (subject != null && subject.getPrincipals().size() > 0) {
+        if (subject != null && !subject.getPrincipals().isEmpty()) {
             Profiler prof = new Profiler(IdentityManagerImpl.class);
             this.augmentSubject(subject);
             prof.checkpoint("userDAO.augmentSubject()");
 
-            // if the caller had an invalid or forged CADC_SSO cookie, we could get
-            // in here and then not match any known identity: drop to anon
             if (subject.getPrincipals(NumericPrincipal.class).isEmpty()) // no matching internal account
             {
                 log.debug("NumericPrincipal not found - dropping to anon: " + subject);
@@ -239,7 +249,7 @@ public class IdentityManagerImpl implements IdentityManager {
             ret = p;
             if ((p instanceof HttpPrincipal) || (p instanceof X500Principal)
                     || (p instanceof NumericPrincipal) || (p instanceof DNPrincipal)
-                    || (p instanceof PosixPrincipal)) {
+                    || (p instanceof PosixPrincipal) || (p instanceof OpenIdPrincipal)) {
                 return ret;
             }
         }

@@ -117,6 +117,7 @@ public class UserActionFactoryTest {
         try {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
+            EasyMock.expect(request.getParameter("iss")).andReturn(null);
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.expect(request.getParameter("hard")).andReturn(null);
             EasyMock.replay(request);
@@ -134,6 +135,7 @@ public class UserActionFactoryTest {
         try {
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn("userName");
+            EasyMock.expect(request.getParameter("iss")).andReturn(null);
             EasyMock.expect(request.getParameter("idType")).andReturn("sessionID");
             EasyMock.expect(request.getParameter("detail")).andReturn("display");
             EasyMock.replay(request);
