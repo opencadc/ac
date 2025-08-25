@@ -58,11 +58,7 @@ import ca.nrc.cadc.util.StringUtil;
  */
 public class SSOLoginServlet extends SSOServlet
 {
-    private static final Logger LOGGER = Logger
-            .getLogger(SSOLoginServlet.class);
-
-    // New canonical name per containerized convention
-    public static final String AC_PROPERTIES_FILE = "access.properties"; 
+    private static final Logger LOGGER = Logger.getLogger(SSOLoginServlet.class);
 
     private LoginAuthenticator loginAuthenticator;
 
