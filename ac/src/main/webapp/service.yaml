@@ -1,0 +1,520 @@
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: Access Control
+  description: |
+    The CANFAR access control web service.
+
+
+    The following operations are available in the Access Control (AC) web service:
+
+
+    - Group Management
+    - Group Searching
+    - User Management
+    - User Login
+    - Who Am I (Logged-in user info)
+    - Service Availability
+
+
+    A CANFAR user can be identified in multiple ways, including:
+
+
+    - Their distinguished name (DN) as described on their client certificate
+    - Their CANFAR userID
+
+
+    In the cases where clients of the web service need to identify a user through the REST API, either in the URL or in a posted document, it is done using two fields:
+
+
+    idType - Describes the type of identity being provided in field userID. Accepted values of idType are:
+
+
+
+      - x509 - Indicates value of userID is in DN format.
+
+
+
+      - http - Indicates value of userID is in http-basic authorization userid
+    format.
+
+
+    id - The value identifying the user in the format specified by idType
+
+
+    Groups have an owner, a list of administrators and a list of members. The list of members and administrators can be composed of groups and users. The following describes the role of these properties of a group. The API sometimes requires the role to be specified in parameter 'role':
+
+
+    - owner - Can modify administrators list and members list. Can delete the group.
+
+
+    - admin - Can modify the administrators and members list.
+
+
+    - member - Are granted access to the resources the group is associated with.
+basePath: /ac
+paths:
+  /groups:
+    get:
+      description: |
+        Lists the names of all the groups in the service
+      tags:
+        - Groups
+      schemes:
+        - https
+      produces:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '403':
+          description: (forbidden) if the caller does not have read permission
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    put:
+      description: |
+        Create the group according to the group XML document in the HTTP PUT.
+      tags:
+        - Groups
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: 404 Not Found - If a member is not recognized.
+        '409':
+          description: 409 Conflict - If a group with the same name already exists.
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+  '/groups/{groupID}':
+    get:
+      description: |
+        Get the group with name {groupID}.
+      tags:
+        - Groups
+      schemes:
+        - https
+      produces:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    delete:
+      description: |
+        DELETE the group with name {groupID}.
+      tags:
+        - Groups
+      schemes:
+        - https
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    post:
+      description: |
+        Modify the group with name {groupID} according to the group XML document in the HTTP POST.
+      tags:
+        - Groups
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} could not be found.'
+        '409':
+          description: 409 Conflict - If a member group with the same name already exists.
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    parameters:
+      - name: groupID
+        in: path
+        description: The ID of the group
+        required: true
+        type: string
+  '/groups/{groupID}/userMembers/{userID}':
+    put:
+      description: |
+        Add user {userID} as a member of group {groupID}.
+      tags:
+        - Groups
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} could not be found or if the member {userID} is not recognized'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    delete:
+      description: |
+        Remove user {userID} as a member of group {groupID}.
+      tags:
+        - Groups
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} could not be found or if the member {userID} is not recognized'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    parameters:
+      - name: groupID
+        in: path
+        description: The ID of the group
+        required: true
+        type: string
+      - name: userID
+        in: path
+        description: The ID of the user member
+        required: true
+        type: string
+      - name: idType
+        in: query
+        description: The type of userID
+        required: true
+        type: string
+        enum:
+          - http
+          - x509
+          - cadc
+  '/groups/{groupID2}/groupMembers/{groupID}':
+    put:
+      description: |
+        Add group {groupID2} as a member of group {groupID}.
+      tags:
+        - Groups
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} or group {groupID2} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    delete:
+      description: |
+        Remove group {groupID2} as a member of group {groupID}.
+      tags:
+        - Groups
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the group {groupID} or {gropuID2} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    parameters:
+      - name: groupID
+        in: path
+        description: The ID of the group to manage
+        required: true
+        type: string
+      - name: groupID2
+        in: path
+        description: The ID of the group member.
+        required: true
+        type: string
+  /search:
+    get:
+      description: |
+        Find groups in which the calling user has the provided role.  
+      tags:
+        - Membership searching
+      schemes:
+        - https
+      produces:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+      parameters:
+        - name: groupID
+          in: query
+          description: Search only the group with this ID.  If groupID is supplied, role must also be supplied.
+          required: false
+          type: string
+        - name: role
+          in: query
+          description: The role to search.
+          required: false
+          type: string
+          default: member
+          enum:
+            - owner
+            - admin
+            - member
+        - name: group
+          in: query
+          description: An alias for the groupID parameters, but conforming to the IVOA GMS Standard.  Multiple group parameters can be supplied and each one will be checked.  The response list shows every group in which the calling user is a member.
+          required: false
+          type: string
+  /users:
+    get:
+      description: |
+        Lists basic public information about users in the service.
+      tags:
+        - Users
+      schemes:
+        - https
+      produces:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '403':
+          description: (forbidden) if the caller does not have permission
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    put:
+      description: |
+        Request the user account in the user XML document in the HTTP PUT. This can take an arbitrary amount of time. If the account existed before but was deleted, this operation will reenable the account.
+      tags:
+        - Users
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '409':
+          description: 409 Conflict - If a user with the same name already exists.
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+  '/users/{userID}':
+    get:
+      description: |
+        Get the user with userid {userID} of type {idType}. This operation supports an optional parameter 'detail', which can have values of display or identity. The detail parameter adjusts the amount type of user information that is returned.
+      tags:
+        - Users
+      schemes:
+        - https
+      produces:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the user {userID} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+      parameters:
+        - name: detail
+          in: query
+          description: Set the level of detail
+          required: false
+          type: string
+          enum:
+            - display
+            - identity
+    delete:
+      description: |
+        DELETE the user with ID {userID}.
+      tags:
+        - Users
+      schemes:
+        - https
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the user {userID} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+      parameters:
+        - name: hard
+          in: query
+          description: 'If true, delete rather than deactive (operational use only)'
+          required: false
+          type: string
+    post:
+      description: |
+        Modify the user with name {userID} according to the user XML document in the HTTP POST.
+      tags:
+        - Users
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: '404 Not Found - If the user {userID} could not be found.'
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+    parameters:
+      - name: userID
+        in: path
+        description: The ID of the user
+        required: true
+        type: string
+      - name: idType
+        in: query
+        description: The type of userID
+        required: true
+        type: string
+        enum:
+          - http
+          - x509
+          - cadc
+  /login:
+    post:
+      description: |
+        Validate the userID and password combination. If the combination is valid this operation will return a cookie that can be used to enter any of these endpoints over HTTP.
+      tags:
+        - Users
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '403':
+          description: 403 Permission Denied - If the userID / pasword validation failed.
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+      parameters:
+        - name: username
+          in: query
+          description: The username for login
+          required: true
+          type: string
+        - name: password
+          in: query
+          description: The password for login
+          required: true
+          type: string
+  /whoami:
+    get:
+      description: |
+        Returns information about the authentication user.
+      tags:
+        - Users
+      schemes:
+        - https
+      consumes:
+        - text/xml
+      responses:
+        '200':
+          description: Successful response
+        '500':
+          description: Internal error
+        '503':
+          description: Service busy
+        default:
+          description: Unexpeced error
+  /availability:
+    get:
+      tags:
+        - Support Interfaces
+      schemes:
+        - https
+      summary: VOSI Availability
+      description: 'Indicates whether the service is operable and shows the reliability of the service for extended and scheduled requests. If the query parameter ''detail=min'' is used, a light weight heart beat test will be performed. The heart beat test returns status 200 if the service is available.'
+      parameters:
+        - name: detail
+          in: query
+          description: 'specifies heart beat to be used to check for availability of this service, the value ''min'' must be used, otherwise the full availability test will be performed'
+          required: false
+          type: string
+      responses:
+        '200':
+          description: A VOSI availability document in XML.
+        default:
+          description: Unexpected error
+
