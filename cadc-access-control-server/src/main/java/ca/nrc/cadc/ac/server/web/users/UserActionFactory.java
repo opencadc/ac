@@ -73,10 +73,14 @@ import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.net.NetUtil;
+import ca.nrc.cadc.util.StringUtil;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.Principal;
 import java.util.UUID;
 import javax.security.auth.x500.X500Principal;
@@ -104,7 +108,7 @@ public abstract class UserActionFactory {
                     action = new GetUserListAction();
                 } else if (segments.length == 1) {
                     String userID = NetUtil.decode(segments[0]);
-                    Principal p = getIdentity(userID, request.getParameter("idType"));
+                    Principal p = getIdentity(userID, request);
                     action = new GetUserAction(p, request.getParameter("detail"));
                 }
 
@@ -178,7 +182,7 @@ public abstract class UserActionFactory {
 
                 if (segments.length == 1) {
                     String userID = NetUtil.decode(segments[0]);
-                    Principal p = getIdentity(userID, request.getParameter("idType"));
+                    Principal p = getIdentity(userID, request);
                     String hardDelete = request.getParameter("hard");
                     boolean markAsDeleted = true;
                     if (hardDelete != null && hardDelete.equalsIgnoreCase(Boolean.TRUE.toString())) {
@@ -207,9 +211,18 @@ public abstract class UserActionFactory {
         };
     }
 
-    private static Principal getIdentity(String userName, String idType) {
+    private static Principal getIdentity(String userName, HttpServletRequest request) {
+        String iss = request.getParameter("iss");
+        if (StringUtil.hasText(iss)) {
+            try {
+                return new OpenIdPrincipal(new URL(iss), userName);
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException("Bad value for issuer: " + iss);
+            }
+        }
+        String idType = request.getParameter("idType");
         if (idType == null || idType.isEmpty()) {
-            throw new IllegalArgumentException("User endpoint missing idType parameter");
+            throw new IllegalArgumentException("User endpoint missing idType or iss parameter");
         } else if (idType.equalsIgnoreCase(IdentityType.USERNAME.getValue())) {
             return new HttpPrincipal(userName);
         } else if (idType.equalsIgnoreCase(IdentityType.X500.getValue())) {
@@ -226,7 +239,7 @@ public abstract class UserActionFactory {
                 throw new IllegalArgumentException("Bad value for posix id type");
             }
         } else {
-            throw new IllegalArgumentException("Unrecognized idType");
+            throw new IllegalArgumentException("Unknown idType (" + idType + ") - userName: " + userName);
         }
     }
 

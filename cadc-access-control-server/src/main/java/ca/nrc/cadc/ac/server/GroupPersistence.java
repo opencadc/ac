@@ -117,9 +117,9 @@ public interface GroupPersistence {
      * @param groupName         the group ID
      * @param doPermissionCheck normally true, false for priviledged caller
      * @return the target group
-     * @throws GroupNotFoundException
-     * @throws TransientException
-     * @throws AccessControlException
+     * @throws GroupNotFoundException  If the group was not found.
+     * @throws TransientException      If a temporary, unexpected problem occurred.
+     * @throws AccessControlException  If the operation is not permitted for user.
      */
     Group getGroup(String groupName, boolean doPermissionCheck)
             throws GroupNotFoundException, TransientException, AccessControlException;
@@ -176,8 +176,8 @@ public interface GroupPersistence {
      * @return Collection of Groups matching the query, or empty Collection.
      * Never null.
      * @throws UserNotFoundException                 If owner or group members not valid users.
-     * @throws ca.nrc.cadc.ac.GroupNotFoundException
-     * @throws TransientException                    If an temporary, unexpected problem occurred.
+     * @throws ca.nrc.cadc.ac.GroupNotFoundException If the group was not found.
+     * @throws TransientException                    If a temporary, unexpected problem occurred.
      * @throws AccessControlException                If the operation is not permitted.
      */
     Collection<Group> getGroups(Role role, String groupID)
