@@ -206,7 +206,8 @@ public class GroupPersistenceImpl extends LdapGroupPersistence
 
     @Override
     public Collection<Group> getGroups(Role role, String groupID)
-        throws TransientException, AccessControlException
+        throws UserNotFoundException, GroupNotFoundException,
+               TransientException, AccessControlException
     {
         Collection<Group> groups = super.getGroups(role, groupID);
         for (Group g : groups)
