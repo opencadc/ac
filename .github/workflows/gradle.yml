@@ -46,3 +46,6 @@ jobs:
 
     - name: build and test ac
       run: cd ac && ../gradlew --info clean build javadoc
+      
+    - name: build and test access
+      run: cd access && ../gradlew --info clean build

@@ -93,9 +93,9 @@ public interface UserPersistence {
      * @param user The user request to put into the users tree.
      * @return User instance.
      * @throws UserNotFoundException                     when the user is not found.
-     * @throws TransientException                        If an temporary, unexpected problem occurred.
+     * @throws TransientException                        If a temporary, unexpected problem occurred.
      * @throws AccessControlException                    If the operation is not permitted.
-     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException If user already exists
      */
     User addUser(User user)
             throws UserNotFoundException, TransientException, AccessControlException,
@@ -108,9 +108,9 @@ public interface UserPersistence {
      * @param ownerHttpPrincipal The posix group owner.
      * @return User instance.
      * @throws UserNotFoundException                     when the user is not found.
-     * @throws TransientException                        If an temporary, unexpected problem occurred.
+     * @throws TransientException                        If a temporary, unexpected problem occurred.
      * @throws AccessControlException                    If the operation is not permitted.
-     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException
+     * @throws ca.nrc.cadc.ac.UserAlreadyExistsException If user already exists
      */
     User addUserRequest(UserRequest user, Principal ownerHttpPrincipal)
             throws UserNotFoundException, TransientException, AccessControlException,
@@ -320,7 +320,7 @@ public interface UserPersistence {
     /**
      * Update a user's password. The given user and authenticating user must match.
      *
-     * @param userID
+     * @param userID ID of the user to set the password for.
      * @param oldPassword current password.
      * @param newPassword new password.
      * @throws UserNotFoundException  If the given user does not exist.
@@ -333,7 +333,7 @@ public interface UserPersistence {
     /**
      * Reset a user's password. The given user and authenticating user must match.
      *
-     * @param userID
+     * @param userID The ID of the user to re-set the password for.
      * @param newPassword new password.
      * @throws UserNotFoundException  If the given user does not exist.
      * @throws TransientException     If an temporary, unexpected problem occurred.

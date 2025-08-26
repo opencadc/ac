@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,11 +69,66 @@
 
 package ca.nrc.cadc.ac.server.web.users;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.OpenIdPrincipal;
+import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.util.StringUtil;
+import java.net.URL;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.junit.Test;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class CreateUserActionTest {
     @Test
-    public void testCreateUser() throws Exception {
+    public void testCanSelfCreate() throws Exception {
+        Subject subject = new Subject();
+        User user = new User();
+        CreateUserAction cau = new CreateUserAction(null);
 
+        assertFalse("Self-create no subject", cau.canSelfCreate(user));
+        assertFalse("Self-create with anon subject", canSelfCreateAsUser(subject, user));
+        assertFalse("Self-create with no user identities", canSelfCreateAsUser(subject, user));
+
+        user.getIdentities().add(new OpenIdPrincipal(new URL("http://issuer.com/"), "testuser"));
+        assertFalse("Self-create without matching subject credentials", canSelfCreateAsUser(subject, user));
+        subject.getPrincipals().add(new OpenIdPrincipal(new URL("http://issuer.com/"), "testuser"));
+        assertTrue("Self-create with matching OpenId principal", canSelfCreateAsUser(subject, user));
+
+        X500Principal x500Principal = new X500Principal("CN=testuser, O=Test Org, C=CA");
+        subject.getPrincipals().add(x500Principal);
+        assertFalse("Self-create with multiple principals", canSelfCreateAsUser(subject, user));
+        subject.getPrincipals().clear();
+        subject.getPrincipals().add(x500Principal);
+        assertFalse("Self-create with no matching credentials", canSelfCreateAsUser(subject, user));
+
+        user.getIdentities().clear();
+        user.getIdentities().add(new X500Principal("CN=testuser, O=Test Org, C=CA"));
+        assertTrue("Self-create with user subject", canSelfCreateAsUser(subject, user));
+
+        // make identities not match
+        user.getIdentities().clear();
+        user.getIdentities().add(new X500Principal("CN=testuser2, O=Test Org, C=CA"));
+        assertFalse("Self-create when credentials don't match", canSelfCreateAsUser(subject, user));
+
+        // add extra HttpPrincipal to Subject
+        subject.getPrincipals().add(new HttpPrincipal("testuser"));
+        assertFalse("Self-create no subject with subject 2 OpenIDPrincipals", cau.canSelfCreate(user));
+        subject.getPrincipals().clear();
+        subject.getPrincipals().add(new PosixPrincipal(1000));
+        assertFalse("Self-create with Posix Principal", canSelfCreateAsUser(subject, user));
+    }
+
+    private boolean canSelfCreateAsUser(Subject subject, User user) throws Exception {
+        return (boolean)Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                CreateUserAction cau = new CreateUserAction(null);
+                return cau.canSelfCreate(user);
+            }
+        });
     }
 }
