@@ -90,6 +90,7 @@ import java.net.URI;
 import java.net.URL;
 import java.security.Key;
 import java.security.Principal;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -145,6 +146,7 @@ public class StandardIdentityManager implements IdentityManager {
     // need these to construct an AuthorizationToken
     private final RegistryClient reg = new RegistryClient();
     private final List<String> oidcDomains = new ArrayList<>();
+    private final PosixMapperClient pmc;
 
     OIDCClient oidcClient;
     private URI oidcScope;  // TODO - not assigned yet
@@ -159,10 +161,36 @@ public class StandardIdentityManager implements IdentityManager {
         oidcDomains.add(u.getHost());
 
         // add known and assume trusted A&A services
+        
+        // optional GMS
         String host = getProviderHostname(loc, Standards.GMS_SEARCH_10);
         if (host != null) {
             oidcDomains.add(host);
         }
+
+        // optional posix-mapper
+        URI posixUserMap = loc.getResourceID(Standards.POSIX_USERMAP);
+        if (posixUserMap != null) {
+            String pmcHost;
+            if ("ivo".equals(posixUserMap.getScheme())) {
+                this.pmc = new PosixMapperClient(posixUserMap);
+                pmcHost = getProviderHostname(loc, Standards.POSIX_USERMAP);
+            } else if ("https".equals(posixUserMap.getScheme()) || "http".equals(posixUserMap.getScheme())) {
+                try {
+                    URL url = posixUserMap.toURL();
+                    pmcHost = url.getHost();
+                    this.pmc = new PosixMapperClient(url);
+                } catch (MalformedURLException ex) {
+                    throw new RuntimeException("CONFIG: malformed posix mapper url: " + posixUserMap);
+                }
+            } else {
+                throw new RuntimeException("CONFIG: unsupported posix-mapping identifier scheme: " + posixUserMap);
+            }
+            oidcDomains.add(pmcHost);
+        } else {
+            this.pmc = null; // not configured
+        }
+
         for (String dom : oidcDomains) {
             log.debug("OIDC domain: " + dom);
         }
@@ -226,34 +254,33 @@ public class StandardIdentityManager implements IdentityManager {
                     if (cur == null && hasHP) {
                         // not in a Subject.doAs
                         // use case: augment authenticated user after validate at start of request
-                        Set<AuthorizationToken> ats = subject.getPublicCredentials(AuthorizationToken.class);
-                        Iterator<AuthorizationToken> i = ats.iterator();
-                        if (i.hasNext()) {
-                            AuthorizationToken at = i.next();
-                            if (host == null) {
-                                host = getProviderHostname(loc, Standards.POSIX_USERMAP);
-                            }
-                            at.getDomains().add(host); // not sure if this should work
-                        }
+                        // use case: calls where caller and target subject are not the same
+
+                        // self augment
                         return Subject.doAs(subject, (PrivilegedExceptionAction<Subject>) () -> pmc.augment(subject));
                     }
                     if (cur != null) {
-                        // already inside a Subject.doAs
+                        // already in a Subject.doAs
                         // use case: augment from a persistently stored identity (eg uws job or vospace node)
-                        return pmc.augment(subject);
+                        if (!cur.getPublicCredentials(AuthorizationToken.class).isEmpty()) {
+                            // caller augment
+                            return pmc.augment(subject);
+                        }
                     }
-                    throw new RuntimeException("BUG: did not call PosixMapperClient.augment(Subject)");
+                    // else no credentials in caller is a bug
+                    throw new RuntimeException("BUG: did not call PosixMapperClient.augment(Subject): no credentials in caller subject");
                 } else {
                     // this is probably OK as most services do not need/use PosixPrincipal
                     log.debug("did not call PosixMapperClient.augment(Subject): no service configured to provide "
                             + Standards.POSIX_USERMAP.toASCIIString());
                 }
-            } catch (NoSuchElementException ex) {
-                // this is probably OK as most services do not need/use PosixPrincipal
-                log.debug("did not call PosixMapperClient.augment(Subject): no service configured to provide "
-                        + Standards.POSIX_USERMAP.toASCIIString());
-            } catch (Exception ex) {
-                throw new RuntimeException("FAIL: PosixMapperClient.augment(Subject)", ex);
+            } catch (ResourceAlreadyExistsException | ResourceNotFoundException | IOException | InterruptedException | PrivilegedActionException ex) {
+                throw new RuntimeException("FAIL: PosixMapperClient.augment(Subject): " + ex.getMessage(), ex);
+            } catch (RuntimeException ex) {
+                if (ex.getMessage().startsWith("BUG:")) {
+                    throw ex; // from above
+                }
+                throw new RuntimeException("FAIL: PosixMapperClient.augment(Subject): " + ex.getMessage(), ex);
             }
         }
 
