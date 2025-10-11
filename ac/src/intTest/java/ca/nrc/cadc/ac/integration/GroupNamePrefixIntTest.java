@@ -111,24 +111,6 @@ public class GroupNamePrefixIntTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    private Subject user1Subject;
-    private Subject user2Subject;
-
-    public GroupNamePrefixIntTest()
-    {
-        try
-        {
-            File u1 = FileUtil.getFileFromResource("user1.pem", GmsClientIntTest.class);
-            File u2 = FileUtil.getFileFromResource("user2.pem", GmsClientIntTest.class);
-            user1Subject = SSLUtil.createSubject(u1);
-            user2Subject = SSLUtil.createSubject(u2);
-        }
-        catch(Exception unexpected)
-        {
-            log.error("setup failure", unexpected);
-            throw new RuntimeException("setup failure", unexpected);
-        }
-    }
 
     @Test
     public void testAllow()
@@ -137,14 +119,12 @@ public class GroupNamePrefixIntTest
 
         try
         {
-            LocalAuthority localAuthority = new LocalAuthority();
-            URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-            g = new Group(new GroupURI(gmsServiceURI + "?ALLOW-TEST-" + UUID.randomUUID().toString()));
+            g = new Group(new GroupURI(TestUtil.AC_SERVICE_ID + "?ALLOW-TEST-" + UUID.randomUUID().toString()));
 
-            Group g2 = createGroupAs(g, user1Subject);
+            Group g2 = createGroupAs(g, TestUtil.getInstance().getOwnerSubject());
             assertNotNull(g2);
 
-            Group pg = getGroupAs(g.getID().getName(), user1Subject, true);
+            Group pg = getGroupAs(g.getID().getName(), TestUtil.getInstance().getOwnerSubject(), true);
             assertNotNull(pg);
         }
         catch(Exception unexpected)
@@ -158,7 +138,7 @@ public class GroupNamePrefixIntTest
             {
                 if (g != null)
                 {
-                    deleteGroupAs(g.getID().getName(), user1Subject);
+                    deleteGroupAs(g.getID().getName(), TestUtil.getInstance().getOwnerSubject());
                 }
             }
             catch(Exception ignore) { }
@@ -174,13 +154,10 @@ public class GroupNamePrefixIntTest
         {
             try
             {
-                LocalAuthority localAuthority = new LocalAuthority();
-                URI gmsServiceURI =
-                        localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-                g = new Group(new GroupURI(gmsServiceURI + "?ALLOW-TEST-"
+                g = new Group(new GroupURI(TestUtil.AC_SERVICE_ID + "?ALLOW-TEST-"
                                            + UUID.randomUUID().toString()));
 
-                createGroupAs(g, user2Subject);
+                createGroupAs(g, TestUtil.getInstance().getMemberSubject());
             }
             catch(AccessControlException expected)
             {
@@ -189,7 +166,7 @@ public class GroupNamePrefixIntTest
 
             try
             {
-                Group pg = getGroupAs(g.getID().getName(), user2Subject, false);
+                Group pg = getGroupAs(g.getID().getName(), TestUtil.getInstance().getMemberSubject(), false);
                 fail("expected creategroup to fail && GroupNotFoundException, got: " + pg);
             }
             catch(GroupNotFoundException expected)
@@ -208,7 +185,7 @@ public class GroupNamePrefixIntTest
             {
                 if (g != null)
                 {
-                    deleteGroupAs(g.getID().getName(), user2Subject);
+                    deleteGroupAs(g.getID().getName(), TestUtil.getInstance().getMemberSubject());
                 }
             }
             catch(Exception ignore) { }
@@ -299,10 +276,6 @@ public class GroupNamePrefixIntTest
 
     private GMSClient getGMSClient()
     {
-        LocalAuthority localAuthority = new LocalAuthority();
-        final URI gmsServiceURI =
-                localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
-
-        return new GMSClient(gmsServiceURI);
+        return new GMSClient(URI.create(TestUtil.AC_SERVICE_ID));
     }
 }

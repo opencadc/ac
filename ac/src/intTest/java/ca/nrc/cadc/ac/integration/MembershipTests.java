@@ -97,22 +97,18 @@ public class MembershipTests {
     
     static String TEST_GROUP1 = "CADC_TEST1-Staff";
     static String TEST_GROUP2 = "CADC_TEST2-Staff";
-    Subject subject;
     URL searchURL;
     
     public MembershipTests() throws Exception {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        File auth1 = FileUtil
-                .getFileFromResource("user1.pem", MembershipTests.class);
-        subject = SSLUtil.createSubject(auth1);
         RegistryClient rc = new RegistryClient();
-        searchURL = rc.getServiceURL(URI.create("ivo://cadc.nrc.ca/gms"), Standards.GMS_SEARCH_01, AuthMethod.CERT);
+        searchURL = rc.getServiceURL(URI.create(TestUtil.AC_SERVICE_ID), Standards.GMS_SEARCH_01, AuthMethod.CERT);
     }
     
     @Test
     public void testIsMemberTrue() {
         try {
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
                     URL isMemberURL = new URL(searchURL.toString() + "?group=" + TEST_GROUP1);
@@ -135,7 +131,7 @@ public class MembershipTests {
     @Test
     public void testIsMemberFalse() {
         try {
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
                     URL isMemberURL = new URL(searchURL.toString() + "?group=foo");
@@ -158,7 +154,7 @@ public class MembershipTests {
     @Test
     public void testGetMemberships() {
         try {
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();

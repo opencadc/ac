@@ -143,7 +143,7 @@ public class LoginIntTest
 
     public LoginIntTest() throws URISyntaxException
     {
-        serviceURI = new URI("ivo://cadc.nrc.ca/gms");
+        serviceURI = new URI(TestUtil.AC_SERVICE_ID);
         log.debug("serviceURI: " + serviceURI);
     }
 

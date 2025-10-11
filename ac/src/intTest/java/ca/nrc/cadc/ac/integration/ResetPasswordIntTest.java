@@ -118,7 +118,7 @@ public class ResetPasswordIntTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
 
-        URI umsServiceURI = new URI("ivo://cadc.nrc.ca/gms");
+        URI umsServiceURI = new URI(TestUtil.AC_SERVICE_ID);
 
         RegistryClient regClient = new RegistryClient();
         postServiceURL = regClient

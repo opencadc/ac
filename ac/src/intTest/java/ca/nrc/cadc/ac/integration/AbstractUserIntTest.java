@@ -127,7 +127,7 @@ public abstract class AbstractUserIntTest
 
         RegistryClient regClient = new RegistryClient();
 
-        URI umsServiceURI = new URI("ivo://opencadc.org/gms");
+        URI umsServiceURI = new URI(TestUtil.AC_SERVICE_ID);
 
         URL userServiceURL = regClient
             .getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT);
@@ -148,9 +148,9 @@ public abstract class AbstractUserIntTest
             .getServiceURL(umsServiceURI, Standards.UMS_REQS_01, AuthMethod.ANON).toString();
         log.info("userReqAnonServiceUrl: " + userReqAnonServiceUrl);
 
-        user1 = SSLUtil.createSubject(FileUtil.getFileFromResource("user1.pem", AbstractUserIntTest.class));
-        user2 = SSLUtil.createSubject(FileUtil.getFileFromResource("user2.pem", AbstractUserIntTest.class));
-        opsSubject = SSLUtil.createSubject(FileUtil.getFileFromResource("ops.pem", AbstractUserIntTest.class));
+        user1 = TestUtil.getInstance().getOwnerSubject();
+        user2 = TestUtil.getInstance().getMemberSubject();
+        opsSubject = TestUtil.getInstance().getPrivSubject();
     }
 
     abstract String writeUserRequest(final UserRequest userRequest)

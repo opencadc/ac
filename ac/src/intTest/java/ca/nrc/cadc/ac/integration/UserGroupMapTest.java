@@ -95,20 +95,13 @@ public class UserGroupMapTest {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
     }
 
-    private Subject user1Subject;
-    
-    public UserGroupMapTest() {
-        File user1 = FileUtil.getFileFromResource("user1.pem", GmsClientIntTest.class);
-        user1Subject = SSLUtil.createSubject(user1);
-    }
-    
     @Test
     public void testUserMap() throws Exception {
         RegistryClient reg = new RegistryClient();
-        URI srv = URI.create("ivo://cadc.nrc.ca/gms");
+        URI srv = URI.create(TestUtil.AC_SERVICE_ID);
         final PosixMapperClient pmc = new PosixMapperClient(srv);
         
-        Iterator<PosixPrincipal> iter = Subject.doAs(user1Subject,
+        Iterator<PosixPrincipal> iter = Subject.doAs(TestUtil.getInstance().getOwnerSubject(),
             (PrivilegedExceptionAction<Iterator<PosixPrincipal>>) () -> pmc.getUserMap());
         
         Assert.assertNotNull(iter);
@@ -127,7 +120,7 @@ public class UserGroupMapTest {
         URI srv = URI.create("ivo://cadc.nrc.ca/gms");
         PosixMapperClient pmc = new PosixMapperClient(srv);
 
-        Iterator<PosixGroup> iter = Subject.doAs(user1Subject,
+        Iterator<PosixGroup> iter = Subject.doAs(TestUtil.getInstance().getOwnerSubject(),
             (PrivilegedExceptionAction<Iterator<PosixGroup>>) () -> pmc.getGroupMap());
 
         Assert.assertNotNull(iter);

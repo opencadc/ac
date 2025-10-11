@@ -95,8 +95,6 @@ public class WhoAmIIntTest
     private static final Logger log = Logger.getLogger(WhoAmIIntTest.class);
 
     static URL serviceURL;
-    static File certFile;
-
 
     @BeforeClass
     public static void before()
@@ -104,13 +102,12 @@ public class WhoAmIIntTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
-        URI umsServiceURI = new URI("ivo://cadc.nrc.ca/gms");
+        URI umsServiceURI = new URI(TestUtil.AC_SERVICE_ID);
 
         RegistryClient regClient = new RegistryClient();
         serviceURL = regClient.getServiceURL(umsServiceURI, Standards.UMS_WHOAMI_01, AuthMethod.CERT);
         log.info("serviceUrl: " + serviceURL);
 
-        certFile = new File(System.getenv("A") + "/test-certificates/user1.pem");
     }
 
     @Test
@@ -120,8 +117,7 @@ public class WhoAmIIntTest
         HttpDownload httpGet = new HttpDownload(serviceURL, out);
         httpGet.setFollowRedirects(false);
         
-        Subject s = SSLUtil.createSubject(certFile);
-        Subject.doAs(s, new RunnableAction(httpGet));
+        Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new RunnableAction(httpGet));
 
         assertEquals("Wrong response code", 302, httpGet.getResponseCode());
         assertNull("GET returned errors", httpGet.getThrowable());
@@ -129,11 +125,12 @@ public class WhoAmIIntTest
         URL redirectURL = httpGet.getRedirectURL();
         assertNotNull("redirectURL is null", redirectURL);
         log.debug("redirect URL: " + redirectURL.toString());
-        assertTrue("incorrect redirectURL", redirectURL.toString().contains("/users/user1"));
+        assertTrue("incorrect redirectURL", redirectURL.toString().contains(
+                "/users/" + TestUtil.getInstance().getOwnerUsername()));
 
         httpGet = new HttpDownload(redirectURL, out);
         httpGet.setFollowRedirects(false);
-        Subject.doAs(s, new RunnableAction(httpGet));
+        Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new RunnableAction(httpGet));
 
         assertEquals("Wrong response code", 200, httpGet.getResponseCode());
         assertNull("GET returned errors", httpGet.getThrowable());

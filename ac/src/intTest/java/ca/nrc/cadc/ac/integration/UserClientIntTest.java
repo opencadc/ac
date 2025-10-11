@@ -110,11 +110,8 @@ public class UserClientIntTest
     private Principal httpPrincipal;
     private Principal numericPrincipal;
 
-    private Subject opsSubject;
-
     private URI serviceURI;
     private UserClient userClient;
-    private Subject user1Subject;
 
     static
     {
@@ -127,21 +124,21 @@ public class UserClientIntTest
 
         try
         {
-            serviceURI = new URI("ivo://cadc.nrc.ca/gms");
+            serviceURI = new URI(TestUtil.AC_SERVICE_ID);
 
             this.userClient = new UserClient(serviceURI);
 
-            this.x500Principal = new X500Principal("CN=user1,OU=cadc,O=hia,C=ca");
+            Set<X500Principal> x500 = TestUtil.getInstance().getAugmentedOwnerSubject().getPrincipals(X500Principal.class);
+            Assert.assertEquals("Single X500Principal expected in owner subject", 1, x500.size());
+            this.x500Principal = x500.iterator().next();
 
-            this.httpPrincipal = new HttpPrincipal("user1");
+            Set<HttpPrincipal> http = TestUtil.getInstance().getAugmentedOwnerSubject().getPrincipals(HttpPrincipal.class);
+            Assert.assertEquals("Single HttpPrincipal expected in owner subject", 1, http.size());
+            this.httpPrincipal = http.iterator().next();
 
-            this.numericPrincipal = new NumericPrincipal(new UUID(0L, 4L));
-
-            File ops = FileUtil.getFileFromResource("ops.pem", UserClientIntTest.class);
-            this.opsSubject = SSLUtil.createSubject(ops);
-
-            File user1 = FileUtil.getFileFromResource("user1.pem", UserClientIntTest.class);
-            user1Subject = SSLUtil.createSubject(user1);
+            Set<NumericPrincipal> numeric = TestUtil.getInstance().getAugmentedOwnerSubject().getPrincipals(NumericPrincipal.class);
+            Assert.assertEquals("Single NumericPrincipal expected in owner subject", 1, numeric.size());
+            this.numericPrincipal = numeric.iterator().next();
         }
         catch(Exception unexpected)
         {
@@ -184,7 +181,7 @@ public class UserClientIntTest
             final Subject target = new Subject();
             target.getPrincipals().add(p);
     		System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-    		Subject.doAs(opsSubject, new PrivilegedExceptionAction<Object>()
+    		Subject.doAs(TestUtil.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
 	    		{
 					@Override
 					public Object run() throws Exception
@@ -267,11 +264,9 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            File file = FileUtil.getFileFromResource("user1.pem", GmsClientIntTest.class);
-            Subject s = SSLUtil.createSubject(file);
             try
             {
-                Subject.doAs(s, new PrivilegedExceptionAction<Object>()
+                Subject.doAs(TestUtil.getInstance().getAnonSubject(), new PrivilegedExceptionAction<Object>()
                 {
                     @Override
                     public Object run() throws Exception
@@ -313,7 +308,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(user1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -344,7 +339,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(user1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -380,7 +375,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(user1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -417,7 +412,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(opsSubject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(TestUtil.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -454,7 +449,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(opsSubject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(TestUtil.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -482,7 +477,7 @@ public class UserClientIntTest
                         URL deleteURL = new URL(serviceURL.toExternalForm() + "/" + path);
 
                         HttpDelete del = new HttpDelete(deleteURL, false);
-                        Subject.doAs(opsSubject, new RunnableAction(del));
+                        Subject.doAs(TestUtil.getInstance().getPrivSubject(), new RunnableAction(del));
 
                         int responseCode = del.getResponseCode();
                         if (responseCode != 200)

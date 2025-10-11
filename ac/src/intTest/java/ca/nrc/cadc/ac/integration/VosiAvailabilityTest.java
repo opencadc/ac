@@ -80,6 +80,6 @@ public class VosiAvailabilityTest extends AvailabilityTest
 
     public VosiAvailabilityTest()
     {
-        super(URI.create("ivo://cadc.nrc.ca/gms"));
+        super(URI.create(TestUtil.AC_SERVICE_ID));
     }
 }
