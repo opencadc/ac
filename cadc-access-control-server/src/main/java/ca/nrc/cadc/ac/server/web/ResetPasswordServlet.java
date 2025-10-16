@@ -370,12 +370,14 @@ public class ResetPasswordServlet extends HttpServlet {
             if (!StringUtil.hasText(token)) {
                 logInfo.setMessage("Unauthorized subject, missing token");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
             SignedToken t = SignedToken.parse(token);
             // verify the scope
             if (!(URI.create(RESET_PASSWORD_SCOPE).equals(t.getScope()))) {
                 logInfo.setMessage("Unauthorized subject, insufficient scope");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
             final Subject subject = new Subject();
             subject.getPrincipals().add(t.getUser());
@@ -388,7 +390,6 @@ public class ResetPasswordServlet extends HttpServlet {
                     } else {
                         throw new IllegalArgumentException("Missing password");
                     }
-
                     return null;
                 }
             });

@@ -90,7 +90,8 @@ import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Common class to generate authentication credentials for different types of users or the ac system.
+ * Common class to produce authentication credentials for different types of users of the ac system configured through
+ * their X509 certificates.
  *
  * AC Integration tests require the following users (name of corresponding cert files)
  * - ac-group-owner.pem : owner of test group
@@ -186,7 +187,6 @@ public class ConfigUsers {
     public Subject getAugmentedSubject(String certFile) {
         Subject subject = SSLUtil.createSubject(FileUtil.getFileFromResource(certFile, ConfigUsers.class));
         try {
-            System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
             Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
@@ -203,8 +203,6 @@ public class ConfigUsers {
             log.error("unexpected", e);
             Assert.fail("Caught an unexpected exception: " + e.getMessage());
             throw new RuntimeException(e);
-        } finally {
-            System.clearProperty(BasicX509TrustManager.class.getName() + ".trust");
         }
     }
 

@@ -133,10 +133,6 @@ public class WhoAmIIntTest
 
         assertEquals("Wrong response code", 200, httpGet.getResponseCode());
         assertNull("GET returned errors", httpGet.getThrowable());
-
-        UserReader ur = new UserReader();
-        User user = ur.read(new String(out.toByteArray()));
-
     }
 
 }

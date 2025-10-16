@@ -113,8 +113,8 @@ public abstract class AbstractUserIntTest {
     @BeforeClass
     public static void setUpClass() throws Exception
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
-        Log4jInit.setLevel("ca.nrc.cadc.reg", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
 
         RegistryClient regClient = new RegistryClient();
 
@@ -313,7 +313,7 @@ public abstract class AbstractUserIntTest {
     public void getUserAsSomeoneElse() throws Exception {
         Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), (PrivilegedExceptionAction<Object>) () -> {
             URL userURL = new URL(userServiceUrl + "/" +
-                    ConfigUsers.getInstance().getPasswordAuthUser().getUserName() + "?idType=http");
+                    ConfigUsers.getInstance().getMemberUsername() + "?idType=http");
 
             HttpGet httpGet = new HttpGet(userURL, false);
             httpGet.setRequestProperty("Accept", getContentType());

@@ -177,9 +177,6 @@ public class ResetPasswordIntTest
 
         Assert.assertNull(get.getThrowable());
         Assert.assertEquals(200, get.getResponseCode());
-
-        // verify the token content
-        log.debug("scoped token: " + out.toString());
     }
 
     @Test
@@ -203,9 +200,8 @@ public class ResetPasswordIntTest
 
         Assert.assertNotNull(postServiceURL);
 
-        log.debug("Del token:" + delToken);
         HttpPost post = new HttpPost(postServiceURL, params, false);
-        post.setRequestProperty(AuthenticationUtil.AUTHORIZATION_HEADER, delToken); // old "X-CADC-DelegationToken"\
+        post.setRequestProperty(AuthenticationUtil.AUTHORIZATION_HEADER, delToken);
         post.run();
         Assert.assertEquals(200, post.getResponseCode());
         Assert.assertNull(post.getThrowable());

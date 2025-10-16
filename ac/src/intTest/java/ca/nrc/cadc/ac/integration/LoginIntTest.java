@@ -91,7 +91,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.net.PasswordAuthentication;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
 import java.util.Arrays;
@@ -115,23 +114,23 @@ public class LoginIntTest {
     private static final Logger log = Logger.getLogger(LoginIntTest.class);
 
     private final URI serviceURI;
-    private final URL serviceUrl;
+    private final URL serviceURL;
     Subject authSubject;
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
-        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.DEBUG);
-        Log4jInit.setLevel("ca.nrc.cadc.net", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.net", Level.INFO);
     }
 
     public LoginIntTest() {
         serviceURI = URI.create(ConfigUsers.AC_SERVICE_ID);
         log.debug("serviceURI: " + serviceURI);
         RegistryClient regClient = new RegistryClient();
-        serviceUrl = regClient
+        serviceURL = regClient
                 .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-        log.info("serviceUrl: " + serviceUrl);
-        Assert.assertNotNull(serviceUrl);
+        log.info("serviceUrl: " + serviceURL);
+        Assert.assertNotNull(serviceURL);
     }
 
     Set<Principal> getPrincipals(final Class<? extends Principal> principalClass, final Set<Principal> principals) {
@@ -157,7 +156,7 @@ public class LoginIntTest {
             params.put("password", pa.getPassword());
 
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(serviceUrl, params, out);
+            HttpPost post = new HttpPost(serviceURL, params, out);
             post.run();
 
             Assert.assertNull(post.getThrowable());
@@ -206,7 +205,7 @@ public class LoginIntTest {
             params.put("password", "qS1U42Y");
 
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(serviceUrl, params, out);
+            HttpPost post = new HttpPost(serviceURL, params, out);
             post.run();
             Assert.assertEquals(400, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -231,7 +230,7 @@ public class LoginIntTest {
             params.put("password", "qS1U42Y");
 
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(serviceUrl, params, out);
+            HttpPost post = new HttpPost(serviceURL, params, out);
             post.run();
             Assert.assertEquals(401, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -257,7 +256,7 @@ public class LoginIntTest {
             params.put("password", "");
 
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(serviceUrl, params, out);
+            HttpPost post = new HttpPost(serviceURL, params, out);
             post.run();
             Assert.assertEquals(400, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -283,7 +282,7 @@ public class LoginIntTest {
             params.put("password", "badpasswd");
 
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(serviceUrl, params, out);
+            HttpPost post = new HttpPost(serviceURL, params, out);
             post.run();
             Assert.assertEquals(401, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -328,7 +327,7 @@ public class LoginIntTest {
                     log.debug("username: " + pa.getUserName());
 
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    HttpPost post = new HttpPost(serviceUrl, callparams, out);
+                    HttpPost post = new HttpPost(serviceURL, callparams, out);
                     post.run();
 
                     Assert.assertNull(post.getThrowable());
@@ -341,14 +340,8 @@ public class LoginIntTest {
                     log.debug("token: " + loginToken);
 
                     CookiePrincipal cookiePrincipal = new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, loginToken);
-
-                    //SSOCookieManager ssoCookieManager = new SSOCookieManager();
-                    //cookieToken = ssoCookieManager.parse(loginToken);
-                    //cookiePrincipals = cookieToken.getIdentityPrincipals();
-
                     cookiePrincipals = new HashSet<Principal>(Arrays.asList(cookiePrincipal));
-
-                    domain = serviceUrl.getHost();
+                    domain = serviceURL.getHost();
                 }
 
                 public Date getExpirationDate()
