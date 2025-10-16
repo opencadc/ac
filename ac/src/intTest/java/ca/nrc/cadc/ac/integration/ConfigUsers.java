@@ -69,76 +69,42 @@
 
 package ca.nrc.cadc.ac.integration;
 
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.client.UserClient;
-import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.BasicX509TrustManager;
-import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.PrincipalExtractor;
-import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.auth.SSOCookieCredential;
-import ca.nrc.cadc.auth.SSOCookieManager;
-import ca.nrc.cadc.auth.SignedToken;
-import ca.nrc.cadc.auth.X509CertificateChain;
-import ca.nrc.cadc.date.DateUtil;
-import ca.nrc.cadc.net.HttpDownload;
-import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.NetrcFile;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.FileUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.net.PasswordAuthentication;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 /**
- * Common utility class for integration tests.
+ * Common class to generate authentication credentials for different types of users or the ac system.
+ *
  * AC Integration tests require the following users (name of corresponding cert files)
  * - ac-group-owner.pem : owner of test group
  * - ac-group-member.pem : member of test group
- * - ac-registered-user.pem : registered user but not a member in any test group
+ * - ac-registered-user.pem : registered user but not a member in any group, e.g. authenticated but not authorized
  * - ac-anon-user.pem : unregistered user
  * - ac-priv-user.pem : privileged user capable of augmenting subject
+ * - ~/.netrc entry for the host part of the ac service URL with login and password for a registered user. It can be
+ * one of the above users.
  *
  * @author andamian
  */
-public class TestUtil
-{
-    private static final Logger log = Logger.getLogger(TestUtil.class);
+public class ConfigUsers {
+    private static final Logger log = Logger.getLogger(ConfigUsers.class);
 
     private String ownerUsername;
     private String memberUsername;
@@ -152,31 +118,18 @@ public class TestUtil
     private static final String ANON_CERT_FILE = "ac-anon-user.pem";
     private static final String PRIV_CERT_FILE = "ac-priv-user.pem";
 
-    private static final UserClient USER_CLIENT;
+    public static final String AC_SERVICE_ID = "ivo://opencadc.org/gms"; // TODO make configurable
 
+    PasswordAuthentication passwordAuthUser;
+    private static ConfigUsers instance;
 
-    public static final String AC_SERVICE_ID = "ivo://opencadc.org/gms";
-
-    static {
-        try {
-            USER_CLIENT = new UserClient(new URI(AC_SERVICE_ID));
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
-    Map<String, Object> params;
-    private static TestUtil instance;
-
-    private TestUtil()
-    {
+    private ConfigUsers() {
         log.debug("User serviceURI: " + AC_SERVICE_ID);
     }
 
-    public static TestUtil getInstance() {
+    public static ConfigUsers getInstance() {
         if (instance == null) {
-            instance = new TestUtil();
+            instance = new ConfigUsers();
         }
         return instance;
     }
@@ -189,7 +142,7 @@ public class TestUtil
     }
 
     public Subject getOwnerSubject() {
-        return SSLUtil.createSubject(FileUtil.getFileFromResource(ONWER_CERT_FILE, TestUtil.class));
+        return SSLUtil.createSubject(FileUtil.getFileFromResource(ONWER_CERT_FILE, ConfigUsers.class));
     }
 
     public Subject getAugmentedOwnerSubject() {
@@ -207,7 +160,7 @@ public class TestUtil
     }
 
     public Subject getMemberSubject() {
-        return SSLUtil.createSubject(FileUtil.getFileFromResource(MEMBER_CERT_FILE, TestUtil.class));
+        return SSLUtil.createSubject(FileUtil.getFileFromResource(MEMBER_CERT_FILE, ConfigUsers.class));
     }
 
     public String getRegisteredUsername() {
@@ -218,26 +171,27 @@ public class TestUtil
     }
 
     public Subject getRegisteredSubject() {
-        return SSLUtil.createSubject(FileUtil.getFileFromResource(REGISTERED_CERT_FILE, TestUtil.class));
+        return SSLUtil.createSubject(FileUtil.getFileFromResource(REGISTERED_CERT_FILE, ConfigUsers.class));
     }
 
     public Subject getAnonSubject() {
-        return SSLUtil.createSubject(FileUtil.getFileFromResource(ANON_CERT_FILE, TestUtil.class));
+        return SSLUtil.createSubject(FileUtil.getFileFromResource(ANON_CERT_FILE, ConfigUsers.class));
     }
 
     public Subject getPrivSubject() {
-        return SSLUtil.createSubject(FileUtil.getFileFromResource(PRIV_CERT_FILE, TestUtil.class));
+        return SSLUtil.createSubject(FileUtil.getFileFromResource(PRIV_CERT_FILE, ConfigUsers.class));
     }
 
 
     public Subject getAugmentedSubject(String certFile) {
-        Subject subject = SSLUtil.createSubject(FileUtil.getFileFromResource(certFile, TestUtil.class));
+        Subject subject = SSLUtil.createSubject(FileUtil.getFileFromResource(certFile, ConfigUsers.class));
         try {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
             Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
-                    USER_CLIENT.augmentSubject(subject);
+                    UserClient client = new UserClient(new URI(AC_SERVICE_ID));
+                    client.augmentSubject(subject);
                     return null;
                 }
 
@@ -259,5 +213,23 @@ public class TestUtil
         final Set<HttpPrincipal> httpPrincipals = subject.getPrincipals(HttpPrincipal.class);
         assertEquals("Expected exactly one HttpPrincipal in subject for cert: " + certFile, 1, httpPrincipals.size());
         return httpPrincipals.iterator().next().getName();
+    }
+
+    /**
+     * Get the credentials for a registered user from the .netrc file.
+     * The .netrc file must contain an entry for the host part of the ac service URL.
+     * @return PasswordAuthentication containing the login and password
+     */
+    public PasswordAuthentication getPasswordAuthUser() {
+        if (passwordAuthUser == null) {
+            NetrcFile netrc = new NetrcFile();
+            RegistryClient regClient = new RegistryClient();
+            URL loginUrl = regClient
+                    .getServiceURL(URI.create(ConfigUsers.AC_SERVICE_ID), Standards.UMS_LOGIN_01, AuthMethod.ANON);
+            log.info("loginUrl: " + loginUrl);
+            passwordAuthUser = netrc.getCredentials(loginUrl.getHost(), true);
+            Assert.assertNotNull("~/.netrc credentials required for host: " + loginUrl.getHost(), passwordAuthUser);
+        }
+        return passwordAuthUser;
     }
 }

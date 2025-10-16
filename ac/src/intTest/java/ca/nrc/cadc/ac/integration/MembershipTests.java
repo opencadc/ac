@@ -67,21 +67,15 @@
 package ca.nrc.cadc.ac.integration;
 
 import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -102,13 +96,13 @@ public class MembershipTests {
     public MembershipTests() throws Exception {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         RegistryClient rc = new RegistryClient();
-        searchURL = rc.getServiceURL(URI.create(TestUtil.AC_SERVICE_ID), Standards.GMS_SEARCH_01, AuthMethod.CERT);
+        searchURL = rc.getServiceURL(URI.create(ConfigUsers.AC_SERVICE_ID), Standards.GMS_SEARCH_01, AuthMethod.CERT);
     }
     
     @Test
     public void testIsMemberTrue() {
         try {
-            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
                     URL isMemberURL = new URL(searchURL.toString() + "?group=" + TEST_GROUP1);
@@ -131,7 +125,7 @@ public class MembershipTests {
     @Test
     public void testIsMemberFalse() {
         try {
-            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
                     URL isMemberURL = new URL(searchURL.toString() + "?group=foo");
@@ -154,7 +148,7 @@ public class MembershipTests {
     @Test
     public void testGetMemberships() {
         try {
-            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();

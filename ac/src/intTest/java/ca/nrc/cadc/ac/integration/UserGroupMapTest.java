@@ -68,11 +68,8 @@
 package ca.nrc.cadc.ac.integration;
 
 import ca.nrc.cadc.auth.PosixPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import java.io.File;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
@@ -98,10 +95,10 @@ public class UserGroupMapTest {
     @Test
     public void testUserMap() throws Exception {
         RegistryClient reg = new RegistryClient();
-        URI srv = URI.create(TestUtil.AC_SERVICE_ID);
+        URI srv = URI.create(ConfigUsers.AC_SERVICE_ID);
         final PosixMapperClient pmc = new PosixMapperClient(srv);
         
-        Iterator<PosixPrincipal> iter = Subject.doAs(TestUtil.getInstance().getOwnerSubject(),
+        Iterator<PosixPrincipal> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
             (PrivilegedExceptionAction<Iterator<PosixPrincipal>>) () -> pmc.getUserMap());
         
         Assert.assertNotNull(iter);
@@ -120,7 +117,7 @@ public class UserGroupMapTest {
         URI srv = URI.create("ivo://cadc.nrc.ca/gms");
         PosixMapperClient pmc = new PosixMapperClient(srv);
 
-        Iterator<PosixGroup> iter = Subject.doAs(TestUtil.getInstance().getOwnerSubject(),
+        Iterator<PosixGroup> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
             (PrivilegedExceptionAction<Iterator<PosixGroup>>) () -> pmc.getGroupMap());
 
         Assert.assertNotNull(iter);

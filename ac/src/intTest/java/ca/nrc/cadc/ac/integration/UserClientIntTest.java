@@ -78,14 +78,11 @@ import ca.nrc.cadc.auth.BasicX509TrustManager;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpDelete;
 import ca.nrc.cadc.net.NetUtil;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-import java.io.File;
 import java.net.URI;
 import java.net.URL;
 import java.security.AccessControlException;
@@ -93,7 +90,6 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Enumeration;
 import java.util.Set;
-import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
@@ -124,19 +120,19 @@ public class UserClientIntTest
 
         try
         {
-            serviceURI = new URI(TestUtil.AC_SERVICE_ID);
+            serviceURI = new URI(ConfigUsers.AC_SERVICE_ID);
 
             this.userClient = new UserClient(serviceURI);
 
-            Set<X500Principal> x500 = TestUtil.getInstance().getAugmentedOwnerSubject().getPrincipals(X500Principal.class);
+            Set<X500Principal> x500 = ConfigUsers.getInstance().getAugmentedOwnerSubject().getPrincipals(X500Principal.class);
             Assert.assertEquals("Single X500Principal expected in owner subject", 1, x500.size());
             this.x500Principal = x500.iterator().next();
 
-            Set<HttpPrincipal> http = TestUtil.getInstance().getAugmentedOwnerSubject().getPrincipals(HttpPrincipal.class);
+            Set<HttpPrincipal> http = ConfigUsers.getInstance().getAugmentedOwnerSubject().getPrincipals(HttpPrincipal.class);
             Assert.assertEquals("Single HttpPrincipal expected in owner subject", 1, http.size());
             this.httpPrincipal = http.iterator().next();
 
-            Set<NumericPrincipal> numeric = TestUtil.getInstance().getAugmentedOwnerSubject().getPrincipals(NumericPrincipal.class);
+            Set<NumericPrincipal> numeric = ConfigUsers.getInstance().getAugmentedOwnerSubject().getPrincipals(NumericPrincipal.class);
             Assert.assertEquals("Single NumericPrincipal expected in owner subject", 1, numeric.size());
             this.numericPrincipal = numeric.iterator().next();
         }
@@ -181,7 +177,7 @@ public class UserClientIntTest
             final Subject target = new Subject();
             target.getPrincipals().add(p);
     		System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-    		Subject.doAs(TestUtil.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
+    		Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
 	    		{
 					@Override
 					public Object run() throws Exception
@@ -266,7 +262,7 @@ public class UserClientIntTest
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
             try
             {
-                Subject.doAs(TestUtil.getInstance().getAnonSubject(), new PrivilegedExceptionAction<Object>()
+                Subject.doAs(ConfigUsers.getInstance().getAnonSubject(), new PrivilegedExceptionAction<Object>()
                 {
                     @Override
                     public Object run() throws Exception
@@ -308,7 +304,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -339,7 +335,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -375,7 +371,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -412,7 +408,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(TestUtil.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -449,7 +445,7 @@ public class UserClientIntTest
         try
         {
             System.setProperty(BasicX509TrustManager.class.getName() + ".trust", "true");
-            Subject.doAs(TestUtil.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -477,7 +473,7 @@ public class UserClientIntTest
                         URL deleteURL = new URL(serviceURL.toExternalForm() + "/" + path);
 
                         HttpDelete del = new HttpDelete(deleteURL, false);
-                        Subject.doAs(TestUtil.getInstance().getPrivSubject(), new RunnableAction(del));
+                        Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), new RunnableAction(del));
 
                         int responseCode = del.getResponseCode();
                         if (responseCode != 200)

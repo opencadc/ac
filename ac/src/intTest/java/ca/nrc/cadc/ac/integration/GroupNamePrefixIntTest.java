@@ -70,33 +70,22 @@
 package ca.nrc.cadc.ac.integration;
 
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.File;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.client.GMSClient;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
+import java.security.AccessControlException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 import org.opencadc.gms.GroupURI;
-
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.client.GMSClient;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.util.FileUtil;
-import ca.nrc.cadc.util.Log4jInit;
-import java.security.AccessControlException;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -119,12 +108,12 @@ public class GroupNamePrefixIntTest
 
         try
         {
-            g = new Group(new GroupURI(TestUtil.AC_SERVICE_ID + "?ALLOW-TEST-" + UUID.randomUUID().toString()));
+            g = new Group(new GroupURI(ConfigUsers.AC_SERVICE_ID + "?ALLOW-TEST-" + UUID.randomUUID().toString()));
 
-            Group g2 = createGroupAs(g, TestUtil.getInstance().getOwnerSubject());
+            Group g2 = createGroupAs(g, ConfigUsers.getInstance().getOwnerSubject());
             assertNotNull(g2);
 
-            Group pg = getGroupAs(g.getID().getName(), TestUtil.getInstance().getOwnerSubject(), true);
+            Group pg = getGroupAs(g.getID().getName(), ConfigUsers.getInstance().getOwnerSubject(), true);
             assertNotNull(pg);
         }
         catch(Exception unexpected)
@@ -138,7 +127,7 @@ public class GroupNamePrefixIntTest
             {
                 if (g != null)
                 {
-                    deleteGroupAs(g.getID().getName(), TestUtil.getInstance().getOwnerSubject());
+                    deleteGroupAs(g.getID().getName(), ConfigUsers.getInstance().getOwnerSubject());
                 }
             }
             catch(Exception ignore) { }
@@ -154,10 +143,10 @@ public class GroupNamePrefixIntTest
         {
             try
             {
-                g = new Group(new GroupURI(TestUtil.AC_SERVICE_ID + "?ALLOW-TEST-"
+                g = new Group(new GroupURI(ConfigUsers.AC_SERVICE_ID + "?ALLOW-TEST-"
                                            + UUID.randomUUID().toString()));
 
-                createGroupAs(g, TestUtil.getInstance().getMemberSubject());
+                createGroupAs(g, ConfigUsers.getInstance().getMemberSubject());
             }
             catch(AccessControlException expected)
             {
@@ -166,7 +155,7 @@ public class GroupNamePrefixIntTest
 
             try
             {
-                Group pg = getGroupAs(g.getID().getName(), TestUtil.getInstance().getMemberSubject(), false);
+                Group pg = getGroupAs(g.getID().getName(), ConfigUsers.getInstance().getMemberSubject(), false);
                 fail("expected creategroup to fail && GroupNotFoundException, got: " + pg);
             }
             catch(GroupNotFoundException expected)
@@ -185,7 +174,7 @@ public class GroupNamePrefixIntTest
             {
                 if (g != null)
                 {
-                    deleteGroupAs(g.getID().getName(), TestUtil.getInstance().getMemberSubject());
+                    deleteGroupAs(g.getID().getName(), ConfigUsers.getInstance().getMemberSubject());
                 }
             }
             catch(Exception ignore) { }
@@ -254,7 +243,7 @@ public class GroupNamePrefixIntTest
                                             boolean success = false;
                                             while (!success && n < 10) {
                                                 try {
-                                                    TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                                                    //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                                                     group = getGMSClient().getGroup(groupID);
                                                     success = true;
                                                 } catch(Exception ex) {
@@ -276,6 +265,6 @@ public class GroupNamePrefixIntTest
 
     private GMSClient getGMSClient()
     {
-        return new GMSClient(URI.create(TestUtil.AC_SERVICE_ID));
+        return new GMSClient(URI.create(ConfigUsers.AC_SERVICE_ID));
     }
 }

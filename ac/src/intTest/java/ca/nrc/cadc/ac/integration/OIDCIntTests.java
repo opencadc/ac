@@ -69,16 +69,12 @@ package ca.nrc.cadc.ac.integration;
 import ca.nrc.cadc.ac.server.oidc.OIDCUtil;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
-
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.URI;
@@ -91,9 +87,7 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
@@ -124,7 +118,7 @@ public class OIDCIntTests {
         Log4jInit.setLevel("ca.nrc.cadc.ac.server.oidc", Level.INFO);
 
         RegistryClient rc = new RegistryClient();
-        URL authURL = rc.getServiceURL(URI.create(TestUtil.AC_SERVICE_ID), Standards.SECURITY_METHOD_OAUTH, AuthMethod.CERT);
+        URL authURL = rc.getServiceURL(URI.create(ConfigUsers.AC_SERVICE_ID), Standards.SECURITY_METHOD_OAUTH, AuthMethod.CERT);
         // find the OIDC config booktrap from the authURL
         int lastSlashIndex = authURL.toString().lastIndexOf("/");
         String oidcConfigURL = authURL.toString().substring(0, lastSlashIndex) + "/.well-known/openid-configuration";
@@ -188,7 +182,7 @@ public class OIDCIntTests {
         log.debug("exp: " + claimsJSON.getLong("exp"));
         Assert.assertNotNull(claimsJSON.getLong("exp"));
         log.debug("name: " + claimsJSON.getString("name"));
-        Assert.assertEquals(TestUtil.getInstance().getOwnerUsername(), claimsJSON.getString("name"));
+        Assert.assertEquals(ConfigUsers.getInstance().getOwnerUsername(), claimsJSON.getString("name"));
         log.debug("email: " + claimsJSON.getString("email"));
         Assert.assertNotNull(claimsJSON.getString("email"));
         log.debug("memberOf: " + claimsJSON.getJSONArray("memberOf"));
@@ -257,7 +251,7 @@ public class OIDCIntTests {
         try {
             
             // Step 1: Get the authorization code
-            String code = Subject.doAs(TestUtil.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<String>() {
+            String code = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<String>() {
                 @Override
                 public String run() throws Exception {
                     

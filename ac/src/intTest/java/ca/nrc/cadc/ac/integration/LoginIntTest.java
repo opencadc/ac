@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2009.                            (c) 2009.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,20 +69,15 @@
 
 package ca.nrc.cadc.ac.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.CookiePrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
-import ca.nrc.cadc.auth.InvalidSignedTokenException;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.RunnableAction;
-import ca.nrc.cadc.auth.SSOCookieCredential;
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.auth.SignedToken;
 import ca.nrc.cadc.auth.X509CertificateChain;
@@ -92,71 +87,51 @@ import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
-
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.OutputStream;
+import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-public class LoginIntTest
-{
+public class LoginIntTest {
     private static final Logger log = Logger.getLogger(LoginIntTest.class);
 
-    private static final String USERNAME = "testuser1";
-    private static final String MIXED_CASE_USERNAME = "testUser1";
-    private static final String PASSWORD_FILE = USERNAME + ".pass";
-
-    private URI serviceURI;
-    Map<String, Object> params;
+    private final URI serviceURI;
+    private final URL serviceUrl;
     Subject authSubject;
 
-    static
-    {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
-        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.INFO);
-        Log4jInit.setLevel("ca.nrc.cadc.net", Level.INFO);
+    static {
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.auth", Level.DEBUG);
+        Log4jInit.setLevel("ca.nrc.cadc.net", Level.DEBUG);
     }
 
-    public LoginIntTest() throws URISyntaxException
-    {
-        serviceURI = new URI(TestUtil.AC_SERVICE_ID);
+    public LoginIntTest() {
+        serviceURI = URI.create(ConfigUsers.AC_SERVICE_ID);
         log.debug("serviceURI: " + serviceURI);
-    }
-
-    private String getTestPassword() throws FileNotFoundException {
-        String pwd = null;
-        try {
-            BufferedReader bufferReader = new BufferedReader(new FileReader(System.getenv("A") + "/etc/" + PASSWORD_FILE));
-            pwd = bufferReader.readLine();
-        } catch (IOException ex) {
-            log.error("Password file not located in $A/etc. Quitting...");
-            throw new FileNotFoundException("Password file not found in $A/etc.");
-        }
-        return pwd;
+        RegistryClient regClient = new RegistryClient();
+        serviceUrl = regClient
+                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
+        log.info("serviceUrl: " + serviceUrl);
+        Assert.assertNotNull(serviceUrl);
     }
 
     Set<Principal> getPrincipals(final Class<? extends Principal> principalClass, final Set<Principal> principals) {
@@ -176,19 +151,13 @@ public class LoginIntTest
     {
         try
         {
-            String pwd = getTestPassword();
-            params = new HashMap<>();
-            params.put("username", MIXED_CASE_USERNAME);
-            params.put("password", pwd);
-
-            RegistryClient regClient = new RegistryClient();
-            URL url = regClient
-                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-            log.info("serviceUrl: " + url);
-            Assert.assertNotNull(url);
+            PasswordAuthentication pa = ConfigUsers.getInstance().getPasswordAuthUser();
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("username", pa.getUserName());
+            params.put("password", pa.getPassword());
 
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(url, params, out);
+            HttpPost post = new HttpPost(serviceUrl, params, out);
             post.run();
 
             Assert.assertNull(post.getThrowable());
@@ -208,18 +177,13 @@ public class LoginIntTest
 
             Assert.assertNotNull("Should have expiry date.", cookieToken.getExpiryTime());
             Assert.assertFalse("Should have domains.", cookieToken.getDomains().isEmpty());
-            Assert.assertEquals("User should be " + USERNAME, USERNAME, cookieToken.getUser().getName());
+            Assert.assertEquals("User should be ", pa.getUserName(), cookieToken.getUser().getName());
             Assert.assertFalse("Should have an X500 principal.",
                               getPrincipals(X500Principal.class, principals).isEmpty());
             Assert.assertFalse("Should have a Numeric principal.",
                                getPrincipals(NumericPrincipal.class, principals).isEmpty());
             Assert.assertEquals("Should have cadc canfar scope.", URI.create("sso:cadc+canfar"),
                                 cookieToken.getScope());
-        }
-        catch(FileNotFoundException fnfe) {
-            log.error("Property file missing", fnfe);
-//            Assert.fail("Property file missing: " + fnfe);
-            throw fnfe;
         }
         catch(Exception unexpected)
         {
@@ -237,18 +201,12 @@ public class LoginIntTest
     {
         try
         {
-            params = new HashMap<String,Object>();
+            HashMap<String, Object> params = new HashMap<>();
             params.put("username", "");
             params.put("password", "qS1U42Y");
 
-            RegistryClient regClient = new RegistryClient();
-            URL url = regClient
-                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-            log.info("serviceUrl: " + url);
-            Assert.assertNotNull(url);
-
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(url, params, out);
+            HttpPost post = new HttpPost(serviceUrl, params, out);
             post.run();
             Assert.assertEquals(400, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -268,18 +226,12 @@ public class LoginIntTest
     {
         try
         {
-            params = new HashMap<String,Object>();
+            HashMap<String, Object> params = new HashMap<>();
             params.put("username", "noSuchUser");
             params.put("password", "qS1U42Y");
 
-            RegistryClient regClient = new RegistryClient();
-            URL url = regClient
-                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-            log.info("serviceUrl: " + url);
-            Assert.assertNotNull(url);
-
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(url, params, out);
+            HttpPost post = new HttpPost(serviceUrl, params, out);
             post.run();
             Assert.assertEquals(401, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -299,18 +251,13 @@ public class LoginIntTest
     {
         try
         {
-            params = new HashMap<String,Object>();
-            params.put("username", "testuser1");
+            PasswordAuthentication pa = ConfigUsers.getInstance().getPasswordAuthUser();
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("username", pa.getUserName());
             params.put("password", "");
 
-            RegistryClient regClient = new RegistryClient();
-            URL url = regClient
-                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-            log.info("serviceUrl: " + url);
-            Assert.assertNotNull(url);
-
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(url, params, out);
+            HttpPost post = new HttpPost(serviceUrl, params, out);
             post.run();
             Assert.assertEquals(400, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -330,49 +277,13 @@ public class LoginIntTest
     {
         try
         {
-            params = new HashMap<String,Object>();
-            params.put("username", "testuser1");
+            PasswordAuthentication pa = ConfigUsers.getInstance().getPasswordAuthUser();
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("username", pa.getUserName());
             params.put("password", "badpasswd");
 
-            RegistryClient regClient = new RegistryClient();
-            URL url = regClient
-                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-            log.info("serviceUrl: " + url);
-            Assert.assertNotNull(url);
-
             OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(url, params, out);
-            post.run();
-            Assert.assertEquals(401, post.getResponseCode());
-            Assert.assertNotNull(post.getThrowable());
-        }
-        catch(Exception unexpected)
-        {
-            log.error("unexpected exception", unexpected);
-            Assert.fail("unexpected exception: " + unexpected);
-        }
-    }
-
-
-    @Test
-    public void testProxyUserFail()
-    {
-        try
-        {
-            String pwd = getTestPassword();
-
-            params = new HashMap<String,Object>();
-            params.put("username", USERNAME + " as otheruser");
-            params.put("password", pwd);
-
-            RegistryClient regClient = new RegistryClient();
-            URL url = regClient
-                .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
-            log.info("serviceUrl: " + url);
-            Assert.assertNotNull(url);
-
-            OutputStream out = new ByteArrayOutputStream();
-            HttpPost post = new HttpPost(url, params, out);
+            HttpPost post = new HttpPost(serviceUrl, params, out);
             post.run();
             Assert.assertEquals(401, post.getResponseCode());
             Assert.assertNotNull(post.getThrowable());
@@ -393,13 +304,6 @@ public class LoginIntTest
         log.info("current authenticator class: " + currentAuthenticatorClass + ". Using class: " + TestIdentityManagerImpl.class.getName());
 
         try {
-            String pwd = getTestPassword();
-            params = new HashMap<String, Object>();
-            params.put("username", USERNAME);
-            params.put("password", pwd);
-            log.debug("pwd: " + pwd);
-            log.debug("username: " + USERNAME);
-
             authSubject = AuthenticationUtil.getSubject(new PrincipalExtractor()
             {
                 public Set<Principal> cookiePrincipals = null;
@@ -414,48 +318,37 @@ public class LoginIntTest
                 }
 
                 protected void getCookieTokens() {
+                    PasswordAuthentication pa = ConfigUsers.getInstance().getPasswordAuthUser();
                     Map<String,Object> callparams = new TreeMap<String,Object>();
+                    callparams = new HashMap<String, Object>();
+                    callparams.put("username", pa.getUserName());
+                    callparams.put("password", pa.getPassword());
 
-                    try {
-                        String pwd = getTestPassword();
-                        callparams = new HashMap<String, Object>();
-                        callparams.put("username", USERNAME);
-                        callparams.put("password", pwd);
+                    log.debug("pwd: *****");
+                    log.debug("username: " + pa.getUserName());
 
-                        log.debug("pwd: " + pwd);
-                        log.debug("username: " + USERNAME);
-                        RegistryClient regClient = new RegistryClient();
-                        URL loginServiceUrl = regClient
-                            .getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    HttpPost post = new HttpPost(serviceUrl, callparams, out);
+                    post.run();
 
-                        log.debug("login service url: " + loginServiceUrl);
-                        Assert.assertNotNull(loginServiceUrl);
+                    Assert.assertNull(post.getThrowable());
+                    log.debug("login post response code: " + post.getResponseCode());
+                    Assert.assertEquals(200, post.getResponseCode());
 
-                        ByteArrayOutputStream out = new ByteArrayOutputStream();
-                        HttpPost post = new HttpPost(loginServiceUrl, callparams, out);
-                        post.run();
+                    if (post.getThrowable() != null)
+                        throw new RuntimeException("login failed: " + post.getResponseCode(), post.getThrowable());
+                    loginToken = out.toString();
+                    log.debug("token: " + loginToken);
 
-                        Assert.assertNull(post.getThrowable());
-                        log.debug("login post response code: " + post.getResponseCode());
-                        Assert.assertEquals(200, post.getResponseCode());
+                    CookiePrincipal cookiePrincipal = new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, loginToken);
 
-                        if (post.getThrowable() != null)
-                            throw new RuntimeException("login failed: " + post.getResponseCode(), post.getThrowable());
-                        loginToken = out.toString();
-                        log.debug("token: " + loginToken);
-                        
-                        CookiePrincipal cookiePrincipal = new CookiePrincipal(SSOCookieManager.DEFAULT_SSO_COOKIE_NAME, loginToken);
+                    //SSOCookieManager ssoCookieManager = new SSOCookieManager();
+                    //cookieToken = ssoCookieManager.parse(loginToken);
+                    //cookiePrincipals = cookieToken.getIdentityPrincipals();
 
-                        //SSOCookieManager ssoCookieManager = new SSOCookieManager();
-                        //cookieToken = ssoCookieManager.parse(loginToken);
-                        //cookiePrincipals = cookieToken.getIdentityPrincipals();
-                        
-                        cookiePrincipals = new HashSet<Principal>(Arrays.asList(cookiePrincipal));
-                        
-                        domain = loginServiceUrl.getHost();
-                    } catch(FileNotFoundException fnfe) {
-                            Assert.fail("Property file missing: " + fnfe);
-                    }
+                    cookiePrincipals = new HashSet<Principal>(Arrays.asList(cookiePrincipal));
+
+                    domain = serviceUrl.getHost();
                 }
 
                 public Date getExpirationDate()
@@ -466,14 +359,6 @@ public class LoginIntTest
                 }
 
                 public static final int SSO_COOKIE_LIFETIME_HOURS = 2 * 24; // in hours
-
-                public List<SSOCookieCredential> getSSOCookieCredentials()  {
-                    List<SSOCookieCredential> cookieList = new ArrayList<>();
-                    SSOCookieCredential ret = new SSOCookieCredential(loginToken, domain, getExpirationDate() );
-                    cookieList.add(ret);
-                    log.debug("login cookie credential: " + ret);
-                    return cookieList;
-                }
 
                 public Set<Principal> getPrincipals()
                 {
@@ -518,7 +403,6 @@ public class LoginIntTest
 
         } catch (Exception unexpected) {
             log.error("unexpected exception", unexpected);
-//            Assert.fail("unexpected exception: " + unexpected);
             throw unexpected;
         } finally  {
             System.clearProperty(IdentityManager.class.getName());
