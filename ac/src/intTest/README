@@ -1,0 +1,10 @@
+At this point, the integration tests can only be executed by CADC staff. Required resources in $RPS directory:
+    - ac-group-owner.pem : certificate file for owner of test group
+    - ac-group-member.pem : certificate file for member of test group
+    - ac-registered-user.pem : certificate file for registered user but not a member in any test group
+    - ac-anon-user.pem : certificate file for unregistered user
+    - ac-priv-user.pem : certificate file for privileged user capable of augmenting subject
+
+Other resources:
+    - $RPS/RsaSignaturePub.key file corresponding to the key used to sign cookies on the service side.
+    - ~/.netrc that contains valid username/passwd of a user in the system. This is used to test login functionality.

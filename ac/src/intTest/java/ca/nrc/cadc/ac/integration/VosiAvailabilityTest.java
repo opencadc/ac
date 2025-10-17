@@ -68,11 +68,9 @@
 
 package ca.nrc.cadc.ac.integration;
 
-import java.net.URI;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.vosi.AvailabilityTest;
+import java.net.URI;
+import org.apache.log4j.Logger;
 
 public class VosiAvailabilityTest extends AvailabilityTest
 {
@@ -80,6 +78,6 @@ public class VosiAvailabilityTest extends AvailabilityTest
 
     public VosiAvailabilityTest()
     {
-        super(URI.create("ivo://cadc.nrc.ca/gms"));
+        super(URI.create(ConfigUsers.AC_SERVICE_ID));
     }
 }
