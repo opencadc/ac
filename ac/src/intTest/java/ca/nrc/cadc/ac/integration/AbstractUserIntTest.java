@@ -68,29 +68,6 @@
 
 package ca.nrc.cadc.ac.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.security.PrivilegedExceptionAction;
-import java.util.UUID;
-
-import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import ca.nrc.cadc.ac.PersonalDetails;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
@@ -98,36 +75,50 @@ import ca.nrc.cadc.ac.UserRequest;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.FileContent;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
-import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
+import java.util.UUID;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-public abstract class AbstractUserIntTest
-{
+public abstract class AbstractUserIntTest {
     private static final Logger log = Logger.getLogger(AbstractUserIntTest.class);
 
     static String userServiceUrl;
-    static String userAnonServiceUrl;
     static String userReqServiceUrl;
-    static String userReqAnonServiceUrl;
-    static Subject user1;
-    static Subject user2;
-    static Subject opsSubject;
 
     @BeforeClass
     public static void setUpClass() throws Exception
     {
-        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
-        Log4jInit.setLevel("org.opencadc.reg", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
 
         RegistryClient regClient = new RegistryClient();
 
-        URI umsServiceURI = new URI("ivo://opencadc.org/gms");
+        URI umsServiceURI = new URI(ConfigUsers.AC_SERVICE_ID);
 
         URL userServiceURL = regClient
             .getServiceURL(umsServiceURI, Standards.UMS_USERS_01, AuthMethod.CERT);
@@ -135,22 +126,9 @@ public abstract class AbstractUserIntTest
 
         userServiceUrl = userServiceURL.toExternalForm();
 
-
-        URL userAnonServiceURL = new URL("http", userServiceURL.getHost(), userServiceURL.getFile());
-        userAnonServiceUrl = userAnonServiceURL.toExternalForm();
-        log.info("userAnonServiceUrl: " + userAnonServiceUrl);
-
         userReqServiceUrl = regClient
             .getServiceURL(umsServiceURI, Standards.UMS_REQS_01, AuthMethod.CERT).toString();
         log.info("userReqServiceUrl: " + userReqServiceUrl);
-
-        userReqAnonServiceUrl = regClient
-            .getServiceURL(umsServiceURI, Standards.UMS_REQS_01, AuthMethod.ANON).toString();
-        log.info("userReqAnonServiceUrl: " + userReqAnonServiceUrl);
-
-        user1 = SSLUtil.createSubject(FileUtil.getFileFromResource("user1.pem", AbstractUserIntTest.class));
-        user2 = SSLUtil.createSubject(FileUtil.getFileFromResource("user2.pem", AbstractUserIntTest.class));
-        opsSubject = SSLUtil.createSubject(FileUtil.getFileFromResource("ops.pem", AbstractUserIntTest.class));
     }
 
     abstract String writeUserRequest(final UserRequest userRequest)
@@ -164,9 +142,9 @@ public abstract class AbstractUserIntTest
 
     abstract String getContentType();
 
+    @Ignore("Cannot undo currently.")
     @Test
-    public void putUserRequest() throws Exception
-    {
+    public void putUserRequest() throws Exception {
         HttpPrincipal httpPrincipal = new HttpPrincipal(createUsername());
         User user = new User();
         user.getIdentities().add(httpPrincipal);
@@ -176,37 +154,36 @@ public abstract class AbstractUserIntTest
         UserRequest userRequest = new UserRequest(user, "12345678".toCharArray());
 
         String userString = writeUserRequest(userRequest);
-        InputStream in = new ByteArrayInputStream(userString.getBytes("UTF-8"));
+        InputStream in = new ByteArrayInputStream(userString.getBytes(StandardCharsets.UTF_8));
 
-        HttpUpload httpUpload = new HttpUpload(in, new URL(userReqAnonServiceUrl));
+        HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
         httpUpload.setRequestProperty("Accept", getContentType());
         httpUpload.run();
 
         assertEquals("Wrong response code", 201, httpUpload.getResponseCode());
     }
 
-//    @Test
-    public void putUserRequestAlreadyExists() throws Exception
-    {
-        HttpPrincipal httpPrincipal = new HttpPrincipal("user1");
+    @Ignore("Cannot undo currently.")
+    @Test
+    public void putUserRequestAlreadyExists() throws Exception {
+        HttpPrincipal httpPrincipal = new HttpPrincipal(ConfigUsers.getInstance().getPasswordAuthUser().getUserName());
         User user = new User();
         user.getIdentities().add(httpPrincipal);
         user.personalDetails = new PersonalDetails("test", "user");
         user.personalDetails.email = "email";
         UserRequest userRequest = new UserRequest(user, "12345678".toCharArray());
         String userString = writeUserRequest(userRequest);
-        InputStream in = new ByteArrayInputStream(userString.getBytes("UTF-8"));
+        InputStream in = new ByteArrayInputStream(userString.getBytes(StandardCharsets.UTF_8));
 
-        HttpUpload httpUpload = new HttpUpload(in, new URL(userReqAnonServiceUrl));
+        HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
         httpUpload.setRequestProperty("Accept", getContentType());
         httpUpload.run();
 
         assertEquals("Wrong response code", 409, httpUpload.getResponseCode());
     }
 
-//    @Test
-    public void putInvalidUserRequest() throws Exception
-    {
+    @Test
+    public void putInvalidUserRequest() throws Exception {
         HttpPrincipal httpPrincipal = new HttpPrincipal("FOO");
         User user = new User();
         user.getIdentities().add(httpPrincipal);
@@ -217,18 +194,17 @@ public abstract class AbstractUserIntTest
         // replace userID with null
         String userString = writeUserRequest(userRequest);
         userString = userString.replaceFirst("FOO", "");
-        InputStream in = new ByteArrayInputStream(userString.getBytes("UTF-8"));
+        InputStream in = new ByteArrayInputStream(userString.getBytes(StandardCharsets.UTF_8));
 
-        HttpUpload httpUpload = new HttpUpload(in, new URL(userReqAnonServiceUrl));
+        HttpUpload httpUpload = new HttpUpload(in, new URL(userReqServiceUrl));
         httpUpload.setRequestProperty("Accept", getContentType());
         httpUpload.run();
 
         assertEquals("Wrong response code", 400, httpUpload.getResponseCode());
     }
 
-//    @Test
-    public void putUserNotAsPrivilegedUser() throws Exception
-    {
+    @Test
+    public void putUserNotAsPrivilegedUser() throws Exception {
         final String username = createUsername();
         X500Principal x500Principal = new X500Principal("cn=" + username + ",OU=cadc,O=hia,C=ca");
         final User user = new User();
@@ -236,28 +212,22 @@ public abstract class AbstractUserIntTest
         user.personalDetails = new PersonalDetails("test", "user");
         user.personalDetails.email = username + "@canada.ca";
 
-        Subject.doAs(user1, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                String userString = writeUser(user);
-                InputStream in = new ByteArrayInputStream(userString.getBytes("UTF-8"));
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            String userString = writeUser(user);
+            InputStream in = new ByteArrayInputStream(userString.getBytes(StandardCharsets.UTF_8));
 
-                HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
-                httpUpload.setRequestProperty("Accept", getContentType());
-                httpUpload.run();
+            HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
+            httpUpload.setRequestProperty("Accept", getContentType());
+            httpUpload.run();
 
-                assertEquals("Wrong response code", 403, httpUpload.getResponseCode());
+            assertEquals("Wrong response code", 403, httpUpload.getResponseCode());
 
-                return null;
-            }
+            return null;
         });
     }
 
-//    @Test
-    public void putInvalidUser() throws Exception
-    {
+    @Test
+    public void putInvalidUser() throws Exception {
         // Missing X500Principal
         final String username = createUsername();
         HttpPrincipal httpPrincipal = new HttpPrincipal(username);
@@ -266,28 +236,23 @@ public abstract class AbstractUserIntTest
         user.personalDetails = new PersonalDetails("test", "user");
         user.personalDetails.email = username + "@canada.ca";
 
-        Subject.doAs(opsSubject, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                String userString = writeUser(user);
-                InputStream in = new ByteArrayInputStream(userString.getBytes("UTF-8"));
+        Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            String userString = writeUser(user);
+            InputStream in = new ByteArrayInputStream(userString.getBytes(StandardCharsets.UTF_8));
 
-                HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
-                httpUpload.setRequestProperty("Accept", getContentType());
-                httpUpload.run();
+            HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
+            httpUpload.setRequestProperty("Accept", getContentType());
+            httpUpload.run();
 
-                assertEquals("Wrong response code", 400, httpUpload.getResponseCode());
+            assertEquals("Wrong response code", 400, httpUpload.getResponseCode());
 
-                return null;
-            }
+            return null;
         });
     }
 
-//    @Test
-    public void putUser() throws Exception
-    {
+    @Ignore("Cannot undo currently.")
+    @Test
+    public void putUser() throws Exception {
         final String username = createUsername();
         X500Principal x500Principal = new X500Principal("cn=" + username + ",OU=cadc,O=hia,C=ca");
         final User user = new User();
@@ -295,219 +260,180 @@ public abstract class AbstractUserIntTest
         user.personalDetails = new PersonalDetails("test", "user");
         user.personalDetails.email = username + "@canada.ca";
 
-        Subject.doAs(opsSubject, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                String userString = writeUser(user);
-                InputStream in = new ByteArrayInputStream(userString.getBytes("UTF-8"));
+        Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            String userString = writeUser(user);
+            InputStream in = new ByteArrayInputStream(userString.getBytes(StandardCharsets.UTF_8));
 
-                HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
-                httpUpload.setRequestProperty("Accept", getContentType());
-                httpUpload.run();
+            HttpUpload httpUpload = new HttpUpload(in, new URL(userServiceUrl));
+            httpUpload.setRequestProperty("Accept", getContentType());
+            httpUpload.run();
 
-                assertEquals("Wrong response code", 201, httpUpload.getResponseCode());
+            assertEquals("Wrong response code", 201, httpUpload.getResponseCode());
 
-                return null;
-            }
+            return null;
         });
     }
 
-//    @Test
-    public void getUser() throws Exception
-    {
-        Subject.doAs(user1, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                URL userURL = new URL(userServiceUrl + "/user1?idType=http");
-                ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+    @Test
+    public void getUser() throws Exception {
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            URL userURL = new URL(userServiceUrl + "/" +
+                    ConfigUsers.getInstance().getRegisteredUsername()+"?idType=http");
+            ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 
-                HttpDownload httpGet = new HttpDownload(userURL, out);
-                httpGet.setRequestProperty("Accept", getContentType());
-                httpGet.run();
+            HttpGet httpGet = new HttpGet(userURL, out);
+            httpGet.setRequestProperty("Accept", getContentType());
+            httpGet.run();
 
-                assertEquals("Wrong response code", 200, httpGet.getResponseCode());
-                assertNull("GET returned errors", httpGet.getThrowable());
+            assertEquals("Wrong response code", 200, httpGet.getResponseCode());
+            assertNull("GET returned errors", httpGet.getThrowable());
 
-                out.close();
-                byte[] bytes = out.toByteArray();
+            out.close();
 
-                User actual = readUser(new String(bytes));
-                assertNotNull(actual);
-                return null;
-            }
+            User actual = readUser(out.toString());
+            assertNotNull(actual);
+            return null;
         });
     }
 
-//    @Test
-    public void getUserAsAnon() throws Exception
-    {
-        URL userURL = new URL(userAnonServiceUrl + "/user1?idType=http");
-        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+    @Test
+    public void getUserAsAnon() throws Exception {
+        URL userURL = new URL(userServiceUrl + "/" +
+                ConfigUsers.getInstance().getPasswordAuthUser().getUserName() + "?idType=http");
+        log.debug("Anon userURL: " + userURL);
 
-        HttpDownload httpGet = new HttpDownload(userURL, out);
+        HttpGet httpGet = new HttpGet(userURL, false);
         httpGet.setRequestProperty("Accept", getContentType());
         httpGet.run();
 
         assertEquals("Wrong response code", 403, httpGet.getResponseCode());
     }
 
-//    @Test
-    public void getUserAsSomeoneElse() throws Exception
-    {
-        Subject.doAs(user2, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run() throws Exception
-            {
-                URL userURL = new URL(userServiceUrl + "/user1?idType=http");
-                ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+    @Test
+    public void getUserAsSomeoneElse() throws Exception {
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            URL userURL = new URL(userServiceUrl + "/" +
+                    ConfigUsers.getInstance().getMemberUsername() + "?idType=http");
 
-                HttpDownload httpGet = new HttpDownload(userURL, out);
-                httpGet.setRequestProperty("Accept", getContentType());
-                httpGet.run();
+            HttpGet httpGet = new HttpGet(userURL, false);
+            httpGet.setRequestProperty("Accept", getContentType());
+            httpGet.run();
 
-                assertEquals("Wrong response code", 403, httpGet.getResponseCode());
-                return null;
-            }
+            assertEquals("Wrong response code", 403, httpGet.getResponseCode());
+            return null;
         });
     }
 
-    // currently only support a user getting self so no good way to test Not Found
-    // without an external certificate
-    //@Test
-    public void getUserNotFound() throws Exception
-    {
-        Subject.doAs(user2, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run()
-                throws Exception
-            {
-                URL userURL = new URL(userServiceUrl + "/foo?idType=http");
-                ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+    @Test
+    public void getUserNotFound() throws Exception {
+        // Only priv user is allowed to get other users' info. For any other subject it should be 403 as above.
+        Subject.doAs(ConfigUsers.getInstance().getPrivSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            URL userURL = new URL(userServiceUrl + "/foo?idType=http");
 
-                HttpDownload httpGet = new HttpDownload(userURL, out);
-                httpGet.setRequestProperty("Accept", getContentType());
-                httpGet.run();
+            HttpGet httpGet = new HttpGet(userURL, false);
+            httpGet.setRequestProperty("Accept", getContentType());
+            httpGet.run();
 
-                assertEquals("Wrong response code", 404, httpGet.getResponseCode());
-                return null;
-            }
+            assertEquals("Wrong response code", 404, httpGet.getResponseCode());
+            return null;
         });
     }
 
-//    @Test
-    public void updateUser() throws Exception
-    {
-        Subject.doAs(user1, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run()
-                throws Exception
-            {
-                // Get a user
-                URL userURL = new URL(userServiceUrl + "/user1?idType=http");
-                ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+    @Test
+    public void updateUser() throws Exception {
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            String baseUserUrl = userServiceUrl + "/" + ConfigUsers.getInstance().getRegisteredUsername();
+            // Get a user
+            URL userURL = new URL(baseUserUrl + "?idType=http");
+            ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 
-                HttpDownload httpGet = new HttpDownload(userURL, out);
-                httpGet.setRequestProperty("Accept", getContentType());
-                httpGet.run();
+            HttpGet httpGet = new HttpGet(userURL, out);
+            httpGet.setRequestProperty("Accept", getContentType());
+            httpGet.run();
 
-                assertEquals("Wrong response code", 200, httpGet.getResponseCode());
-                assertNull("GET returned errors", httpGet.getThrowable());
+            assertEquals("Wrong response code", 200, httpGet.getResponseCode());
+            assertNull("GET returned errors", httpGet.getThrowable());
 
-                out.close();
-                byte[] bytes = out.toByteArray();
+            out.close();
+            byte[] bytes = out.toByteArray();
 
-                User expectedUser = readUser(new String(bytes));
-                assertNotNull(expectedUser);
+            User expectedUser = readUser(new String(bytes));
+            assertNotNull(expectedUser);
 
-                // Update the user's email
-                PersonalDetails expectedPD = expectedUser.personalDetails;
-                expectedPD.email = UUID.randomUUID() + "@nrc.ca";
+            // Update the user's email
+            PersonalDetails expectedPD = expectedUser.personalDetails;
+            expectedPD.email = UUID.randomUUID() + "@inttest.ca";
 
-                // Update the user
-                String userString = writeUser(expectedUser);
-                HttpPost httpPost = new HttpPost(new URL(userServiceUrl + "/user1"),
-                    userString, getContentType(), false);
-                httpPost.setRequestProperty("Accept", getContentType());
-                httpPost.run();
+            // Update the user
+            String userString = writeUser(expectedUser);
+            HttpPost httpPost = new HttpPost(new URL(baseUserUrl),
+                    new FileContent(userString, getContentType(), StandardCharsets.UTF_8), false);
+            httpPost.setRequestProperty("Accept", getContentType());
+            httpPost.run();
 
-                assertEquals("Wrong response code", 303, httpPost.getResponseCode());
-                assertNull("GET returned errors", httpPost.getThrowable());
+            assertEquals("Wrong response code", 303, httpPost.getResponseCode());
+            assertNull("GET returned errors", httpPost.getThrowable());
 
-                // Follow the redirect
-                URL redirectURL = httpPost.getRedirectURL();
-                out = new ByteArrayOutputStream(1024);
+            // Follow the redirect
+            URL redirectURL = httpPost.getRedirectURL();
+            out = new ByteArrayOutputStream(1024);
 
-                httpGet = new HttpDownload(redirectURL, out);
-                httpGet.setRequestProperty("Accept", getContentType());
-                httpGet.run();
+            httpGet = new HttpGet(redirectURL, out);
+            httpGet.setRequestProperty("Accept", getContentType());
+            httpGet.run();
 
-                assertEquals("Wrong response code", 200, httpGet.getResponseCode());
-                assertNull("GET returned errors", httpGet.getThrowable());
+            assertEquals("Wrong response code", 200, httpGet.getResponseCode());
+            assertNull("GET returned errors", httpGet.getThrowable());
 
-                out.close();
-                bytes = out.toByteArray();
+            out.close();
+            bytes = out.toByteArray();
 
-                User actualUser = readUser(new String(bytes));
-                assertNotNull(actualUser);
-                assertEquals((expectedUser.getHttpPrincipal().getName()), actualUser.getHttpPrincipal().getName());
+            User actualUser = readUser(new String(bytes));
+            assertNotNull(actualUser);
+            assertEquals((expectedUser.getHttpPrincipal().getName()), actualUser.getHttpPrincipal().getName());
 
-                PersonalDetails actualPD = actualUser.personalDetails;
-                assertEquals(expectedPD.email, actualPD.email);
-                return null;
-            }
+            PersonalDetails actualPD = actualUser.personalDetails;
+            assertEquals(expectedPD.email, actualPD.email);
+            return null;
         });
     }
 
-//    @Test
-    public void updateUserAsAnon() throws Exception
-    {
-        HttpPrincipal httpPrincipal = new HttpPrincipal("user1");
+    @Test
+    public void updateUserAsAnon() throws Exception {
+        String username = createUsername();
+        HttpPrincipal httpPrincipal = new HttpPrincipal(username);
         User user = new User();
         user.getIdentities().add(httpPrincipal);
         String userString = writeUser(user);
 
-        HttpPost httpPost = new HttpPost(new URL(userAnonServiceUrl + "/user1"),
-                                         userString, getContentType(), false);
+        HttpPost httpPost = new HttpPost(new URL(userServiceUrl + "/" + username),
+                new FileContent(userString, getContentType(), StandardCharsets.UTF_8), false);
         httpPost.setRequestProperty("Accept", getContentType());
         httpPost.run();
 
         assertEquals("Wrong response code", 403, httpPost.getResponseCode());
     }
 
-//    @Test
-    public void updateUserAsSomeoneElse() throws Exception
-    {
-        Subject.doAs(user2, new PrivilegedExceptionAction<Object>()
-        {
-            @Override
-            public Object run()
-                throws Exception
-            {
-                HttpPrincipal httpPrincipal = new HttpPrincipal("user1");
-                User user = new User();
-                user.getIdentities().add(httpPrincipal);
-                String userString = writeUser(user);
+    @Test
+    public void updateUserAsSomeoneElse() throws Exception {
+        String username = createUsername();
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), (PrivilegedExceptionAction<Object>) () -> {
+            HttpPrincipal httpPrincipal = new HttpPrincipal(ConfigUsers.getInstance().getMemberUsername());
+            User user = new User();
+            user.getIdentities().add(httpPrincipal);
+            String userString = writeUser(user);
 
-                HttpPost httpPost = new HttpPost(new URL(userServiceUrl + "/user1"),
-                    userString, getContentType(), false);
-                httpPost.setRequestProperty("Accept", getContentType());
-                httpPost.run();
+            HttpPost httpPost = new HttpPost(new URL(userServiceUrl + "/" + username),
+                    new FileContent(userString, getContentType(), StandardCharsets.UTF_8), false);
+            httpPost.setRequestProperty("Accept", getContentType());
+            httpPost.run();
 
-                assertEquals("Wrong response code", 403, httpPost.getResponseCode());
-                return null;
-            }
+            assertEquals("Wrong response code", 403, httpPost.getResponseCode());
+            return null;
         });
     }
 
-    private String createUsername()
-    {
+    private String createUsername() {
         return "ac_ws-int-test-user-" + System.currentTimeMillis();
     }
 

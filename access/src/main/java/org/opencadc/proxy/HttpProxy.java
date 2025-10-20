@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2025.                            (c) 2025.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,18 +67,76 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.proxy;
 
-import ca.nrc.cadc.vosi.AvailabilityTest;
-import java.net.URI;
-import org.apache.log4j.Logger;
+import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.net.ExpectationFailedException;
+import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.net.HttpTransfer;
+import ca.nrc.cadc.net.PreconditionFailedException;
 
-public class VosiAvailabilityTest extends AvailabilityTest
-{
-    private static final Logger log = Logger.getLogger(VosiAvailabilityTest.class);
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.security.AccessControlException;
+import javax.servlet.http.HttpServletResponse;
 
-    public VosiAvailabilityTest()
-    {
-        super(URI.create(ConfigUsers.AC_SERVICE_ID));
+
+public class HttpProxy extends HttpTransfer {
+
+    private final HttpServletResponse response;
+
+    public HttpProxy(final URL url, final HttpServletResponse response) {
+        super(url, true);
+        this.response = response;
+    }
+
+    @Override
+    public void prepare() throws AccessControlException, NotAuthenticatedException, ExpectationFailedException,
+                                 IllegalArgumentException, PreconditionFailedException {
+        throw new UnsupportedOperationException();
+    }
+
+
+    /**
+     * When an object implementing interface <code>Runnable</code> is used
+     * to create a thread, starting the thread causes the object's
+     * <code>run</code> method to be called in that separately executing
+     * thread.
+     *
+     * <p>The general contract of the method <code>run</code> is that it may
+     * take any action whatsoever.
+     *
+     * @see Thread#run()
+     */
+    @Override
+    public void run() {
+        // Buffer the output so we can set the headers first.  There is a risk that this could be big, caching it here
+        // is really not a good idea, but the HttpServletResponse won't let us set headers after the stream has been
+        // written to.
+        //
+        // jenkinsd 2019.04.04
+        //
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final HttpGet getRequest = new HttpGet(this.remoteURL, outputStream);
+        getRequest.setFollowRedirects(this.followRedirects);
+        getRequest.setRequestProperties(super.getRequestProperties());
+        getRequest.run();
+
+        final long contentLength = getRequest.getContentLength();
+        this.failure = getRequest.getThrowable();
+
+        try {
+            response.setStatus(getRequest.getResponseCode());
+            response.setContentType(getRequest.getContentType());
+
+            if (contentLength > 0L) {
+                response.setContentLength(Long.valueOf(contentLength).intValue());
+            }
+
+            response.getOutputStream().write(outputStream.toByteArray());
+        } catch (IOException e) {
+            this.failure = e;
+        }
     }
 }

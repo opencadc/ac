@@ -74,11 +74,9 @@ package ca.nrc.cadc.ac.integration;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.TokenValidator;
-
 import java.net.URI;
 import java.util.Set;
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 
 /**

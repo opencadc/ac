@@ -92,8 +92,7 @@ public class DomainServlet extends HttpServlet implements AccessConstants {
 
         if (agent_Servers.isEmpty()) {
             throw new ServletException("No Cookie domains found.  Please ensure "
-                + "the ${HOME}/config/AccessControl."
-                + "properties file exists and the "
+                + "the ${HOME}/config/access.properties file exists and the "
                 + "COOKIE_DOMAINS property is set.");
         }
 

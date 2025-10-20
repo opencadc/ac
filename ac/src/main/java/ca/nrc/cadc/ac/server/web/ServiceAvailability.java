@@ -55,7 +55,7 @@ import org.apache.log4j.Logger;
 
 public class ServiceAvailability implements AvailabilityPlugin {
 
-    private static final String CALLER_UID = "user1"; // TODO configuration?
+    private static final String CALLER_UID = "cadcregtest1"; // TODO configuration?
 
     private static final Logger log = Logger.getLogger(ServiceAvailability.class);
 
@@ -114,7 +114,6 @@ public class ServiceAvailability implements AvailabilityPlugin {
         try {
             // augment a subject
             Subject subject = AuthenticationUtil.getSubject(new PrincipalExtractor() {
-
                 public Set<Principal> getPrincipals() {
                     Set<Principal> ret = new HashSet<Principal>();
                     ret.add(new HttpPrincipal(CALLER_UID));
@@ -144,6 +143,10 @@ public class ServiceAvailability implements AvailabilityPlugin {
         } catch (Exception ex) {
             StringBuilder sb = new StringBuilder();
             // strip IllegalStateException
+            if (ex.getCause() == null) {
+                sb.append("LDAP test query failed - EXCEPTION: " + ex);
+                throw new CheckException(sb.toString());
+            }
             Throwable t = ex.getCause();
             sb.append("LDAP test query failed - CAUSE: " + t);
             while (t.getCause() != null) {
