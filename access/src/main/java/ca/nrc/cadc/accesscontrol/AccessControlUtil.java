@@ -12,12 +12,11 @@ import org.apache.log4j.Logger;
 public class AccessControlUtil {
 
     private static final Logger LOG = Logger.getLogger(AccessControlUtil.class);
-    public static final String SSO_COOKIE_NAME = "CADC_SSO";
     static final String SSO_SERVERS_KEY = "SSO_SERVERS";
     static final String COOKIE_DOMAINS_KEY = "COOKIE_DOMAINS";
     public static final String SSO_COOKIE_LIFETIME_SECONDS_KEY = "SSO_TOKEN_LIFETIME_SECONDS";
     public static final String DEFAULT_AC_PROPERTIES_FILE_PATH =
-            System.getProperty("user.home") + "/config/AccessControl.properties";
+            System.getProperty("user.home") + "/config/access.properties";
     public static final int DEFAULT_COOKIE_LIFETIME_SECONDS = 48 * 60 * 60; // 48 hours
     private final ApplicationConfiguration applicationConfiguration;
 

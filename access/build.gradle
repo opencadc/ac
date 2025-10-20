@@ -16,6 +16,7 @@ targetCompatibility = '11'
 
 dependencies {
     compileOnly 'javax.servlet:javax.servlet-api:3.1.0' // same as cadc-util
+    implementation 'commons-beanutils:commons-beanutils:1.11.0'
     implementation 'javax.mail:mail:[1.0,)'
     implementation 'org.json:json:20220320'
     implementation 'org.springframework:spring-beans:5.3.18'
@@ -31,6 +32,7 @@ dependencies {
 
     testImplementation 'junit:junit:[4.12,5.0)'
     testImplementation 'org.easymock:easymock:[5.2,)'
+    testImplementation 'org.mockito:mockito-core:[3.9,4.0)'
     testImplementation 'javax.servlet:javax.servlet-api:3.1.0'
 }
 

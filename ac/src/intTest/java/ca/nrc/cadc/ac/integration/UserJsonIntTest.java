@@ -67,11 +67,6 @@
  */
 package ca.nrc.cadc.ac.integration;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.URISyntaxException;
-
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserRequest;
@@ -79,6 +74,10 @@ import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.json.JsonUserReader;
 import ca.nrc.cadc.ac.json.JsonUserRequestWriter;
 import ca.nrc.cadc.ac.json.JsonUserWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.URISyntaxException;
 
 public class UserJsonIntTest extends AbstractUserIntTest
 {
