@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2025.                            (c) 2025.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,18 +67,70 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.proxy;
 
-import ca.nrc.cadc.vosi.AvailabilityTest;
+import ca.nrc.cadc.util.StringUtil;
+
 import java.net.URI;
-import org.apache.log4j.Logger;
+import java.util.HashMap;
 
-public class VosiAvailabilityTest extends AvailabilityTest
-{
-    private static final Logger log = Logger.getLogger(VosiAvailabilityTest.class);
+/**
+ * ServiceParameter name values are mandatory, and cannot be null.
+ */
+public class ServiceParameterMap extends HashMap<ServiceParameterName, String> {
+    public final URI getURI(final ServiceParameterName serviceParameterNameKey) {
+        return URI.create(get(serviceParameterNameKey));
+    }
 
-    public VosiAvailabilityTest()
-    {
-        super(URI.create(ConfigUsers.AC_SERVICE_ID));
+    /**
+     * Associates the specified value with the specified key in this map.
+     * If the map previously contained a mapping for the key, the old
+     * value is replaced.
+     *
+     * @param key   key with which the specified value is to be associated
+     * @param value value to be associated with the specified key
+     * @return the previous value associated with key, or null if there was no mapping for key.
+     *     (A null return can also indicate that the map previously associated null with key.)
+     */
+    @Override
+    public String put(final ServiceParameterName key, final String value) {
+        if (!StringUtil.hasText(value)) {
+            if (key.isMandatory()) {
+                throw new IllegalArgumentException(String.format("Key %s is mandatory.", key.name()));
+            } else {
+                return value;
+            }
+        } else {
+            return super.put(key, value);
+        }
+    }
+
+    public String putFirst(final ServiceParameterName key, final String[] values) {
+        if (values == null) {
+            if (key.isMandatory()) {
+                throw new IllegalArgumentException(String.format("Key %s is mandatory.", key.name()));
+            } else {
+                return null;
+            }
+        } else {
+            return put(key, values[0]);
+        }
+    }
+
+    /**
+     * Returns a string representation of this map.  The string representation
+     * consists of a list of key-value mappings in the order returned by the
+     * map's entrySet view's iterator, enclosed in braces
+     * ("{}").  Adjacent mappings are separated by the characters
+     * ", " (comma and space).  Each key-value mapping is rendered as
+     * the key followed by an equals sign ("=") followed by the
+     * associated value.  Keys and values are converted to strings as by
+     * {@link String#valueOf(Object)}.
+     *
+     * @return a string representation of this map
+     */
+    @Override
+    public String toString() {
+        return super.toString();
     }
 }

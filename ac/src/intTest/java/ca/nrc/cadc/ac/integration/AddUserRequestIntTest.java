@@ -80,7 +80,6 @@ import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -91,7 +90,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Map;
 import javax.security.auth.x500.X500Principal;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -114,7 +112,7 @@ public class AddUserRequestIntTest
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
         Log4jInit.setLevel("ca.nrc.cadc.reg", Level.INFO);
 
-        URI umsServiceURI = new URI("ivo://cadc.nrc.ca/gms");
+        URI umsServiceURI = new URI(ConfigUsers.AC_SERVICE_ID);
         RegistryClient regClient = new RegistryClient();
         userRequestServiceURL = regClient
             .getServiceURL(umsServiceURI, Standards.UMS_REQS_01, AuthMethod.CERT);

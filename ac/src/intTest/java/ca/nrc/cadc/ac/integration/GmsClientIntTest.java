@@ -76,30 +76,31 @@ import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.client.GMSClient;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.util.FileUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.gms.GroupURI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
 
 
 public class GmsClientIntTest
@@ -108,17 +109,13 @@ public class GmsClientIntTest
 
     private static final String unknownDN = "cn=foo,o=bar";
 
-    private User u1User;
-    private User u2User;
-    private User u3User;
+    private User ownerUser;
+    private User memberUser;
+    private User registeredUser;
     private User unknownUser;
     private Group unknownGroup;
 
-    private Subject u1Subject;
-    private Subject u2Subject;
-    private Subject u3Subject;
-
-    private URI serviceURI = URI.create("ivo://cadc.nrc.ca/gms");
+    private URI serviceURI = URI.create(ConfigUsers.AC_SERVICE_ID);
     private GMSClient gmsClient;
 
     static
@@ -130,33 +127,16 @@ public class GmsClientIntTest
     {
         try
         {
-            File user1 = FileUtil
-                    .getFileFromResource("user1.pem", GmsClientIntTest.class);
-            File user2 = FileUtil
-                    .getFileFromResource("user2.pem", GmsClientIntTest.class);
-            File user3 = FileUtil
-                    .getFileFromResource("user3.pem", GmsClientIntTest.class);
-            u1Subject = SSLUtil.createSubject(user1);
-            u2Subject = SSLUtil.createSubject(user2);
-            u3Subject = SSLUtil.createSubject(user3);
-
-            String user1DN = u1Subject.getPrincipals()
-                    .iterator().next().getName();
-            String user2DN = u2Subject.getPrincipals()
-                    .iterator().next().getName();
-            String user3DN = u3Subject.getPrincipals()
-                    .iterator().next().getName();
-
-            u1User = new User();
-            u1User.getIdentities().add(new X500Principal(user1DN));
-            u2User = new User();
-            u2User.getIdentities().add(new X500Principal(user2DN));
-            u3User = new User();
-            u3User.getIdentities().add(new X500Principal(user3DN));
+            ownerUser = new User();
+            ownerUser.getIdentities().add(new HttpPrincipal(ConfigUsers.getInstance().getOwnerUsername()));
+            memberUser = new User();
+            memberUser.getIdentities().add(new HttpPrincipal(ConfigUsers.getInstance().getMemberUsername()));
+            registeredUser = new User();
+            registeredUser.getIdentities().add(new HttpPrincipal(ConfigUsers.getInstance().getRegisteredUsername()));
 
             unknownUser = new User();
             unknownUser.getIdentities().add(new X500Principal(unknownDN));
-            unknownGroup = new Group(new GroupURI("ivo://cadc.nrc.ca/gms?foo"));
+            unknownGroup = new Group(new GroupURI(ConfigUsers.AC_SERVICE_ID + "?foo"));
 
             log.info("serviceURI: " + serviceURI);
             this.gmsClient = new GMSClient(serviceURI);
@@ -183,13 +163,13 @@ public class GmsClientIntTest
         expectedGroup.description = "test description";
 
         // test createGroup
-        Group actualGroup = createGroupAs(expectedGroup, u1Subject);
+        Group actualGroup = createGroupAs(expectedGroup, ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         // test GroupAlreadyExistsException
         try
         {
-            createGroupAs(expectedGroup, u1Subject);
+            createGroupAs(expectedGroup, ConfigUsers.getInstance().getOwnerSubject());
             fail("existing group should throw GroupAlreadyExistsException");
         }
         catch (GroupAlreadyExistsException e)
@@ -215,7 +195,7 @@ public class GmsClientIntTest
         // test GroupNotFoundException when user has not access to the group
         try
         {
-            getGroupAs(expectedGroup.getID().getName(), u2Subject);
+            getGroupAs(expectedGroup.getID().getName(), ConfigUsers.getInstance().getMemberSubject());
             fail("unauthorized client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -226,7 +206,7 @@ public class GmsClientIntTest
         // test GroupNotFoundException when group does not exist
         try
         {
-            getGroupAs("foo", u1Subject);
+            getGroupAs("foo", ConfigUsers.getInstance().getOwnerSubject());
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -235,7 +215,7 @@ public class GmsClientIntTest
         }
 
         // test getGroup
-        actualGroup = getExistingGroupWithDelay(groupID1.getName(), u1Subject);
+        actualGroup = getExistingGroupWithDelay(groupID1.getName(), ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         /**
@@ -258,7 +238,7 @@ public class GmsClientIntTest
 
         try
         {
-            updateGroupAs(expectedGroup, u2Subject);
+            updateGroupAs(expectedGroup, ConfigUsers.getInstance().getMemberSubject());
             fail("unauthorized client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -269,7 +249,7 @@ public class GmsClientIntTest
         // test GroupNotFoundException
         try
         {
-            updateGroupAs(unknownGroup, u1Subject);
+            updateGroupAs(unknownGroup, ConfigUsers.getInstance().getOwnerSubject());
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -280,7 +260,7 @@ public class GmsClientIntTest
 
         // Update the base test group
         expectedGroup.getGroupMembers().remove(expectedGroup);
-        actualGroup = updateGroupAs(expectedGroup, u1Subject);
+        actualGroup = updateGroupAs(expectedGroup, ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         /**
@@ -290,7 +270,7 @@ public class GmsClientIntTest
         // Create a GroupMember group
         final GroupURI groupMemberID = getGroupID("groupMember");
         Group groupMember = new Group(groupMemberID);
-        groupMember = createGroupAs(groupMember, u1Subject);
+        groupMember = createGroupAs(groupMember, ConfigUsers.getInstance().getOwnerSubject());
 
         // test AccessControlException
         try
@@ -308,7 +288,7 @@ public class GmsClientIntTest
         {
             addGroupMemberAs(expectedGroup.getID().getName(),
                              groupMember.getID().getName(),
-                    u2Subject);
+                    ConfigUsers.getInstance().getMemberSubject());
             fail("unauthorized client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -321,7 +301,7 @@ public class GmsClientIntTest
         {
             addGroupMemberAs(expectedGroup.getID().getName(),
                              unknownGroup.getID().getName(),
-                    u1Subject);
+                    ConfigUsers.getInstance().getOwnerSubject());
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -333,7 +313,7 @@ public class GmsClientIntTest
         {
             addGroupMemberAs(unknownGroup.getID().getName(),
                              groupMember.getID().getName(),
-                    u1Subject);
+                    ConfigUsers.getInstance().getOwnerSubject());
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -344,10 +324,10 @@ public class GmsClientIntTest
         // test addGroupMember
         addGroupMemberAs(expectedGroup.getID().getName(),
                          groupMember.getID().getName(),
-                u1Subject);
+                ConfigUsers.getInstance().getOwnerSubject());
         expectedGroup.getGroupMembers().add(groupMember);
         actualGroup = getNonEmptyGroupWithDelay(expectedGroup.getID().getName(),
-                u1Subject);
+                ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         /**
@@ -368,7 +348,7 @@ public class GmsClientIntTest
 
         try
         {
-            removeGroupMemberAs(u2Subject,
+            removeGroupMemberAs(ConfigUsers.getInstance().getMemberSubject(),
                                 expectedGroup.getID().getName(),
                                 groupMember.getID().getName());
             fail("unauthorized client should throw AccessControlException");
@@ -381,7 +361,7 @@ public class GmsClientIntTest
         // test GroupNotFoundException
         try
         {
-            removeGroupMemberAs(u1Subject,
+            removeGroupMemberAs(ConfigUsers.getInstance().getOwnerSubject(),
                                 expectedGroup.getID().getName(),
                                 unknownGroup.getID().getName());
             fail("unkown group should throw GroupNotFoundException");
@@ -393,7 +373,7 @@ public class GmsClientIntTest
 
         try
         {
-            removeGroupMemberAs(u1Subject,
+            removeGroupMemberAs(ConfigUsers.getInstance().getOwnerSubject(),
                                 unknownGroup.getID().getName(),
                                 groupMember.getID().getName());
             fail("unkown group should throw GroupNotFoundException");
@@ -404,12 +384,12 @@ public class GmsClientIntTest
         }
 
         // test removeGroupMember
-        removeGroupMemberAs(u1Subject,
+        removeGroupMemberAs(ConfigUsers.getInstance().getOwnerSubject(),
                             expectedGroup.getID().getName(),
                             groupMember.getID().getName());
         expectedGroup.getGroupMembers().remove(groupMember);
         actualGroup = getEmptyGroupWithDelay(expectedGroup.getID().getName(),
-                u1Subject);
+                ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         /**
@@ -420,7 +400,7 @@ public class GmsClientIntTest
         try
         {
             gmsClient.addUserMember(expectedGroup.getID().getName(),
-                                               u1User.getIdentities().iterator().next());
+                                               ownerUser.getIdentities().iterator().next());
             fail("anonymous client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -431,8 +411,8 @@ public class GmsClientIntTest
         try
         {
             addUserMemberAs(expectedGroup.getID().getName(),
-                            u1User.getIdentities().iterator().next(),
-                    u2Subject);
+                            ownerUser.getIdentities().iterator().next(),
+                    ConfigUsers.getInstance().getMemberSubject());
             fail("unauthorized client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -444,8 +424,8 @@ public class GmsClientIntTest
         try
         {
             addUserMemberAs(unknownGroup.getID().getName(),
-                            u1User.getIdentities().iterator().next(),
-                    u1Subject);
+                            ownerUser.getIdentities().iterator().next(),
+                    ConfigUsers.getInstance().getOwnerSubject());
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -455,11 +435,11 @@ public class GmsClientIntTest
 
         // test addUserMember
         addUserMemberAs(expectedGroup.getID().getName(),
-                        u1User.getIdentities().iterator().next(),
-                u1Subject);
-        expectedGroup.getUserMembers().add(u1User);
+                        ownerUser.getIdentities().iterator().next(),
+                ConfigUsers.getInstance().getOwnerSubject());
+        expectedGroup.getUserMembers().add(ownerUser);
         actualGroup = getNonEmptyGroupWithDelay(expectedGroup.getID().getName(),
-                u1Subject);
+                ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         /**
@@ -470,7 +450,7 @@ public class GmsClientIntTest
         try
         {
             gmsClient.removeUserMember(expectedGroup.getID().getName(),
-                                                  u1User.getIdentities().iterator().next());
+                                                  ownerUser.getIdentities().iterator().next());
             fail("anonymous client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -480,8 +460,8 @@ public class GmsClientIntTest
 
         try
         {
-            removeUserMemberAs(u2Subject, expectedGroup.getID().getName(),
-                                      u1User.getIdentities().iterator().next());
+            removeUserMemberAs(ConfigUsers.getInstance().getMemberSubject(), expectedGroup.getID().getName(),
+                                      ownerUser.getIdentities().iterator().next());
             fail("unauthorized client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -492,8 +472,8 @@ public class GmsClientIntTest
         // test GroupNotFoundException
         try
         {
-            removeUserMemberAs(u1Subject, unknownGroup.getID().getName(),
-                                      u1User.getIdentities().iterator().next());
+            removeUserMemberAs(ConfigUsers.getInstance().getOwnerSubject(), unknownGroup.getID().getName(),
+                                      ownerUser.getIdentities().iterator().next());
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -502,11 +482,11 @@ public class GmsClientIntTest
         }
 
         // test removeUserMember
-        removeUserMemberAs(u1Subject, expectedGroup.getID().getName(),
-                                  u1User.getIdentities().iterator().next());
-        expectedGroup.getUserMembers().remove(u1User);
+        removeUserMemberAs(ConfigUsers.getInstance().getOwnerSubject(), expectedGroup.getID().getName(),
+                                  ownerUser.getIdentities().iterator().next());
+        expectedGroup.getUserMembers().remove(ownerUser);
         actualGroup = getEmptyGroupWithDelay(expectedGroup.getID().getName(),
-                u1Subject);
+                ConfigUsers.getInstance().getOwnerSubject());
         assertEquals(expectedGroup, actualGroup);
 
         /**
@@ -527,7 +507,7 @@ public class GmsClientIntTest
         try
         {
             deleteGroupAs(expectedGroup.getID().getName(),
-                    u2Subject, false);
+                    ConfigUsers.getInstance().getMemberSubject(), false);
             fail("unauthorized client should throw AccessControlException");
         }
         catch (AccessControlException e)
@@ -538,7 +518,7 @@ public class GmsClientIntTest
         // test GroupNotFoundException
         try
         {
-            deleteGroupAs(unknownGroup.getID().getName(), u1Subject, false);
+            deleteGroupAs(unknownGroup.getID().getName(), ConfigUsers.getInstance().getOwnerSubject(), false);
             fail("unkown group should throw GroupNotFoundException");
         }
         catch (GroupNotFoundException e)
@@ -547,10 +527,10 @@ public class GmsClientIntTest
         }
 
         // test deleteGroup
-        deleteGroupAs(expectedGroup.getID().getName(), u1Subject, true);
+        deleteGroupAs(expectedGroup.getID().getName(), ConfigUsers.getInstance().getOwnerSubject(), true);
         try
         {
-            getGroupAs(expectedGroup.getID().getName(), u1Subject);
+            getGroupAs(expectedGroup.getID().getName(), ConfigUsers.getInstance().getOwnerSubject());
             fail("deleteGroup did not delete the group " + expectedGroup
                     .getID());
         }
@@ -572,14 +552,14 @@ public class GmsClientIntTest
             // create a group with user 1
             GroupURI gURI = new GroupURI(serviceURI.toString() + "?" + groupName);
             Group group = new Group(gURI);
-            group.getUserMembers().add(u1User);
-            createGroupAs(group, u1Subject);
+            group.getUserMembers().add(ownerUser);
+            createGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
-            group.getUserMembers().add(u3User);
+            group.getUserMembers().add(registeredUser);
             final Principal principal =
-                    this.u3User.getIdentities().iterator().next();
+                    this.registeredUser.getIdentities().iterator().next();
 
-            Subject.doAs(u1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -591,7 +571,7 @@ public class GmsClientIntTest
                         try {
                             // add delay to compensate for eventual consistency of
                             // content in multiple ldap hosts
-                            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                             gmsClient.addUserMember(groupName, principal);
                             success = true;
                         } catch (Exception ex) {
@@ -602,10 +582,10 @@ public class GmsClientIntTest
                 }
             });
 
-            group = getNonEmptyGroupWithDelay(groupName, u1Subject);
+            group = getNonEmptyGroupWithDelay(groupName, ConfigUsers.getInstance().getOwnerSubject());
             Assert.assertTrue(group.getUserMembers().size() == 2);
-            Assert.assertTrue(group.getUserMembers().contains(u1User));
-            Assert.assertTrue(group.getUserMembers().contains(u3User));
+            Assert.assertTrue(group.getUserMembers().contains(ownerUser));
+            Assert.assertTrue(group.getUserMembers().contains(registeredUser));
 
         }
         catch (Exception e)
@@ -617,7 +597,7 @@ public class GmsClientIntTest
         {
             try
             {
-                deleteGroupAs(groupName, u1Subject, true);
+                deleteGroupAs(groupName, ConfigUsers.getInstance().getOwnerSubject(), true);
             }
             catch (Exception e)
             {
@@ -638,15 +618,15 @@ public class GmsClientIntTest
             // create a group with user 1
             GroupURI gURI = new GroupURI(serviceURI.toString() + "?" + groupName);
             Group group = new Group(gURI);
-            createGroupAs(group, u1Subject);
+            createGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // add user 2 as administrator to the group
-            group = getExistingGroupWithDelay(groupName, u1Subject);
-            group.getUserAdmins().add(u2User);
-            group = updateGroupAs(group, u1Subject);
+            group = getExistingGroupWithDelay(groupName, ConfigUsers.getInstance().getOwnerSubject());
+            group.getUserAdmins().add(memberUser);
+            group = updateGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // do a search and make sure the user has admin privileges
-            Subject.doAs(u2Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getMemberSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -659,7 +639,7 @@ public class GmsClientIntTest
                             // eventual consistency of
                             // content in multiple ldap hosts
                             // try it several times
-                            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                             boolean isMember = gmsClient.isMember(groupName, Role.ADMIN);
                             Assert.assertTrue("not an admin", isMember);
                             success = true;
@@ -676,8 +656,8 @@ public class GmsClientIntTest
 
 
             // ensure user 2 has read-write privileges
-            group.getUserMembers().add(u2User);
-            group = updateGroupAs(group, u2Subject);
+            group.getUserMembers().add(memberUser);
+            group = updateGroupAs(group, ConfigUsers.getInstance().getMemberSubject());
             Assert.assertNotNull("group is null", group);
 
         }
@@ -685,7 +665,7 @@ public class GmsClientIntTest
         {
             try
             {
-                deleteGroupAs(groupName, u1Subject, true);
+                deleteGroupAs(groupName, ConfigUsers.getInstance().getOwnerSubject(), true);
             }
             catch (Exception e)
             {
@@ -705,15 +685,15 @@ public class GmsClientIntTest
             // create a group with user 1
             GroupURI gURI = new GroupURI(serviceURI.toString() + "?" + groupName);
             Group group = new Group(gURI);
-            createGroupAs(group, u1Subject);
+            createGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // add user 2 as administrator to the group
-            group = getExistingGroupWithDelay(groupName, u1Subject);
-            group.getUserAdmins().add(u2User);
-            updateGroupAs(group, u1Subject);
+            group = getExistingGroupWithDelay(groupName, ConfigUsers.getInstance().getOwnerSubject());
+            group.getUserAdmins().add(memberUser);
+            updateGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // do a search and make sure the user has admin privileges
-            Subject.doAs(u2Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getMemberSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -726,7 +706,7 @@ public class GmsClientIntTest
                             // eventual consistency of
                             // content in multiple ldap hosts
                             // try it several times
-                            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                             boolean isMember = gmsClient.isMember(groupName, Role.ADMIN);
                             Assert.assertTrue("not an admin", isMember);
                             success = true;
@@ -741,14 +721,14 @@ public class GmsClientIntTest
                 }
             });
 
-            group = getNonEmptyGroupWithDelay(groupName, u2Subject);
+            group = getNonEmptyGroupWithDelay(groupName, ConfigUsers.getInstance().getMemberSubject());
             Assert.assertEquals("admin count", 1, group.getUserAdmins().size());
             log.debug("Group admin 1 after update: " + group.getUserAdmins()
                     .iterator().next());
 
             // ensure user 2 has read-write privileges
-            group.getUserMembers().add(u2User); // add self
-            group = updateGroupAs(group, u2Subject);
+            group.getUserMembers().add(memberUser); // add self
+            group = updateGroupAs(group, ConfigUsers.getInstance().getMemberSubject());
             Assert.assertNotNull("group is null", group);
 
         }
@@ -756,7 +736,7 @@ public class GmsClientIntTest
         {
             try
             {
-                deleteGroupAs(groupName, u1Subject, true);
+                deleteGroupAs(groupName, ConfigUsers.getInstance().getOwnerSubject(), true);
             }
             catch (Exception e)
             {
@@ -779,15 +759,15 @@ public class GmsClientIntTest
             Group group = new Group(gURI);
             
             // create a group with user 1
-            createGroupAs(group, u1Subject);
+            createGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // add user 2 as administrator to the group
-            group = getExistingGroupWithDelay(groupName, u1Subject);
-            group.getUserAdmins().add(u2User);
-            updateGroupAs(group, u1Subject);
+            group = getExistingGroupWithDelay(groupName, ConfigUsers.getInstance().getOwnerSubject());
+            group.getUserAdmins().add(memberUser);
+            updateGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // do a search and make sure the user has admin privileges
-            Subject.doAs(u2Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getMemberSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -796,11 +776,11 @@ public class GmsClientIntTest
                     boolean success = false;
                     while (!success && n < 10) {
                         try {
-                            // add delay to compensate for 
+                            // add delay to compensate for
                             // eventual consistency of
                             // content in multiple ldap hosts
                             // try it several times
-                            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                             boolean isMember = gmsClient.isMember(groupName, Role.ADMIN);
                             Assert.assertTrue("not an admin", isMember);
                             success = true;
@@ -815,21 +795,21 @@ public class GmsClientIntTest
                 }
             });
 
-            group = getNonEmptyGroupWithDelay(groupName, u2Subject);
+            group = getNonEmptyGroupWithDelay(groupName, ConfigUsers.getInstance().getMemberSubject());
             Assert.assertEquals("admin count", 1,
                                 group.getUserAdmins().size());
             log.debug("Group admin 1 after update: " + group.getUserAdmins()
                     .iterator().next());
 
             // changed subject from 2->1
-            Subject.doAs(u1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
                 {
                     // ensure user 2 has read-write privileges
                     // chanmged arg from 1->2
-                    gmsClient.addUserMember(groupName, u2User.getIdentities().iterator().next());
+                    gmsClient.addUserMember(groupName, memberUser.getIdentities().iterator().next());
                     return null;
                 }
             });
@@ -843,7 +823,7 @@ public class GmsClientIntTest
         {
             try
             {
-                deleteGroupAs(groupName, u1Subject, true);
+                deleteGroupAs(groupName, ConfigUsers.getInstance().getOwnerSubject(), true);
             }
             catch (Exception e)
             {
@@ -867,32 +847,32 @@ public class GmsClientIntTest
             GroupURI gURI1 = new GroupURI(serviceURI.toString() + "?" + groupName1);
             Group group1 = new Group(gURI1);
             log.debug("create group " + group1);
-            createGroupAs(group1, u1Subject);
-            group1 = getExistingGroupWithDelay(groupName1, u1Subject);
+            createGroupAs(group1, ConfigUsers.getInstance().getOwnerSubject());
+            group1 = getExistingGroupWithDelay(groupName1, ConfigUsers.getInstance().getOwnerSubject());
             Assert.assertEquals("num members", 0, group1.getUserMembers().size());
 
             // create an admin group with user 1
             GroupURI gURI2 = new GroupURI(serviceURI.toString() + "?" + groupName2);
             Group group2 = new Group(gURI2);
             log.debug("create 2nd group " + group2);
-            createGroupAs(group2, u1Subject);
+            createGroupAs(group2, ConfigUsers.getInstance().getOwnerSubject());
 
             // add user 2 as member of group2
-            group2 = getExistingGroupWithDelay(groupName2, u1Subject);
-            group2.getUserMembers().add(u2User);
+            group2 = getExistingGroupWithDelay(groupName2, ConfigUsers.getInstance().getOwnerSubject());
+            group2.getUserMembers().add(memberUser);
             log.debug("add auth2 as member of group2");
-            updateGroupAs(group2, u1Subject);
-            group1 = getExistingGroupWithDelay(groupName1, u1Subject);
+            updateGroupAs(group2, ConfigUsers.getInstance().getOwnerSubject());
+            group1 = getExistingGroupWithDelay(groupName1, ConfigUsers.getInstance().getOwnerSubject());
 
             // add group 2 as an administrative group to group 1
-            group2 = getExistingGroupWithDelay(groupName2, u1Subject);
+            group2 = getExistingGroupWithDelay(groupName2, ConfigUsers.getInstance().getOwnerSubject());
             group1.getGroupAdmins().add(group2);
             log.debug("add group2 to group1 admin groups");
-            updateGroupAs(group1, u1Subject);
+            updateGroupAs(group1, ConfigUsers.getInstance().getOwnerSubject());
 
             // do a search and make sure the user has admin privileges
             log.debug("check auth2 as member of group2 is an admin of group1");
-            Subject.doAs(u2Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getMemberSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -905,7 +885,7 @@ public class GmsClientIntTest
                             // eventual consistency of
                             // content in multiple ldap hosts
                             // try it several times
-                            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                             boolean isMember = gmsClient.isMember(groupName1, Role.ADMIN);
                             Assert.assertTrue("not an admin", isMember);
                             success = true;
@@ -920,19 +900,19 @@ public class GmsClientIntTest
             });
 
             // ensure user 2 has read-write privileges
-            group1 = getExistingGroupWithDelay(groupName1, u2Subject); // read
+            group1 = getExistingGroupWithDelay(groupName1, ConfigUsers.getInstance().getMemberSubject()); // read
             log.debug("group1 group admins: " + Collections.singletonList(group1.getGroupAdmins()));
-            group1.getUserMembers().add(u2User); // add self
+            group1.getUserMembers().add(memberUser); // add self
             log.debug("as auth2 add auth2 as member of group1");
-            updateGroupAs(group1, u2Subject); // write
+            updateGroupAs(group1, ConfigUsers.getInstance().getMemberSubject()); // write
 
             // verify that a admin user can update (despite not having read permission on an admin group)
-            group1 = getNonEmptyGroupWithDelay(groupName1, u2Subject);
-            group1.getUserMembers().add(u1User); // yeah, add the owner as a member
+            group1 = getNonEmptyGroupWithDelay(groupName1, ConfigUsers.getInstance().getMemberSubject());
+            group1.getUserMembers().add(ownerUser); // yeah, add the owner as a member
             log.debug("as auth2 add auth1 as member to group1");
-            updateGroupAs(group1, u2Subject);
+            updateGroupAs(group1, ConfigUsers.getInstance().getMemberSubject());
 
-            group1 = getNonEmptyGroupWithDelay(groupName1, u2Subject);
+            group1 = getNonEmptyGroupWithDelay(groupName1, ConfigUsers.getInstance().getMemberSubject());
             Assert.assertEquals("num members", 2, group1.getUserMembers().size());
 
         }
@@ -940,9 +920,9 @@ public class GmsClientIntTest
         {
             try
             {
-                deleteGroupAs(groupName1, u1Subject, true);
+                deleteGroupAs(groupName1, ConfigUsers.getInstance().getOwnerSubject(), true);
                 // delay already done by the previous statement
-                deleteGroupAs(groupName2, u1Subject, false);
+                deleteGroupAs(groupName2, ConfigUsers.getInstance().getOwnerSubject(), false);
             }
             catch (Exception e)
             {
@@ -963,26 +943,26 @@ public class GmsClientIntTest
         {
             GroupURI gURI1 = new GroupURI(serviceURI.toString() + "?" + groupName1);
             Group group = new Group(gURI1);
-            createGroupAs(group, u1Subject);
+            createGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // create an admin group with user 1
             GroupURI gURI2 = new GroupURI(serviceURI.toString() + "?" + groupName2);
             group = new Group(gURI2);
-            createGroupAs(group, u1Subject);
+            createGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // add user 2 as member of group2
-            group = getExistingGroupWithDelay(groupName2, u1Subject);
-            group.getUserMembers().add(u2User);
-            updateGroupAs(group, u1Subject);
+            group = getExistingGroupWithDelay(groupName2, ConfigUsers.getInstance().getOwnerSubject());
+            group.getUserMembers().add(memberUser);
+            updateGroupAs(group, ConfigUsers.getInstance().getOwnerSubject());
 
             // add group 2 as an administrative group to group 1
-            Group group1 = getExistingGroupWithDelay(groupName1, u1Subject);
-            Group group2 = getNonEmptyGroupWithDelay(groupName2, u1Subject);
+            Group group1 = getExistingGroupWithDelay(groupName1, ConfigUsers.getInstance().getOwnerSubject());
+            Group group2 = getNonEmptyGroupWithDelay(groupName2, ConfigUsers.getInstance().getOwnerSubject());
             group1.getGroupAdmins().add(group2);
-            updateGroupAs(group1, u1Subject);
+            updateGroupAs(group1, ConfigUsers.getInstance().getOwnerSubject());
 
             // do a search and make sure the user has admin privileges
-            Subject.doAs(u2Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getMemberSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -995,7 +975,7 @@ public class GmsClientIntTest
                             // eventual consistency of
                             // content in multiple ldap hosts
                             // try it several times
-                            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                             boolean isMember = gmsClient.isMember(groupName1, Role.ADMIN);
                             Assert.assertTrue("not an admin", isMember);
                             success = true;
@@ -1011,18 +991,18 @@ public class GmsClientIntTest
 
             // ensure user 2 has read-write privileges
             // changed 2->1
-            Subject.doAs(u1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
                 {
                     // changed 1->2
-                    gmsClient.addUserMember(groupName1, u2User.getIdentities().iterator().next()); // add self??
+                    gmsClient.addUserMember(groupName1, memberUser.getIdentities().iterator().next()); // add self??
                     return null;
                 }
             });
 
-            group = getNonEmptyGroupWithDelay(groupName1, u2Subject);
+            group = getNonEmptyGroupWithDelay(groupName1, ConfigUsers.getInstance().getMemberSubject());
             Assert.assertTrue("no memembers", group.getUserMembers()
                                                       .size() > 0);
 
@@ -1031,8 +1011,8 @@ public class GmsClientIntTest
         {
             try
             {
-                deleteGroupAs(groupName1, u1Subject, true);
-                deleteGroupAs(groupName2, u1Subject, true);
+                deleteGroupAs(groupName1, ConfigUsers.getInstance().getOwnerSubject(), true);
+                deleteGroupAs(groupName2, ConfigUsers.getInstance().getOwnerSubject(), true);
             }
             catch (Exception e)
             {
@@ -1067,18 +1047,18 @@ public class GmsClientIntTest
 
     private void verifySearchSetup(String testGroupID) throws Exception {
         // verify setup
-        Group testGroup = getExistingGroupWithDelay(testGroupID, u1Subject);
+        Group testGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
         Assert.assertNotNull(testGroup);
-        Principal p1 = u1User.getIdentities().iterator().next();
-        Principal p2 = testGroup.getOwner().getIdentities(X500Principal.class).iterator().next();
+        Principal p1 = ownerUser.getIdentities().iterator().next();
+        Principal p2 = testGroup.getOwner().getIdentities(HttpPrincipal.class).iterator().next();
         Assert.assertTrue(AuthenticationUtil.equals(p1, p2));
         boolean containsAuthtest1 = false;
         boolean containsAuthtest2 = false;
         for (User u : testGroup.getUserMembers())
         {
-            if (u1User.isConsistent(u))
+            if (ownerUser.isConsistent(u))
                 containsAuthtest1 = true;
-            if (u2User.isConsistent(u))
+            if (memberUser.isConsistent(u))
                 containsAuthtest2 = true;
         }
         Assert.assertTrue(containsAuthtest1);
@@ -1090,14 +1070,14 @@ public class GmsClientIntTest
         Group adminGroup = adminGroups.iterator().next();
         // previous get is not recursive
         adminGroup = getNonEmptyGroupWithDelay(adminGroup.getID().getName(),
-                u1Subject);
+                ConfigUsers.getInstance().getOwnerSubject());
         containsAuthtest1 = false;
         containsAuthtest2 = false;
         for (User u : adminGroup.getUserMembers())
         {
-            if (u1User.isConsistent(u))
+            if (ownerUser.isConsistent(u))
                 containsAuthtest1 = true;
-            if (u2User.isConsistent(u))
+            if (memberUser.isConsistent(u))
                 containsAuthtest2 = true;
         }
         Assert.assertTrue(containsAuthtest1);
@@ -1125,26 +1105,29 @@ public class GmsClientIntTest
 
             try {
                 // search for the group created above
-                Group testGroup = getExistingGroupWithDelay(testGroupID, u1Subject);
+                Group testGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
                 if (testGroup == null) {
                     // admin group
                     String agID = getGroupID("testSearch-admin-group", id);
-                    GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + agID);
-                    Group adminGroup = new Group(agURI);
-                    adminGroup.getUserMembers().add(u1User);
-                    adminGroup.getUserMembers().add(u2User);
-                    adminGroup = createGroupAs(adminGroup, u1Subject);
-                    Assert.assertNotNull(adminGroup);
-                    hasAdminGroup = true;
-                    log.debug("testSearchSetup: created " + adminGroup.getID());
+                    Group adminGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
+                    if (adminGroup == null) {
+                        GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + agID);
+                        adminGroup = new Group(agURI);
+                        adminGroup.getUserMembers().add(ownerUser);
+                        adminGroup.getUserMembers().add(memberUser);
+                        adminGroup = createGroupAs(adminGroup, ConfigUsers.getInstance().getOwnerSubject());
+                        Assert.assertNotNull(adminGroup);
+                        hasAdminGroup = true;
+                        log.debug("testSearchSetup: created " + adminGroup.getID());
+                    }
 
                     // test group
                     GroupURI gURI = new GroupURI(serviceURI.toString() + "?" + testGroupID);
                     testGroup = new Group(gURI);
                     testGroup.getGroupAdmins().add(adminGroup);
-                    testGroup.getUserMembers().add(u1User);
-                    testGroup.getUserMembers().add(u2User);
-                    testGroup = createGroupAs(testGroup, u1Subject);
+                    testGroup.getUserMembers().add(ownerUser);
+                    testGroup.getUserMembers().add(memberUser);
+                    testGroup = createGroupAs(testGroup, ConfigUsers.getInstance().getOwnerSubject());
                     log.debug("testSearchSetup: " + testGroup.getID() + " created");
                     Assert.assertNotNull(testGroup);
                     hasTestGroup = true;
@@ -1160,10 +1143,10 @@ public class GmsClientIntTest
                 try
                 {
                     if (hasTestGroup) {
-                        deleteGroupAs(testGroupID, u1Subject, true);
+                        deleteGroupAs(testGroupID, ConfigUsers.getInstance().getOwnerSubject(), true);
                     }
                     if (hasAdminGroup) {
-                        deleteGroupAs(adminGroupID, u1Subject, true);
+                        deleteGroupAs(adminGroupID, ConfigUsers.getInstance().getOwnerSubject(), true);
                     }
                 }
                 catch (Exception e)
@@ -1198,18 +1181,17 @@ public class GmsClientIntTest
                 // test groups                                                       
                 String id = Long.toString(setupVersionNumber + i);                   
                 final String testGroupID = getGroupID("testSearch-test-group", id);  
-                final String adminGroupID = getGroupID("testSearch-admin-group", id);          
-                                                                                               
+
                 // search for the group created above                                          
-                Group testGroup = getExistingGroupWithDelay(testGroupID, u1Subject);
+                Group testGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
                 if (testGroup == null) {                                              
                     // admin group                                                    
                     String agID = getGroupID("testSearch-admin-group", id);           
                     GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + agID);
                     Group adminGroup = new Group(agURI);                         
-                    adminGroup.getUserMembers().add(u1User);
-                    adminGroup.getUserMembers().add(u2User);
-                    adminGroup = createGroupAs(adminGroup, u1Subject);
+                    adminGroup.getUserMembers().add(ownerUser);
+                    adminGroup.getUserMembers().add(memberUser);
+                    adminGroup = createGroupAs(adminGroup, ConfigUsers.getInstance().getOwnerSubject());
                     Assert.assertNotNull(adminGroup);                           
                     hasAdminGroup[i-1] = true;                                  
                     log.debug("testSearchSetup: created " + adminGroup.getID());            
@@ -1218,9 +1200,9 @@ public class GmsClientIntTest
                     GroupURI gURI = new GroupURI(serviceURI.toString() + "?" + testGroupID);
                     testGroup = new Group(gURI);                      
                     testGroup.getGroupAdmins().add(adminGroup);                
-                    testGroup.getUserMembers().add(u1User);
-                    testGroup.getUserMembers().add(u2User);
-                    testGroup = createGroupAs(testGroup, u1Subject);
+                    testGroup.getUserMembers().add(ownerUser);
+                    testGroup.getUserMembers().add(memberUser);
+                    testGroup = createGroupAs(testGroup, ConfigUsers.getInstance().getOwnerSubject());
                     log.debug("testSearchSetup: " + testGroup.getID() + " created");
                     Assert.assertNotNull(testGroup);                         
                     hasTestGroup[i-1] = true;                                
@@ -1241,42 +1223,45 @@ public class GmsClientIntTest
             String adminGroupID = getGroupID("testSearch-admin-group", id);
     
             // search by role: owner
-            Collection<Group> groups = getMembershipsAs(Role.OWNER, u1Subject);
+            Collection<Group> groups = getMembershipsAs(Role.OWNER, ConfigUsers.getInstance().getOwnerSubject());
             assertNotNull(groups);
             assertFalse(groups.isEmpty());
     
             // search by role: admin
-            groups = getMembershipsAs(Role.ADMIN, u2Subject);
+            groups = getMembershipsAs(Role.ADMIN, ConfigUsers.getInstance().getMemberSubject());
             assertNotNull(groups);
             assertFalse(groups.isEmpty());
             
             // search by role: member
-            groups = getMembershipsAs(Role.MEMBER, u2Subject);
+            groups = getMembershipsAs(Role.MEMBER, ConfigUsers.getInstance().getMemberSubject());
             assertNotNull(groups);
             assertFalse(groups.isEmpty());
     
             // search that returns nothing
-            groups = getMembershipsAs(Role.MEMBER, u3Subject);
+            groups = getMembershipsAs(Role.MEMBER, ConfigUsers.getInstance().getRegisteredSubject());
             assertNotNull(groups);
+            for (Group g : groups) {
+                log.debug("testSearch: found group: " + g.getID().getName());
+            }
             assertTrue("found " + groups.size() + " expected 0", groups.isEmpty());
     
             // assert owner
-            Group group = getMembershipAs(testGroupID, Role.OWNER, u1Subject);
+            Group group = getMembershipAs(testGroupID, Role.OWNER, ConfigUsers.getInstance().getOwnerSubject());
             assertNotNull(group);
             assertEquals(testGroupID, group.getID().getName());
     
             // assert admin
-            group = getMembershipAs(testGroupID, Role.ADMIN, u2Subject);
+            group = getMembershipAs(testGroupID, Role.ADMIN, ConfigUsers.getInstance().getMemberSubject());
             assertNotNull(group);
             assertEquals(testGroupID, group.getID().getName());
     
             // assert membership: u1
-            group = getMembershipAs(testGroupID, Role.MEMBER, u1Subject);
+            group = getMembershipAs(testGroupID, Role.MEMBER, ConfigUsers.getInstance().getOwnerSubject());
             assertNotNull(group);
             assertEquals(testGroupID, group.getID().getName());
     
             // assert membership: u2
-            group = getMembershipAs(testGroupID, Role.MEMBER, u2Subject);
+            group = getMembershipAs(testGroupID, Role.MEMBER, ConfigUsers.getInstance().getMemberSubject());
             assertNotNull(group);
             assertEquals(testGroupID, group.getID().getName());
         } finally {
@@ -1288,10 +1273,10 @@ public class GmsClientIntTest
                 try
                 {
                     if (hasTestGroup[i-1]) {
-                        deleteGroupAs(testGroupID, u1Subject, true);
+                        deleteGroupAs(testGroupID, ConfigUsers.getInstance().getOwnerSubject(), true);
                     }
                     if (hasAdminGroup[i-1]) {
-                        deleteGroupAs(adminGroupID, u1Subject, true);
+                        deleteGroupAs(adminGroupID, ConfigUsers.getInstance().getOwnerSubject(), true);
                     }
                 }
                 catch (Exception e)
@@ -1309,11 +1294,11 @@ public class GmsClientIntTest
 
         // non existent group
         Group g = getMembershipAs(nonExistentGroupID, Role.OWNER,
-                u3Subject);
+                ConfigUsers.getInstance().getRegisteredSubject());
         Assert.assertNull(g);
 
         // not a member
-        g = getMembershipAs("CADC", Role.MEMBER, u3Subject);
+        g = getMembershipAs("CADC", Role.MEMBER, ConfigUsers.getInstance().getRegisteredSubject());
         Assert.assertNull(g);
     }
 
@@ -1354,7 +1339,7 @@ public class GmsClientIntTest
     public void testAuthGroupNameSearch() throws Exception
     {
         Collection<String> groupNames =
-                Subject.doAs(u3Subject,
+                Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(),
                              new PrivilegedExceptionAction<Collection<String>>()
         {
             @Override
@@ -1396,11 +1381,9 @@ public class GmsClientIntTest
     {
         try
         {
-            File file = FileUtil.getFileFromResource("anonuser.pem", GmsClientIntTest.class);
-            Subject s = SSLUtil.createSubject(file);
             try
             {
-                Subject.doAs(s, new PrivilegedExceptionAction<Object>()
+                Subject.doAs(ConfigUsers.getInstance().getAnonSubject(), new PrivilegedExceptionAction<Object>()
                 {
                     @Override
                     public Object run() throws Exception
@@ -1436,7 +1419,7 @@ public class GmsClientIntTest
     {
         try
         {
-            Subject.doAs(u1Subject, new PrivilegedExceptionAction<Object>()
+            Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>()
             {
                 @Override
                 public Object run() throws Exception
@@ -1459,11 +1442,9 @@ public class GmsClientIntTest
     {
         try
         {
-            File file = FileUtil.getFileFromResource("anonuser.pem", GmsClientIntTest.class);
-            Subject s = SSLUtil.createSubject(file);
             try
             {
-                Subject.doAs(s, new PrivilegedExceptionAction<Object>()
+                Subject.doAs(ConfigUsers.getInstance().getAnonSubject(), new PrivilegedExceptionAction<Object>()
                 {
                     @Override
                     public Object run() throws Exception
@@ -1528,7 +1509,7 @@ public class GmsClientIntTest
             // add delay to compensate for eventual consistency of
             // content in multiple ldap hosts;
             // try it several times
-            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
             group = getGroupAs(groupID, user);
             if (group.getGroupMembers().size() == 0 && group.getUserMembers().size() == 0) {
                 success = true;
@@ -1548,7 +1529,7 @@ public class GmsClientIntTest
             // add delay to compensate for eventual consistency of
             // content in multiple ldap hosts;
             // try it several times
-            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
             group = getGroupAs(groupID, user);
             if (group.getGroupMembers().size() > 0 || group.getUserMembers().size() > 0) {
                 success = true;
@@ -1568,7 +1549,7 @@ public class GmsClientIntTest
             // add delay to compensate for eventual consistency of
             // content in multiple ldap hosts;
             // try it several times
-            TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+            //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
             try {
                 group = getGroupAs(groupID, user);
                 success = true;
@@ -1752,7 +1733,7 @@ public class GmsClientIntTest
                                 // eventual consistency of
                                 // content in multiple ldap hosts
                                 // try it several times
-                                TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
+                                //TimeUnit.MILLISECONDS.sleep(20 * Math.round(Math.pow(2.0, n)));
                                 gmsClient.deleteGroup(groupName);
                                 success = true;
                             } catch(AccessControlException ex) {

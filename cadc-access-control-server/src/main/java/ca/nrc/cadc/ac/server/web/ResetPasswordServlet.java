@@ -74,7 +74,6 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
@@ -366,42 +365,34 @@ public class ResetPasswordServlet extends HttpServlet {
         final ServletLogInfo logInfo = new ServletLogInfo(request);
         log.info(logInfo.start());
         try {
-            final Subject subject = getSubject(request);
-            logInfo.setSubject(subject);
-            if ((subject == null) || (subject.getPrincipals().isEmpty())) {
-                logInfo.setMessage("Unauthorized subject");
+            // authentication done via a signed token
+            String token = request.getHeader(AuthenticationUtil.AUTHORIZATION_HEADER);
+            if (!StringUtil.hasText(token)) {
+                logInfo.setMessage("Unauthorized subject, missing token");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            } else {
-                // verify the scope
-                Set<AuthorizationToken> tokens = subject.getPublicCredentials(AuthorizationToken.class);
-                AuthorizationToken token = tokens.iterator().next();
-                SignedToken t = SignedToken.parse(token.getCredentials());
-                if (!(URI.create(RESET_PASSWORD_SCOPE).equals(t.getScope()))) {
-                    logInfo.setMessage("Unauthorized subject, insufficient scope");
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                }
-
-                Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
-                    public Object run() throws Exception {
-
-                        Set<HttpPrincipal> pset = subject.getPrincipals(HttpPrincipal.class);
-                        if (pset.isEmpty()) {
-                            throw new IllegalStateException("no HttpPrincipal in subject");
-                        }
-
-                        HttpPrincipal userID = pset.iterator().next();
-
-                        String newPassword = request.getParameter("password");
-                        if (StringUtil.hasText(newPassword)) {
-                            userPersistence.resetPassword(userID, newPassword);
-                        } else {
-                            throw new IllegalArgumentException("Missing password");
-                        }
-
-                        return null;
-                    }
-                });
+                return;
             }
+            SignedToken t = SignedToken.parse(token);
+            // verify the scope
+            if (!(URI.create(RESET_PASSWORD_SCOPE).equals(t.getScope()))) {
+                logInfo.setMessage("Unauthorized subject, insufficient scope");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+            final Subject subject = new Subject();
+            subject.getPrincipals().add(t.getUser());
+            logInfo.setSubject(subject);
+            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+                public Object run() throws Exception {
+                    String newPassword = request.getParameter("password");
+                    if (StringUtil.hasText(newPassword)) {
+                        userPersistence.resetPassword(t.getUser(), newPassword);
+                    } else {
+                        throw new IllegalArgumentException("Missing password");
+                    }
+                    return null;
+                }
+            });
         } catch (Throwable t) {
             try {
                 if (t instanceof PrivilegedActionException) {

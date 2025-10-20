@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2025.                            (c) 2025.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,18 +67,28 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.proxy;
 
-import ca.nrc.cadc.vosi.AvailabilityTest;
-import java.net.URI;
-import org.apache.log4j.Logger;
+/**
+ * Request parameters expected to be present.  These are all mandatory.
+ */
+public enum ServiceParameterName {
+    RESOURCE_ID(true),
+    STANDARD_ID(true),
+    AUTH_TYPE(true),
+    INTERFACE_TYPE_ID(true),
+    EXTRA_PATH(false),
+    EXTRA_QUERY(false);
 
-public class VosiAvailabilityTest extends AvailabilityTest
-{
-    private static final Logger log = Logger.getLogger(VosiAvailabilityTest.class);
 
-    public VosiAvailabilityTest()
-    {
-        super(URI.create(ConfigUsers.AC_SERVICE_ID));
+    private final boolean isMandatoryFlag;
+
+
+    ServiceParameterName(boolean isMandatoryFlag) {
+        this.isMandatoryFlag = isMandatoryFlag;
+    }
+
+    public boolean isMandatory() {
+        return isMandatoryFlag;
     }
 }

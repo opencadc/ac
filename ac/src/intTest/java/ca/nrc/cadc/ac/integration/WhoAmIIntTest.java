@@ -69,34 +69,32 @@
 
 package ca.nrc.cadc.ac.integration;
 
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.xml.UserReader;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.RunnableAction;
-import ca.nrc.cadc.auth.SSLUtil;
-import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.net.URI;
 import java.net.URL;
 import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 public class WhoAmIIntTest
 {
     private static final Logger log = Logger.getLogger(WhoAmIIntTest.class);
 
     static URL serviceURL;
-    static File certFile;
-
 
     @BeforeClass
     public static void before()
@@ -104,36 +102,34 @@ public class WhoAmIIntTest
     {
         Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
 
-        URI umsServiceURI = new URI("ivo://cadc.nrc.ca/gms");
+        URI umsServiceURI = new URI(ConfigUsers.AC_SERVICE_ID);
 
         RegistryClient regClient = new RegistryClient();
         serviceURL = regClient.getServiceURL(umsServiceURI, Standards.UMS_WHOAMI_01, AuthMethod.CERT);
         log.info("serviceUrl: " + serviceURL);
 
-        certFile = new File(System.getenv("A") + "/test-certificates/user1.pem");
     }
 
     @Test
     public void whoAmI() throws Exception
     {
         ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
-        HttpDownload httpGet = new HttpDownload(serviceURL, out);
+        HttpGet httpGet = new HttpGet(serviceURL, out);
         httpGet.setFollowRedirects(false);
         
-        Subject s = SSLUtil.createSubject(certFile);
-        Subject.doAs(s, new RunnableAction(httpGet));
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), new RunnableAction(httpGet));
 
         assertEquals("Wrong response code", 302, httpGet.getResponseCode());
-        assertNull("GET returned errors", httpGet.getThrowable());
 
         URL redirectURL = httpGet.getRedirectURL();
         assertNotNull("redirectURL is null", redirectURL);
         log.debug("redirect URL: " + redirectURL.toString());
-        assertTrue("incorrect redirectURL", redirectURL.toString().contains("/users/user1"));
+        assertTrue("incorrect redirectURL", redirectURL.toString().contains(
+                "/users/" + ConfigUsers.getInstance().getRegisteredUsername()));
 
-        httpGet = new HttpDownload(redirectURL, out);
+        httpGet = new HttpGet(redirectURL, out);
         httpGet.setFollowRedirects(false);
-        Subject.doAs(s, new RunnableAction(httpGet));
+        Subject.doAs(ConfigUsers.getInstance().getRegisteredSubject(), new RunnableAction(httpGet));
 
         assertEquals("Wrong response code", 200, httpGet.getResponseCode());
         assertNull("GET returned errors", httpGet.getThrowable());
