@@ -72,7 +72,10 @@ package ca.nrc.cadc.ac;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
+import java.util.Set;
+import java.util.UUID;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
@@ -109,9 +112,43 @@ public class ACIdentityManagerTest {
             subject = ai.validate(subject);
 
             Assert.assertEquals(AuthMethod.CERT, AuthenticationUtil.getAuthMethod(subject));
-        } catch (Throwable t) {
-            log.error("unexpected throwable", t);
-            Assert.fail("Unexpected throwable");
+        } catch (Exception ex) {
+            log.error("unexpected exception", ex);
+            Assert.fail("Unexpected exception: " + ex);
+        }
+    }
+    
+    @Test
+    public void testToSubject() {
+        try {
+            final NumericPrincipal expected = new NumericPrincipal(new UUID(0L, 123L));
+            Object[] num = new Object[] {
+                Integer.valueOf(123), Long.valueOf(123L), "123"
+            };
+            
+            
+            ACIdentityManager im = new ACIdentityManager();
+            for (Object o : num) {
+                Subject s = im.toSubjectImpl(o);
+                Assert.assertNotNull(s);
+                Set<NumericPrincipal> pset = s.getPrincipals(NumericPrincipal.class);
+                Assert.assertFalse(pset.isEmpty());
+                NumericPrincipal np = pset.iterator().next();
+                Assert.assertEquals(expected, np);
+            }
+            
+            // x509 DN handling
+            String dn = "cn=testuser, ou=cadc, o=nrc";
+            X500Principal ex500 = new X500Principal(dn);
+            Subject s = im.toSubjectImpl(dn);
+            Assert.assertNotNull(s);
+            Set<X500Principal> pset = s.getPrincipals(X500Principal.class);
+            Assert.assertFalse(pset.isEmpty());
+            X500Principal xp = pset.iterator().next();
+            Assert.assertTrue(AuthenticationUtil.equals(ex500, xp));
+        } catch (Exception ex) {
+            log.error("unexpected exception", ex);
+            Assert.fail("Unexpected exception: " + ex);
         }
     }
 }
