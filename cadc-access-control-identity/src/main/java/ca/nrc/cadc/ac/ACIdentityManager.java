@@ -304,9 +304,25 @@ public class ACIdentityManager implements IdentityManager {
         if (o == null) {
             return null;
         }
+        Subject ret = toSubjectImpl(o);
+
+        Profiler prof = new Profiler(ACIdentityManager.class);
+        ret = augment(ret);
+        prof.checkpoint("CadcIdentityManager.augmentSubject");
+
+        return ret;
+    }
+    
+    // package access for unit test
+    Subject toSubjectImpl(Object o) {
         Long n = null;
+        X500Principal xdn = null;
         if (o instanceof String) {
-            n = Long.valueOf((String) o);
+            try {
+                n = Long.valueOf((String) o);
+            } catch (NumberFormatException ex) {
+                xdn = new X500Principal((String) o);
+            }
         } else if (o instanceof Integer) {
             n = ((Integer) o).longValue();
         } else if (o instanceof Long) {
@@ -316,13 +332,17 @@ public class ACIdentityManager implements IdentityManager {
                     + o.getClass().getName());
         }
 
-        if (n <= 0) {
-            // identities <= 0 are internal
-            return new Subject();
+        
+        Principal p;
+        if (n != null && n > 0) { // identities <= 0 are internal
+            UUID uuid = new UUID(0L, n);
+            p = new NumericPrincipal(uuid);
+        } else {
+            p = xdn;
         }
-
-        UUID uuid = new UUID(0L, n);
-        NumericPrincipal p = new NumericPrincipal(uuid);
+        if (p == null) {
+            return null;
+        }
 
         Subject s = AuthenticationUtil.getCurrentSubject();
         if (s != null) {
@@ -337,11 +357,6 @@ public class ACIdentityManager implements IdentityManager {
         Set<Principal> pset = new HashSet<Principal>();
         pset.add(p);
         Subject ret = new Subject(false, pset, new HashSet(), new HashSet());
-
-        Profiler prof = new Profiler(ACIdentityManager.class);
-        ret = augment(ret);
-        prof.checkpoint("CadcIdentityManager.augmentSubject");
-
         return ret;
     }
 }
