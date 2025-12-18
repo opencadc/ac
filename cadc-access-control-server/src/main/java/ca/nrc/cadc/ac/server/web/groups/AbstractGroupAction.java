@@ -69,146 +69,63 @@
 
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.MemberAlreadyExistsException;
-import ca.nrc.cadc.ac.MemberNotFoundException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
+import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.web.SyncOutput;
+import ca.nrc.cadc.ac.server.web.WebUtil;
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
-import java.io.IOException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import ca.nrc.cadc.rest.RestAction;
 import java.net.URI;
-import java.security.AccessControlException;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 
-public abstract class AbstractGroupAction implements PrivilegedExceptionAction<Object> {
+public abstract class AbstractGroupAction extends RestAction {
     private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
 
-    protected boolean isPrivilegedUser = false;
+    protected Subject privilegedSubject;
     protected GroupLogInfo logInfo;
-    protected HttpServletRequest request;
-    protected SyncOutput syncOut;
     protected GroupPersistence groupPersistence;
+    protected GroupsConfig config = new GroupsConfig();
+    protected RequestInput requestInput = new RequestInput();
+    protected URI serviceURI;
 
     public AbstractGroupAction() {
     }
 
-    abstract void doAction() throws Exception;
-
-    public void setIsPrivilegedUser(boolean isPrivilegedUser) {
-        this.isPrivilegedUser = isPrivilegedUser;
-    }
-
-    public boolean isPrivilegedUser() {
-        return this.isPrivilegedUser;
-    }
-
-    public void setLogInfo(GroupLogInfo logInfo) {
-        this.logInfo = logInfo;
-    }
-
-    public void setHttpServletRequest(HttpServletRequest request) {
-        this.request = request;
-    }
-
-    public void setSyncOut(SyncOutput syncOut) {
-        this.syncOut = syncOut;
+    @Override
+    public void initAction() throws Exception {
+        super.initAction();
+        setPrivilegedSubject();
+        setRequestInput();
+        setServiceURI();
+        PluginFactory pluginFactory = new PluginFactory();
+        groupPersistence = pluginFactory.createGroupPersistence();
     }
 
     public void setGroupPersistence(GroupPersistence groupPersistence) {
         this.groupPersistence = groupPersistence;
     }
 
-    public URI getServiceURI(URI standard) {
-        LocalAuthority localAuthority = new LocalAuthority();
-        return localAuthority.getServiceURI(standard.toString());
-    }
 
-    public Object run() throws PrivilegedActionException {
-        try {
-            doAction();
-        } catch (AccessControlException e) {
-            log.debug(e.getMessage(), e);
-            String message = "Permission Denied: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(403, message);
-        } catch (IllegalArgumentException e) {
-            log.debug(e.getMessage(), e);
-            String message = "Bad request: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(400, message);
-        } catch (MemberNotFoundException e) {
-            log.debug(e.getMessage(), e);
-            String message = "Member not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        } catch (GroupNotFoundException e) {
-            log.debug(e.getMessage(), e);
-            String message = "Group not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        } catch (UserNotFoundException e) {
-            log.debug(e.getMessage(), e);
-            String message = "User not found: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(404, message);
-        } catch (MemberAlreadyExistsException e) {
-            log.debug(e.getMessage(), e);
-            String message = "Member already exists: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(409, message);
-        } catch (GroupAlreadyExistsException e) {
-            log.debug(e.getMessage(), e);
-            String message = "Group already exists: " + e.getMessage();
-            this.logInfo.setMessage(message);
-            sendError(409, message);
-        } catch (UnsupportedOperationException e) {
-            log.debug(e.getMessage(), e);
-            this.logInfo.setMessage("Not yet implemented.");
-            sendError(501);
-        } catch (TransientException e) {
-            String message = "Transient Error: " + e.getMessage();
-            this.logInfo.setSuccess(false);
-            this.logInfo.setMessage(message);
-            if (e.getRetryDelay() > 0)
-                syncOut.setHeader("Retry-After", Integer.toString(e.getRetryDelay()));
-            log.error(message, e);
-            sendError(503, message);
-        } catch (Throwable t) {
-            log.error("Internal Error", t);
-            String message = "Internal Error: " + t.getMessage();
-            this.logInfo.setSuccess(false);
-            sendError(500, message);
-            this.logInfo.setMessage(message);
-        }
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
         return null;
     }
 
-    private void sendError(int responseCode) {
-        sendError(responseCode, null);
-    }
 
-    private void sendError(int responseCode, String message) {
-        syncOut.setHeader("Content-Type", "text/plain");
-        syncOut.setCode(responseCode);
-        if (message != null) {
-            try {
-                syncOut.getWriter().write(message);
-            } catch (IOException e) {
-                log.warn("Could not write error message to output stream");
-            }
-        }
+    public void setServiceURI() {
+        LocalAuthority localAuthority = new LocalAuthority();
+        serviceURI = localAuthority.getResourceID(Standards.GMS_GROUPS_01);
     }
 
     protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers) {
@@ -223,7 +140,7 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
 
         Iterator<Principal> i = u.getIdentities().iterator();
         String ret = null;
-        Principal next = null;
+        Principal next;
         while (i.hasNext()) {
             next = i.next();
             if (next instanceof HttpPrincipal)
@@ -234,6 +151,78 @@ public abstract class AbstractGroupAction implements PrivilegedExceptionAction<O
                 ret = next.getName();
         }
         return ret;
+    }
+
+    protected void setPrivilegedSubject() {
+        if (config.getPrivilegedSubjects().isEmpty()) {
+            return;
+        }
+
+        Subject caller = AuthenticationUtil.getCurrentSubject();
+        for (Principal principal : caller.getPrincipals()) {
+            if (principal instanceof X500Principal) {
+                for (Subject s : config.getPrivilegedSubjects()) {
+                    Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
+                    for (X500Principal p2 : x500Principals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
+                            privilegedSubject = s;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (principal instanceof HttpPrincipal) {
+                for (Subject s : config.getPrivilegedSubjects()) {
+                    Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
+                    for (HttpPrincipal p2 : httpPrincipals) {
+                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
+                            privilegedSubject = s;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    static class RequestInput {
+        String groupName;
+        String memberName;
+        String userIDType;
+    }
+
+    protected void setRequestInput() {
+        String path = syncInput.getPath();
+        log.debug("path: " + path);
+        if (path != null) {
+
+            String[] segments = WebUtil.getPathSegments(path);
+
+            switch (segments.length) {
+                case 0: {
+                    break;
+                }
+                case 1: {
+                    requestInput.groupName = segments[0];
+                    break;
+                }
+                case 3: {
+                    requestInput.groupName = segments[0];
+                    requestInput.memberName = segments[2];
+                    if (segments[1].equalsIgnoreCase("userMembers")) {
+                        requestInput.userIDType = syncInput.getParameter("idType");
+                        if (requestInput.userIDType == null) {
+                            throw new IllegalArgumentException("Missing required parameter: idType");
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new IllegalArgumentException("Invalid path: " + path);
+                }
+            }
+        }
     }
 
 

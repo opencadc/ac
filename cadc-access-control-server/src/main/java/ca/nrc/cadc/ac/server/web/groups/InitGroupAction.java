@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,40 +66,78 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.reg.Standards;
-import java.net.URI;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.rest.InitAction;
+import ca.nrc.cadc.util.MultiValuedProperties;
 import java.util.ArrayList;
 import java.util.List;
-import org.opencadc.gms.GroupURI;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import org.apache.log4j.Logger;
 
-public class AddGroupMemberAction extends AbstractGroupAction {
-    private final String groupName;
-    private final String groupMemberName;
+public class InitGroupAction extends InitAction {
+    private static final Logger log = Logger.getLogger(InitGroupAction.class);
 
-    AddGroupMemberAction(String groupName,
-                         String groupMemberName) {
+    // set init initConfig, used by subsequent init methods
+    private GroupsConfig config;
+    private String jndiConfigKey;
+    protected List<Subject> privilegedSubjects;
+
+    public InitGroupAction() {
         super();
-        this.groupName = groupName;
-        this.groupMemberName = groupMemberName;
     }
 
-    public void doAction() throws Exception {
-        Group group = groupPersistence.getGroup(this.groupName);
-        URI gmsServiceURI = getServiceURI(Standards.GMS_GROUPS_01);
-        GroupURI toAddID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
-        Group toAdd = new Group(toAddID);
-        if (!group.getGroupMembers().add(toAdd)) {
-            throw new GroupAlreadyExistsException(this.groupMemberName);
-        }
-        groupPersistence.modifyGroup(group);
+    @Override
+    public void doInit() {
+        log.info("initConfig: START");
+        this.config = new GroupsConfig();
+        jndiConfigKey = appName + "-" + GroupsConfig.class.getName();
+        try {
+            Context ctx = new InitialContext();
+            try {
+                ctx.unbind(jndiConfigKey);
+            } catch (NamingException ignore) {
+                log.debug("unbind previous JNDI key (" + jndiConfigKey + ") failed... ignoring");
+            }
+            ctx.bind(jndiConfigKey, config);
 
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getID().getName());
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+            log.info("created JNDI key: " + jndiConfigKey + " object: " + config.getClass().getName());
+        } catch (Exception ex) {
+            log.error("Failed to create JNDI Key " + jndiConfigKey, ex);
+        }
+        log.info("initConfig: OK");
+    }
+
+
+
+    @Override
+    public void doShutdown() {
+        super.doShutdown();
+        try {
+            Context ctx = new InitialContext();
+            ctx.unbind(jndiConfigKey);
+        } catch (NamingException ex) {
+            log.debug("failed to remove config from JNDI", ex);
+        }
+    }
+
+    // get config from JNDI
+    static GroupsConfig getConfig(String appName) {
+        String key = appName + "-" + GroupsConfig.class.getName();
+        try {
+            Context ctx = new InitialContext();
+            return (GroupsConfig) ctx.lookup(key);
+        } catch (NamingException ex) {
+            throw new RuntimeException("BUG: failed to get config from JNDI", ex);
+        }
     }
 
 }

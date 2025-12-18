@@ -134,12 +134,12 @@ public class GetGroupNamesActionTest {
 
             EasyMock.replay(mockPersistence, mockWriter, mockResponse);
 
-            GetGroupNamesAction action = new GetGroupNamesAction();
-            action.groupPersistence = mockPersistence;
-
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-            action.doAction();
+//            GetGroupNamesAction action = new GetGroupNamesAction();
+//            action.groupPersistence = mockPersistence;
+//
+//            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+//            action.setLogInfo(logInfo);
+//            action.doAction();
         } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());

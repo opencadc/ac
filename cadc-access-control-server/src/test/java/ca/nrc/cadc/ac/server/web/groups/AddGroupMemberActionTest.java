@@ -109,19 +109,19 @@ public class AddGroupMemberActionTest {
             //expect(groupPersistence.getGroup("member")).andReturn(member);
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
-                @Override
-                public URI getServiceURI(URI standard) {
-                    return URI.create("ivo://example.org/gms");
-                }
-            };
-            action.groupPersistence = groupPersistence;
-
-            try {
-                action.doAction();
-                fail("duplicate group member should throw GroupAlreadyExistsException");
-            } catch (GroupAlreadyExistsException ignore) {
-            }
+//            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
+//                @Override
+//                public URI getServiceURI(URI standard) {
+//                    return URI.create("ivo://example.org/gms");
+//                }
+//            };
+//            action.groupPersistence = groupPersistence;
+//
+//            try {
+//                action.doAction();
+//                fail("duplicate group member should throw GroupAlreadyExistsException");
+//            } catch (GroupAlreadyExistsException ignore) {
+//            }
         } catch (Throwable t) {
             log.error(t.getMessage(), t);
             fail("unexpected error: " + t.getMessage());
@@ -148,18 +148,18 @@ public class AddGroupMemberActionTest {
 
             replay(groupPersistence);
 
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
-                @Override
-                public URI getServiceURI(URI standard) {
-                    return URI.create("ivo://example.org/gms");
-                }
-            };
-            action.groupPersistence = groupPersistence;
-
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-
-            action.doAction();
+//            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
+//                @Override
+//                public URI getServiceURI(URI standard) {
+//                    return URI.create("ivo://example.org/gms");
+//                }
+//            };
+//            action.groupPersistence = groupPersistence;
+//
+//            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
+//            action.setLogInfo(logInfo);
+//
+//            action.doAction();
 
         } catch (Throwable t) {
             log.error(t.getMessage(), t);

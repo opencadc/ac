@@ -76,24 +76,18 @@ import ca.nrc.cadc.profiler.Profiler;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.log4j.Logger;
 
 public class ModifyGroupAction extends AbstractGroupAction {
-    private final String groupName;
-    private final String request;
-    private final InputStream inputStream;
-
-    ModifyGroupAction(String groupName, final String request, InputStream inputStream) {
-        super();
-        this.groupName = groupName;
-        this.request = request;
-        this.inputStream = inputStream;
-    }
+    private static final Logger log = Logger.getLogger(ModifyGroupAction.class);
 
     public void doAction() throws Exception {
         Profiler profiler = new Profiler(ModifyGroupAction.class);
         GroupReader groupReader = new GroupReader();
-        Group group = groupReader.read(this.inputStream);
-        Group oldGroup = groupPersistence.getGroup(this.groupName);
+        InputStream in = (InputStream) syncInput.getContent("inputstream"); //TODO check
+        Group group = groupReader.read(in);
+
+        Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
         profiler.checkpoint("get Group");
 
         Group modifiedGroup = groupPersistence.modifyGroup(group);
@@ -125,13 +119,11 @@ public class ModifyGroupAction extends AbstractGroupAction {
             deletedMembers = null;
         }
 
-        logGroupInfo(group.getID().getName(), deletedMembers, addedMembers);
         profiler.checkpoint("log GroupInfo");
 
-        syncOut.setHeader("Location", request);
-        syncOut.setHeader("Content-Type", "application/xml");
+        syncOutput.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(modifiedGroup, syncOut.getWriter());
+        groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
     }
 
 }

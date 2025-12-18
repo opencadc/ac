@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,26 +69,54 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.MemberNotFoundException;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
 public class CreateGroupAction extends AbstractGroupAction {
-    private final InputStream inputStream;
-
-    CreateGroupAction(InputStream inputStream) {
-        super();
-        this.inputStream = inputStream;
-    }
+    private static final Logger log = Logger.getLogger(CreateGroupAction.class);
 
     public void doAction() throws Exception {
+        if (requestInput.groupName == null) {
+            createGroup();
+        } else {
+            // add users to existing group
+            if (requestInput.groupName == null) {
+                throw new IllegalArgumentException("Group name not specified in create request");
+            }
+            if (requestInput.memberName == null) {
+                throw new IllegalArgumentException("Member name not specified in create request");
+            }
+
+            Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
+            if (requestInput.userIDType == null) {
+                addGroupMember(targetGroup, requestInput.memberName);
+            } else {
+                addUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
+            }
+
+        }
+    }
+
+    private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException, IOException, WriterException, ReaderException {
         GroupReader groupReader = new GroupReader();
-        Group group = groupReader.read(this.inputStream);
+        InputStream in = (InputStream) syncInput.getContent("inputstream"); //TODO check
+        Group group = groupReader.read(in);
 
         // restriction: prevent hierarchical group names now that GroupURI allows it
         GroupURI gid = group.getID();
@@ -98,19 +126,19 @@ public class CreateGroupAction extends AbstractGroupAction {
             throw new IllegalArgumentException("invalid group name (/ not permitted): " + name);
         }
         Group returnGroup = groupPersistence.addGroup(group);
-        syncOut.setHeader("Content-Type", "application/xml");
+        syncOutput.setHeader("Content-Type", "application/xml");
         GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(returnGroup, syncOut.getWriter());
+        groupWriter.write(returnGroup, syncOutput.getOutputStream());
 
         List<String> addedMembers = null;
-        if ((group.getUserMembers().size() > 0) ||
-                (group.getGroupMembers().size() > 0)) {
+        if ((!group.getUserMembers().isEmpty()) ||
+                (!group.getGroupMembers().isEmpty())) {
             addedMembers = new ArrayList<String>();
             for (Group gr : group.getGroupMembers()) {
                 addedMembers.add(gr.getID().getName());
             }
             for (User usr : group.getUserMembers()) {
-                Principal p = usr.getHttpPrincipal();
+                Principal p = usr.getHttpPrincipal();   //TODO these should be user IDs only
                 if (p == null) {
                     p = usr.getX500Principal();
                 }
@@ -120,4 +148,34 @@ public class CreateGroupAction extends AbstractGroupAction {
         logGroupInfo(group.getID().getName(), null, addedMembers);
     }
 
+    private void addGroupMember(Group group, String groupMemberName) throws GroupNotFoundException, java.net.URISyntaxException, UserNotFoundException, Exception {
+        GroupURI toAddID = new GroupURI(serviceURI, groupMemberName);
+        Group toAdd = new Group(toAddID);
+
+        if (!group.getGroupMembers().add(toAdd)) {
+            throw new GroupAlreadyExistsException(groupMemberName);
+        }
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        addedMembers.add(toAdd.getID().getName());
+        logGroupInfo(group.getID().getName(), null, addedMembers);
+    }
+
+    private void addUserMember(Group group, String userID, String userIDType) throws UserNotFoundException, MemberNotFoundException, Exception {
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
+
+        User toAdd = new User();
+
+        toAdd.getIdentities().add(userPrincipal);
+        if (!group.getUserMembers().add(toAdd)) {
+            throw new MemberAlreadyExistsException();
+        }
+
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<String>();
+        addedMembers.add(getUseridForLogging(toAdd));
+        logGroupInfo(group.getID().getName(), null, addedMembers);
+    }
 }

@@ -70,25 +70,58 @@ package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.util.Collection;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
+import org.opencadc.auth.PosixGroup;
 
 public class GetGroupAction extends AbstractGroupAction {
-    private final String groupName;
-
-    GetGroupAction(String groupName) {
-        super();
-        this.groupName = groupName;
-    }
+    private static final Logger log = Logger.getLogger(GetGroupAction.class);
 
     public void doAction() throws Exception {
-        Group group;
-        if (isPrivilegedUser) {
-            group = groupPersistence.getGroup(this.groupName, false);
+        if (requestInput.groupName != null) {
+            log.debug("Get group: " + requestInput.groupName);
+            Subject sub = AuthenticationUtil.getCurrentSubject();
+            log.debug("Subject: " + sub.getPrincipals().size());
+            Group group = groupPersistence.getGroup(requestInput.groupName, privilegedSubject == null);
+            syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
+            GroupWriter groupWriter = new GroupWriter();
+            groupWriter.write(group, syncOutput.getOutputStream());
         } else {
-            group = groupPersistence.getGroup(this.groupName);
+            listGroups();
         }
-        syncOut.setHeader("Content-Type", "application/xml; charset=utf-8");
-        GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(group, syncOut.getWriter());
     }
+
+    private void listGroups() throws IOException {
+        Collection<PosixGroup> groups = groupPersistence.getGroupNames();
+        log.debug("Found " + groups.size() + " group names");
+        syncOutput.setHeader("Content-Type", "text/plain");
+        log.debug("Set content-type to text/plain");
+        Writer writer;
+        try
+        {
+            writer = new OutputStreamWriter(syncOutput.getOutputStream(), "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException("UTF-8 encoding not supported", e);
+        }
+        boolean start = true;
+        for (final PosixGroup group : groups) {
+            if (!start) {
+                writer.write("\r\n");
+            }
+            writer.write(group.getGroupURI().getName());
+            start = false;
+        }
+    }
+
 
 }

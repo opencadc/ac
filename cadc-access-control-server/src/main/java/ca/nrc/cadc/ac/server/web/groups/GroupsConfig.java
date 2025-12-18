@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,46 +66,77 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.rest.InitAction;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
+import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
 
-public class RemoveGroupMemberAction extends AbstractGroupAction {
-    private final static Logger log = Logger.getLogger(RemoveGroupMemberAction.class);
+public class GroupsConfig {
+    private static final Logger log = Logger.getLogger(GroupsConfig.class);
 
-    private final String groupName;
-    private final String groupMemberName;
+    // config keys
+    private static final String GROUPS_KEY = "org.opencadc.gms";
+    static final String RESOURCE_ID_KEY = GROUPS_KEY + ".resourceID";
+    static final String PRIVILEGED_SUBJECT_KEY = GROUPS_KEY + ".privilegedSubject";
 
-    RemoveGroupMemberAction(String groupName, String groupMemberName) {
-        super();
-        this.groupName = groupName;
-        this.groupMemberName = groupMemberName;
+    private final MultiValuedProperties configProperties;
+    private final List<Subject> privilegedSubjects = new ArrayList<>();
+
+    public GroupsConfig() {
+        PropertiesReader r = new PropertiesReader("gms.properties");
+        this.configProperties = r.getAllProperties();
+        initPriviledgedUsers();
     }
 
-    public void doAction() throws Exception {
-        Group group = groupPersistence.getGroup(this.groupName);
-        URI gmsServiceURI = getServiceURI(Standards.GMS_GROUPS_01);
-        GroupURI toRemoveID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
-        Group toRemove = new Group(toRemoveID);
 
-        log.debug("group member count: " + group.getGroupMembers().size());
-        log.debug("contains one to remove: " + group.getGroupMembers().contains(toRemove));
+    private void initPriviledgedUsers() {
+        log.info("initPriviledgedUsers: START");
+        List<String> x500Users = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedX500Principals");
+        List<String> httpUsers = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedHttpPrincipals");
 
-        if (!group.getGroupMembers().remove(toRemove)) {
-            throw new GroupNotFoundException(this.groupMemberName);
+        if (x500Users != null && httpUsers != null) {
+            if (x500Users.size() != httpUsers.size()) {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+            }
+
+            for (int i = 0; i < x500Users.size(); i++) {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500Users.get(i)));
+                s.getPrincipals().add(new HttpPrincipal(httpUsers.get(i)));
+                privilegedSubjects.add(s);
+            }
+
+        } else {
+            log.warn("No Privileged users configured.");
         }
-        groupPersistence.modifyGroup(group);
-
-        List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getID().getName());
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
+        log.info("initPriviledgedUsers: OK");
     }
 
+
+    public List<Subject> getPrivilegedSubjects() {
+        return privilegedSubjects;
+    }
+
+    public MultiValuedProperties getProperties() {
+        return configProperties;
+    }
 }
