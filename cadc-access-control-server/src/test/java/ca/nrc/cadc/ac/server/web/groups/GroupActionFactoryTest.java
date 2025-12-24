@@ -90,7 +90,7 @@ public class GroupActionFactoryTest {
             EasyMock.expect(request.getParameter("idType")).andReturn("HttpPrincipal");
             EasyMock.replay(request);
 
-//            AbstractGroupAction action = new AbstractGroupAction() {
+//            AbstractAction action = new AbstractAction() {
 //                @Override
 //                public void doAction() throws Exception {
 //                    return;

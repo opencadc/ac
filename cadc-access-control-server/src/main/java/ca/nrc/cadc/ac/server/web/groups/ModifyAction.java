@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,29 +69,62 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.profiler.Profiler;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import org.apache.log4j.Logger;
 
-public class DeleteGroupAction extends AbstractGroupAction {
-    private final String groupName;
+public class ModifyAction extends InlineContentAction {
+    private static final Logger log = Logger.getLogger(ModifyAction.class);
 
-    DeleteGroupAction(String groupName) {
-        super();
-        this.groupName = groupName;
-    }
+    public void doAction() throws IOException, ReaderException, GroupNotFoundException, UserNotFoundException, WriterException {
+        Profiler profiler = new Profiler(ModifyAction.class);
+        Group inputGroup = getInputGroup();
 
-    public void doAction() throws Exception {
-        Group deletedGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.deleteGroup(this.groupName);
-        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0)) {
-            this.logInfo.deletedMembers = new ArrayList<String>();
-            for (Group gr : deletedGroup.getGroupMembers()) {
-                this.logInfo.deletedMembers.add(gr.getID().getName());
-            }
-            for (User usr : deletedGroup.getUserMembers()) {
-                this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
+        Group oldGroup = groupPersistence.getGroup(getRequestInput().groupName);
+        profiler.checkpoint("get Group");
+
+        Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
+        profiler.checkpoint("modify Group");
+
+        List<String> addedMembers = new ArrayList<>();
+        for (User member : inputGroup.getUserMembers()) {
+            if (!oldGroup.getUserMembers().remove(member)) {
+                addedMembers.add(getUseridForLogging(member));
             }
         }
-    }
+        for (Group gr : inputGroup.getGroupMembers()) {
+            if (!oldGroup.getGroupMembers().remove(gr)) {
+                addedMembers.add(gr.getID().getName());
+            }
+        }
+        if (addedMembers.isEmpty()) {
+            addedMembers = null;
+        }
 
+        List<String> deletedMembers = new ArrayList<>();
+        for (User member : oldGroup.getUserMembers()) {
+            deletedMembers.add(getUseridForLogging(member));
+        }
+        for (Group gr : oldGroup.getGroupMembers()) {
+            deletedMembers.add(gr.getID().getName());
+        }
+        if (deletedMembers.isEmpty()) {
+            deletedMembers = null;
+        }
+
+        profiler.checkpoint("log GroupInfo");
+        logGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers);
+
+        syncOutput.setHeader("Content-Type", "application/xml");
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
+    }
 }

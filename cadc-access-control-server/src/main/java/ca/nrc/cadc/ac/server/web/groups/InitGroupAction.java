@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2025.                            (c) 2025.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,9 +69,9 @@
 
 package ca.nrc.cadc.ac.server.web.groups;
 
+import ca.nrc.cadc.ac.server.web.UserServlet;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.rest.InitAction;
-import ca.nrc.cadc.util.MultiValuedProperties;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -86,10 +86,7 @@ import org.apache.log4j.Logger;
 public class InitGroupAction extends InitAction {
     private static final Logger log = Logger.getLogger(InitGroupAction.class);
 
-    // set init initConfig, used by subsequent init methods
-    private GroupsConfig config;
     private String jndiConfigKey;
-    protected List<Subject> privilegedSubjects;
 
     public InitGroupAction() {
         super();
@@ -98,7 +95,9 @@ public class InitGroupAction extends InitAction {
     @Override
     public void doInit() {
         log.info("initConfig: START");
-        this.config = new GroupsConfig();
+        // set init initConfig, used by subsequent init methods
+        // TODO - call default GroupsConfig ctor when init privileged subjects from gms.properties
+        GroupsConfig config = new GroupsConfig(getPrivilegedSubjectsFromServletConfig());
         jndiConfigKey = appName + "-" + GroupsConfig.class.getName();
         try {
             Context ctx = new InitialContext();
@@ -115,8 +114,6 @@ public class InitGroupAction extends InitAction {
         }
         log.info("initConfig: OK");
     }
-
-
 
     @Override
     public void doShutdown() {
@@ -138,6 +135,49 @@ public class InitGroupAction extends InitAction {
         } catch (NamingException ex) {
             throw new RuntimeException("BUG: failed to get config from JNDI", ex);
         }
+    }
+
+    protected List<Subject> getPrivilegedSubjectsFromServletConfig() {
+        List<Subject> result = new ArrayList<>();
+        String contextName = UserServlet.class.getName().replace("UserServlet", "GroupServlet");
+        String x500Users = initParams.get(contextName + ".PrivilegedX500Principals");
+        log.debug("PrivilegedX500Users: " + x500Users);
+
+        String httpUsers = initParams.get(contextName + ".PrivilegedHttpPrincipals");
+        log.debug("PrivilegedHttpUsers: " + httpUsers);
+
+        List<String> x500List = new ArrayList<String>();
+        List<String> httpList = new ArrayList<String>();
+        if (x500Users != null && httpUsers != null) {
+            Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
+            Matcher x500Matcher = pattern.matcher(x500Users);
+            Matcher httpMatcher = pattern.matcher(httpUsers);
+
+            while (x500Matcher.find()) {
+                String next = x500Matcher.group(1);
+                x500List.add(next.replace("\"", ""));
+            }
+
+            while (httpMatcher.find()) {
+                String next = httpMatcher.group(1);
+                httpList.add(next.replace("\"", ""));
+            }
+
+            if (x500List.size() != httpList.size()) {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+            }
+
+            for (int i = 0; i < x500List.size(); i++) {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500List.get(i)));
+                s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
+                result.add(s);
+            }
+
+        } else {
+            log.warn("No Privileged users configured.");
+        }
+        return result;
     }
 
 }

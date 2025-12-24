@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,7 +72,6 @@ package ca.nrc.cadc.ac.server.web.groups;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.web.SyncOutput;
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
@@ -89,22 +88,24 @@ import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
-public abstract class AbstractGroupAction extends RestAction {
-    private static final Logger log = Logger.getLogger(AbstractGroupAction.class);
+
+public abstract class AbstractAction extends RestAction {
+    private static final Logger log = Logger.getLogger(AbstractAction.class);
 
     protected Subject privilegedSubject;
-    protected GroupLogInfo logInfo;
+    protected GroupLogInfo logInfo = new GroupLogInfo();
     protected GroupPersistence groupPersistence;
-    protected GroupsConfig config = new GroupsConfig();
-    protected RequestInput requestInput = new RequestInput();
+    protected GroupsConfig config;
+    private final RequestInput requestInput = new RequestInput();
     protected URI serviceURI;
 
-    public AbstractGroupAction() {
+    public AbstractAction() {
     }
 
     @Override
     public void initAction() throws Exception {
         super.initAction();
+        config = InitGroupAction.getConfig(appName);
         setPrivilegedSubject();
         setRequestInput();
         setServiceURI();
@@ -116,6 +117,9 @@ public abstract class AbstractGroupAction extends RestAction {
         this.groupPersistence = groupPersistence;
     }
 
+    protected RequestInput getRequestInput() {
+        return requestInput;
+    }
 
     @Override
     protected InlineContentHandler getInlineContentHandler() {
@@ -213,7 +217,10 @@ public abstract class AbstractGroupAction extends RestAction {
                     if (segments[1].equalsIgnoreCase("userMembers")) {
                         requestInput.userIDType = syncInput.getParameter("idType");
                         if (requestInput.userIDType == null) {
-                            throw new IllegalArgumentException("Missing required parameter: idType");
+                            // Note this is a bit indirect, but getPrincipalType still returns IdentityType.USERNAME
+                            // in spite of being deprecated. This code will automatically work when that is fixed
+                            // and propagated.
+                            requestInput.userIDType = AuthenticationUtil.getPrincipalType(new HttpPrincipal(requestInput.memberName));
                         }
                     }
                     break;
@@ -224,6 +231,4 @@ public abstract class AbstractGroupAction extends RestAction {
             }
         }
     }
-
-
 }

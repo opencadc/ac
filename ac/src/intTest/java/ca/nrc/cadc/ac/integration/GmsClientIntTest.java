@@ -120,7 +120,7 @@ public class GmsClientIntTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.DEBUG);
     }
 
     public GmsClientIntTest()

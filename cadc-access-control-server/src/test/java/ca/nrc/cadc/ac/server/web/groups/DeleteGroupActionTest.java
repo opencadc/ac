@@ -102,7 +102,7 @@ public class DeleteGroupActionTest {
             EasyMock.expectLastCall().once();
             EasyMock.replay(groupPersistence);
 
-//            DeleteGroupAction action = new DeleteGroupAction();
+//            DeleteAction action = new DeleteAction();
 //            action.groupPersistence = groupPersistence;
 //
 //            GroupLogInfo logInfo = createMock(GroupLogInfo.class);

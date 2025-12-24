@@ -69,12 +69,14 @@
 
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+
 /**
  * Thrown when there is a member conflict.
  */
-public class MemberAlreadyExistsException extends Exception {
+public class MemberAlreadyExistsException extends ResourceAlreadyExistsException {
     public MemberAlreadyExistsException() {
-        super();
+        super("Member already exists.");
     }
 
     public MemberAlreadyExistsException(String message) {

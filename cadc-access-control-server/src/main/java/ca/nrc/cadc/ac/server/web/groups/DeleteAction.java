@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2025.                            (c) 2025.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,113 +69,76 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.MemberAlreadyExistsException;
-import ca.nrc.cadc.ac.MemberNotFoundException;
-import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.GroupReader;
-import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import java.io.IOException;
-import java.io.InputStream;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
 
-public class CreateGroupAction extends AbstractGroupAction {
-    private static final Logger log = Logger.getLogger(CreateGroupAction.class);
+public class DeleteAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(DeleteAction.class);
 
-    public void doAction() throws Exception {
-        if (requestInput.groupName == null) {
-            createGroup();
-        } else {
-            // add users to existing group
-            if (requestInput.groupName == null) {
-                throw new IllegalArgumentException("Group name not specified in create request");
-            }
-            if (requestInput.memberName == null) {
-                throw new IllegalArgumentException("Member name not specified in create request");
-            }
-
-            Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
-            if (requestInput.userIDType == null) {
-                addGroupMember(targetGroup, requestInput.memberName);
-            } else {
-                addUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
-            }
-
+    public void doAction() throws GroupNotFoundException, UserNotFoundException {
+        if (getRequestInput().groupName == null || getRequestInput().groupName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Group name is required");
         }
-    }
 
-    private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException, IOException, WriterException, ReaderException {
-        GroupReader groupReader = new GroupReader();
-        InputStream in = (InputStream) syncInput.getContent("inputstream"); //TODO check
-        Group group = groupReader.read(in);
-
-        // restriction: prevent hierarchical group names now that GroupURI allows it
-        GroupURI gid = group.getID();
-        String name = gid.getName();
-        String[] ss = name.split("/");
-        if (ss.length > 1) {
-            throw new IllegalArgumentException("invalid group name (/ not permitted): " + name);
-        }
-        Group returnGroup = groupPersistence.addGroup(group);
-        syncOutput.setHeader("Content-Type", "application/xml");
-        GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(returnGroup, syncOutput.getOutputStream());
-
-        List<String> addedMembers = null;
-        if ((!group.getUserMembers().isEmpty()) ||
-                (!group.getGroupMembers().isEmpty())) {
-            addedMembers = new ArrayList<String>();
-            for (Group gr : group.getGroupMembers()) {
-                addedMembers.add(gr.getID().getName());
-            }
-            for (User usr : group.getUserMembers()) {
-                Principal p = usr.getHttpPrincipal();   //TODO these should be user IDs only
-                if (p == null) {
-                    p = usr.getX500Principal();
+        Group targetGroup = groupPersistence.getGroup(getRequestInput().groupName);
+        if (getRequestInput().memberName == null) {
+            groupPersistence.deleteGroup(getRequestInput().groupName);
+            if ((!targetGroup.getUserMembers().isEmpty()) || (!targetGroup.getGroupMembers().isEmpty())) {
+                this.logInfo.deletedMembers = new ArrayList<>();
+                for (Group gr : targetGroup.getGroupMembers()) {
+                    this.logInfo.deletedMembers.add(gr.getID().getName());
                 }
-                addedMembers.add(p.getName());
+                for (User usr : targetGroup.getUserMembers()) {
+                    this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
+                }
+            }
+        } else {
+            if (getRequestInput().userIDType == null) {
+                removeGroupMember(targetGroup, getRequestInput().memberName);
+            } else {
+                removeUserMember(targetGroup, getRequestInput().memberName, getRequestInput().userIDType);
             }
         }
-        logGroupInfo(group.getID().getName(), null, addedMembers);
     }
 
-    private void addGroupMember(Group group, String groupMemberName) throws GroupNotFoundException, java.net.URISyntaxException, UserNotFoundException, Exception {
-        GroupURI toAddID = new GroupURI(serviceURI, groupMemberName);
-        Group toAdd = new Group(toAddID);
-
-        if (!group.getGroupMembers().add(toAdd)) {
-            throw new GroupAlreadyExistsException(groupMemberName);
+    private void removeGroupMember(Group group, String memberName) throws UserNotFoundException, GroupNotFoundException {
+        log.debug("group member count: " + group.getGroupMembers().size());
+        if (!group.getGroupMembers().removeIf(g -> g.getID().getName().equals(memberName))) {
+            throw new GroupNotFoundException("Group member not found: " + memberName);
         }
+        log.debug("removed group member: " + memberName);
         groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getID().getName());
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+        List<String> deletedMembers = new ArrayList<>();
+        deletedMembers.add(memberName);
+        logGroupInfo(group.getID().getName(), deletedMembers, null);
     }
 
-    private void addUserMember(Group group, String userID, String userIDType) throws UserNotFoundException, MemberNotFoundException, Exception {
-        Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
+    private void removeUserMember(Group group, String memberName, String userIDType) throws UserNotFoundException, GroupNotFoundException {
+        log.debug("user member count: " + group.getUserMembers().size());
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(memberName, userIDType);
 
-        User toAdd = new User();
-
-        toAdd.getIdentities().add(userPrincipal);
-        if (!group.getUserMembers().add(toAdd)) {
-            throw new MemberAlreadyExistsException();
+        User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
+        if (!group.getUserMembers().removeIf(u -> u.equals(user))) {
+            throw new UserNotFoundException("User member not found: " + memberName);
         }
-
+        log.debug("removed user member: " + memberName);
         groupPersistence.modifyGroup(group);
-
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(getUseridForLogging(toAdd));
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+        List<String> deletedMembers = new ArrayList<>();
+        deletedMembers.add(memberName);
+        logGroupInfo(group.getID().getName(), deletedMembers, null);
     }
+
+    protected UserPersistence getUserPersistence() {
+        PluginFactory pluginFactory = new PluginFactory();
+        return pluginFactory.createUserPersistence();
+    }
+
 }

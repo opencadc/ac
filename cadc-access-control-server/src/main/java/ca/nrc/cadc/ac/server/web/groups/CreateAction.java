@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,61 +69,114 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupAlreadyExistsException;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.MemberAlreadyExistsException;
+import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
-import ca.nrc.cadc.profiler.Profiler;
-import java.io.InputStream;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
+import org.opencadc.gms.GroupURI;
 
-public class ModifyGroupAction extends AbstractGroupAction {
-    private static final Logger log = Logger.getLogger(ModifyGroupAction.class);
+public class CreateAction extends InlineContentAction {
+    private static final Logger log = Logger.getLogger(CreateAction.class);
 
     public void doAction() throws Exception {
-        Profiler profiler = new Profiler(ModifyGroupAction.class);
-        GroupReader groupReader = new GroupReader();
-        InputStream in = (InputStream) syncInput.getContent("inputstream"); //TODO check
-        Group group = groupReader.read(in);
-
-        Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
-        profiler.checkpoint("get Group");
-
-        Group modifiedGroup = groupPersistence.modifyGroup(group);
-        profiler.checkpoint("modify Group");
-
-        List<String> addedMembers = new ArrayList<String>();
-        for (User member : group.getUserMembers()) {
-            if (!oldGroup.getUserMembers().remove(member)) {
-                addedMembers.add(getUseridForLogging(member));
+        if (getRequestInput().groupName == null) {
+            createGroup();
+        } else {
+            // add users to existing group
+            if (getRequestInput().memberName == null) {
+                throw new IllegalArgumentException("Member name not specified in create request");
             }
-        }
-        for (Group gr : group.getGroupMembers()) {
-            if (!oldGroup.getGroupMembers().remove(gr)) {
-                addedMembers.add(gr.getID().getName());
+
+            Group targetGroup = groupPersistence.getGroup(getRequestInput().groupName);
+            if (getRequestInput().userIDType == null) {
+                addGroupMember(targetGroup, getRequestInput().memberName);
+            } else {
+                addUserMember(targetGroup, getRequestInput().memberName, getRequestInput().userIDType);
             }
-        }
-        if (addedMembers.isEmpty()) {
-            addedMembers = null;
-        }
 
-        List<String> deletedMembers = new ArrayList<String>();
-        for (User member : oldGroup.getUserMembers()) {
-            deletedMembers.add(getUseridForLogging(member));
         }
-        for (Group gr : oldGroup.getGroupMembers()) {
-            deletedMembers.add(gr.getID().getName());
-        }
-        if (deletedMembers.isEmpty()) {
-            deletedMembers = null;
-        }
-
-        profiler.checkpoint("log GroupInfo");
-
-        syncOutput.setHeader("Content-Type", "application/xml");
-        GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
     }
 
+    private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException, IOException, WriterException, ReaderException {
+        Group group = getInputGroup();
+
+        // restriction: prevent hierarchical group names now that GroupURI allows it
+        GroupURI gid = group.getID();
+        String name = gid.getName();
+        String[] ss = name.split("/");
+        if (ss.length > 1) {
+            throw new IllegalArgumentException("invalid group name (/ not permitted): " + name);
+        }
+        Group returnGroup = groupPersistence.addGroup(group);
+        syncOutput.setHeader("Content-Type", "application/xml");
+        syncOutput.setCode(200);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(returnGroup, syncOutput.getOutputStream());
+
+        List<String> addedMembers = getStrings(group);
+        logGroupInfo(group.getID().getName(), null, addedMembers);
+    }
+
+    private static List<String> getStrings(Group group) {
+        List<String> addedMembers = null;
+        if ((!group.getUserMembers().isEmpty()) ||
+                (!group.getGroupMembers().isEmpty())) {
+            addedMembers = new ArrayList<>();
+            for (Group gr : group.getGroupMembers()) {
+                addedMembers.add(gr.getID().getName());
+            }
+            for (User usr : group.getUserMembers()) {
+                Principal p = usr.getHttpPrincipal();   //TODO on the gms service these should be user IDs only
+                if (p == null) {
+                    p = usr.getX500Principal();
+                }
+                addedMembers.add(p.getName());
+            }
+        }
+        return addedMembers;
+    }
+
+    private void addGroupMember(Group group, String groupMemberName) throws
+            GroupNotFoundException, UserNotFoundException, GroupAlreadyExistsException {
+        GroupURI toAddID = new GroupURI(serviceURI, groupMemberName);
+        Group toAdd = new Group(toAddID);
+
+        if (!group.getGroupMembers().add(toAdd)) {
+            throw new GroupAlreadyExistsException(groupMemberName);
+        }
+        log.debug("Adding group member: " + groupMemberName);
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<>();
+        addedMembers.add(toAdd.getID().getName());
+        logGroupInfo(group.getID().getName(), null, addedMembers);
+    }
+
+    private void addUserMember(Group group, String userID, String userIDType) throws
+            UserNotFoundException, MemberAlreadyExistsException, GroupNotFoundException {
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
+
+        User toAdd = new User();
+
+        toAdd.getIdentities().add(userPrincipal);
+        if (!group.getUserMembers().add(toAdd)) {
+            throw new MemberAlreadyExistsException();
+        }
+        log.debug("Adding user member: " + userID + " of type: " + userIDType);
+        groupPersistence.modifyGroup(group);
+
+        List<String> addedMembers = new ArrayList<>();
+        addedMembers.add(getUseridForLogging(toAdd));
+        logGroupInfo(group.getID().getName(), null, addedMembers);
+    }
 }

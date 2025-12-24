@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,59 +69,42 @@
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.xml.GroupWriter;
-import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
-import java.util.Collection;
-import javax.security.auth.Subject;
+import java.io.InputStream;
 import org.apache.log4j.Logger;
-import org.opencadc.auth.PosixGroup;
 
-public class GetGroupAction extends AbstractGroupAction {
-    private static final Logger log = Logger.getLogger(GetGroupAction.class);
+/**
+ * Abstract class for actions using inline XML content (Create & Modify).
+ */
+public abstract class InlineContentAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(InlineContentAction.class);
 
-    public void doAction() throws Exception {
-        if (requestInput.groupName != null) {
-            log.debug("Get group: " + requestInput.groupName);
-            Subject sub = AuthenticationUtil.getCurrentSubject();
-            log.debug("Subject: " + sub.getPrincipals().size());
-            Group group = groupPersistence.getGroup(requestInput.groupName, privilegedSubject == null);
-            syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
-            GroupWriter groupWriter = new GroupWriter();
-            groupWriter.write(group, syncOutput.getOutputStream());
-        } else {
-            listGroups();
-        }
+    private static final String INLINE_CONTENT_TAG = "inputstream";
+    private static final String CONTENT_TYPE = "text/xml";
+
+    protected Group getInputGroup() throws IOException, ReaderException {
+        GroupReader groupReader = new GroupReader();
+        InputStream in = (InputStream) syncInput.getContent(INLINE_CONTENT_TAG);
+        return groupReader.read(in);
     }
 
-    private void listGroups() throws IOException {
-        Collection<PosixGroup> groups = groupPersistence.getGroupNames();
-        log.debug("Found " + groups.size() + " group names");
-        syncOutput.setHeader("Content-Type", "text/plain");
-        log.debug("Set content-type to text/plain");
-        Writer writer;
-        try
-        {
-            writer = new OutputStreamWriter(syncOutput.getOutputStream(), "UTF-8");
-        }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException("UTF-8 encoding not supported", e);
-        }
-        boolean start = true;
-        for (final PosixGroup group : groups) {
-            if (!start) {
-                writer.write("\r\n");
+    /**
+     * Return the input stream.
+     * @return The Object representing the input stream.
+     */
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return (name, contentType, inputStream) -> {
+            if ((contentType!= null) && !CONTENT_TYPE.equals(contentType)) {
+                log.warn("expecting text/xml input document, got: " + contentType);
             }
-            writer.write(group.getGroupURI().getName());
-            start = false;
-        }
+            InlineContentHandler.Content content = new InlineContentHandler.Content();
+            content.name = INLINE_CONTENT_TAG;
+            content.value = inputStream;
+            return content;
+        };
     }
-
-
 }

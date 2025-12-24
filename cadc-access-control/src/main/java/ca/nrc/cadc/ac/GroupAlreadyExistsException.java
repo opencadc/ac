@@ -69,7 +69,9 @@
 
 package ca.nrc.cadc.ac;
 
-public class GroupAlreadyExistsException extends Exception {
+import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+
+public class GroupAlreadyExistsException extends ResourceAlreadyExistsException {
     /**
      * Thrown when there is a group conflict.
      */

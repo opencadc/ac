@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2025.                            (c) 2025.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,67 +66,52 @@
  *
  ************************************************************************
  */
-
 package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
-import ca.nrc.cadc.util.MultiValuedProperties;
-import ca.nrc.cadc.util.PropertiesReader;
-import java.util.ArrayList;
-import java.util.List;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collection;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
+import org.opencadc.auth.PosixGroup;
 
-public class GroupsConfig {
-    private static final Logger log = Logger.getLogger(GroupsConfig.class);
+public class GetAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(GetAction.class);
 
-    // config keys
-    private static final String GROUPS_KEY = "org.opencadc.gms";
-    static final String RESOURCE_ID_KEY = GROUPS_KEY + ".resourceID";
-
-    private final MultiValuedProperties configProperties;
-    private final List<Subject> privilegedSubjects = new ArrayList<>();
-
-    // Default constructor that uses gms.properties config file
-    public GroupsConfig() {
-        PropertiesReader r = new PropertiesReader("gms.properties");
-        this.configProperties = r.getAllProperties();
-        initPrivilegedUsers();
-    }
-
-    // Constructor that uses servlet context configured properties
-    public GroupsConfig(List<Subject> privilegedSubjects) {
-        this.configProperties = new MultiValuedProperties();
-        this.privilegedSubjects.addAll(privilegedSubjects);
-    }
-
-
-    private void initPrivilegedUsers() {
-        log.info("initPrivilegedUsers: START");
-        List<String> x500Users = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedX500Principals");
-        List<String> httpUsers = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedHttpPrincipals");
-
-        if (x500Users != null && httpUsers != null) {
-            if (x500Users.size() != httpUsers.size()) {
-                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
-            }
-
-            for (int i = 0; i < x500Users.size(); i++) {
-                Subject s = new Subject();
-                s.getPrincipals().add(new X500Principal(x500Users.get(i)));
-                s.getPrincipals().add(new HttpPrincipal(httpUsers.get(i)));
-                privilegedSubjects.add(s);
-            }
-
+    public void doAction() throws GroupNotFoundException, IOException, WriterException {
+        if (getRequestInput().groupName != null) {
+            log.debug("Get group: " + getRequestInput().groupName);
+            Subject sub = AuthenticationUtil.getCurrentSubject();
+            log.debug("Subject: " + sub.getPrincipals().size());
+            Group group = groupPersistence.getGroup(getRequestInput().groupName, privilegedSubject == null);
+            syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
+            GroupWriter groupWriter = new GroupWriter();
+            groupWriter.write(group, syncOutput.getOutputStream());
         } else {
-            log.warn("No Privileged users configured.");
+            listGroups();
         }
-        log.info("initPrivilegedUsers: OK");
     }
 
-
-    public List<Subject> getPrivilegedSubjects() {
-        return privilegedSubjects;
+    private void listGroups() throws IOException {
+        Collection<PosixGroup> groups = groupPersistence.getGroupNames();
+        log.debug("Found " + groups.size() + " group names");
+        syncOutput.setHeader("Content-Type", "text/plain");
+        syncOutput.setCode(200);
+        log.debug("Set content-type to text/plain");
+        PrintWriter writer = new PrintWriter(syncOutput.getOutputStream());
+        boolean start = true;
+        for (final PosixGroup group : groups) {
+            if (!start) {
+                writer.write("\r\n");
+            }
+            writer.write(group.getGroupURI().getName());
+            start = false;
+        }
+        writer.close();
     }
 }

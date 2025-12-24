@@ -69,7 +69,9 @@
 
 package ca.nrc.cadc.ac;
 
-public class GroupNotFoundException extends Exception {
+import ca.nrc.cadc.net.ResourceNotFoundException;
+
+public class GroupNotFoundException extends ResourceNotFoundException {
     /**
      * Thrown when a group cannot be found.
      */
