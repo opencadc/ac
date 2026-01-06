@@ -79,10 +79,14 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.NumericPrincipal;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
@@ -90,19 +94,19 @@ public class CreateAction extends InlineContentAction {
     private static final Logger log = Logger.getLogger(CreateAction.class);
 
     public void doAction() throws Exception {
-        if (getRequestInput().groupName == null) {
+        if (requestInput.groupName == null) {
             createGroup();
         } else {
             // add users to existing group
-            if (getRequestInput().memberName == null) {
+            if (requestInput.memberName == null) {
                 throw new IllegalArgumentException("Member name not specified in create request");
             }
 
-            Group targetGroup = groupPersistence.getGroup(getRequestInput().groupName);
-            if (getRequestInput().userIDType == null) {
-                addGroupMember(targetGroup, getRequestInput().memberName);
+            Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
+            if (requestInput.userIDType == null) {
+                addGroupMember(targetGroup, requestInput.memberName);
             } else {
-                addUserMember(targetGroup, getRequestInput().memberName, getRequestInput().userIDType);
+                addUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
             }
 
         }
@@ -137,9 +141,19 @@ public class CreateAction extends InlineContentAction {
                 addedMembers.add(gr.getID().getName());
             }
             for (User usr : group.getUserMembers()) {
-                Principal p = usr.getHttpPrincipal();   //TODO on the gms service these should be user IDs only
+                Principal p = usr.getHttpPrincipal();   //TODO on the gms service these will probably be numeric IDs
                 if (p == null) {
                     p = usr.getX500Principal();
+                }
+                if (p == null) {
+                    Set<NumericPrincipal> identities = usr.getIdentities(NumericPrincipal.class);
+                    if (!identities.isEmpty()) {
+                        Iterator<NumericPrincipal> it = identities.iterator();
+                        p = it.next();
+                    }
+                }
+                if (p==null) {
+                    throw new IllegalArgumentException("Member to be added has no recognized principal");
                 }
                 addedMembers.add(p.getName());
             }

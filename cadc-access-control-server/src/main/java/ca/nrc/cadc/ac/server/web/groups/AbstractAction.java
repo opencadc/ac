@@ -97,7 +97,7 @@ public abstract class AbstractAction extends RestAction {
     protected GroupLogInfo logInfo = new GroupLogInfo();
     protected GroupPersistence groupPersistence;
     protected GroupsConfig config;
-    private final RequestInput requestInput = new RequestInput();
+    protected final RequestInput requestInput = new RequestInput();
     protected URI serviceURI;
 
     public AbstractAction() {
@@ -116,10 +116,6 @@ public abstract class AbstractAction extends RestAction {
 
     public void setGroupPersistence(GroupPersistence groupPersistence) {
         this.groupPersistence = groupPersistence;
-    }
-
-    protected RequestInput getRequestInput() {
-        return requestInput;
     }
 
     @Override

@@ -176,7 +176,7 @@ public class AbstractActionTest {
             }
         });
         abstractAction.setRequestInput();
-        AbstractAction.RequestInput requestInput = abstractAction.getRequestInput();
+        AbstractAction.RequestInput requestInput = abstractAction.requestInput;
         assertEquals(expectedGroupName, requestInput.groupName);
         assertEquals(expectedMemberName, requestInput.memberName);
         assertEquals(expectedUserIDType, requestInput.userIDType);

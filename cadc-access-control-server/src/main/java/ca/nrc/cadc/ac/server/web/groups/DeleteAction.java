@@ -85,13 +85,13 @@ public class DeleteAction extends AbstractAction {
     private static final Logger log = Logger.getLogger(DeleteAction.class);
 
     public void doAction() throws GroupNotFoundException, UserNotFoundException {
-        if (getRequestInput().groupName == null || getRequestInput().groupName.trim().isEmpty()) {
+        if (requestInput.groupName == null || requestInput.groupName.trim().isEmpty()) {
             throw new IllegalArgumentException("Group name is required");
         }
 
-        Group targetGroup = groupPersistence.getGroup(getRequestInput().groupName);
-        if (getRequestInput().memberName == null) {
-            groupPersistence.deleteGroup(getRequestInput().groupName);
+        Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
+        if (requestInput.memberName == null) {
+            groupPersistence.deleteGroup(requestInput.groupName);
             if ((!targetGroup.getUserMembers().isEmpty()) || (!targetGroup.getGroupMembers().isEmpty())) {
                 this.logInfo.deletedMembers = new ArrayList<>();
                 for (Group gr : targetGroup.getGroupMembers()) {
@@ -102,10 +102,10 @@ public class DeleteAction extends AbstractAction {
                 }
             }
         } else {
-            if (getRequestInput().userIDType == null) {
-                removeGroupMember(targetGroup, getRequestInput().memberName);
+            if (requestInput.userIDType == null) {
+                removeGroupMember(targetGroup, requestInput.memberName);
             } else {
-                removeUserMember(targetGroup, getRequestInput().memberName, getRequestInput().userIDType);
+                removeUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
             }
         }
     }

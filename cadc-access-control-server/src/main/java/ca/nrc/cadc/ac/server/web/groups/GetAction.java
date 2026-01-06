@@ -85,12 +85,13 @@ public class GetAction extends AbstractAction {
     private static final Logger log = Logger.getLogger(GetAction.class);
 
     public void doAction() throws GroupNotFoundException, IOException, WriterException {
-        if (getRequestInput().groupName != null) {
-            log.debug("Get group: " + getRequestInput().groupName);
+        if (requestInput.groupName != null) {
+            log.debug("Get group: " + requestInput.groupName);
             Subject sub = AuthenticationUtil.getCurrentSubject();
             log.debug("Subject: " + sub.getPrincipals().size());
-            Group group = groupPersistence.getGroup(getRequestInput().groupName, privilegedSubject == null);
+            Group group = groupPersistence.getGroup(requestInput.groupName, privilegedSubject == null);
             syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
+            syncOutput.setCode(200);
             GroupWriter groupWriter = new GroupWriter();
             groupWriter.write(group, syncOutput.getOutputStream());
         } else {

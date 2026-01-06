@@ -89,7 +89,7 @@ public class ModifyAction extends InlineContentAction {
         Profiler profiler = new Profiler(ModifyAction.class);
         Group inputGroup = getInputGroup();
 
-        Group oldGroup = groupPersistence.getGroup(getRequestInput().groupName);
+        Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
         profiler.checkpoint("get Group");
 
         profiler.checkpoint("modify Group");
@@ -125,6 +125,7 @@ public class ModifyAction extends InlineContentAction {
         logGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers);
 
         syncOutput.setHeader("Content-Type", "application/xml");
+        syncOutput.setCode(200);
         GroupWriter groupWriter = new GroupWriter();
         groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
     }
