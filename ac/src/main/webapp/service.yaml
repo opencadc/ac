@@ -31,12 +31,16 @@ info:
 
 
 
-      - x509 - Indicates value of userID is in DN format.
+      - x500 - Indicates value of userID is in DN format.
 
 
 
-      - http - Indicates value of userID is in http-basic authorization userid
+      - userID (replaces deprecated http) - Indicates value of userID is in http-basic authorization userid
     format.
+
+
+      - numericID (replaces deprecated cadc) - Indicates value of userID is in numeric (CADC internal) format
+
 
 
     id - The value identifying the user in the format specified by idType
@@ -222,9 +226,11 @@ paths:
         required: true
         type: string
         enum:
-          - http
-          - x509
-          - cadc
+          - http # deprecated - use userID instead
+          - userID
+          - x500
+          - cadc # deprecated - use numericID instead
+          - numericID
   '/groups/{groupID2}/groupMembers/{groupID}':
     put:
       description: |
@@ -444,9 +450,11 @@ paths:
         required: true
         type: string
         enum:
-          - http
-          - x509
-          - cadc
+          - http # deprecated - use userID instead
+          - userID
+          - x500
+          - cadc # deprecated - use numericID instead
+          - numericID
   /login:
     post:
       description: |

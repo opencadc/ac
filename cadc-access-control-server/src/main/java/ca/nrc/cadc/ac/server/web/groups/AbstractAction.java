@@ -75,6 +75,7 @@ import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.rest.InlineContentHandler;
@@ -138,21 +139,27 @@ public abstract class AbstractAction extends RestAction {
         this.logInfo.deletedMembers = deletedMembers;
     }
 
-    protected String getUseridForLogging(User u) {
-        if (u.getIdentities().isEmpty())
-            return "anonUser";
+    protected String getUserIdForLogging(User u) {
+        if (u.getIdentities().isEmpty()) {
+            throw new IllegalArgumentException("User has no identities");
+        }
+
 
         Iterator<Principal> i = u.getIdentities().iterator();
         String ret = null;
         Principal next;
         while (i.hasNext()) {
             next = i.next();
-            if (next instanceof HttpPrincipal)
+            if (next instanceof HttpPrincipal) {
                 return next.getName();
-            if (next instanceof X500Principal)
+            }
+            if (next instanceof X500Principal) {
                 ret = next.getName();
-            else if (ret == null)
-                ret = next.getName();
+            } else {
+                if (ret == null) {
+                    ret = next.getName();
+                }
+            }
         }
         return ret;
     }
@@ -198,6 +205,7 @@ public abstract class AbstractAction extends RestAction {
 
     protected void setRequestInput() {
         String path = syncInput.getPath();
+        requestInput.userIDType = null;  // reset to null by default
         log.debug("path: " + path);
         if (path != null) {
 
@@ -220,7 +228,7 @@ public abstract class AbstractAction extends RestAction {
                             // Note this is a bit indirect, but getPrincipalType still returns IdentityType.USERNAME
                             // in spite of being deprecated. This code will automatically work when that is fixed
                             // and propagated.
-                            requestInput.userIDType = AuthenticationUtil.getPrincipalType(new HttpPrincipal(requestInput.memberName));
+                            requestInput.userIDType = IdentityType.USERID.getValue();
                         }
                     }
                     break;

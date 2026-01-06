@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
@@ -98,7 +99,7 @@ public abstract class InlineContentAction extends AbstractAction {
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return (name, contentType, inputStream) -> {
-            if ((contentType!= null) && !CONTENT_TYPE.equals(contentType)) {
+            if ((contentType != null) && !CONTENT_TYPE.equals(contentType)) {
                 log.warn("expecting text/xml input document, got: " + contentType);
             }
             InlineContentHandler.Content content = new InlineContentHandler.Content();

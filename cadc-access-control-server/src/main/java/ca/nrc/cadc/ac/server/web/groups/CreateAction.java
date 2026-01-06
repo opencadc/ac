@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
@@ -107,7 +108,8 @@ public class CreateAction extends InlineContentAction {
         }
     }
 
-    private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException, IOException, WriterException, ReaderException {
+    private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException,
+            IOException, WriterException, ReaderException {
         Group group = getInputGroup();
 
         // restriction: prevent hierarchical group names now that GroupURI allows it
@@ -129,8 +131,7 @@ public class CreateAction extends InlineContentAction {
 
     private static List<String> getStrings(Group group) {
         List<String> addedMembers = null;
-        if ((!group.getUserMembers().isEmpty()) ||
-                (!group.getGroupMembers().isEmpty())) {
+        if ((!group.getUserMembers().isEmpty()) || (!group.getGroupMembers().isEmpty())) {
             addedMembers = new ArrayList<>();
             for (Group gr : group.getGroupMembers()) {
                 addedMembers.add(gr.getID().getName());
@@ -176,7 +177,7 @@ public class CreateAction extends InlineContentAction {
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<>();
-        addedMembers.add(getUseridForLogging(toAdd));
+        addedMembers.add(getUserIdForLogging(toAdd));
         logGroupInfo(group.getID().getName(), null, addedMembers);
     }
 }

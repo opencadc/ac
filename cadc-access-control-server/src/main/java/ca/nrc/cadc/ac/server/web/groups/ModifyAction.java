@@ -66,6 +66,7 @@
  *
  ************************************************************************
  */
+
 package ca.nrc.cadc.ac.server.web.groups;
 
 import ca.nrc.cadc.ac.Group;
@@ -91,13 +92,12 @@ public class ModifyAction extends InlineContentAction {
         Group oldGroup = groupPersistence.getGroup(getRequestInput().groupName);
         profiler.checkpoint("get Group");
 
-        Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
         profiler.checkpoint("modify Group");
 
         List<String> addedMembers = new ArrayList<>();
         for (User member : inputGroup.getUserMembers()) {
             if (!oldGroup.getUserMembers().remove(member)) {
-                addedMembers.add(getUseridForLogging(member));
+                addedMembers.add(getUserIdForLogging(member));
             }
         }
         for (Group gr : inputGroup.getGroupMembers()) {
@@ -111,7 +111,7 @@ public class ModifyAction extends InlineContentAction {
 
         List<String> deletedMembers = new ArrayList<>();
         for (User member : oldGroup.getUserMembers()) {
-            deletedMembers.add(getUseridForLogging(member));
+            deletedMembers.add(getUserIdForLogging(member));
         }
         for (Group gr : oldGroup.getGroupMembers()) {
             deletedMembers.add(gr.getID().getName());
@@ -121,6 +121,7 @@ public class ModifyAction extends InlineContentAction {
         }
 
         profiler.checkpoint("log GroupInfo");
+        Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
         logGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers);
 
         syncOutput.setHeader("Content-Type", "application/xml");
