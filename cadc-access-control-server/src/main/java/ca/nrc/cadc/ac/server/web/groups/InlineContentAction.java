@@ -77,9 +77,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.apache.log4j.Logger;
 
-/**
- * Abstract class for actions using inline XML content (Create & Modify).
- */
+
+ //  Abstract class for actions using inline XML content (Create & Modify).
 public abstract class InlineContentAction extends AbstractAction {
     private static final Logger log = Logger.getLogger(InlineContentAction.class);
 
