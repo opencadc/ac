@@ -225,10 +225,7 @@ public abstract class AbstractAction extends RestAction {
                     if (segments[1].equalsIgnoreCase("userMembers")) {
                         requestInput.userIDType = syncInput.getParameter("idType");
                         if (requestInput.userIDType == null) {
-                            // Note this is a bit indirect, but getPrincipalType still returns IdentityType.USERNAME
-                            // in spite of being deprecated. This code will automatically work when that is fixed
-                            // and propagated.
-                            requestInput.userIDType = IdentityType.USERID.getValue();
+                            requestInput.userIDType = IdentityType.USERNAME.getValue(); //default (for now)
                         }
                     }
                     break;

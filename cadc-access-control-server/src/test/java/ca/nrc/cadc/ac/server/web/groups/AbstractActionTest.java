@@ -152,12 +152,10 @@ public class AbstractActionTest {
 
     @Test
     public void testSetRequestInputValidPath() {
-        checkPath("/groupName/userMembers/memberName", "groupName", "memberName", IdentityType.USERID.getValue());
-        checkPath("/groupName/userMembers/memberName?idType=userID", "groupName", "memberName", IdentityType.USERID.getValue());
+        checkPath("/groupName/userMembers/memberName", "groupName", "memberName", IdentityType.USERNAME.getValue());
         checkPath("/groupName/userMembers/memberName?idType=HTTP", "groupName", "memberName", IdentityType.USERNAME.getValue());
         checkPath("/groupName/userMembers/cn=memberName?idType=X500", "groupName", "cn=memberName", IdentityType.X500.getValue());
         checkPath("/groupName/userMembers/123?idType=CADC", "groupName", "123", IdentityType.CADC.getValue());
-        checkPath("/groupName/userMembers/123?idType=numericID", "groupName", "123", IdentityType.NUMERICID.getValue());
 
         checkPath("/groupName/groupMembers/memberGroup", "groupName", "memberGroup", null);
     }
