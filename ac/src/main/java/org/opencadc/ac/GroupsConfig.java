@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2026.                            (c) 2026.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,66 +67,66 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.GroupWriter;
-import ca.nrc.cadc.profiler.Profiler;
-import java.io.IOException;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.util.ArrayList;
 import java.util.List;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
-public class ModifyAction extends InlineContentAction {
-    private static final Logger log = Logger.getLogger(ModifyAction.class);
+public class GroupsConfig {
+    private static final Logger log = Logger.getLogger(GroupsConfig.class);
 
-    public void doAction() throws IOException, ReaderException, GroupNotFoundException, UserNotFoundException, WriterException {
-        Profiler profiler = new Profiler(ModifyAction.class);
-        Group inputGroup = getInputGroup();
+    // config keys
+    private static final String GROUPS_KEY = "org.opencadc.ac";
+    static final String RESOURCE_ID_KEY = GROUPS_KEY + ".resourceID";
 
-        Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
-        profiler.checkpoint("get Group");
+    private final MultiValuedProperties configProperties;
+    private final List<Subject> privilegedSubjects = new ArrayList<>();
 
-        profiler.checkpoint("modify Group");
+    // Default constructor that uses ac.properties config file
+    public GroupsConfig() {
+        PropertiesReader r = new PropertiesReader("ac.properties");
+        this.configProperties = r.getAllProperties();
+        initPrivilegedUsers();
+    }
 
-        List<String> addedMembers = new ArrayList<>();
-        for (User member : inputGroup.getUserMembers()) {
-            if (!oldGroup.getUserMembers().remove(member)) {
-                addedMembers.add(getUserIdForLogging(member));
+    // Constructor that uses servlet context configured properties
+    public GroupsConfig(List<Subject> privilegedSubjects) {
+        this.configProperties = new MultiValuedProperties();
+        this.privilegedSubjects.addAll(privilegedSubjects);
+    }
+
+
+    private void initPrivilegedUsers() {
+        log.info("initPrivilegedUsers: START");
+        List<String> x500Users = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedX500Principals");
+        List<String> httpUsers = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedHttpPrincipals");
+
+        if (x500Users != null && httpUsers != null) {
+            if (x500Users.size() != httpUsers.size()) {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
             }
-        }
-        for (Group gr : inputGroup.getGroupMembers()) {
-            if (!oldGroup.getGroupMembers().remove(gr)) {
-                addedMembers.add(gr.getID().getName());
+
+            for (int i = 0; i < x500Users.size(); i++) {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500Users.get(i)));
+                s.getPrincipals().add(new HttpPrincipal(httpUsers.get(i)));
+                privilegedSubjects.add(s);
             }
-        }
-        if (addedMembers.isEmpty()) {
-            addedMembers = null;
-        }
 
-        List<String> deletedMembers = new ArrayList<>();
-        for (User member : oldGroup.getUserMembers()) {
-            deletedMembers.add(getUserIdForLogging(member));
+        } else {
+            log.warn("No Privileged users configured.");
         }
-        for (Group gr : oldGroup.getGroupMembers()) {
-            deletedMembers.add(gr.getID().getName());
-        }
-        if (deletedMembers.isEmpty()) {
-            deletedMembers = null;
-        }
+        log.info("initPrivilegedUsers: OK");
+    }
 
-        profiler.checkpoint("log GroupInfo");
-        Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
-        logGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers);
 
-        syncOutput.setHeader("Content-Type", "application/xml");
-        syncOutput.setCode(200);
-        GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
+    public List<Subject> getPrivilegedSubjects() {
+        return privilegedSubjects;
     }
 }

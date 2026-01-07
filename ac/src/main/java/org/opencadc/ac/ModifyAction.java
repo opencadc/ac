@@ -67,44 +67,74 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.ReaderException;
-import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
 
+public class ModifyAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(ModifyAction.class);
 
- //  Abstract class for actions using inline XML content (Create & Modify).
-public abstract class InlineContentAction extends AbstractAction {
-    private static final Logger log = Logger.getLogger(InlineContentAction.class);
-
-    private static final String INLINE_CONTENT_TAG = "inputstream";
-    private static final String CONTENT_TYPE = "text/xml";
-
-    protected Group getInputGroup() throws IOException, ReaderException {
-        GroupReader groupReader = new GroupReader();
-        InputStream in = (InputStream) syncInput.getContent(INLINE_CONTENT_TAG);
-        return groupReader.read(in);
-    }
-
-    /**
-     * Return the input stream.
-     * @return The Object representing the input stream.
-     */
     @Override
     protected InlineContentHandler getInlineContentHandler() {
-        return (name, contentType, inputStream) -> {
-            if ((contentType != null) && !CONTENT_TYPE.equals(contentType)) {
-                log.warn("expecting text/xml input document, got: " + contentType);
+        return new GroupContentHandler();
+    }
+
+    public void doAction() throws IOException, GroupNotFoundException, UserNotFoundException, WriterException {
+        Profiler profiler = new Profiler(ModifyAction.class);
+        Group inputGroup = GroupContentHandler.parseContent(
+                (InputStream) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG));
+
+        Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
+        profiler.checkpoint("get Group");
+
+        profiler.checkpoint("modify Group");
+
+        List<String> addedMembers = new ArrayList<>();
+        for (User member : inputGroup.getUserMembers()) {
+            if (!oldGroup.getUserMembers().remove(member)) {
+                addedMembers.add(getUserIdForLogging(member));
             }
-            InlineContentHandler.Content content = new InlineContentHandler.Content();
-            content.name = INLINE_CONTENT_TAG;
-            content.value = inputStream;
-            return content;
-        };
+        }
+        for (Group gr : inputGroup.getGroupMembers()) {
+            if (!oldGroup.getGroupMembers().remove(gr)) {
+                addedMembers.add(gr.getID().getName());
+            }
+        }
+        if (addedMembers.isEmpty()) {
+            addedMembers = null;
+        }
+
+        List<String> deletedMembers = new ArrayList<>();
+        for (User member : oldGroup.getUserMembers()) {
+            deletedMembers.add(getUserIdForLogging(member));
+        }
+        for (Group gr : oldGroup.getGroupMembers()) {
+            deletedMembers.add(gr.getID().getName());
+        }
+        if (deletedMembers.isEmpty()) {
+            deletedMembers = null;
+        }
+
+        profiler.checkpoint("log GroupInfo");
+        Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
+        logGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers);
+
+        syncOutput.setHeader("Content-Type", "application/xml");
+        syncOutput.setCode(200);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
     }
 }

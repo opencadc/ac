@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,79 +67,117 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.UserNotFoundException;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import java.security.Principal;
+import ca.nrc.cadc.ac.server.web.UserServlet;
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.rest.InitAction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 
-public class DeleteAction extends AbstractAction {
-    private static final Logger log = Logger.getLogger(DeleteAction.class);
+public class InitGroupAction extends InitAction {
+    private static final Logger log = Logger.getLogger(InitGroupAction.class);
 
-    public void doAction() throws GroupNotFoundException, UserNotFoundException {
-        if (requestInput.groupName == null || requestInput.groupName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Group name is required");
-        }
+    private String jndiConfigKey;
 
-        Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
-        if (requestInput.memberName == null) {
-            groupPersistence.deleteGroup(requestInput.groupName);
-            if ((!targetGroup.getUserMembers().isEmpty()) || (!targetGroup.getGroupMembers().isEmpty())) {
-                this.logInfo.deletedMembers = new ArrayList<>();
-                for (Group gr : targetGroup.getGroupMembers()) {
-                    this.logInfo.deletedMembers.add(gr.getID().getName());
-                }
-                for (User usr : targetGroup.getUserMembers()) {
-                    this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
-                }
+    public InitGroupAction() {
+        super();
+    }
+
+    @Override
+    public void doInit() {
+        log.info("initConfig: START");
+        // set init initConfig, used by subsequent init methods
+        // TODO - call default GroupsConfig ctor when init privileged subjects from gms.properties
+        GroupsConfig config = new GroupsConfig(getPrivilegedSubjectsFromServletConfig());
+        jndiConfigKey = appName + "-" + GroupsConfig.class.getName();
+        try {
+            Context ctx = new InitialContext();
+            try {
+                ctx.unbind(jndiConfigKey);
+            } catch (NamingException ignore) {
+                log.debug("unbind previous JNDI key (" + jndiConfigKey + ") failed... ignoring");
             }
+            ctx.bind(jndiConfigKey, config);
+
+            log.info("created JNDI key: " + jndiConfigKey + " object: " + config.getClass().getName());
+        } catch (Exception ex) {
+            log.error("Failed to create JNDI Key " + jndiConfigKey, ex);
+        }
+        log.info("initConfig: OK");
+    }
+
+    @Override
+    public void doShutdown() {
+        super.doShutdown();
+        try {
+            Context ctx = new InitialContext();
+            ctx.unbind(jndiConfigKey);
+        } catch (NamingException ex) {
+            log.debug("failed to remove config from JNDI", ex);
+        }
+    }
+
+    // get config from JNDI
+    static GroupsConfig getConfig(String appName) {
+        String key = appName + "-" + GroupsConfig.class.getName();
+        try {
+            Context ctx = new InitialContext();
+            return (GroupsConfig) ctx.lookup(key);
+        } catch (NamingException ex) {
+            throw new RuntimeException("BUG: failed to get config from JNDI", ex);
+        }
+    }
+
+    protected List<Subject> getPrivilegedSubjectsFromServletConfig() {
+        List<Subject> result = new ArrayList<>();
+        String contextName = UserServlet.class.getName().replace("UserServlet", "GroupServlet");
+        String x500Users = initParams.get(contextName + ".PrivilegedX500Principals");
+        log.debug("PrivilegedX500Users: " + x500Users);
+
+        String httpUsers = initParams.get(contextName + ".PrivilegedHttpPrincipals");
+        log.debug("PrivilegedHttpUsers: " + httpUsers);
+
+        List<String> x500List = new ArrayList<String>();
+        List<String> httpList = new ArrayList<String>();
+        if (x500Users != null && httpUsers != null) {
+            Pattern pattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
+            Matcher x500Matcher = pattern.matcher(x500Users);
+            Matcher httpMatcher = pattern.matcher(httpUsers);
+
+            while (x500Matcher.find()) {
+                String next = x500Matcher.group(1);
+                x500List.add(next.replace("\"", ""));
+            }
+
+            while (httpMatcher.find()) {
+                String next = httpMatcher.group(1);
+                httpList.add(next.replace("\"", ""));
+            }
+
+            if (x500List.size() != httpList.size()) {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
+            }
+
+            for (int i = 0; i < x500List.size(); i++) {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500List.get(i)));
+                s.getPrincipals().add(new HttpPrincipal(httpList.get(i)));
+                result.add(s);
+            }
+
         } else {
-            if (requestInput.userIDType == null) {
-                removeGroupMember(targetGroup, requestInput.memberName);
-            } else {
-                removeUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
-            }
+            log.warn("No Privileged users configured.");
         }
-    }
-
-    private void removeGroupMember(Group group, String memberName) throws UserNotFoundException, GroupNotFoundException {
-        log.debug("group member count: " + group.getGroupMembers().size());
-        if (!group.getGroupMembers().removeIf(g -> g.getID().getName().equals(memberName))) {
-            throw new GroupNotFoundException("Group member not found: " + memberName);
-        }
-        log.debug("removed group member: " + memberName);
-        groupPersistence.modifyGroup(group);
-        List<String> deletedMembers = new ArrayList<>();
-        deletedMembers.add(memberName);
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
-    }
-
-    private void removeUserMember(Group group, String memberName, String userIDType) throws UserNotFoundException, GroupNotFoundException {
-        log.debug("user member count: " + group.getUserMembers().size());
-        Principal userPrincipal = AuthenticationUtil.createPrincipal(memberName, userIDType);
-
-        User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
-        if (!group.getUserMembers().removeIf(u -> u.equals(user))) {
-            throw new UserNotFoundException("User member not found: " + memberName);
-        }
-        log.debug("removed user member: " + memberName);
-        groupPersistence.modifyGroup(group);
-        List<String> deletedMembers = new ArrayList<>();
-        deletedMembers.add(memberName);
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
-    }
-
-    protected UserPersistence getUserPersistence() {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.createUserPersistence();
+        return result;
     }
 
 }

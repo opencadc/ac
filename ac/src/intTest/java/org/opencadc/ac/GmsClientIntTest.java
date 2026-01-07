@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
@@ -75,6 +75,7 @@ import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.client.GMSClient;
+import ca.nrc.cadc.ac.integration.ConfigUsers;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.Log4jInit;
@@ -120,7 +121,7 @@ public class GmsClientIntTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
     }
 
     public GmsClientIntTest()

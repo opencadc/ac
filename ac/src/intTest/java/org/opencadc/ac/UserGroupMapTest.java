@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2023.                            (c) 2023.
+*  (c) 2025.                            (c) 2025.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,95 +65,68 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.server;
+package org.opencadc.ac;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.server.impl.GroupPersistenceImpl;
-import ca.nrc.cadc.net.HttpTransfer;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import java.io.PrintWriter;
+import ca.nrc.cadc.ac.integration.ConfigUsers;
+import ca.nrc.cadc.auth.PosixPrincipal;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
+import javax.security.auth.Subject;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 import org.opencadc.auth.PosixGroup;
-import org.opencadc.gms.GroupURI;
+import org.opencadc.auth.PosixMapperClient;
 
 /**
- * Implement the http://www.opencadc.org/std/posix#group-mapping-1.0 endpoint.
- * 
+ *
  * @author pdowler
  */
-public class GetGroupMapAction extends RestAction {
-    private static final Logger log = Logger.getLogger(GetGroupMapAction.class);
+public class UserGroupMapTest {
+    private static final Logger log = Logger.getLogger(UserGroupMapTest.class);
 
-    public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
-    
-    private final URI gmsResourceID;
-    
-    public GetGroupMapAction() { 
-        LocalAuthority loc = new LocalAuthority();
-        this.gmsResourceID = loc.getServiceURI(Standards.GMS_SEARCH_10.toASCIIString());
+    static {
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
     }
 
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
+    @Test
+    public void testUserMap() throws Exception {
+        RegistryClient reg = new RegistryClient();
+        URI srv = URI.create(ConfigUsers.AC_SERVICE_ID);
+        final PosixMapperClient pmc = new PosixMapperClient(srv);
+        
+        Iterator<PosixPrincipal> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
+            (PrivilegedExceptionAction<Iterator<PosixPrincipal>>) () -> pmc.getUserMap());
+        
+        Assert.assertNotNull(iter);
+        Assert.assertTrue(iter.hasNext());
+        log.info("obtained uidmap:");
+        while (iter.hasNext()) {
+            PosixPrincipal pp = iter.next();
+            log.info(pp.username + " aka "  + pp.getUidNumber() + ":" + pp.defaultGroup);
+        }
+        
     }
+    
+    @Test
+    public void testGroupMap() throws Exception {
+        RegistryClient reg = new RegistryClient();
+        URI srv = URI.create("ivo://cadc.nrc.ca/gms");
+        PosixMapperClient pmc = new PosixMapperClient(srv);
 
-    @Override
-    public void doAction() throws Exception {
-        
-        String accept = syncInput.getHeader("accept");
-        boolean tsv = CONTENT_TYPE_TSV.equals(accept);
-        
-        GroupPersistenceImpl groupPersistence = new GroupPersistenceImpl();
-        
-        List<String> groupNameSubset = null;
-        List<String> groupParams = syncInput.getParameters("group");
-        if (groupParams != null && !groupParams.isEmpty()) {
-            groupNameSubset = new ArrayList<>(groupParams.size());
-            for (String s : groupParams) {
-                GroupURI guri = new GroupURI(new URI(s));
-                if (!guri.getServiceID().equals(gmsResourceID)) {
-                    throw new IllegalArgumentException("invalid group (non-local): " + s);
-                }
-                groupNameSubset.add(guri.getName());
-            }
-        } 
+        Iterator<PosixGroup> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
+            (PrivilegedExceptionAction<Iterator<PosixGroup>>) () -> pmc.getGroupMap());
 
-        List<Integer> gidNameSubset = null;
-        List<String> gidParams = syncInput.getParameters("gid");
-        if (gidParams != null && !gidParams.isEmpty()) {
-            gidNameSubset = new ArrayList<>();
-            for (String s : gidParams) {
-                Integer gid = Integer.valueOf(s);
-                gidNameSubset.add(gid);
-            }
+        Assert.assertNotNull(iter);
+        Assert.assertTrue(iter.hasNext());
+        log.info("obtained uidmap:");
+        while (iter.hasNext()) {
+            PosixGroup pg = iter.next();
+            log.info(pg.getGroupURI() + " aka " + pg.getGID());
         }
-
-        Collection<PosixGroup> groups = groupPersistence.getGroupNames(groupNameSubset, gidNameSubset);
-
-        log.debug("found: "  + groups.size() + " matching groups");
-        if (tsv) {
-            syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, CONTENT_TYPE_TSV);
-        } else {
-            syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, "text/plain");
-        }
-        syncOutput.setCode(200);
-        PrintWriter w = new PrintWriter(syncOutput.getOutputStream());
-        for (PosixGroup pg : groups) {
-            if (tsv) {
-                w.println(pg.getGroupURI().getURI().toASCIIString() + "\t" + pg.getGID());
-            } else {
-                w.println(pg.getGroupURI().getName() + ":x:" + pg.getGID() + ":");
-            }
-        }
-        w.close();
     }
 }

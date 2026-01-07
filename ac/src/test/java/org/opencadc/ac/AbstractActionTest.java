@@ -66,21 +66,13 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.Role;
-import ca.nrc.cadc.ac.server.GroupPersistence;
+package org.opencadc.ac;
+
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.rest.SyncInput;
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opencadc.gms.GroupURI;
 import static org.junit.Assert.fail;
 
 /**
@@ -88,14 +80,10 @@ import static org.junit.Assert.fail;
  */
 
 import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
 import org.junit.Before;
-import org.junit.Test;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 

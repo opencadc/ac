@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;

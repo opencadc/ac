@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2026.                            (c) 2026.
+ *  (c) 2014.                            (c) 2014.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,53 +67,79 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.WriterException;
-import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Collection;
-import javax.security.auth.Subject;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
-import org.opencadc.auth.PosixGroup;
 
-public class GetAction extends AbstractAction {
-    private static final Logger log = Logger.getLogger(GetAction.class);
+public class DeleteAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(DeleteAction.class);
 
-    public void doAction() throws GroupNotFoundException, IOException, WriterException {
-        if (requestInput.groupName != null) {
-            log.debug("Get group: " + requestInput.groupName);
-            Subject sub = AuthenticationUtil.getCurrentSubject();
-            log.debug("Subject: " + sub.getPrincipals().size());
-            Group group = groupPersistence.getGroup(requestInput.groupName, privilegedSubject == null);
-            syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
-            syncOutput.setCode(200);
-            GroupWriter groupWriter = new GroupWriter();
-            groupWriter.write(group, syncOutput.getOutputStream());
-        } else {
-            listGroups();
+    public void doAction() throws GroupNotFoundException, UserNotFoundException {
+        if (requestInput.groupName == null || requestInput.groupName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Group name is required");
         }
-    }
 
-    private void listGroups() throws IOException {
-        Collection<PosixGroup> groups = groupPersistence.getGroupNames();
-        log.debug("Found " + groups.size() + " group names");
-        syncOutput.setHeader("Content-Type", "text/plain");
-        syncOutput.setCode(200);
-        log.debug("Set content-type to text/plain");
-        PrintWriter writer = new PrintWriter(syncOutput.getOutputStream());
-        boolean start = true;
-        for (final PosixGroup group : groups) {
-            if (!start) {
-                writer.write("\r\n");
+        Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
+        if (requestInput.memberName == null) {
+            groupPersistence.deleteGroup(requestInput.groupName);
+            if ((!targetGroup.getUserMembers().isEmpty()) || (!targetGroup.getGroupMembers().isEmpty())) {
+                this.logInfo.deletedMembers = new ArrayList<>();
+                for (Group gr : targetGroup.getGroupMembers()) {
+                    this.logInfo.deletedMembers.add(gr.getID().getName());
+                }
+                for (User usr : targetGroup.getUserMembers()) {
+                    this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
+                }
             }
-            writer.write(group.getGroupURI().getName());
-            start = false;
+        } else {
+            if (requestInput.userIDType == null) {
+                removeGroupMember(targetGroup, requestInput.memberName);
+            } else {
+                removeUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
+            }
         }
-        writer.close();
     }
+
+    private void removeGroupMember(Group group, String memberName) throws UserNotFoundException, GroupNotFoundException {
+        log.debug("group member count: " + group.getGroupMembers().size());
+        if (!group.getGroupMembers().removeIf(g -> g.getID().getName().equals(memberName))) {
+            throw new GroupNotFoundException("Group member not found: " + memberName);
+        }
+        log.debug("removed group member: " + memberName);
+        groupPersistence.modifyGroup(group);
+        List<String> deletedMembers = new ArrayList<>();
+        deletedMembers.add(memberName);
+        logGroupInfo(group.getID().getName(), deletedMembers, null);
+    }
+
+    private void removeUserMember(Group group, String memberName, String userIDType) throws UserNotFoundException, GroupNotFoundException {
+        log.debug("user member count: " + group.getUserMembers().size());
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(memberName, userIDType);
+
+        User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
+        if (!group.getUserMembers().removeIf(u -> u.equals(user))) {
+            throw new UserNotFoundException("User member not found: " + memberName);
+        }
+        log.debug("removed user member: " + memberName);
+        groupPersistence.modifyGroup(group);
+        List<String> deletedMembers = new ArrayList<>();
+        deletedMembers.add(memberName);
+        logGroupInfo(group.getID().getName(), deletedMembers, null);
+    }
+
+    protected UserPersistence getUserPersistence() {
+        PluginFactory pluginFactory = new PluginFactory();
+        return pluginFactory.createUserPersistence();
+    }
+
 }

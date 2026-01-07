@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
@@ -79,9 +79,10 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
+import ca.nrc.cadc.rest.InlineContentHandler;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -90,7 +91,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
-public class CreateAction extends InlineContentAction {
+public class CreateAction extends AbstractAction {
     private static final Logger log = Logger.getLogger(CreateAction.class);
 
     public void doAction() throws Exception {
@@ -112,9 +113,15 @@ public class CreateAction extends InlineContentAction {
         }
     }
 
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new GroupContentHandler();
+    }
+
     private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException,
             IOException, WriterException, ReaderException {
-        Group group = getInputGroup();
+        Group group = GroupContentHandler.parseContent(
+                (InputStream) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG));
 
         // restriction: prevent hierarchical group names now that GroupURI allows it
         GroupURI gid = group.getID();
@@ -152,7 +159,7 @@ public class CreateAction extends InlineContentAction {
                         p = it.next();
                     }
                 }
-                if (p==null) {
+                if (p == null) {
                     throw new IllegalArgumentException("Member to be added has no recognized principal");
                 }
                 addedMembers.add(p.getName());

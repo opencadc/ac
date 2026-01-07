@@ -81,7 +81,7 @@
     <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
     <init-param>
       <param-name>get</param-name>
-      <param-value>ca.nrc.cadc.ac.server.GetGroupMapAction</param-value>
+      <param-value>org.opencadc.ac.GetGroupMapAction</param-value>
     </init-param>
 
     <load-on-startup>3</load-on-startup>
@@ -106,23 +106,23 @@
     <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
     <init-param>
       <param-name>init</param-name>
-      <param-value>ca.nrc.cadc.ac.server.web.groups.InitGroupAction</param-value>
+      <param-value>org.opencadc.ac.InitGroupAction</param-value>
     </init-param>
     <init-param>
       <param-name>get</param-name>
-      <param-value>ca.nrc.cadc.ac.server.web.groups.GetAction</param-value>
+      <param-value>org.opencadc.ac.GetAction</param-value>
     </init-param>
     <init-param>
       <param-name>delete</param-name>
-      <param-value>ca.nrc.cadc.ac.server.web.groups.DeleteAction</param-value>
+      <param-value>org.opencadc.ac.DeleteAction</param-value>
     </init-param>
     <init-param>
       <param-name>post</param-name>
-      <param-value>ca.nrc.cadc.ac.server.web.groups.ModifyAction</param-value>
+      <param-value>org.opencadc.ac.ModifyAction</param-value>
     </init-param>
     <init-param>
       <param-name>put</param-name>
-      <param-value>ca.nrc.cadc.ac.server.web.groups.CreateAction</param-value>
+      <param-value>org.opencadc.ac.CreateAction</param-value>
     </init-param>
     <!--  TO BE REMOVED -->
     <init-param>
@@ -419,6 +419,7 @@
             <param-name>logLevelPackages</param-name>
             <param-value>
                 ca.nrc.cadc.ac
+                org.opencadc.ac
                 ca.nrc.cadc.auth
                 ca.nrc.cadc.rest
                 ca.nrc.cadc.uws

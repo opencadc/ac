@@ -67,17 +67,44 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.server.web.groups;
+package org.opencadc.ac;
 
-import java.util.List;
+import ca.nrc.cadc.ac.Group;
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import java.io.IOException;
+import java.io.InputStream;
+import org.apache.log4j.Logger;
 
-/**
- * Extension of regular servlet log info that tracks
- * group membership changes.
- */
-public class GroupLogInfo {
-    public String groupID;
-    public List<String> addedMembers;
-    public List<String> deletedMembers;
 
+public class GroupContentHandler implements InlineContentHandler {
+    public static final String CONTENT_TYPE = "application/xml";
+    protected static final String INLINE_CONTENT_TAG = "inputstream";
+    private static final Logger log = Logger.getLogger(GroupContentHandler.class);
+
+    public static Group parseContent(InputStream inputStream) throws IOException {
+        GroupReader groupReader = new GroupReader();
+        try {
+            return groupReader.read(inputStream);
+        } catch (ReaderException e) {
+            throw new IllegalArgumentException("Invalid group XML: " + e);
+        }
+    }
+
+    @Override
+    public Content accept(String name, String contentType, InputStream inputStream) throws
+            InlineContentException, TransientException {
+        if ((contentType != null) && !CONTENT_TYPE.equals(contentType)) {
+            log.warn("expecting text/xml input document, got: " + contentType);
+        }
+
+        Content content = new InlineContentHandler.Content();
+        content.name = INLINE_CONTENT_TAG;
+        content.value = inputStream; // defer group creation since this content handler is also used when member added
+        // to a group without any inline content.
+        return content;
+    }
 }
