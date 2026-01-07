@@ -94,8 +94,7 @@ public class ModifyAction extends AbstractAction {
 
     public void doAction() throws IOException, GroupNotFoundException, UserNotFoundException, WriterException {
         Profiler profiler = new Profiler(ModifyAction.class);
-        Group inputGroup = GroupContentHandler.parseContent(
-                (InputStream) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG));
+        Group inputGroup = (Group) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG);
 
         Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
         profiler.checkpoint("get Group");

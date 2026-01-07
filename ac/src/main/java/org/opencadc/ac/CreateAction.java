@@ -120,9 +120,7 @@ public class CreateAction extends AbstractAction {
 
     private void createGroup() throws UserNotFoundException, GroupAlreadyExistsException, GroupNotFoundException,
             IOException, WriterException, ReaderException {
-        Group group = GroupContentHandler.parseContent(
-                (InputStream) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG));
-
+        Group group = (Group) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG);
         // restriction: prevent hierarchical group names now that GroupURI allows it
         GroupURI gid = group.getID();
         String name = gid.getName();

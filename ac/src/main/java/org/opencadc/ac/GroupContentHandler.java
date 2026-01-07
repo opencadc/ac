@@ -75,6 +75,7 @@ import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.InlineContentException;
 import ca.nrc.cadc.rest.InlineContentHandler;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import org.apache.log4j.Logger;
@@ -83,28 +84,36 @@ import org.apache.log4j.Logger;
 public class GroupContentHandler implements InlineContentHandler {
     public static final String CONTENT_TYPE = "application/xml";
     protected static final String INLINE_CONTENT_TAG = "inputstream";
+    protected static final String INLINE_ERROR_TAG = "error";
     private static final Logger log = Logger.getLogger(GroupContentHandler.class);
-
-    public static Group parseContent(InputStream inputStream) throws IOException {
-        GroupReader groupReader = new GroupReader();
-        try {
-            return groupReader.read(inputStream);
-        } catch (ReaderException e) {
-            throw new IllegalArgumentException("Invalid group XML: " + e);
-        }
-    }
 
     @Override
     public Content accept(String name, String contentType, InputStream inputStream) throws
-            InlineContentException, TransientException {
-        if ((contentType != null) && !CONTENT_TYPE.equals(contentType)) {
-            log.warn("expecting text/xml input document, got: " + contentType);
+            InlineContentException, TransientException, IOException {
+
+        //TODO this is a workaround to missing content type. GMSClient must be updated to send the information at
+        // which point inputStream can be used directly.
+        // if ((contentType != null) && !CONTENT_TYPE.equals(contentType)) {
+        //      log.warn("expecting text/xml input document, got: " + contentType);
+        // }
+        byte[] bytes = inputStream.readAllBytes();
+        InputStream xmlStream = new ByteArrayInputStream(bytes);
+        if (bytes.length == 0) {
+            Content content = new Content();
+            content.name = INLINE_ERROR_TAG;
+            content.value = "No inline content";
+            return content;
         }
 
-        Content content = new InlineContentHandler.Content();
-        content.name = INLINE_CONTENT_TAG;
-        content.value = inputStream; // defer group creation since this content handler is also used when member added
-        // to a group without any inline content.
-        return content;
+        try {
+            Content content = new Content();
+            content.name = INLINE_CONTENT_TAG;
+            GroupReader groupReader = new GroupReader();
+            content.value = groupReader.read(xmlStream);
+            return content;
+        } catch (ReaderException e) {
+            throw new IllegalArgumentException("Invalid group XML: " + e);
+        }
+
     }
 }
