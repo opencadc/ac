@@ -186,23 +186,4 @@ public class AbstractActionTest {
 
         abstractAction.setRequestInput();
     }
-
-    @Test
-    public void testGetUserIdForLogging() {
-        // Set up a mock user with a specific user ID
-        User mockUser = new User();
-        try {
-            abstractAction.getUserIdForLogging(mockUser);
-            fail("Expected exception when user ID is not set");
-        } catch (IllegalArgumentException e) {
-            // expected
-        }
-
-        mockUser.getIdentities().add(new HttpPrincipal("user"));
-        assertEquals("user", abstractAction.getUserIdForLogging(mockUser));
-
-        mockUser.getIdentities().clear();
-        mockUser.getIdentities().add(new X500Principal("CN=User"));
-        assertEquals("CN=User", abstractAction.getUserIdForLogging(mockUser));
-    }
 }

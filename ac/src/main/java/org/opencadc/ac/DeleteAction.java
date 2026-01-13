@@ -93,13 +93,14 @@ public class DeleteAction extends AbstractAction {
         if (requestInput.memberName == null) {
             groupPersistence.deleteGroup(requestInput.groupName);
             if ((!targetGroup.getUserMembers().isEmpty()) || (!targetGroup.getGroupMembers().isEmpty())) {
-                this.logInfo.deletedMembers = new ArrayList<>();
+                List<String> deletedMembers = new ArrayList<>();
                 for (Group gr : targetGroup.getGroupMembers()) {
-                    this.logInfo.deletedMembers.add(gr.getID().getName());
+                    deletedMembers.add(gr.getID().getName());
                 }
                 for (User usr : targetGroup.getUserMembers()) {
-                    this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
+                    deletedMembers.add(usr.getHttpPrincipal().getName());
                 }
+                log.debug("Deleted " + getLogGroupInfo(targetGroup.getID().getName(), deletedMembers, null));
             }
         } else {
             if (requestInput.userIDType == null) {
@@ -119,7 +120,7 @@ public class DeleteAction extends AbstractAction {
         groupPersistence.modifyGroup(group);
         List<String> deletedMembers = new ArrayList<>();
         deletedMembers.add(memberName);
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
+        log.debug("Modified " + getLogGroupInfo(group.getID().getName(), deletedMembers, null));
     }
 
     private void removeUserMember(Group group, String memberName, String userIDType) throws UserNotFoundException, GroupNotFoundException {
@@ -134,7 +135,7 @@ public class DeleteAction extends AbstractAction {
         groupPersistence.modifyGroup(group);
         List<String> deletedMembers = new ArrayList<>();
         deletedMembers.add(memberName);
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
+        log.debug("Modified " + getLogGroupInfo(group.getID().getName(), deletedMembers, null));
     }
 
     protected UserPersistence getUserPersistence() {

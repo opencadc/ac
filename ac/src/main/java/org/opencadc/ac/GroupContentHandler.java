@@ -69,7 +69,6 @@
 
 package org.opencadc.ac;
 
-import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.xml.GroupReader;
 import ca.nrc.cadc.net.TransientException;

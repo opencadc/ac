@@ -79,15 +79,16 @@ import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.auth.NumericPrincipal;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
@@ -135,7 +136,7 @@ public class CreateAction extends AbstractAction {
         groupWriter.write(returnGroup, syncOutput.getOutputStream());
 
         List<String> addedMembers = getStrings(group);
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+        log.debug("Created " + getLogGroupInfo(group.getID().getName(), null, addedMembers));
     }
 
     private static List<String> getStrings(Group group) {
@@ -179,12 +180,13 @@ public class CreateAction extends AbstractAction {
 
         List<String> addedMembers = new ArrayList<>();
         addedMembers.add(toAdd.getID().getName());
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+        log.debug("Modified group " + getLogGroupInfo(group.getID().getName(), null, addedMembers));
     }
 
     private void addUserMember(Group group, String userID, String userIDType) throws
             UserNotFoundException, MemberAlreadyExistsException, GroupNotFoundException {
         Principal userPrincipal = AuthenticationUtil.createPrincipal(userID, userIDType);
+        final IdentityManager im = AuthenticationUtil.getIdentityManager();
 
         User toAdd = new User();
 
@@ -196,7 +198,9 @@ public class CreateAction extends AbstractAction {
         groupPersistence.modifyGroup(group);
 
         List<String> addedMembers = new ArrayList<>();
-        addedMembers.add(getUserIdForLogging(toAdd));
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+        Subject toAddSubject = new Subject();
+        toAddSubject.getPrincipals().add(userPrincipal);
+        addedMembers.add(im.toDisplayString(toAddSubject));
+        log.debug("Modified " + getLogGroupInfo(group.getID().getName(), null, addedMembers));
     }
 }

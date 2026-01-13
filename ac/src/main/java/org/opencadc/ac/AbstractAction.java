@@ -69,7 +69,6 @@
 
 package org.opencadc.ac;
 
-import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.web.WebUtil;
@@ -82,7 +81,6 @@ import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import java.net.URI;
 import java.security.Principal;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.security.auth.Subject;
@@ -94,7 +92,6 @@ public abstract class AbstractAction extends RestAction {
     private static final Logger log = Logger.getLogger(AbstractAction.class);
 
     protected Subject privilegedSubject;
-    protected GroupLogInfo logInfo = new GroupLogInfo();
     protected GroupPersistence groupPersistence;
     protected GroupsConfig config;
     protected final RequestInput requestInput = new RequestInput();
@@ -114,10 +111,6 @@ public abstract class AbstractAction extends RestAction {
         groupPersistence = pluginFactory.createGroupPersistence();
     }
 
-    public void setGroupPersistence(GroupPersistence groupPersistence) {
-        this.groupPersistence = groupPersistence;
-    }
-
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;
@@ -129,35 +122,10 @@ public abstract class AbstractAction extends RestAction {
         serviceURI = localAuthority.getResourceID(Standards.GMS_GROUPS_01);
     }
 
-    protected void logGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers) {
-        this.logInfo.groupID = groupID;
-        this.logInfo.addedMembers = addedMembers;
-        this.logInfo.deletedMembers = deletedMembers;
-    }
-
-    protected String getUserIdForLogging(User u) {
-        if (u.getIdentities().isEmpty()) {
-            throw new IllegalArgumentException("User has no identities");
-        }
-
-
-        Iterator<Principal> i = u.getIdentities().iterator();
-        String ret = null;
-        Principal next;
-        while (i.hasNext()) {
-            next = i.next();
-            if (next instanceof HttpPrincipal) {
-                return next.getName();
-            }
-            if (next instanceof X500Principal) {
-                ret = next.getName();
-            } else {
-                if (ret == null) {
-                    ret = next.getName();
-                }
-            }
-        }
-        return ret;
+    protected String getLogGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers) {
+        return (groupID
+                + ": deleted members [" + (deletedMembers != null ? String.join(", ", deletedMembers) : "")
+                + "], added members [" + (addedMembers != null ? String.join(", ", addedMembers) : "") + "]");
     }
 
     protected void setPrivilegedSubject() {

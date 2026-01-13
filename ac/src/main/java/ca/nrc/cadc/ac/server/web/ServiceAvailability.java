@@ -39,18 +39,15 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.X509CertificateChain;
 import ca.nrc.cadc.net.TransientException;
-import ca.nrc.cadc.vosi.AvailabilityPlugin;
 import ca.nrc.cadc.vosi.Availability;
-
+import ca.nrc.cadc.vosi.AvailabilityPlugin;
 import ca.nrc.cadc.vosi.avail.CheckException;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.security.auth.Subject;
-
 import org.apache.log4j.Logger;
 
 public class ServiceAvailability implements AvailabilityPlugin {

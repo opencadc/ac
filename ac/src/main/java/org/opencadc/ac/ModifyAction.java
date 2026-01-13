@@ -71,17 +71,19 @@ package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.ReaderException;
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.UserNotFoundException;
 import ca.nrc.cadc.ac.WriterException;
 import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.profiler.Profiler;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import java.io.IOException;
-import java.io.InputStream;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 public class ModifyAction extends AbstractAction {
@@ -102,9 +104,14 @@ public class ModifyAction extends AbstractAction {
         profiler.checkpoint("modify Group");
 
         List<String> addedMembers = new ArrayList<>();
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
         for (User member : inputGroup.getUserMembers()) {
             if (!oldGroup.getUserMembers().remove(member)) {
-                addedMembers.add(getUserIdForLogging(member));
+                Subject toAddSubject = new Subject();
+                for (Principal p : member.getIdentities()) {
+                    toAddSubject.getPrincipals().add(p);
+                }
+                addedMembers.add(im.toDisplayString(toAddSubject));
             }
         }
         for (Group gr : inputGroup.getGroupMembers()) {
@@ -118,7 +125,11 @@ public class ModifyAction extends AbstractAction {
 
         List<String> deletedMembers = new ArrayList<>();
         for (User member : oldGroup.getUserMembers()) {
-            deletedMembers.add(getUserIdForLogging(member));
+            Subject toDeleteSubject = new Subject();
+            for (Principal p : member.getIdentities()) {
+                toDeleteSubject.getPrincipals().add(p);
+            }
+            deletedMembers.add(im.toDisplayString(toDeleteSubject));
         }
         for (Group gr : oldGroup.getGroupMembers()) {
             deletedMembers.add(gr.getID().getName());
@@ -129,7 +140,7 @@ public class ModifyAction extends AbstractAction {
 
         profiler.checkpoint("log GroupInfo");
         Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
-        logGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers);
+        log.debug("Modified " + getLogGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers));
 
         syncOutput.setHeader("Content-Type", "application/xml");
         syncOutput.setCode(200);

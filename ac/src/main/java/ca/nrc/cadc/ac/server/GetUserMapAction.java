@@ -67,7 +67,6 @@
 
 package ca.nrc.cadc.ac.server;
 
-import static org.opencadc.ac.GetGroupMapAction.CONTENT_TYPE_TSV;
 import ca.nrc.cadc.ac.server.impl.UserPersistenceImpl;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpTransfer;
@@ -78,6 +77,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.apache.log4j.Logger;
+import static org.opencadc.ac.GetGroupMapAction.CONTENT_TYPE_TSV;
 
 /**
  *
