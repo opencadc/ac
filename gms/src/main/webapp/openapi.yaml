@@ -1,0 +1,485 @@
+openapi: 3.0.3
+info:
+  title: CANFAR Group Management System (GMS) API
+  description: |
+    This API provides RESTful access to group management operations in the CANFAR Group Management System.
+    
+    Groups have an owner, a list of administrators, and a list of members. The list of members and 
+    administrators can be composed of groups and users.
+    
+    **Roles:**
+    - **owner** - Can modify administrators list and members list. Can delete the group.
+    - **admin** - Can modify the administrators and members list.
+    - **member** - Are granted access to the resources the group is associated with.
+    
+    **Authentication Methods:**
+    - **CC** - Client certificates over HTTPS
+    - **JWT** - JWT Bearer token over HTTPS
+    - **AN** - Anonymous over HTTP
+    
+    **User Identity:**
+    Users are identified by their unique userID in the Identity Provider (CANFAR HTTP username).
+  version: 1.0.0
+  contact:
+    url: https://www.canfar.net
+tags:
+  - name: Group Management
+    description: Operations for managing groups
+  - name: Group Searching
+    description: Operations for searching groups by user role
+servers:
+  - url: https://ws-cadc.canfar.net/gms
+    description: Production server
+
+paths:
+  /groups:
+    get:
+      summary: List all groups
+      description: Lists the names of all the groups in the service
+      operationId: listGroups
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response with list of group names
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Newline-separated list of group names
+                example: |
+                  group1
+                  group2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    put:
+      summary: Create group
+      description: Create a new group according to the group XML or JSON document in the HTTP PUT
+      operationId: createGroup
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      requestBody:
+        description: Group data in XML or JSON format
+        required: true
+        content:
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Group'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+      responses:
+        '200':
+          description: Group created successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: A member is not recognized
+        '409':
+          description: A group with the same name already exists
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /groups/{groupID}:
+    get:
+      summary: Get group
+      description: Get the group with the specified groupID
+      operationId: getGroup
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/groupID'
+      responses:
+        '200':
+          description: Successful response with group details
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Group'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The group could not be found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    post:
+      summary: Modify group
+      description: Modify the group with the specified groupID according to the group XML or JSON document in the HTTP POST
+      operationId: modifyGroup
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/groupID'
+      requestBody:
+        description: Updated group data in XML or JSON format
+        required: true
+        content:
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Group'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+      responses:
+        '200':
+          description: Group modified successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The group could not be found or a member is not recognized
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    delete:
+      summary: Delete group
+      description: Delete the group with the specified groupID
+      operationId: deleteGroup
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/groupID'
+      responses:
+        '200':
+          description: Group deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The group to delete could not be found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /groups/{groupID}/user-members/{userID}:
+    parameters:
+      - $ref: '#/components/parameters/groupID'
+      - $ref: '#/components/parameters/userID'
+    put:
+      summary: Add user member
+      description: Add a user as a member of the specified group
+      operationId: addUserMember
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/groupID'
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: User added as member successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The group to add to could not be found or the member is not recognized
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    delete:
+      summary: Remove user member
+      description: Remove a user as a member of the specified group
+      operationId: removeUserMember
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/groupID'
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: User removed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The group could not be found or the member is not recognized
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /groups/{groupID}/group-members/{groupID2}:
+    parameters:
+      - $ref: '#/components/parameters/groupID'
+      - name: groupID2
+        in: path
+        required: true
+        description: The name of the group to add/remove as a member
+        schema:
+          type: string
+    put:
+      summary: Add group member
+      description: Add a group as a member of another group
+      operationId: addGroupMember
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Group member added successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: One or both groups could not be found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    delete:
+      summary: Remove group member
+      description: Remove a group as a member of another group
+      operationId: removeGroupMember
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Group member removed successfully
+
+  /search:
+    get:
+      summary: Search groups by role
+      description: Find the groups in which the specified user has the specified role
+      operationId: searchGroupsByRole
+      tags:
+        - Group Searching
+      security:
+        - clientCertificate: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: The user identifier (CANFAR HTTP username)
+          schema:
+            type: string
+        - name: role
+          in: query
+          required: true
+          description: The role to search for
+          schema:
+            type: string
+            enum:
+              - owner
+              - admin
+              - member
+        - name: groupID
+          in: query
+          required: false
+          description: Optional group ID to check specific membership
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response with list of groups
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Newline-separated list of group names that match the search criteria
+                example: |
+                  group1
+                  group2
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  securitySchemes:
+    clientCertificate:
+      type: http
+      scheme: mutual
+      description: Client certificate authentication over HTTPS (X.509 mutual TLS)
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token based authentication
+
+  parameters:
+    groupID:
+      name: groupID
+      in: path
+      required: true
+      description: The name of the group
+      schema:
+        type: string
+
+    userID:
+      name: userID
+      in: path
+      required: true
+      description: The unique user identifier (CANFAR HTTP username)
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: The URL or input stream data are malformed
+
+    Unauthorized:
+      description: Credentials were not provided
+
+    Forbidden:
+      description: Not allowed to perform the requested action
+
+    InternalServerError:
+      description: The server encountered an unrecoverable error
+
+    ServiceUnavailable:
+      description: The server is too busy to perform the operation
+
+  schemas:
+    Group:
+      type: object
+      description: Representation of a group
+      required:
+        - uri
+      properties:
+        uri:
+          type: string
+          description: Group URI (e.g., ivo://cadc.nrc.ca/gms#GroupName)
+          example: "ivo://cadc.nrc.ca/gms#Example-group"
+        owner:
+          $ref: '#/components/schemas/User'
+        description:
+          type: string
+          description: Group description
+          example: "Group used for documentation example"
+        lastModified:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+          example: "2015-07-24T17:38:18.000"
+        userMembers:
+          type: array
+          description: List of users who are members of this group
+          items:
+            $ref: '#/components/schemas/User'
+          example:
+            - "member1"
+            - "member2"
+        userAdmins:
+          type: array
+          description: List of users who are administrators of this group
+          items:
+            $ref: '#/components/schemas/User'
+          example:
+            - "admin1"
+        groupMembers:
+          type: array
+          description: List of groups that are members of this group
+          items:
+            type: object
+            properties:
+              uri:
+                type: string
+                description: URI of the member group
+                example: "ivo://cadc.nrc.ca/gms#MemberGroup"
+          example:
+            - uri: "ivo://cadc.nrc.ca/gms#MemberGroup"
+        groupAdmins:
+          type: array
+          description: List of groups that are administrators of this group
+          items:
+            type: object
+            properties:
+              uri:
+                type: string
+                description: URI of the admin group
+                example: "ivo://cadc.nrc.ca/gms#AdminGroup"
+          example:
+            - uri: "ivo://cadc.nrc.ca/gms#AdminGroup"
+      example:
+        uri: "ivo://cadc.nrc.ca/gms#Example-group"
+        owner: "exampleuser"
+        description: "Group used for documentation example"
+        lastModified: "2015-07-24T17:38:18.000"
+        userMembers:
+          - "member1"
+          - "member2"
+        userAdmins:
+          - "admin1"
+        groupMembers:
+          - uri: "ivo://cadc.nrc.ca/gms#MemberGroup"
+        groupAdmins:
+          - uri: "ivo://cadc.nrc.ca/gms#AdminGroup"
+
+    User:
+      type: string
+      description: User identifier (CANFAR HTTP username)
+      example: "exampleuser"
