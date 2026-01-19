@@ -32,6 +32,41 @@ servers:
     description: Production server
 
 paths:
+  /capabilities:
+    $ref: 'https://raw.githubusercontent.com/ivoa-std/VOSI/refs/heads/main/openapi/vosi-capabilities.yaml'
+  /availability:
+    get:
+      operationId: read-availability
+      tags:
+        - Service availability
+      summary: Returns the availability status of the service
+      description: Get the set of descriptions for this service.
+      security: []
+      responses:
+        '200':
+          description: Service is available
+          content:
+            application/xml:
+              schema:
+                type: object
+                xml:
+                  name: availability
+                properties:
+                  available:
+                    type: boolean
+                    xml:
+                      name: availability
+                      prefix: vosi
+                      namespace: http://www.ivoa.net/xml/VOSIAvailability/v1.0
+                  note:
+                    type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <vosi:availability xmlns:vosi="http://www.ivoa.net/xml/VOSIAvailability/v1.0">
+                <vosi:available>true</vosi:available>
+                <vosi:note>service is accepting requests</vosi:note>
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /groups:
     get:
       summary: List all groups
@@ -86,8 +121,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           description: A member is not recognized
         '409':
@@ -100,7 +133,8 @@ paths:
   /groups/{groupID}:
     get:
       summary: Get group
-      description: Get the group with the specified groupID
+      description: Get the group with the specified groupID. Only users associated with the group (owner, admin, member)
+        are allowed to retrieve the group details.
       operationId: getGroup
       tags:
         - Group Management
@@ -135,6 +169,7 @@ paths:
     post:
       summary: Modify group
       description: Modify the group with the specified groupID according to the group XML or JSON document in the HTTP POST
+        Only the owner or administrators of the group are allowed to modify the group.
       operationId: modifyGroup
       tags:
         - Group Management
@@ -171,7 +206,7 @@ paths:
 
     delete:
       summary: Delete group
-      description: Delete the group with the specified groupID
+      description: Delete the group with the specified groupID. Only the owner of the group is allowed to delete the group.
       operationId: deleteGroup
       tags:
         - Group Management
@@ -202,7 +237,8 @@ paths:
       - $ref: '#/components/parameters/userID'
     put:
       summary: Add user member
-      description: Add a user as a member of the specified group
+      description: Add a user as a member of the specified group. Only owners or administrators of the group are 
+        allowed to add members.
       operationId: addUserMember
       tags:
         - Group Management
@@ -230,7 +266,8 @@ paths:
 
     delete:
       summary: Remove user member
-      description: Remove a user as a member of the specified group
+      description: Remove a user as a member of the specified group. Only owners or administrators of the group are 
+        allowed to remove members.
       operationId: removeUserMember
       tags:
         - Group Management
@@ -262,7 +299,8 @@ paths:
       - name: groupID2
         in: path
         required: true
-        description: The name of the group to add/remove as a member
+        description: The name of the group to add/remove as a member. Only the group owner or administrators can 
+          add/remove group members.
         schema:
           type: string
     put:
@@ -292,7 +330,8 @@ paths:
 
     delete:
       summary: Remove group member
-      description: Remove a group as a member of another group
+      description: Remove a group as a member of another group. Only the group owner or administrators can remove
+        group members.
       operationId: removeGroupMember
       tags:
         - Group Management
@@ -314,28 +353,23 @@ paths:
         - clientCertificate: []
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: group
           in: query
-          required: true
-          description: The user identifier (CANFAR HTTP username)
+          required: false
+          description: The group name to match with. If not specified, all groups the user has the specified role in are
+            returned.
           schema:
             type: string
         - name: role
           in: query
-          required: true
-          description: The role to search for
+          required: false
+          description: The role to search for. Defaults to 'member' if not specified.
           schema:
             type: string
             enum:
               - owner
               - admin
               - member
-        - name: groupID
-          in: query
-          required: false
-          description: Optional group ID to check specific membership
-          schema:
-            type: string
       responses:
         '200':
           description: Successful response with list of groups
