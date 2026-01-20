@@ -77,6 +77,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
+import java.net.URI;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
@@ -91,6 +92,7 @@ public abstract class AbstractAction extends RestAction {
     protected Subject privilegedSubject;
     protected GroupPersistence groupPersistence;
     protected final RequestInput requestInput = new RequestInput();
+    protected URI resourceID;
 
     public AbstractAction() {
     }
@@ -98,7 +100,9 @@ public abstract class AbstractAction extends RestAction {
     @Override
     public void initAction() throws Exception {
         super.initAction();
-        setPrivilegedSubject();
+        GroupsConfig config = new GroupsConfig();
+        resourceID = config.getResourceID();
+        setPrivilegedSubject(config);
         setRequestInput();
         PluginFactory pluginFactory = new PluginFactory();
         groupPersistence = pluginFactory.createGroupPersistence();
@@ -115,8 +119,7 @@ public abstract class AbstractAction extends RestAction {
                 + "], added members [" + (addedMembers != null ? String.join(", ", addedMembers) : "") + "]");
     }
 
-    protected void setPrivilegedSubject() {
-        GroupsConfig config = new GroupsConfig();
+    protected void setPrivilegedSubject(GroupsConfig config) {
         if (config.getPrivilegedSubjects().isEmpty()) {
             return;
         }

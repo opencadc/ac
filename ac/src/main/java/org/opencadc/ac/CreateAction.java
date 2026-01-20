@@ -169,8 +169,7 @@ public class CreateAction extends AbstractAction {
 
     private void addGroupMember(Group group, String groupMemberName) throws
             GroupNotFoundException, UserNotFoundException, GroupAlreadyExistsException {
-        GroupsConfig config = new GroupsConfig();
-        GroupURI toAddID = new GroupURI(config.getResourceID(), groupMemberName);
+        GroupURI toAddID = new GroupURI(resourceID, groupMemberName);
         Group toAdd = new Group(toAddID);
 
         if (!group.getGroupMembers().add(toAdd)) {

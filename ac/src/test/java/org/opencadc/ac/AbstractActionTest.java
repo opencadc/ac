@@ -116,7 +116,7 @@ public class AbstractActionTest {
 
         System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
         Subject.doAs(privilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
-            abstractAction.setPrivilegedSubject();
+            abstractAction.setPrivilegedSubject(new GroupsConfig());
             return null;
         });
 
@@ -127,7 +127,7 @@ public class AbstractActionTest {
         abstractAction.privilegedSubject = null;
         Subject nonPrivilegedSubject = new Subject();
         Subject.doAs(nonPrivilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
-            abstractAction.setPrivilegedSubject();
+            abstractAction.setPrivilegedSubject(new GroupsConfig());
             return null;
         });
         assertNull(abstractAction.privilegedSubject);
