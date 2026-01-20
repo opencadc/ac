@@ -72,54 +72,49 @@ package org.opencadc.ac;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.rest.SyncInput;
-import org.junit.Test;
-import static org.junit.Assert.fail;
-
-/**
- * @author jburke
- */
-
-import ca.nrc.cadc.ac.User;
-import org.junit.Before;
-
+import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.util.PropertiesReader;
+import java.security.PrivilegedExceptionAction;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collections;
-
-import static org.junit.Assert.*;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class AbstractActionTest {
+    private static final Logger log = Logger.getLogger(AbstractActionTest.class);
 
     private AbstractAction abstractAction;
 
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
+    }
+
     @Before
     public void setUp() {
+
         abstractAction = new AbstractAction() {
             @Override
             public void doAction() {
 
-            }
-
-            @Override
-            public void setServiceURI() {
-                // Mock implementation for abstract method
             }
         };
     }
 
     @Test
     public void testSetPrivilegedSubject() throws Exception {
+        log.debug("testSetPrivilegedSubject: START");
         Subject privilegedSubject = new Subject();
         privilegedSubject.getPrincipals().add(new X500Principal("CN=Privileged"));
+        privilegedSubject.getPrincipals().add(new HttpPrincipal("privileged"));
 
-        abstractAction.config = new GroupsConfig() {
-            @Override
-            public java.util.List<Subject> getPrivilegedSubjects() {
-                return Collections.singletonList(privilegedSubject);
-            }
-        };
-
+        System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
         Subject.doAs(privilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
             abstractAction.setPrivilegedSubject();
             return null;
@@ -136,6 +131,7 @@ public class AbstractActionTest {
             return null;
         });
         assertNull(abstractAction.privilegedSubject);
+
     }
 
     @Test

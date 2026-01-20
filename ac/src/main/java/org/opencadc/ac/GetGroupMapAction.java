@@ -92,13 +92,6 @@ public class GetGroupMapAction extends RestAction {
 
     public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
     
-    private final URI gmsResourceID;
-    
-    public GetGroupMapAction() { 
-        LocalAuthority loc = new LocalAuthority();
-        this.gmsResourceID = loc.getServiceURI(Standards.GMS_SEARCH_10.toASCIIString());
-    }
-
     @Override
     protected InlineContentHandler getInlineContentHandler() {
         return null;
@@ -107,6 +100,8 @@ public class GetGroupMapAction extends RestAction {
     @Override
     public void doAction() throws Exception {
         GroupPersistenceImpl groupPersistence = new GroupPersistenceImpl();
+        GroupsConfig gmsConfig = new GroupsConfig();
+        URI gmsResourceID = gmsConfig.getResourceID();
         
         List<String> groupNameSubset = null;
         List<String> groupParams = syncInput.getParameters("group");

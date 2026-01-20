@@ -75,11 +75,8 @@ import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
-import ca.nrc.cadc.reg.Standards;
-import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
-import java.net.URI;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
@@ -93,9 +90,7 @@ public abstract class AbstractAction extends RestAction {
 
     protected Subject privilegedSubject;
     protected GroupPersistence groupPersistence;
-    protected GroupsConfig config;
     protected final RequestInput requestInput = new RequestInput();
-    protected URI serviceURI;
 
     public AbstractAction() {
     }
@@ -103,10 +98,8 @@ public abstract class AbstractAction extends RestAction {
     @Override
     public void initAction() throws Exception {
         super.initAction();
-        config = InitGroupAction.getConfig(appName);
         setPrivilegedSubject();
         setRequestInput();
-        setServiceURI();
         PluginFactory pluginFactory = new PluginFactory();
         groupPersistence = pluginFactory.createGroupPersistence();
     }
@@ -116,12 +109,6 @@ public abstract class AbstractAction extends RestAction {
         return null;
     }
 
-
-    public void setServiceURI() {
-        LocalAuthority localAuthority = new LocalAuthority();
-        serviceURI = localAuthority.getResourceID(Standards.GMS_GROUPS_01);
-    }
-
     protected String getLogGroupInfo(String groupID, List<String> deletedMembers, List<String> addedMembers) {
         return (groupID
                 + ": deleted members [" + (deletedMembers != null ? String.join(", ", deletedMembers) : "")
@@ -129,6 +116,7 @@ public abstract class AbstractAction extends RestAction {
     }
 
     protected void setPrivilegedSubject() {
+        GroupsConfig config = new GroupsConfig();
         if (config.getPrivilegedSubjects().isEmpty()) {
             return;
         }

@@ -70,24 +70,6 @@
 package ca.nrc.cadc.ac.server.impl;
 
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.net.URI;
-import java.security.PrivilegedExceptionAction;
-
-import javax.security.auth.Subject;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupAlreadyExistsException;
 import ca.nrc.cadc.ac.GroupNotFoundException;
@@ -100,8 +82,23 @@ import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.io.File;
+import java.net.URI;
 import java.security.AccessControlException;
+import java.security.PrivilegedExceptionAction;
+import javax.security.auth.Subject;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Test;
+import org.opencadc.ac.GroupsConfig;
+import org.opencadc.gms.GroupURI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -135,8 +132,11 @@ public class GroupPersistenceImplTest
         deniedSubject = new Subject();
         deniedSubject.getPrincipals().add(dp);
 
-        LocalAuthority localAuthority = new LocalAuthority();
-        URI gmsServiceURI = localAuthority.getServiceURI(Standards.GMS_GROUPS_01.toString());
+        System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
+        GroupsConfig gc = new GroupsConfig();
+        URI gmsServiceURI = gc.getResourceID();
+
+         LocalAuthority localAuthority = new LocalAuthority();
 
         allowedGroup = new Group(new GroupURI(gmsServiceURI + "?allowed-group"));
 

@@ -72,6 +72,7 @@ package org.opencadc.ac;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import javax.security.auth.Subject;
@@ -83,31 +84,30 @@ public class GroupsConfig {
 
     // config keys
     private static final String GROUPS_KEY = "org.opencadc.ac";
-    static final String RESOURCE_ID_KEY = GROUPS_KEY + ".resourceID";
+    static final String RESOURCE_ID = GROUPS_KEY + ".resourceID";
+    private static final String PRIVILEGED_X500_PRINCIPALS = GROUPS_KEY + ".privilegedX500Principals";
+    private static final String PRIVILEGED_HTTP_PRINCIPALS = GROUPS_KEY + ".privilegedHttpPrincipals";
 
     private final MultiValuedProperties configProperties;
     private final List<Subject> privilegedSubjects = new ArrayList<>();
+    private final URI resourceID;
 
-    // Default constructor that uses ac.properties config file
     public GroupsConfig() {
         PropertiesReader r = new PropertiesReader("ac.properties");
         this.configProperties = r.getAllProperties();
+        List<String> resourceIdProp = configProperties.getProperty(RESOURCE_ID);
+        if (resourceIdProp.isEmpty()) {
+            throw new RuntimeException("Init exception: Missing required property: " + RESOURCE_ID);
+        }
+        this.resourceID = URI.create(resourceIdProp.get(0));
         initPrivilegedUsers();
     }
 
-    // Constructor that uses servlet context configured properties
-    public GroupsConfig(List<Subject> privilegedSubjects) {
-        this.configProperties = new MultiValuedProperties();
-        this.privilegedSubjects.addAll(privilegedSubjects);
-    }
-
-
     private void initPrivilegedUsers() {
-        log.info("initPrivilegedUsers: START");
-        List<String> x500Users = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedX500Principals");
-        List<String> httpUsers = configProperties.getProperty(RESOURCE_ID_KEY + ".PrivilegedHttpPrincipals");
+        List<String> x500Users = configProperties.getProperty(PRIVILEGED_X500_PRINCIPALS);
+        List<String> httpUsers = configProperties.getProperty(PRIVILEGED_HTTP_PRINCIPALS);
 
-        if (x500Users != null && httpUsers != null) {
+        if (!x500Users.isEmpty() || !httpUsers.isEmpty()) {
             if (x500Users.size() != httpUsers.size()) {
                 throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
             }
@@ -118,13 +118,12 @@ public class GroupsConfig {
                 s.getPrincipals().add(new HttpPrincipal(httpUsers.get(i)));
                 privilegedSubjects.add(s);
             }
-
-        } else {
-            log.warn("No Privileged users configured.");
         }
-        log.info("initPrivilegedUsers: OK");
     }
 
+    public URI getResourceID() {
+        return resourceID;
+    }
 
     public List<Subject> getPrivilegedSubjects() {
         return privilegedSubjects;
