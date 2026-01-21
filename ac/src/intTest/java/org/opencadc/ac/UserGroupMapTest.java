@@ -65,8 +65,9 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.ac;
 
+import ca.nrc.cadc.ac.integration.ConfigUsers;
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.Log4jInit;
@@ -89,7 +90,7 @@ public class UserGroupMapTest {
     private static final Logger log = Logger.getLogger(UserGroupMapTest.class);
 
     static {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
     }
 
     @Test

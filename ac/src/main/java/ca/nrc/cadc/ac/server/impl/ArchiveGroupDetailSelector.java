@@ -70,15 +70,13 @@
 package ca.nrc.cadc.ac.server.impl;
 
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.Role;
 import ca.nrc.cadc.ac.server.GroupDetailSelector;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import org.apache.log4j.Logger;
 
 /**
  *

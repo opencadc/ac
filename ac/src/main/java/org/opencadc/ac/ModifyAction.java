@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,40 +66,85 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.reg.Standards;
-import java.net.URI;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.IdentityManager;
+import ca.nrc.cadc.profiler.Profiler;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import java.io.IOException;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-import org.opencadc.gms.GroupURI;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
 
-public class AddGroupMemberAction extends AbstractGroupAction {
-    private final String groupName;
-    private final String groupMemberName;
+public class ModifyAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(ModifyAction.class);
 
-    AddGroupMemberAction(String groupName,
-                         String groupMemberName) {
-        super();
-        this.groupName = groupName;
-        this.groupMemberName = groupMemberName;
+    @Override
+    protected InlineContentHandler getInlineContentHandler() {
+        return new GroupContentHandler();
     }
 
-    public void doAction() throws Exception {
-        Group group = groupPersistence.getGroup(this.groupName);
-        URI gmsServiceURI = getServiceURI(Standards.GMS_GROUPS_01);
-        GroupURI toAddID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
-        Group toAdd = new Group(toAddID);
-        if (!group.getGroupMembers().add(toAdd)) {
-            throw new GroupAlreadyExistsException(this.groupMemberName);
+    public void doAction() throws IOException, GroupNotFoundException, UserNotFoundException, WriterException {
+        Profiler profiler = new Profiler(ModifyAction.class);
+        Group inputGroup = (Group) syncInput.getContent(GroupContentHandler.INLINE_CONTENT_TAG);
+
+        Group oldGroup = groupPersistence.getGroup(requestInput.groupName);
+        profiler.checkpoint("get Group");
+
+        profiler.checkpoint("modify Group");
+
+        List<String> addedMembers = new ArrayList<>();
+        IdentityManager im = AuthenticationUtil.getIdentityManager();
+        for (User member : inputGroup.getUserMembers()) {
+            if (!oldGroup.getUserMembers().remove(member)) {
+                Subject toAddSubject = new Subject();
+                for (Principal p : member.getIdentities()) {
+                    toAddSubject.getPrincipals().add(p);
+                }
+                addedMembers.add(im.toDisplayString(toAddSubject));
+            }
         }
-        groupPersistence.modifyGroup(group);
+        for (Group gr : inputGroup.getGroupMembers()) {
+            if (!oldGroup.getGroupMembers().remove(gr)) {
+                addedMembers.add(gr.getID().getName());
+            }
+        }
+        if (addedMembers.isEmpty()) {
+            addedMembers = null;
+        }
 
-        List<String> addedMembers = new ArrayList<String>();
-        addedMembers.add(toAdd.getID().getName());
-        logGroupInfo(group.getID().getName(), null, addedMembers);
+        List<String> deletedMembers = new ArrayList<>();
+        for (User member : oldGroup.getUserMembers()) {
+            Subject toDeleteSubject = new Subject();
+            for (Principal p : member.getIdentities()) {
+                toDeleteSubject.getPrincipals().add(p);
+            }
+            deletedMembers.add(im.toDisplayString(toDeleteSubject));
+        }
+        for (Group gr : oldGroup.getGroupMembers()) {
+            deletedMembers.add(gr.getID().getName());
+        }
+        if (deletedMembers.isEmpty()) {
+            deletedMembers = null;
+        }
+
+        profiler.checkpoint("log GroupInfo");
+        Group modifiedGroup = groupPersistence.modifyGroup(inputGroup);
+        log.debug("Modified " + getLogGroupInfo(modifiedGroup.getID().getName(), addedMembers, deletedMembers));
+
+        syncOutput.setHeader("Content-Type", "application/xml");
+        syncOutput.setCode(200);
+        GroupWriter groupWriter = new GroupWriter();
+        groupWriter.write(modifiedGroup, syncOutput.getOutputStream());
     }
-
 }

@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,50 +66,25 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.MemberNotFoundException;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.UserPersistence;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
+package org.opencadc.ac;
 
-public class RemoveUserMemberAction extends AbstractGroupAction {
-    private final String groupName;
-    private final String userID;
-    private final String userIDType;
+import ca.nrc.cadc.rest.InitAction;
+import org.apache.log4j.Logger;
 
-    public RemoveUserMemberAction(String groupName, String userID, String userIDType) {
+public class InitGroupAction extends InitAction {
+    private static final Logger log = Logger.getLogger(InitGroupAction.class);
+
+    public InitGroupAction() {
         super();
-        this.groupName = groupName;
-        this.userID = userID;
-        this.userIDType = userIDType;
     }
 
     @Override
-    public void doAction() throws Exception {
-        Group group = groupPersistence.getGroup(this.groupName);
-
-        Principal userPrincipal = AuthenticationUtil.createPrincipal(this.userID, this.userIDType);
-
-        User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
-
-        if (!group.getUserMembers().remove(user)) {
-            throw new MemberNotFoundException();
-        }
-        groupPersistence.modifyGroup(group);
-
-        List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(getUseridForLogging(user));
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
-    }
-
-    protected UserPersistence getUserPersistence() {
-        PluginFactory pluginFactory = new PluginFactory();
-        return pluginFactory.createUserPersistence();
+    public void doInit() {
+        log.info("initConfig: START");
+        GroupsConfig config = new GroupsConfig();
+        log.info("resourceID= " + config.getResourceID());
+        log.info("privilegedSubjects= " + config.getPrivilegedSubjects());
+        log.info("initConfig: OK");
     }
 }

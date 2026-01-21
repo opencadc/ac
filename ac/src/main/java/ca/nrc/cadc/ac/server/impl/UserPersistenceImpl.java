@@ -69,15 +69,13 @@
 
 package ca.nrc.cadc.ac.server.impl;
 
-import java.security.AccessControlException;
-import java.util.Collection;
-
-import javax.security.auth.Subject;
-
 import ca.nrc.cadc.ac.User;
 import ca.nrc.cadc.ac.server.ldap.LdapUserPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.net.TransientException;
+import java.security.AccessControlException;
+import java.util.Collection;
+import javax.security.auth.Subject;
 
 /**
  * Override the default behaviour of LdapUserPersistence

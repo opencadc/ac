@@ -73,18 +73,16 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
 import ca.nrc.cadc.util.PropertiesReader;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
 import java.io.File;
 import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
-
-import static org.junit.Assert.fail;
+import javax.security.auth.Subject;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Test;
+import static org.junit.Assert.fail;
 
 public class UserPersistenceImplTest
 {

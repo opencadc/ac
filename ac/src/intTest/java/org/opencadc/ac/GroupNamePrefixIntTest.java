@@ -67,12 +67,13 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.ac;
 
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.client.GMSClient;
+import ca.nrc.cadc.ac.integration.ConfigUsers;
 import ca.nrc.cadc.util.Log4jInit;
 import java.net.URI;
 import java.security.AccessControlException;
@@ -97,7 +98,7 @@ public class GroupNamePrefixIntTest
 
     static
     {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
     }
 
 

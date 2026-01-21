@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,46 +66,53 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.reg.Standards;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
+package org.opencadc.ac;
+
+import ca.nrc.cadc.ac.ReaderException;
+import ca.nrc.cadc.ac.xml.GroupReader;
+import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.rest.InlineContentException;
+import ca.nrc.cadc.rest.InlineContentHandler;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.log4j.Logger;
-import org.opencadc.gms.GroupURI;
 
-public class RemoveGroupMemberAction extends AbstractGroupAction {
-    private final static Logger log = Logger.getLogger(RemoveGroupMemberAction.class);
 
-    private final String groupName;
-    private final String groupMemberName;
+public class GroupContentHandler implements InlineContentHandler {
+    public static final String CONTENT_TYPE = "application/xml";
+    protected static final String INLINE_CONTENT_TAG = "inputstream";
+    protected static final String INLINE_ERROR_TAG = "error";
+    private static final Logger log = Logger.getLogger(GroupContentHandler.class);
 
-    RemoveGroupMemberAction(String groupName, String groupMemberName) {
-        super();
-        this.groupName = groupName;
-        this.groupMemberName = groupMemberName;
-    }
+    @Override
+    public Content accept(String name, String contentType, InputStream inputStream) throws
+            InlineContentException, TransientException, IOException {
 
-    public void doAction() throws Exception {
-        Group group = groupPersistence.getGroup(this.groupName);
-        URI gmsServiceURI = getServiceURI(Standards.GMS_GROUPS_01);
-        GroupURI toRemoveID = new GroupURI(gmsServiceURI.toString() + "?" + this.groupMemberName);
-        Group toRemove = new Group(toRemoveID);
-
-        log.debug("group member count: " + group.getGroupMembers().size());
-        log.debug("contains one to remove: " + group.getGroupMembers().contains(toRemove));
-
-        if (!group.getGroupMembers().remove(toRemove)) {
-            throw new GroupNotFoundException(this.groupMemberName);
+        //TODO this is a workaround to missing content type. GMSClient must be updated to send the information at
+        // which point inputStream can be used directly.
+        // if ((contentType != null) && !CONTENT_TYPE.equals(contentType)) {
+        //      log.warn("expecting text/xml input document, got: " + contentType);
+        // }
+        byte[] bytes = inputStream.readAllBytes();
+        InputStream xmlStream = new ByteArrayInputStream(bytes);
+        if (bytes.length == 0) {
+            Content content = new Content();
+            content.name = INLINE_ERROR_TAG;
+            content.value = "No inline content";
+            return content;
         }
-        groupPersistence.modifyGroup(group);
 
-        List<String> deletedMembers = new ArrayList<String>();
-        deletedMembers.add(toRemove.getID().getName());
-        logGroupInfo(group.getID().getName(), deletedMembers, null);
+        try {
+            Content content = new Content();
+            content.name = INLINE_CONTENT_TAG;
+            GroupReader groupReader = new GroupReader();
+            content.value = groupReader.read(xmlStream);
+            return content;
+        } catch (ReaderException e) {
+            throw new IllegalArgumentException("Invalid group XML: " + e);
+        }
+
     }
-
 }
