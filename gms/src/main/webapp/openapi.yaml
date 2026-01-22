@@ -129,7 +129,35 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
-
+    post:
+      summary: Register external group
+      description: Register an external group that exists with one of the configured peer GMS services.
+      operationId: registerExtGroup
+      tags:
+        - Group Management
+      security:
+        - clientCertificate: [ ]
+        - bearerAuth: [ ]
+      parameters:
+        - name: uri
+          in: query
+          required: true
+          description: The full URI of the external group to register
+          schema:
+            type: string
+      responses:
+        '201':
+          description: External group created successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: An external group with the same name already exists
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /groups/{groupID}:
     get:
       summary: Get group
@@ -305,7 +333,7 @@ paths:
           type: string
     put:
       summary: Add group member
-      description: Add a group as a member of another group
+      description: Add a group as a member of another group. Only internal groups can be added as members.
       operationId: addGroupMember
       tags:
         - Group Management
@@ -391,6 +419,58 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /gidmap:
+    get:
+      summary: Search POSIX group id (gid) or group name mapping
+      description: List the group name to POSIX group id (gid) mappings for the specified groups or gids
+      operationId: searchGidMap
+      tags:
+        - Gid Searching
+      security:
+        - clientCertificate: [ ]
+        - bearerAuth: [ ]
+      parameters:
+        - name: group
+          in: query
+          required: false
+          description: The group name to match with. If not specified, all groups are returned.
+          schema:
+            type: string
+        - name: gid
+          in: query
+          required: false
+          description: The gid to search for. If not specified, all gids are returned.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with list of groups/gid mappings in either plain text or TSV format
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Newline-separated list of group names, gids and group URIs that match the search criteria
+                example: |
+                  group1:x:1001:ivo://cadc.nrc.ca/gms#group1
+                  group2:x:1002:ivo://ska.org/gms#group2
+            text/tab-separated-values:
+              schema:
+                type: string
+                description: Tab-separated list of group names, gids and group URIs that match the search criteria
+                example: |
+                  group1	1001	ivo://cadc.nrc.ca/gms#group1
+                  group2	1002	ivo://ska.org/gms#group2
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
 
 components:
   securitySchemes:
