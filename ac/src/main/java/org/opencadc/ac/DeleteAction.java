@@ -66,52 +66,81 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
-import org.apache.log4j.Level;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.User;
+import ca.nrc.cadc.ac.UserNotFoundException;
+import ca.nrc.cadc.ac.server.PluginFactory;
+import ca.nrc.cadc.ac.server.UserPersistence;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
 
-/**
- * @author jburke
- */
-public class DeleteGroupActionTest {
-    private final static Logger log = Logger.getLogger(DeleteGroupActionTest.class);
+public class DeleteAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(DeleteAction.class);
 
-    @BeforeClass
-    public static void setUpClass() {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    public void doAction() throws GroupNotFoundException, UserNotFoundException {
+        if (requestInput.groupName == null || requestInput.groupName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Group name is required");
+        }
+
+        Group targetGroup = groupPersistence.getGroup(requestInput.groupName);
+        if (requestInput.memberName == null) {
+            groupPersistence.deleteGroup(requestInput.groupName);
+            if ((!targetGroup.getUserMembers().isEmpty()) || (!targetGroup.getGroupMembers().isEmpty())) {
+                List<String> deletedMembers = new ArrayList<>();
+                for (Group gr : targetGroup.getGroupMembers()) {
+                    deletedMembers.add(gr.getID().getName());
+                }
+                for (User usr : targetGroup.getUserMembers()) {
+                    deletedMembers.add(usr.getHttpPrincipal().getName());
+                }
+                log.debug("Deleted " + getLogGroupInfo(targetGroup.getID().getName(), deletedMembers, null));
+            }
+        } else {
+            if (requestInput.userIDType == null) {
+                removeGroupMember(targetGroup, requestInput.memberName);
+            } else {
+                removeUserMember(targetGroup, requestInput.memberName, requestInput.userIDType);
+            }
+        }
     }
 
-    @Test
-    public void testRun() {
-        try {
-            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
-
-            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            groupPersistence.deleteGroup("group");
-            EasyMock.expectLastCall().once();
-            EasyMock.replay(groupPersistence);
-
-            DeleteGroupAction action = new DeleteGroupAction("group");
-            action.groupPersistence = groupPersistence;
-
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-            action.doAction();
-        } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
+    private void removeGroupMember(Group group, String memberName) throws UserNotFoundException, GroupNotFoundException {
+        log.debug("group member count: " + group.getGroupMembers().size());
+        if (!group.getGroupMembers().removeIf(g -> g.getID().getName().equals(memberName))) {
+            throw new GroupNotFoundException("Group member not found: " + memberName);
         }
+        log.debug("removed group member: " + memberName);
+        groupPersistence.modifyGroup(group);
+        List<String> deletedMembers = new ArrayList<>();
+        deletedMembers.add(memberName);
+        log.debug("Modified " + getLogGroupInfo(group.getID().getName(), deletedMembers, null));
+    }
+
+    private void removeUserMember(Group group, String memberName, String userIDType) throws UserNotFoundException, GroupNotFoundException {
+        log.debug("user member count: " + group.getUserMembers().size());
+        Principal userPrincipal = AuthenticationUtil.createPrincipal(memberName, userIDType);
+
+        User user = getUserPersistence().getAugmentedUser(userPrincipal, false);
+        if (!group.getUserMembers().removeIf(u -> u.equals(user))) {
+            throw new UserNotFoundException("User member not found: " + memberName);
+        }
+        log.debug("removed user member: " + memberName);
+        groupPersistence.modifyGroup(group);
+        List<String> deletedMembers = new ArrayList<>();
+        deletedMembers.add(memberName);
+        log.debug("Modified " + getLogGroupInfo(group.getID().getName(), deletedMembers, null));
+    }
+
+    protected UserPersistence getUserPersistence() {
+        PluginFactory pluginFactory = new PluginFactory();
+        return pluginFactory.createUserPersistence();
     }
 
 }

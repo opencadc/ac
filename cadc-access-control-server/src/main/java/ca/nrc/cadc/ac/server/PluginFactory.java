@@ -87,7 +87,7 @@ public class PluginFactory {
 
     @Override
     public String toString() {
-        return getClass().getName() + "[" + config.entrySet().size() + "]";
+        return getClass().getName() + "[" + config.size() + "]";
     }
 
     private void init() {

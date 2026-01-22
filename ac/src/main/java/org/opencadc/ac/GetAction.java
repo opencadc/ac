@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,32 +66,54 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
+
+package org.opencadc.ac;
 
 import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import java.util.ArrayList;
+import ca.nrc.cadc.ac.GroupNotFoundException;
+import ca.nrc.cadc.ac.WriterException;
+import ca.nrc.cadc.ac.xml.GroupWriter;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collection;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
+import org.opencadc.auth.PosixGroup;
 
-public class DeleteGroupAction extends AbstractGroupAction {
-    private final String groupName;
+public class GetAction extends AbstractAction {
+    private static final Logger log = Logger.getLogger(GetAction.class);
 
-    DeleteGroupAction(String groupName) {
-        super();
-        this.groupName = groupName;
-    }
-
-    public void doAction() throws Exception {
-        Group deletedGroup = groupPersistence.getGroup(this.groupName);
-        groupPersistence.deleteGroup(this.groupName);
-        if ((deletedGroup.getUserMembers().size() > 0) || (deletedGroup.getGroupMembers().size() > 0)) {
-            this.logInfo.deletedMembers = new ArrayList<String>();
-            for (Group gr : deletedGroup.getGroupMembers()) {
-                this.logInfo.deletedMembers.add(gr.getID().getName());
-            }
-            for (User usr : deletedGroup.getUserMembers()) {
-                this.logInfo.deletedMembers.add(usr.getHttpPrincipal().getName());
-            }
+    public void doAction() throws GroupNotFoundException, IOException, WriterException {
+        if (requestInput.groupName != null) {
+            log.debug("Get group: " + requestInput.groupName);
+            Subject sub = AuthenticationUtil.getCurrentSubject();
+            log.debug("Subject: " + sub.getPrincipals().size());
+            Group group = groupPersistence.getGroup(requestInput.groupName, privilegedSubject == null);
+            syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
+            syncOutput.setCode(200);
+            GroupWriter groupWriter = new GroupWriter();
+            groupWriter.write(group, syncOutput.getOutputStream());
+        } else {
+            listGroups();
         }
     }
 
+    private void listGroups() throws IOException {
+        Collection<PosixGroup> groups = groupPersistence.getGroupNames();
+        log.debug("Found " + groups.size() + " group names");
+        syncOutput.setHeader("Content-Type", "text/plain");
+        syncOutput.setCode(200);
+        log.debug("Set content-type to text/plain");
+        PrintWriter writer = new PrintWriter(syncOutput.getOutputStream());
+        boolean start = true;
+        for (final PosixGroup group : groups) {
+            if (!start) {
+                writer.write("\r\n");
+            }
+            writer.write(group.getGroupURI().getName());
+            start = false;
+        }
+        writer.close();
+    }
 }

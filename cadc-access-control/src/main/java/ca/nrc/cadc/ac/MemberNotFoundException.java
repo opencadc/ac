@@ -69,12 +69,14 @@
 
 package ca.nrc.cadc.ac;
 
+import ca.nrc.cadc.net.ResourceNotFoundException;
+
 /**
  * Thrown when a member could not be found.
  */
-public class MemberNotFoundException extends Exception {
+public class MemberNotFoundException extends ResourceNotFoundException {
     public MemberNotFoundException() {
-        super();
+        super("Member not found.");
     }
 
     public MemberNotFoundException(String message) {

@@ -87,7 +87,6 @@ import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.ObjectUtil;
 import ca.nrc.cadc.util.PropertiesReader;
 import ca.nrc.cadc.util.StringUtil;
-
 import java.net.URISyntaxException;
 import java.security.AccessControlException;
 import java.security.PrivilegedActionException;

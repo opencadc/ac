@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,95 +66,120 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupNotFoundException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
+package org.opencadc.ac;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.auth.IdentityType;
+import ca.nrc.cadc.rest.SyncInput;
 import ca.nrc.cadc.util.Log4jInit;
-import java.net.URI;
+import ca.nrc.cadc.util.PropertiesReader;
+import java.security.PrivilegedExceptionAction;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-/**
- * @author jburke
- */
-public class RemoveGroupMemberActionTest {
-    private final static Logger log = Logger.getLogger(RemoveGroupMemberActionTest.class);
+public class AbstractActionTest {
+    private static final Logger log = Logger.getLogger(AbstractActionTest.class);
+
+    private AbstractAction abstractAction;
 
     @BeforeClass
-    public static void setUpClass() {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    public static void beforeClass() throws Exception {
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
     }
 
-    @Test
-    public void testExceptions() {
-        try {
-            Group group = new Group(new GroupURI("ivo://example.org/gms?group"));
-            Group member = new Group(new GroupURI("ivo://example.org/gms?member"));
+    @Before
+    public void setUp() {
 
-            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
-            EasyMock.replay(groupPersistence);
+        abstractAction = new AbstractAction() {
+            @Override
+            public void doAction() {
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member") {
-                @Override
-                public URI getServiceURI(URI standard) {
-                    return URI.create("ivo://example.org/gms");
-                }
-            };
-            action.groupPersistence = groupPersistence;
-
-            try {
-                action.doAction();
-                fail("unknown group member should throw GroupNotFoundException");
-            } catch (GroupNotFoundException ignore) {
             }
-        } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+        };
     }
 
     @Test
-    public void testRun() throws Exception {
-        try {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
-            Group member = new Group(new GroupURI(gmsServiceURI.toString() + "?member"));
-            Group group = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
-            group.getGroupMembers().add(member);
+    public void testSetPrivilegedSubject() throws Exception {
+        log.debug("testSetPrivilegedSubject: START");
+        Subject privilegedSubject = new Subject();
+        privilegedSubject.getPrincipals().add(new X500Principal("CN=Privileged"));
+        privilegedSubject.getPrincipals().add(new HttpPrincipal("privileged"));
 
-            Group modified = new Group(new GroupURI(gmsServiceURI.toString() + "?group"));
-            modified.getGroupMembers().add(member);
+        System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
+        Subject.doAs(privilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
+            abstractAction.setPrivilegedSubject(new GroupsConfig());
+            return null;
+        });
 
-            final GroupPersistence groupPersistence = EasyMock.createMock(GroupPersistence.class);
-            EasyMock.expect(groupPersistence.getGroup("group")).andReturn(group);
-            EasyMock.expect(groupPersistence.getGroup("member")).andReturn(member);
-            EasyMock.expect(groupPersistence.modifyGroup(group)).andReturn(group);
-            EasyMock.expectLastCall();
-            EasyMock.replay(groupPersistence);
+        assertNotNull(abstractAction.privilegedSubject);
+        assertEquals(privilegedSubject, abstractAction.privilegedSubject);
 
-            RemoveGroupMemberAction action = new RemoveGroupMemberAction("group", "member") {
-                @Override
-                public URI getServiceURI(URI standard) {
-                    return URI.create("ivo://example.org/gms");
+        // Test with non-privileged subject
+        abstractAction.privilegedSubject = null;
+        Subject nonPrivilegedSubject = new Subject();
+        Subject.doAs(nonPrivilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
+            abstractAction.setPrivilegedSubject(new GroupsConfig());
+            return null;
+        });
+        assertNull(abstractAction.privilegedSubject);
+
+    }
+
+    @Test
+    public void testSetRequestInputValidPath() {
+        checkPath("/groupName/userMembers/memberName", "groupName", "memberName", IdentityType.USERNAME.getValue());
+        checkPath("/groupName/userMembers/memberName?idType=HTTP", "groupName", "memberName", IdentityType.USERNAME.getValue());
+        checkPath("/groupName/userMembers/cn=memberName?idType=X500", "groupName", "cn=memberName", IdentityType.X500.getValue());
+        checkPath("/groupName/userMembers/123?idType=CADC", "groupName", "123", IdentityType.CADC.getValue());
+
+        checkPath("/groupName/groupMembers/memberGroup", "groupName", "memberGroup", null);
+    }
+
+    private void checkPath(String path, String expectedGroupName, String expectedMemberName, String expectedUserIDType) {
+        abstractAction.setSyncInput(new SyncInput() {
+            @Override
+            public String getPath() {
+                return path.split("\\?")[0];
+            }
+
+            @Override
+            public String getParameter(String name) {
+                if (path.contains("?")) {
+                    return path.split("\\?")[1].split("idType=")[1];
                 }
-            };
-            action.groupPersistence = groupPersistence;
+                return null;
+            }
+        });
+        abstractAction.setRequestInput();
+        AbstractAction.RequestInput requestInput = abstractAction.requestInput;
+        assertEquals(expectedGroupName, requestInput.groupName);
+        assertEquals(expectedMemberName, requestInput.memberName);
+        assertEquals(expectedUserIDType, requestInput.userIDType);
+    }
 
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-            action.doAction();
-        } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetRequestInputInvalidPath() {
+        abstractAction.setSyncInput(new SyncInput() {
+            @Override
+            public String getPath() {
+                return "/invalid/path/with/too/many/segments";
+            }
+
+            @Override
+            public String getParameter(String name) {
+                return null;
+            }
+        });
+
+        abstractAction.setRequestInput();
     }
 }

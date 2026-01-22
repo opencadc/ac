@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2025.                            (c) 2025.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,105 +66,66 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.GroupAlreadyExistsException;
-import ca.nrc.cadc.ac.server.GroupPersistence;
-import ca.nrc.cadc.util.Log4jInit;
+package org.opencadc.ac;
+
+import ca.nrc.cadc.auth.HttpPrincipal;
+import ca.nrc.cadc.util.MultiValuedProperties;
+import ca.nrc.cadc.util.PropertiesReader;
 import java.net.URI;
-import org.apache.log4j.Level;
+import java.util.ArrayList;
+import java.util.List;
+import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.opencadc.gms.GroupURI;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.fail;
 
-/**
- * @author jburke
- */
-public class AddGroupMemberActionTest {
-    private final static Logger log = Logger.getLogger(AddGroupMemberActionTest.class);
+public class GroupsConfig {
+    private static final Logger log = Logger.getLogger(GroupsConfig.class);
 
-    @BeforeClass
-    public static void setUpClass() {
-        Log4jInit.setLevel("ca.nrc.cadc.ac", Level.INFO);
+    // config keys
+    private static final String GROUPS_KEY = "org.opencadc.ac";
+    static final String RESOURCE_ID = GROUPS_KEY + ".resourceID";
+    private static final String PRIVILEGED_X500_PRINCIPALS = GROUPS_KEY + ".privilegedX500Principals";
+    private static final String PRIVILEGED_HTTP_PRINCIPALS = GROUPS_KEY + ".privilegedHttpPrincipals";
+
+    private final MultiValuedProperties configProperties;
+    private final List<Subject> privilegedSubjects = new ArrayList<>();
+    private final URI resourceID;
+
+    public GroupsConfig() {
+        PropertiesReader r = new PropertiesReader("ac.properties");
+        this.configProperties = r.getAllProperties();
+        List<String> resourceIdProp = configProperties.getProperty(RESOURCE_ID);
+        if (resourceIdProp.isEmpty()) {
+            throw new RuntimeException("Init exception: Missing required property: " + RESOURCE_ID);
+        }
+        this.resourceID = URI.create(resourceIdProp.get(0));
+        initPrivilegedUsers();
     }
 
-    @Test
-    public void testExceptions() {
-        try {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
+    private void initPrivilegedUsers() {
+        List<String> x500Users = configProperties.getProperty(PRIVILEGED_X500_PRINCIPALS);
+        List<String> httpUsers = configProperties.getProperty(PRIVILEGED_HTTP_PRINCIPALS);
 
-            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
-            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
-            group.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence = createMock(GroupPersistence.class);
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            //expect(groupPersistence.getGroup("member")).andReturn(member);
-            replay(groupPersistence);
-
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
-                @Override
-                public URI getServiceURI(URI standard) {
-                    return URI.create("ivo://example.org/gms");
-                }
-            };
-            action.groupPersistence = groupPersistence;
-
-            try {
-                action.doAction();
-                fail("duplicate group member should throw GroupAlreadyExistsException");
-            } catch (GroupAlreadyExistsException ignore) {
+        if (!x500Users.isEmpty() || !httpUsers.isEmpty()) {
+            if (x500Users.size() != httpUsers.size()) {
+                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
             }
-        } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
+
+            for (int i = 0; i < x500Users.size(); i++) {
+                Subject s = new Subject();
+                s.getPrincipals().add(new X500Principal(x500Users.get(i)));
+                s.getPrincipals().add(new HttpPrincipal(httpUsers.get(i)));
+                privilegedSubjects.add(s);
+            }
         }
     }
 
-    @Test
-    public void testRun() throws Exception {
-        try {
-            URI gmsServiceURI = URI.create("ivo://example.org/gms");
-
-            Group group = new Group(new GroupURI(gmsServiceURI + "?group"));
-            Group member = new Group(new GroupURI(gmsServiceURI + "?member"));
-            Group modified = new Group(new GroupURI(gmsServiceURI + "?group"));
-            modified.getGroupMembers().add(member);
-
-            final GroupPersistence groupPersistence =
-                    createMock(GroupPersistence.class);
-
-            expect(groupPersistence.getGroup("group")).andReturn(group);
-            expect(groupPersistence.getGroup("member")).andReturn(member);
-            expect(groupPersistence.modifyGroup(group)).andReturn(group);
-            EasyMock.expectLastCall();
-
-            replay(groupPersistence);
-
-            AddGroupMemberAction action = new AddGroupMemberAction("group", "member") {
-                @Override
-                public URI getServiceURI(URI standard) {
-                    return URI.create("ivo://example.org/gms");
-                }
-            };
-            action.groupPersistence = groupPersistence;
-
-            GroupLogInfo logInfo = createMock(GroupLogInfo.class);
-            action.setLogInfo(logInfo);
-
-            action.doAction();
-
-        } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            fail("unexpected error: " + t.getMessage());
-        }
+    public URI getResourceID() {
+        return resourceID;
     }
 
+    public List<Subject> getPrivilegedSubjects() {
+        return privilegedSubjects;
+    }
 }

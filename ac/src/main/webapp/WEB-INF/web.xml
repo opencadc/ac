@@ -81,12 +81,12 @@
     <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
     <init-param>
       <param-name>get</param-name>
-      <param-value>ca.nrc.cadc.ac.server.GetGroupMapAction</param-value>
+      <param-value>org.opencadc.ac.GetGroupMapAction</param-value>
     </init-param>
-    
+
     <load-on-startup>3</load-on-startup>
   </servlet>
-  
+
   <servlet>
     <servlet-name>UserMapServlet</servlet-name>
     <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
@@ -94,7 +94,7 @@
       <param-name>get</param-name>
       <param-value>ca.nrc.cadc.ac.server.GetUserMapAction</param-value>
     </init-param>
-    
+
     <load-on-startup>3</load-on-startup>
   </servlet>
 
@@ -103,14 +103,26 @@
   -->
   <servlet>
     <servlet-name>GroupServlet</servlet-name>
-    <servlet-class>ca.nrc.cadc.ac.server.web.GroupServlet</servlet-class>
+    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
     <init-param>
-      <param-name>ca.nrc.cadc.ac.server.web.GroupServlet.PrivilegedX500Principals</param-name>
-      <param-value>cn=servops_4a2,ou=cadc,o=hia,c=ca cn=canfarops_586,ou=cadc,o=hia,c=ca CN=cadcops_376,OU=cadc,O=hia,C=ca</param-value>
+      <param-name>init</param-name>
+      <param-value>org.opencadc.ac.InitGroupAction</param-value>
     </init-param>
     <init-param>
-      <param-name>ca.nrc.cadc.ac.server.web.GroupServlet.PrivilegedHttpPrincipals</param-name>
-      <param-value>servops canfarops cadcops</param-value>
+      <param-name>get</param-name>
+      <param-value>org.opencadc.ac.GetAction</param-value>
+    </init-param>
+    <init-param>
+      <param-name>delete</param-name>
+      <param-value>org.opencadc.ac.DeleteAction</param-value>
+    </init-param>
+    <init-param>
+      <param-name>post</param-name>
+      <param-value>org.opencadc.ac.ModifyAction</param-value>
+    </init-param>
+    <init-param>
+      <param-name>put</param-name>
+      <param-value>org.opencadc.ac.CreateAction</param-value>
     </init-param>
     <load-on-startup>2</load-on-startup>
   </servlet>
@@ -398,6 +410,7 @@
             <param-name>logLevelPackages</param-name>
             <param-value>
                 ca.nrc.cadc.ac
+                org.opencadc.ac
                 ca.nrc.cadc.auth
                 ca.nrc.cadc.rest
                 ca.nrc.cadc.uws

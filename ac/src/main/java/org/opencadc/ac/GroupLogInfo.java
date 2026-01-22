@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2014.                            (c) 2014.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,58 +66,18 @@
  *
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web.groups;
 
-import ca.nrc.cadc.ac.Group;
-import ca.nrc.cadc.ac.User;
-import ca.nrc.cadc.ac.xml.GroupReader;
-import ca.nrc.cadc.ac.xml.GroupWriter;
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
+package org.opencadc.ac;
+
 import java.util.List;
-import org.opencadc.gms.GroupURI;
 
-public class CreateGroupAction extends AbstractGroupAction {
-    private final InputStream inputStream;
-
-    CreateGroupAction(InputStream inputStream) {
-        super();
-        this.inputStream = inputStream;
-    }
-
-    public void doAction() throws Exception {
-        GroupReader groupReader = new GroupReader();
-        Group group = groupReader.read(this.inputStream);
-
-        // restriction: prevent hierarchical group names now that GroupURI allows it
-        GroupURI gid = group.getID();
-        String name = gid.getName();
-        String[] ss = name.split("/");
-        if (ss.length > 1) {
-            throw new IllegalArgumentException("invalid group name (/ not permitted): " + name);
-        }
-        Group returnGroup = groupPersistence.addGroup(group);
-        syncOut.setHeader("Content-Type", "application/xml");
-        GroupWriter groupWriter = new GroupWriter();
-        groupWriter.write(returnGroup, syncOut.getWriter());
-
-        List<String> addedMembers = null;
-        if ((group.getUserMembers().size() > 0) ||
-                (group.getGroupMembers().size() > 0)) {
-            addedMembers = new ArrayList<String>();
-            for (Group gr : group.getGroupMembers()) {
-                addedMembers.add(gr.getID().getName());
-            }
-            for (User usr : group.getUserMembers()) {
-                Principal p = usr.getHttpPrincipal();
-                if (p == null) {
-                    p = usr.getX500Principal();
-                }
-                addedMembers.add(p.getName());
-            }
-        }
-        logGroupInfo(group.getID().getName(), null, addedMembers);
-    }
+/**
+ * Extension of regular servlet log info that tracks
+ * group membership changes.
+ */
+public class GroupLogInfo {
+    public String groupID;
+    public List<String> addedMembers;
+    public List<String> deletedMembers;
 
 }
