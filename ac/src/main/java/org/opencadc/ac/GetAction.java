@@ -87,8 +87,9 @@ public class GetAction extends AbstractAction {
     public void doAction() throws GroupNotFoundException, IOException, WriterException {
         if (requestInput.groupName != null) {
             log.debug("Get group: " + requestInput.groupName);
-            Subject sub = AuthenticationUtil.getCurrentSubject();
-            log.debug("Subject: " + sub.getPrincipals().size());
+            if (readSubject != null) {
+                logInfo.setGrant("read: readUser");
+            }
             Group group = groupPersistence.getGroup(requestInput.groupName, readSubject == null);
             syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
             syncOutput.setCode(200);

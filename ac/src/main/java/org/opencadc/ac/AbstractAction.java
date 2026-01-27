@@ -124,7 +124,6 @@ public abstract class AbstractAction extends RestAction {
         }
 
         Subject caller = AuthenticationUtil.getCurrentSubject();
-        AuthenticationUtil.augmentSubject(caller);
         for (Principal principal : caller.getPrincipals()) {
             if (principal instanceof X500Principal) {
                 for (Subject s : config.getReadUsers()) {
