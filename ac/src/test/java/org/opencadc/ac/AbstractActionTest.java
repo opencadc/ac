@@ -112,25 +112,24 @@ public class AbstractActionTest {
         log.debug("testSetPrivilegedSubject: START");
         Subject privilegedSubject = new Subject();
         privilegedSubject.getPrincipals().add(new X500Principal("CN=Privileged"));
-        privilegedSubject.getPrincipals().add(new HttpPrincipal("privileged"));
 
         System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
         Subject.doAs(privilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
-            abstractAction.setPrivilegedSubject(new GroupsConfig());
+            abstractAction.setReadSubject(new GroupsConfig());
             return null;
         });
 
-        assertNotNull(abstractAction.privilegedSubject);
-        assertEquals(privilegedSubject, abstractAction.privilegedSubject);
+        assertNotNull(abstractAction.readSubject);
+        assertEquals(privilegedSubject, abstractAction.readSubject);
 
         // Test with non-privileged subject
-        abstractAction.privilegedSubject = null;
+        abstractAction.readSubject = null;
         Subject nonPrivilegedSubject = new Subject();
         Subject.doAs(nonPrivilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
-            abstractAction.setPrivilegedSubject(new GroupsConfig());
+            abstractAction.setReadSubject(new GroupsConfig());
             return null;
         });
-        assertNull(abstractAction.privilegedSubject);
+        assertNull(abstractAction.readSubject);
 
     }
 

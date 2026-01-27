@@ -89,7 +89,7 @@ public class GetAction extends AbstractAction {
             log.debug("Get group: " + requestInput.groupName);
             Subject sub = AuthenticationUtil.getCurrentSubject();
             log.debug("Subject: " + sub.getPrincipals().size());
-            Group group = groupPersistence.getGroup(requestInput.groupName, privilegedSubject == null);
+            Group group = groupPersistence.getGroup(requestInput.groupName, readSubject == null);
             syncOutput.setHeader("Content-Type", "application/xml; charset=utf-8");
             syncOutput.setCode(200);
             GroupWriter groupWriter = new GroupWriter();

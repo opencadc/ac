@@ -73,7 +73,6 @@ import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
 import ca.nrc.cadc.ac.server.web.WebUtil;
 import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityType;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
@@ -89,7 +88,7 @@ import org.apache.log4j.Logger;
 public abstract class AbstractAction extends RestAction {
     private static final Logger log = Logger.getLogger(AbstractAction.class);
 
-    protected Subject privilegedSubject;
+    protected Subject readSubject; // can read any group
     protected GroupPersistence groupPersistence;
     protected final RequestInput requestInput = new RequestInput();
     protected URI resourceID;
@@ -102,7 +101,7 @@ public abstract class AbstractAction extends RestAction {
         super.initAction();
         GroupsConfig config = new GroupsConfig();
         resourceID = config.getResourceID();
-        setPrivilegedSubject(config);
+        setReadSubject(config);
         setRequestInput();
         PluginFactory pluginFactory = new PluginFactory();
         groupPersistence = pluginFactory.createGroupPersistence();
@@ -119,31 +118,20 @@ public abstract class AbstractAction extends RestAction {
                 + "], added members [" + (addedMembers != null ? String.join(", ", addedMembers) : "") + "]");
     }
 
-    protected void setPrivilegedSubject(GroupsConfig config) {
-        if (config.getPrivilegedSubjects().isEmpty()) {
+    protected void setReadSubject(GroupsConfig config) {
+        if (config.getReadUsers().isEmpty()) {
             return;
         }
 
         Subject caller = AuthenticationUtil.getCurrentSubject();
+        AuthenticationUtil.augmentSubject(caller);
         for (Principal principal : caller.getPrincipals()) {
             if (principal instanceof X500Principal) {
-                for (Subject s : config.getPrivilegedSubjects()) {
+                for (Subject s : config.getReadUsers()) {
                     Set<X500Principal> x500Principals = s.getPrincipals(X500Principal.class);
                     for (X500Principal p2 : x500Principals) {
                         if (p2.getName().equalsIgnoreCase(principal.getName())) {
-                            privilegedSubject = s;
-                            return;
-                        }
-                    }
-                }
-            }
-
-            if (principal instanceof HttpPrincipal) {
-                for (Subject s : config.getPrivilegedSubjects()) {
-                    Set<HttpPrincipal> httpPrincipals = s.getPrincipals(HttpPrincipal.class);
-                    for (HttpPrincipal p2 : httpPrincipals) {
-                        if (p2.getName().equalsIgnoreCase(principal.getName())) {
-                            privilegedSubject = s;
+                            readSubject = s;
                             return;
                         }
                     }

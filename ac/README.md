@@ -39,19 +39,9 @@ org.opencadc.ac.resourceID=ivo://{authority}/{name}
 ```
 The following keys are optional:
 ```
-org.opencadc.ac.privilegedX500Principals = cn={user},ou={org},o={org},c={country}
+org.opencadc.ac.readUser = cn={user},ou={org},o={org},c={country}
 ```
-Multiple entries making a list of X.509 DNs that are allowed to perform privileged operations such
-as creating/deleting users and groups.
-
-```
-org.opencadc.ac.privilegedHTTPPrincipals = user
-```
-Multiple entries making a list of HTTP Principal names that are allowed to perform privileged operations such
-as creating/deleting users and groups.
-
-The two lists represent identities of privileged users; they have to match in size and order so that the first
-X.509 DN corresponds to the first HTTP Principal, the second to the second, and so on.
+X.509 DNs of privileged users with read access to any group.
 
 ## TODO
 ### technical debt

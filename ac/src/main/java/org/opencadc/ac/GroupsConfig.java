@@ -69,7 +69,6 @@
 
 package org.opencadc.ac;
 
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import java.net.URI;
@@ -85,11 +84,10 @@ public class GroupsConfig {
     // config keys
     private static final String GROUPS_KEY = "org.opencadc.ac";
     static final String RESOURCE_ID = GROUPS_KEY + ".resourceID";
-    private static final String PRIVILEGED_X500_PRINCIPALS = GROUPS_KEY + ".privilegedX500Principals";
-    private static final String PRIVILEGED_HTTP_PRINCIPALS = GROUPS_KEY + ".privilegedHttpPrincipals";
+    private static final String READ_USERS = GROUPS_KEY + ".readUser";
 
     private final MultiValuedProperties configProperties;
-    private final List<Subject> privilegedSubjects = new ArrayList<>();
+    private final List<Subject> readUsers = new ArrayList<>();
     private final URI resourceID;
 
     public GroupsConfig() {
@@ -100,23 +98,17 @@ public class GroupsConfig {
             throw new RuntimeException("Init exception: Missing required property: " + RESOURCE_ID);
         }
         this.resourceID = URI.create(resourceIdProp.get(0));
-        initPrivilegedUsers();
+        initReadUsers();
     }
 
-    private void initPrivilegedUsers() {
-        List<String> x500Users = configProperties.getProperty(PRIVILEGED_X500_PRINCIPALS);
-        List<String> httpUsers = configProperties.getProperty(PRIVILEGED_HTTP_PRINCIPALS);
+    private void initReadUsers() {
+        List<String> x500Users = configProperties.getProperty(READ_USERS);
 
-        if (!x500Users.isEmpty() || !httpUsers.isEmpty()) {
-            if (x500Users.size() != httpUsers.size()) {
-                throw new RuntimeException("Init exception: Lists of augment subject principals not equivalent in length");
-            }
-
-            for (int i = 0; i < x500Users.size(); i++) {
+        if (!x500Users.isEmpty()) {
+            for (String x500User : x500Users) {
                 Subject s = new Subject();
-                s.getPrincipals().add(new X500Principal(x500Users.get(i)));
-                s.getPrincipals().add(new HttpPrincipal(httpUsers.get(i)));
-                privilegedSubjects.add(s);
+                s.getPrincipals().add(new X500Principal(x500User));
+                readUsers.add(s);
             }
         }
     }
@@ -125,7 +117,7 @@ public class GroupsConfig {
         return resourceID;
     }
 
-    public List<Subject> getPrivilegedSubjects() {
-        return privilegedSubjects;
+    public List<Subject> getReadUsers() {
+        return readUsers;
     }
 }
