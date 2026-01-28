@@ -120,6 +120,7 @@ public class ConfigUsers {
     private static final String PRIV_CERT_FILE = "ac-priv-user.pem";
 
     public static final String AC_SERVICE_ID = "ivo://opencadc.org/gms"; // TODO make configurable
+    //public static final String AC_SERVICE_ID = "ivo://cadc.nrc.ca/gms"; // TODO make configurable
 
     PasswordAuthentication passwordAuthUser;
     private static ConfigUsers instance;
