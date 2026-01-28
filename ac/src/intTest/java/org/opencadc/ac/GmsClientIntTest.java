@@ -1108,11 +1108,9 @@ public class GmsClientIntTest
                 // search for the group created above
                 Group testGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
                 if (testGroup == null) {
-                    // admin group
-                    String agID = getGroupID("testSearch-admin-group", id);
-                    Group adminGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
+                    Group adminGroup = getExistingGroupWithDelay(adminGroupID, ConfigUsers.getInstance().getOwnerSubject());
                     if (adminGroup == null) {
-                        GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + agID);
+                        GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + adminGroupID);
                         adminGroup = new Group(agURI);
                         adminGroup.getUserMembers().add(ownerUser);
                         adminGroup.getUserMembers().add(memberUser);
@@ -1182,20 +1180,22 @@ public class GmsClientIntTest
                 // test groups                                                       
                 String id = Long.toString(setupVersionNumber + i);                   
                 final String testGroupID = getGroupID("testSearch-test-group", id);  
-
+                final String adminGroupID = getGroupID("testSearch-admin-group", id);
+                
                 // search for the group created above                                          
                 Group testGroup = getExistingGroupWithDelay(testGroupID, ConfigUsers.getInstance().getOwnerSubject());
-                if (testGroup == null) {                                              
-                    // admin group                                                    
-                    String agID = getGroupID("testSearch-admin-group", id);           
-                    GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + agID);
-                    Group adminGroup = new Group(agURI);                         
-                    adminGroup.getUserMembers().add(ownerUser);
-                    adminGroup.getUserMembers().add(memberUser);
-                    adminGroup = createGroupAs(adminGroup, ConfigUsers.getInstance().getOwnerSubject());
-                    Assert.assertNotNull(adminGroup);                           
-                    hasAdminGroup[i-1] = true;                                  
-                    log.debug("testSearchSetup: created " + adminGroup.getID());            
+                if (testGroup == null) {
+                    Group adminGroup = getExistingGroupWithDelay(adminGroupID, ConfigUsers.getInstance().getOwnerSubject());
+                    if (adminGroup == null) {
+                        GroupURI agURI = new GroupURI(serviceURI.toString() + "?" + adminGroupID);
+                        adminGroup = new Group(agURI);
+                        adminGroup.getUserMembers().add(ownerUser);
+                        adminGroup.getUserMembers().add(memberUser);
+                        adminGroup = createGroupAs(adminGroup, ConfigUsers.getInstance().getOwnerSubject());
+                        Assert.assertNotNull(adminGroup);
+                        hasAdminGroup[i-1] = true;
+                        log.debug("testSearchSetup: created " + adminGroup.getID());
+                    }
                                                                                             
                     // test group                                                           
                     GroupURI gURI = new GroupURI(serviceURI.toString() + "?" + testGroupID);
