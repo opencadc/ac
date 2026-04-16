@@ -77,17 +77,6 @@
   </welcome-file-list>
 
   <servlet>
-    <servlet-name>GroupMapServlet</servlet-name>
-    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
-    <init-param>
-      <param-name>get</param-name>
-      <param-value>org.opencadc.ac.GetGroupMapAction</param-value>
-    </init-param>
-
-    <load-on-startup>3</load-on-startup>
-  </servlet>
-
-  <servlet>
     <servlet-name>UserMapServlet</servlet-name>
     <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
     <init-param>
@@ -101,32 +90,6 @@
   <!--
     The Servlets to handle Requests.
   -->
-  <servlet>
-    <servlet-name>GroupServlet</servlet-name>
-    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
-    <init-param>
-      <param-name>init</param-name>
-      <param-value>org.opencadc.ac.InitGroupAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>get</param-name>
-      <param-value>org.opencadc.ac.GetAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>delete</param-name>
-      <param-value>org.opencadc.ac.DeleteAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>post</param-name>
-      <param-value>org.opencadc.ac.ModifyAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>put</param-name>
-      <param-value>org.opencadc.ac.CreateAction</param-value>
-    </init-param>
-    <load-on-startup>2</load-on-startup>
-  </servlet>
-
   <servlet>
     <servlet-name>ResetPasswordServlet</servlet-name>
     <servlet-class>ca.nrc.cadc.ac.server.web.ResetPasswordServlet</servlet-class>
@@ -410,7 +373,6 @@
             <param-name>logLevelPackages</param-name>
             <param-value>
                 ca.nrc.cadc.ac
-                org.opencadc.ac
                 ca.nrc.cadc.auth
                 ca.nrc.cadc.rest
                 ca.nrc.cadc.uws
@@ -425,23 +387,8 @@
     </servlet>
 
     <servlet-mapping>
-        <servlet-name>GroupMapServlet</servlet-name>
-        <url-pattern>/gidmap/*</url-pattern>
-    </servlet-mapping>
-
-    <servlet-mapping>
         <servlet-name>UserMapServlet</servlet-name>
         <url-pattern>/uidmap/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>GroupServlet</servlet-name>
-    <url-pattern>/groups/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>GroupServlet</servlet-name>
-    <url-pattern>/auth/groups/*</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
