@@ -95,7 +95,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opencadc.gms.GroupURI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -115,7 +114,7 @@ public class GmsClientIntTest
     private User unknownUser;
     private Group unknownGroup;
 
-    private URI serviceURI = URI.create(ConfigUsers.AC_SERVICE_ID);
+    private URI serviceURI = URI.create(ConfigUsers.GMS_SERVICE_ID);
     private GMSClient gmsClient;
 
     static
@@ -136,7 +135,7 @@ public class GmsClientIntTest
 
             unknownUser = new User();
             unknownUser.getIdentities().add(new X500Principal(unknownDN));
-            unknownGroup = new Group(new GroupURI(ConfigUsers.AC_SERVICE_ID + "?foo"));
+            unknownGroup = new Group(new GroupURI(ConfigUsers.GMS_SERVICE_ID + "?foo"));
 
             log.info("serviceURI: " + serviceURI);
             this.gmsClient = new GMSClient(serviceURI);

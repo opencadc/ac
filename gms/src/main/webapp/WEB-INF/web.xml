@@ -116,6 +116,31 @@
   </servlet>
 
 
+  <!-- sync ac search servlet-->
+  <servlet>
+    <servlet-name>ACSearchServlet</servlet-name>
+    <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
+    <init-param>
+      <param-name>get</param-name>
+      <param-value>ca.nrc.cadc.uws.web.SyncGetAction</param-value>
+    </init-param>
+    <init-param>
+      <param-name>post</param-name>
+      <param-value>ca.nrc.cadc.uws.web.SyncPostAction</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.uws.web.SyncPostAction.execOnPOST</param-name>
+      <param-value>true</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
+      <param-value>ca.nrc.cadc.ac.server.web.ACSearchJobManager</param-value>
+    </init-param>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+
+
+
   <!--  VOSI Endpoints -->
   <servlet>
     <servlet-name>CapabilitiesServlet</servlet-name>
@@ -193,6 +218,16 @@
   <servlet-mapping>
     <servlet-name>GroupServlet</servlet-name>
     <url-pattern>/auth/groups/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>ACSearchServlet</servlet-name>
+    <url-pattern>/search/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>ACSearchServlet</servlet-name>
+    <url-pattern>/auth/search/*</url-pattern>
   </servlet-mapping>
 
   <!--

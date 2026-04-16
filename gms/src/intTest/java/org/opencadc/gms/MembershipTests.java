@@ -94,9 +94,9 @@ public class MembershipTests {
     URL searchURL;
     
     public MembershipTests() throws Exception {
-        Log4jInit.setLevel("ca.nrc.cadc.gms", Level.DEBUG);
+        Log4jInit.setLevel("org.opencadc.gms", Level.DEBUG);
         RegistryClient rc = new RegistryClient();
-        searchURL = rc.getServiceURL(URI.create(ConfigUsers.AC_SERVICE_ID), Standards.GMS_SEARCH_01, AuthMethod.CERT);
+        searchURL = rc.getServiceURL(URI.create(ConfigUsers.GMS_SERVICE_ID), Standards.GMS_SEARCH_01, AuthMethod.CERT);
     }
     
     @Test
@@ -146,8 +146,7 @@ public class MembershipTests {
     }
     
     @Test
-    public void testGetMemberships() {
-        try {
+    public void testGetMemberships() throws Exception{
             Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(), new PrivilegedExceptionAction<Object>() {
                 @Override
                 public Object run() throws Exception {
@@ -172,10 +171,6 @@ public class MembershipTests {
                     return null;
                 }
             });
-        } catch (Throwable t) {
-            log.info("unexpected: " + t.getMessage(), t);
-            Assert.fail("unexpected: " + t.getMessage());
-        }
     }
 
 }

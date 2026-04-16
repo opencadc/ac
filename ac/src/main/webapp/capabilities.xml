@@ -67,29 +67,7 @@
       <securityMethod standardID="vos://cadc.nrc.ca~vospace/CADC/std/Auth#token-1.0"/>
     </interface>
   </capability>
-  
-  <!-- for old CADC clients using the GMS API -->
-  <capability standardID="ivo://ivoa.net/std/GMS#search-0.1">
-    <interface xsi:type="vs:ParamHTTP" role="std" version="0.1">
-      <accessURL use="base">https://replace.me.com/ac/search</accessURL>
-      <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
-      <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
-      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
-      <!-- deprecated -->
-      <securityMethod standardID="vos://cadc.nrc.ca~vospace/CADC/std/Auth#token-1.0"/>
-    </interface>
-  </capability>
-  
-  <!-- The capability matching the GMS 1.0 specification -->
-  <capability standardID="ivo://ivoa.net/std/GMS#search-1.0">
-    <interface xsi:type="vs:ParamHTTP" role="std" version="1.0">
-      <accessURL use="base">https://replace.me.com/ac/search</accessURL>
-      <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
-      <securityMethod standardID="ivo://ivoa.net/sso#tls-with-certificate"/>
-      <securityMethod standardID="ivo://ivoa.net/sso#token"/>
-    </interface>
-  </capability>
-  
+
   <capability standardID="ivo://ivoa.net/sso#OAuth">
     <interface xsi:type="vs:ParamHTTP" role="std" version="0.1">
       <accessURL use="base">https://replace.me.com/ac/authorize</accessURL>

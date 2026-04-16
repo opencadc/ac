@@ -83,7 +83,6 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import org.opencadc.gms.GroupURI;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -108,7 +107,7 @@ public class GroupNamePrefixIntTest
 
         try
         {
-            g = new Group(new GroupURI(ConfigUsers.AC_SERVICE_ID + "?ALLOW-TEST-" + UUID.randomUUID().toString()));
+            g = new Group(new GroupURI(ConfigUsers.GMS_SERVICE_ID + "?ALLOW-TEST-" + UUID.randomUUID().toString()));
 
             Group g2 = createGroupAs(g, ConfigUsers.getInstance().getOwnerSubject());
             assertNotNull(g2);
@@ -143,7 +142,7 @@ public class GroupNamePrefixIntTest
         {
             try
             {
-                g = new Group(new GroupURI(ConfigUsers.AC_SERVICE_ID + "?ALLOW-TEST-"
+                g = new Group(new GroupURI(ConfigUsers.GMS_SERVICE_ID + "?ALLOW-TEST-"
                                            + UUID.randomUUID().toString()));
 
                 createGroupAs(g, ConfigUsers.getInstance().getMemberSubject());
@@ -265,6 +264,6 @@ public class GroupNamePrefixIntTest
 
     private GMSClient getGMSClient()
     {
-        return new GMSClient(URI.create(ConfigUsers.AC_SERVICE_ID));
+        return new GMSClient(URI.create(ConfigUsers.GMS_SERVICE_ID));
     }
 }

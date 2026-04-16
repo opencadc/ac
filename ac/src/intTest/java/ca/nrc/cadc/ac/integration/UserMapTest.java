@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2025.                            (c) 2025.
+*  (c) 2026.                            (c) 2026.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,7 +65,7 @@
 ************************************************************************
 */
 
-package org.opencadc.gms;
+package ca.nrc.cadc.ac.integration;
 
 import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.reg.client.RegistryClient;
@@ -85,8 +85,8 @@ import org.opencadc.auth.PosixMapperClient;
  *
  * @author pdowler
  */
-public class UserGroupMapTest {
-    private static final Logger log = Logger.getLogger(UserGroupMapTest.class);
+public class UserMapTest {
+    private static final Logger log = Logger.getLogger(UserMapTest.class);
 
     static {
         Log4jInit.setLevel("org.opencadc.gms", Level.INFO);
@@ -97,10 +97,10 @@ public class UserGroupMapTest {
         RegistryClient reg = new RegistryClient();
         URI srv = URI.create(ConfigUsers.AC_SERVICE_ID);
         final PosixMapperClient pmc = new PosixMapperClient(srv);
-        
+
         Iterator<PosixPrincipal> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
             (PrivilegedExceptionAction<Iterator<PosixPrincipal>>) () -> pmc.getUserMap());
-        
+
         Assert.assertNotNull(iter);
         Assert.assertTrue(iter.hasNext());
         log.info("obtained uidmap:");
@@ -108,24 +108,7 @@ public class UserGroupMapTest {
             PosixPrincipal pp = iter.next();
             log.info(pp.username + " aka "  + pp.getUidNumber() + ":" + pp.defaultGroup);
         }
-        
-    }
-    
-    @Test
-    public void testGroupMap() throws Exception {
-        RegistryClient reg = new RegistryClient();
-        URI srv = URI.create("ivo://cadc.nrc.ca/gms");
-        PosixMapperClient pmc = new PosixMapperClient(srv);
 
-        Iterator<PosixGroup> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
-            (PrivilegedExceptionAction<Iterator<PosixGroup>>) () -> pmc.getGroupMap());
-
-        Assert.assertNotNull(iter);
-        Assert.assertTrue(iter.hasNext());
-        log.info("obtained uidmap:");
-        while (iter.hasNext()) {
-            PosixGroup pg = iter.next();
-            log.info(pg.getGroupURI() + " aka " + pg.getGID());
-        }
     }
+
 }
