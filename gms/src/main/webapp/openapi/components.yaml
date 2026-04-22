@@ -1,0 +1,134 @@
+# Shared components for the GMS OpenAPI description (referenced from path fragments and the root document).
+components:
+  parameters:
+    groupID:
+      name: groupID
+      in: path
+      required: true
+      description: The name of the group
+      schema:
+        type: string
+
+    userID:
+      name: userID
+      in: path
+      required: true
+      description: The unique user identifier (CANFAR HTTP username)
+      schema:
+        type: string
+
+    group:
+      name: group
+      in: query
+      description: |
+        Identifier of a group (IVOID).
+
+        This parameter MAY be repeated to test membership in multiple groups.
+
+        If omitted, all group memberships SHALL be returned.
+      required: false
+      example:
+        - ivo://example.org/gms?engineering
+      schema:
+        type: array
+        items:
+          type: string
+          example: ivo://example.org/gms?engineering
+      style: form
+
+  responses:
+    BadRequest:
+      description: The URL or input stream data are malformed
+
+    Unauthorized:
+      description: Credentials were not provided
+
+    Forbidden:
+      description: Not allowed to perform the requested action
+
+    InternalServerError:
+      description: The server encountered an unrecoverable error
+
+    ServiceUnavailable:
+      description: The server is too busy to perform the operation
+
+  schemas:
+    Group:
+      type: object
+      description: Representation of a group
+      required:
+        - uri
+      properties:
+        uri:
+          type: string
+          description: Group URI (e.g., ivo://cadc.nrc.ca/gms#GroupName)
+          example: "ivo://cadc.nrc.ca/gms#Example-group"
+        owner:
+          $ref: '#/components/schemas/User'
+        description:
+          type: string
+          description: Group description
+          example: "Group used for documentation example"
+        lastModified:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+          example: "2015-07-24T17:38:18.000"
+        userMembers:
+          type: array
+          description: List of users who are members of this group
+          items:
+            $ref: '#/components/schemas/User'
+          example:
+            - "member1"
+            - "member2"
+        userAdmins:
+          type: array
+          description: List of users who are administrators of this group
+          items:
+            $ref: '#/components/schemas/User'
+          example:
+            - "admin1"
+        groupMembers:
+          type: array
+          description: List of groups that are members of this group
+          items:
+            type: object
+            properties:
+              uri:
+                type: string
+                description: URI of the member group
+                example: "ivo://cadc.nrc.ca/gms#MemberGroup"
+          example:
+            - uri: "ivo://cadc.nrc.ca/gms#MemberGroup"
+        groupAdmins:
+          type: array
+          description: List of groups that are administrators of this group
+          items:
+            type: object
+            properties:
+              uri:
+                type: string
+                description: URI of the admin group
+                example: "ivo://cadc.nrc.ca/gms#AdminGroup"
+          example:
+            - uri: "ivo://cadc.nrc.ca/gms#AdminGroup"
+      example:
+        uri: "ivo://cadc.nrc.ca/gms#Example-group"
+        owner: "exampleuser"
+        description: "Group used for documentation example"
+        lastModified: "2015-07-24T17:38:18.000"
+        userMembers:
+          - "member1"
+          - "member2"
+        userAdmins:
+          - "admin1"
+        groupMembers:
+          - uri: "ivo://cadc.nrc.ca/gms#MemberGroup"
+        groupAdmins:
+          - uri: "ivo://cadc.nrc.ca/gms#AdminGroup"
+
+    User:
+      type: string
+      description: User identifier (CANFAR HTTP username)
+      example: "exampleuser"

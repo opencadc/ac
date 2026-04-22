@@ -1,0 +1,90 @@
+get:
+  summary: Get group
+  description: Get the group with the specified groupID. Only users associated with the group (owner, admin, member)
+    are allowed to retrieve the group details.
+  operationId: getGroup
+  tags:
+    - Group Management
+  parameters:
+    - $ref: ../components.yaml#/components/parameters/groupID
+  responses:
+    '200':
+      description: Successful response with group details
+      content:
+        application/xml:
+          schema:
+            $ref: ../components.yaml#/components/schemas/Group
+        application/json:
+          schema:
+            $ref: ../components.yaml#/components/schemas/Group
+    '400':
+      $ref: ../components.yaml#/components/responses/BadRequest
+    '401':
+      $ref: ../components.yaml#/components/responses/Unauthorized
+    '403':
+      $ref: ../components.yaml#/components/responses/Forbidden
+    '404':
+      description: The group could not be found
+    '500':
+      $ref: ../components.yaml#/components/responses/InternalServerError
+    '503':
+      $ref: ../components.yaml#/components/responses/ServiceUnavailable
+
+post:
+  summary: Modify group
+  description: Modify the group with the specified groupID according to the group XML or JSON document in the HTTP POST
+    Only the owner or administrators of the group are allowed to modify the group.
+  operationId: modifyGroup
+  tags:
+    - Group Management
+  parameters:
+    - $ref: ../components.yaml#/components/parameters/groupID
+  requestBody:
+    description: Updated group data in XML or JSON format
+    required: true
+    content:
+      application/xml:
+        schema:
+          $ref: ../components.yaml#/components/schemas/Group
+      application/json:
+        schema:
+          $ref: ../components.yaml#/components/schemas/Group
+  responses:
+    '200':
+      description: Group modified successfully
+    '400':
+      $ref: ../components.yaml#/components/responses/BadRequest
+    '401':
+      $ref: ../components.yaml#/components/responses/Unauthorized
+    '403':
+      $ref: ../components.yaml#/components/responses/Forbidden
+    '404':
+      description: The group could not be found or a member is not recognized
+    '500':
+      $ref: ../components.yaml#/components/responses/InternalServerError
+    '503':
+      $ref: ../components.yaml#/components/responses/ServiceUnavailable
+
+delete:
+  summary: Delete group
+  description: Delete the group with the specified groupID. Only the owner of the group is allowed to delete the group.
+  operationId: deleteGroup
+  tags:
+    - Group Management
+  parameters:
+    - $ref: ../components.yaml#/components/parameters/groupID
+  responses:
+    '200':
+      description: Group deleted successfully
+    '400':
+      $ref: ../components.yaml#/components/responses/BadRequest
+    '401':
+      $ref: ../components.yaml#/components/responses/Unauthorized
+    '403':
+      $ref: ../components.yaml#/components/responses/Forbidden
+    '404':
+      description: The group to delete could not be found
+    '500':
+      $ref: ../components.yaml#/components/responses/InternalServerError
+    '503':
+      $ref: ../components.yaml#/components/responses/ServiceUnavailable

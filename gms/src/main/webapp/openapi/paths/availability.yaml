@@ -1,0 +1,31 @@
+get:
+  operationId: read-availability
+  tags:
+    - Service availability
+  summary: Returns the availability status of the service
+  description: Get the set of descriptions for this service.
+  responses:
+    '200':
+      description: Service is available
+      content:
+        application/xml:
+          schema:
+            type: object
+            xml:
+              name: availability
+            properties:
+              available:
+                type: boolean
+                example: true
+                xml:
+                  name: availability
+                  prefix: vosi
+                  namespace: http://www.ivoa.net/xml/VOSIAvailability/v1.0
+              note:
+                type: string
+                example: service is accepting requests
+          example:
+            available: true
+            note: service is accepting requests
+    '503':
+      $ref: ../components.yaml#/components/responses/ServiceUnavailable
