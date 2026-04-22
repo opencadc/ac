@@ -49,9 +49,9 @@ paths:
     $ref: ./openapi/paths/groups.yaml
   /groups/{groupID}:
     $ref: ./openapi/paths/groups-groupid.yaml
-  /groups/{groupID}/user-members/{userID}:
+  /groups/{groupID}/userMembers/{userID}:
     $ref: ./openapi/paths/groups-user-members.yaml
-  /groups/{groupID}/group-members/{groupID2}:
+  /groups/{groupID}/groupMembers/{groupID2}:
     $ref: ./openapi/paths/groups-group-members.yaml
   /search:
     $ref: ./openapi/gms/gms-search.yaml
