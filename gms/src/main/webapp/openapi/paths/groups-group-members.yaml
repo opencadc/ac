@@ -18,11 +18,11 @@ put:
     '200':
       description: Group member added successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
-      $ref: ../components.yaml#/components/responses/Forbidden
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
     '404':
       description: One or both groups could not be found
     '500':

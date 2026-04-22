@@ -18,11 +18,11 @@ get:
           schema:
             $ref: ../components.yaml#/components/schemas/Group
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
-      $ref: ../components.yaml#/components/responses/Forbidden
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
     '404':
       description: The group could not be found
     '500':
@@ -53,11 +53,11 @@ post:
     '200':
       description: Group modified successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
-      $ref: ../components.yaml#/components/responses/Forbidden
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
     '404':
       description: The group could not be found or a member is not recognized
     '500':
@@ -77,11 +77,11 @@ delete:
     '200':
       description: Group deleted successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
-      $ref: ../components.yaml#/components/responses/Forbidden
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
     '404':
       description: The group to delete could not be found
     '500':

@@ -16,7 +16,7 @@ get:
               group1
               group2
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '500':
       $ref: ../components.yaml#/components/responses/InternalServerError
     '503':
@@ -42,9 +42,9 @@ put:
     '200':
       description: Group created successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '404':
       description: A member is not recognized
     '409':
@@ -71,9 +71,9 @@ post:
     '201':
       description: External group created successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '409':
       description: An external group with the same name already exists
     '500':

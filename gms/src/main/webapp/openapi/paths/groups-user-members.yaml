@@ -16,11 +16,11 @@ put:
     '200':
       description: User added as member successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
-      $ref: ../components.yaml#/components/responses/Forbidden
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
     '404':
       description: The group to add to could not be found or the member is not recognized
     '500':
@@ -42,11 +42,11 @@ delete:
     '200':
       description: User removed successfully
     '400':
-      $ref: ../components.yaml#/components/responses/BadRequest
+      $ref: ../vosi/vosi-std-responses.yaml#/bad-request
     '401':
-      $ref: ../components.yaml#/components/responses/Unauthorized
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
-      $ref: ../components.yaml#/components/responses/Forbidden
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
     '404':
       description: The group could not be found or the member is not recognized
     '500':
