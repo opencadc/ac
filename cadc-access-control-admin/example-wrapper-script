@@ -1,0 +1,26 @@
+#!/bin/bash
+
+IMG="cadc-access-control-admin"
+TAG="latest"
+
+# assume we should use $HOME/.ssl/cadcproxy.pem
+CERT=$HOME/.ssl/cadcproxy.pem
+ICERT="/$(uuidgen).pem"
+
+# config dir is first arg on command line
+if [[ -z "$1" || ! -d "$1" ]]; then
+  echo "usage: $0 <config dir> <args>"
+  exit
+fi
+CONFIG=$(realpath $1)
+shift
+
+####
+
+CMD="docker run --rm --user opencadc:opencadc \
+  --volume $CERT:$ICERT \
+  --volume $CONFIG:/config:ro \
+  $IMG:$TAG /cadc-access-control-admin/bin/cadc-access-control-admin --cert=$ICERT"
+  
+echo $CMD "$@"
+exec $CMD "$@"

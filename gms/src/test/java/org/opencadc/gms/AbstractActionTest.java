@@ -123,33 +123,6 @@ public class AbstractActionTest {
     }
 
     @Test
-    public void testSetPrivilegedSubject() throws Exception {
-        log.debug("testSetPrivilegedSubject: START");
-        Subject privilegedSubject = new Subject();
-        privilegedSubject.getPrincipals().add(new X500Principal("CN=Privileged"));
-        privilegedSubject.getPrincipals().add(new HttpPrincipal("privileged"));
-
-        System.setProperty(PropertiesReader.CONFIG_DIR_SYSTEM_PROPERTY, "build/resources/test/config");
-        Subject.doAs(privilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
-            abstractAction.setPrivilegedSubject(new GroupsConfig());
-            return null;
-        });
-
-        assertNotNull(abstractAction.privilegedSubject);
-        assertEquals(privilegedSubject, abstractAction.privilegedSubject);
-
-        // Test with non-privileged subject
-        abstractAction.privilegedSubject = null;
-        Subject nonPrivilegedSubject = new Subject();
-        Subject.doAs(nonPrivilegedSubject, (PrivilegedExceptionAction<Object>) () -> {
-            abstractAction.setPrivilegedSubject(new GroupsConfig());
-            return null;
-        });
-        assertNull(abstractAction.privilegedSubject);
-
-    }
-
-    @Test
     public void testSetRequestInputValidPath() {
         checkPath("/groupName/userMembers/memberName", "groupName", "memberName", IdentityType.USERNAME.getValue());
         checkPath("/groupName/userMembers/memberName?idType=HTTP", "groupName", "memberName", IdentityType.USERNAME.getValue());

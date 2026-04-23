@@ -84,7 +84,7 @@ public class InitGroupAction extends InitAction {
         log.info("initConfig: START");
         GroupsConfig config = new GroupsConfig();
         log.info("resourceID= " + config.getResourceID());
-        log.info("privilegedSubjects= " + config.getPrivilegedSubjects());
+        log.info("readSubjects= " + config.getReadUsers());
         log.info("initConfig: OK");
     }
 }

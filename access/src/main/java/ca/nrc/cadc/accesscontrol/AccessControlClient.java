@@ -28,7 +28,7 @@ import org.apache.log4j.Logger;
  * Client to access a registered AC Web Service.
  */
 public class AccessControlClient {
-    private static final String CADC_TOKEN_HEADER_KEY = "X-CADC-DelegationToken";
+    private static final String CADC_TOKEN_HEADER_KEY = "Authorization";
     private static final String CADC_PASSWORD_FIELD = "password";
     private final RegistryClient registryClient;
     private final URI groupManagementServiceURI;
