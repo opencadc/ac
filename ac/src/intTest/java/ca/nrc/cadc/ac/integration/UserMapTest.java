@@ -89,7 +89,7 @@ public class UserMapTest {
     private static final Logger log = Logger.getLogger(UserMapTest.class);
 
     static {
-        Log4jInit.setLevel("org.opencadc.gms", Level.INFO);
+        Log4jInit.setLevel("org.opencadc.ac", Level.INFO);
     }
 
     @Test
