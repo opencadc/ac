@@ -1,4 +1,4 @@
-## GMS OpenAPI root: path items under ./openapi/; shared parameters/schemas/responses live in ./openapi/components.yaml (avoid `$ref` from fragments back into this file — that can deadlock libopenapi/vacuum).
+## GMS OpenAPI root: path items under ./openapi/; shared parameters/schemas in ./openapi/components.yaml; standard HTTP error fragments in ./openapi/vosi/vosi-std-responses.yaml (avoid `$ref` from fragments back into this file — that can deadlock libopenapi/vacuum).
 openapi: 3.0.3
 info:
   title: CANFAR Group Management System (GMS) API
@@ -35,7 +35,7 @@ tags:
   - name: Service availability
     description: Service availability
   - name: POSIX Groups
-    description: POSIX gid / group name search
+    description: POSIX group id (gid) and group name mapping  
 servers:
   - url: https://ws-cadc.canfar.net/gms
     description: Production server
@@ -44,16 +44,17 @@ paths:
   /capabilities:
     $ref: ./openapi/vosi/vosi-capabilities.yaml
   /availability:
-    $ref: ./openapi/paths/availability.yaml
+    $ref: ./openapi/cadcvosi/availability.yaml
   /groups:
-    $ref: ./openapi/paths/groups.yaml
-  /groups/{groupID}:
-    $ref: ./openapi/paths/groups-groupid.yaml
-  /groups/{groupID}/userMembers/{userID}:
-    $ref: ./openapi/paths/groups-user-members.yaml
-  /groups/{groupID}/groupMembers/{groupID2}:
-    $ref: ./openapi/paths/groups-group-members.yaml
+    $ref: ./openapi/service/group.yaml#/GroupsCollection
+  /groups/{groupName}:
+    $ref: ./openapi/service/group.yaml#/GroupById
+  /groups/{groupName}/userMembers/{userID}:
+    $ref: ./openapi/service/group.yaml#/GroupUserMembers
+  /groups/{groupName}/groupMembers/{groupName2}:
+    $ref: ./openapi/service/group.yaml#/GroupGroupMembers
   /search:
     $ref: ./openapi/gms/gms-search.yaml
   /gidmap:
     $ref: ./openapi/pm/posix-groupmap.yaml
+

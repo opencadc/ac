@@ -16,7 +16,30 @@ get:
     each line containing a simple group name.
   operationId: getMembership
   parameters:
-    - $ref: ../components.yaml#/components/parameters/group
+    - name: group
+      in: query
+      description: Membership of one or more groups specified by name.
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+        example:
+          - "group1"
+          - "group2"
+          - "group3"
+    - name: role
+      in: query
+      description: Membership role.
+      required: false
+      schema:
+        type: string
+        example: "member"
+        enum:
+          - "member"
+          - "admin"
+          - "owner"
+      default: "member"
   responses:
     '200':
       description: Successful membership response

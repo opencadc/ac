@@ -1,14 +1,15 @@
 # Shared components for the GMS OpenAPI description (referenced from path fragments and the root document).
 components:
   parameters:
-    groupID:
-      name: groupID
+    groupName:
+      name: groupName
       in: path
       required: true
-      description: The name of the group
+      description: |
+        The group name (simple identifier), e.g. teamA, myGroup
       schema:
         type: string
-
+      example: teamA
     userID:
       name: userID
       in: path
@@ -16,41 +17,19 @@ components:
       description: The unique user identifier (CANFAR HTTP username)
       schema:
         type: string
-
-    group:
-      name: group
+      example: user1
+    idType:
+      name: idType
       in: query
-      description: |
-        Identifier of a group (IVOID).
-
-        This parameter MAY be repeated to test membership in multiple groups.
-
-        If omitted, all group memberships SHALL be returned.
-      required: false
-      example:
-        - ivo://example.org/gms?engineering
+      description: The type of userID (http, x509, cadc)
+      required: true
       schema:
-        type: array
-        items:
-          type: string
-          example: ivo://example.org/gms?engineering
-      style: form
-
-  responses:
-    BadRequest:
-      description: The URL or input stream data are malformed
-
-    Unauthorized:
-      description: Credentials were not provided
-
-    Forbidden:
-      description: Not allowed to perform the requested action
-
-    InternalServerError:
-      description: The server encountered an unrecoverable error
-
-    ServiceUnavailable:
-      description: The server is too busy to perform the operation
+        type: string
+        enum:
+          - http
+          - x509
+          - cadc
+      example: http
 
   schemas:
     Group:

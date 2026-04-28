@@ -12,13 +12,10 @@ get:
         type: array
         items:
           type: string
-          example: ivo://foo.net/gms?group1
-      style: form
-      explode: true
-      example:
-        - ivo://foo.net/gms?group1
-        - ivo://foo.net/gms?group2
-        - ivo://bar.net/gms?group1
+        example:
+          - "ivo://foo.net/gms?group1"
+          - "ivo://foo.net/gms?group2"
+          - "ivo://bar.net/gms?group1"
     - name: gid
       in: query
       description: request group record(s) by posix gid
@@ -26,17 +23,14 @@ get:
         type: array
         items:
           type: integer
-          example: 10001
-      style: form
-      explode: true
-      example:
-        - 10001
-        - 10002
-        - 20001
-        - 20002
+        example:
+          - 10001
+          - 10002
+          - 20001
+          - 20002
   responses:
     '200':
-      $ref: '#/components/schemas/posix-groups'
+      $ref: '#/components/responses/PosixGroups'
     '401':
       $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
@@ -49,16 +43,18 @@ post:
     - POSIX Groups
   summary: create a local posix info for a group
   parameters:
-    - name: user
+    - name: group
       in: query
-      description: create and return a posix group entry for the specified group
+      description: |
+        create and return a posix group entry for the specified group;
+        the value is an IVOA Group URI as defined by the GMS standard
       required: false
       schema:
         type: string
         example: "ivo://foo.net/gms?group1"
   responses:
     '201':
-      $ref: '#/components/schemas/posix-groups'
+      $ref: '#/components/responses/PosixGroups'
     '401':
       $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
@@ -69,43 +65,50 @@ post:
       $ref: ../vosi/vosi-std-responses.yaml#/not-implemented
 
 components:
-  schemas:
-    posix-groups:
+  responses:
+    PosixGroups:
       description: list of groups with posix details
       content:
         text/plain:
           description: posix groups in /etc/group format
           schema:
             type: string
-            examples: 
-              - "foo_group1:x:20001:"
-              - "foo_group2:x:20002"
-              - "bar_group1:x:20003"
-        application/x-posix-group+json:
-          description: 
-          schema:
-            type: string
             example: |
-              [
-                {
-                  "uri": "ivo://foo.net/gms?group1"
-                  "posix": {
-                    "name": "foo_group1",
-                    "gid": 20001
-                  }
-                },
-                {
-                  "uri": "ivo://foo.net/gms?group2"
-                  "posix": {
-                    "name": "foo_group2",
-                    "gid": 20002
-                  }
-                },
-                {
-                  "uri": "ivo://bar.net/gms?group1"
-                  "posix": {
-                    "name": "bar_group1",
-                    "gid": 20003
-                  }
-                },
-              ]
+              foo_group1:x:20001:
+              foo_group2:x:20002
+              bar_group1:x:20003
+        application/x-posix-group+json:
+          description: POSIX group details as JSON array
+          schema:
+            type: array
+            items:
+              type: object
+              required:
+                - uri
+                - posix
+              properties:
+                uri:
+                  type: string
+                posix:
+                  type: object
+                  required:
+                    - name
+                    - gid
+                  properties:
+                    name:
+                      type: string
+                    gid:
+                      type: integer
+          example:
+            - uri: "ivo://foo.net/gms?group1"
+              posix:
+                name: foo_group1
+                gid: 20001
+            - uri: "ivo://foo.net/gms?group2"
+              posix:
+                name: foo_group2
+                gid: 20002
+            - uri: "ivo://bar.net/gms?group1"
+              posix:
+                name: bar_group1
+                gid: 20003

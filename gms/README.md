@@ -36,15 +36,15 @@ The GMS service provides the following operations:
 ### Group Management
 - **List all groups** - GET /groups
 - **Create group** - PUT /groups
-- **Get group** - GET /groups/{groupID}
-- **Delete group** - DELETE /groups/{groupID}
-- **Modify group** - POST /groups/{groupID}
-- **Add/Remove user members** - POST/DELETE /groups/{groupID}/userMembers
-- **Add/Remove group members** - POST/DELETE /groups/{groupID}/groupMembers  (Is it required to distinguish between user and group members?)
+- **Get group** - GET /groups/{groupName}
+- **Delete group** - DELETE /groups/{groupName}
+- **Modify group** - POST /groups/{groupName}
+- **Add/Remove user members** - POST/DELETE /groups/{groupName}/userMembers
+- **Add/Remove group members** - POST/DELETE /groups/{groupName}/groupMembers/{groupName2}  (Is it required to distinguish between user and group members?)
 
 ### Group Searching
 - **Search by role** - GET /search?id={userID}&idType={idType}&role={role}
-- **Search specific membership** - GET /search?id={userID}&idType={idType}&role={role}&groupID={groupID}
+- **Search specific membership** - GET /search?group={groupIVOID} (repeatable; see OpenAPI)
 
 ### Authentication Methods
 The service supports multiple authentication methods:

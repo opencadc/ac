@@ -7,21 +7,24 @@ authenticated:
           type: string
 
 not-authenticated:
-    description: authentication is required and current attempt failed
+    description: |
+      Authentication is required and the current attempt failed, or credentials were not provided.
     headers:
       www-authenticate:
         schema:
           type: string
 
 permission-denied:
-    description: caller not authorized to perform operation
+    description: |
+      Caller is not authorized to perform the operation (forbidden / permission denied).
     content:
       text/plain:
         schema:
           type: string
 
 bad-request:
-    description: invalid request/input
+    description: |
+      Invalid request or input; the URL or request body may be malformed.
     content:
       text/plain:
         schema:
@@ -43,6 +46,20 @@ not-implemented:
 
 too-large:
   description: the request content exceeds a server-side limitation on size
+  content:
+    text/plain:
+      schema:
+        type: string
+
+internal-server-error:
+  description: the server encountered an unrecoverable error
+  content:
+    text/plain:
+      schema:
+        type: string
+
+service-unavailable:
+  description: the server is too busy to perform the operation
   content:
     text/plain:
       schema:
