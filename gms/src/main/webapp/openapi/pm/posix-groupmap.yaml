@@ -81,34 +81,45 @@ components:
           description: POSIX group details as JSON array
           schema:
             type: array
+            example:
+              - uri: "ivo://foo.net/gms?group1"
+                posix:
+                  name: foo_group1
+                  gid: 20001
+              - uri: "ivo://foo.net/gms?group2"
+                posix:
+                  name: foo_group2
+                  gid: 20002
+              - uri: "ivo://bar.net/gms?group1"
+                posix:
+                  name: bar_group1
+                  gid: 20003
             items:
               type: object
+              example:
+                uri: "ivo://foo.net/gms?group1"
+                posix:
+                  name: foo_group1
+                  gid: 20001
               required:
                 - uri
                 - posix
               properties:
                 uri:
                   type: string
+                  example: "ivo://foo.net/gms?group1"
                 posix:
                   type: object
+                  example:
+                    name: foo_group1
+                    gid: 20001
                   required:
                     - name
                     - gid
                   properties:
                     name:
                       type: string
+                      example: foo_group1
                     gid:
                       type: integer
-          example:
-            - uri: "ivo://foo.net/gms?group1"
-              posix:
-                name: foo_group1
-                gid: 20001
-            - uri: "ivo://foo.net/gms?group2"
-              posix:
-                name: foo_group2
-                gid: 20002
-            - uri: "ivo://bar.net/gms?group1"
-              posix:
-                name: bar_group1
-                gid: 20003
+                      example: 20001

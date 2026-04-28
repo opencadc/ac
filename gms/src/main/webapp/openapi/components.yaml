@@ -35,63 +35,6 @@ components:
     Group:
       type: object
       description: Representation of a group
-      required:
-        - uri
-      properties:
-        uri:
-          type: string
-          description: Group URI (e.g., ivo://cadc.nrc.ca/gms#GroupName)
-          example: "ivo://cadc.nrc.ca/gms#Example-group"
-        owner:
-          $ref: '#/components/schemas/User'
-        description:
-          type: string
-          description: Group description
-          example: "Group used for documentation example"
-        lastModified:
-          type: string
-          format: date-time
-          description: Last modification timestamp
-          example: "2015-07-24T17:38:18.000"
-        userMembers:
-          type: array
-          description: List of users who are members of this group
-          items:
-            $ref: '#/components/schemas/User'
-          example:
-            - "member1"
-            - "member2"
-        userAdmins:
-          type: array
-          description: List of users who are administrators of this group
-          items:
-            $ref: '#/components/schemas/User'
-          example:
-            - "admin1"
-        groupMembers:
-          type: array
-          description: List of groups that are members of this group
-          items:
-            type: object
-            properties:
-              uri:
-                type: string
-                description: URI of the member group
-                example: "ivo://cadc.nrc.ca/gms#MemberGroup"
-          example:
-            - uri: "ivo://cadc.nrc.ca/gms#MemberGroup"
-        groupAdmins:
-          type: array
-          description: List of groups that are administrators of this group
-          items:
-            type: object
-            properties:
-              uri:
-                type: string
-                description: URI of the admin group
-                example: "ivo://cadc.nrc.ca/gms#AdminGroup"
-          example:
-            - uri: "ivo://cadc.nrc.ca/gms#AdminGroup"
       example:
         uri: "ivo://cadc.nrc.ca/gms#Example-group"
         owner: "exampleuser"
