@@ -1,0 +1,242 @@
+# Path items for /groups and nested routes. Fragment keys are referenced from root `openapi.yaml` `paths` (Path Item objects only — no root-level `components` here).
+GroupsCollection:
+  get:
+    summary: List all groups
+    description: Lists the names of all the groups in the service
+    operationId: listGroups
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: Successful response with list of group names
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: Newline-separated list of group names
+              example: |
+                group1
+                group2
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+  put:
+    summary: Create group
+    description: Create a new group according to the group XML or JSON document in the HTTP PUT
+    operationId: createGroup
+    tags:
+      - Group Management
+    requestBody:
+      description: Group data in XML or JSON format
+      required: true
+      content:
+        application/xml:
+          schema:
+            $ref: ../components.yaml#/components/schemas/Group
+        application/json:
+          schema:
+            $ref: ../components.yaml#/components/schemas/Group
+    responses:
+      '200':
+        description: Group created successfully
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '404':
+        description: A member is not recognized
+      '409':
+        description: A group with the same name already exists
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+GroupById:
+  parameters:
+    - $ref: ../components.yaml#/components/parameters/groupName
+  get:
+    summary: Get group
+    description: Get the group with the specified groupName. Only users associated with the group (owner, admin, member)
+      are allowed to retrieve the group details.
+    operationId: getGroup
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: Successful response with group details
+        content:
+          application/xml:
+            schema:
+              $ref: ../components.yaml#/components/schemas/Group
+          application/json:
+            schema:
+              $ref: ../components.yaml#/components/schemas/Group
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '404':
+        description: The group could not be found
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+  post:
+    summary: Modify group
+    description: Modify the group with the specified groupName according to the group XML or JSON document in the HTTP POST
+      Only the owner or administrators of the group are allowed to modify the group.
+    operationId: modifyGroup
+    tags:
+      - Group Management
+    requestBody:
+      description: Updated group data in XML or JSON format
+      required: true
+      content:
+        application/xml:
+          schema:
+            $ref: ../components.yaml#/components/schemas/Group
+        application/json:
+          schema:
+            $ref: ../components.yaml#/components/schemas/Group
+    responses:
+      '200':
+        description: Group modified successfully
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '404':
+        description: The group could not be found or a member is not recognized
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+  delete:
+    summary: Delete group
+    description: Delete the group with the specified groupName. Only the owner of the group is allowed to delete the group.
+    operationId: deleteGroup
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: Group deleted successfully
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '404':
+        description: The group to delete could not be found
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+GroupUserMembers:
+  parameters:
+    - $ref: ../components.yaml#/components/parameters/groupName
+    - $ref: ../components.yaml#/components/parameters/userID
+    - $ref: ../components.yaml#/components/parameters/idType
+
+  put:
+    summary: Add user member
+    description: Add a user as a member of the specified group. Only owners or administrators of the group are
+      allowed to add members.
+    operationId: addUserMember
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: User added as member successfully
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '404':
+        description: The group to add to could not be found or the member is not recognized
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+  delete:
+    summary: Remove user member
+    description: Remove a user as a member of the specified group. Only owners or administrators of the group are
+      allowed to remove members.
+    operationId: removeUserMember
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: User removed successfully
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '404':
+        description: The group could not be found or the member is not recognized
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+GroupGroupMembers:
+  parameters:
+    - $ref: ../components.yaml#/components/parameters/groupName
+    - name: groupName2
+      in: path
+      required: true
+      description: |
+        The member group name to add or remove (e.g. `teamA`, `ABCD`). Only the group owner or administrators can
+        add or remove group members.
+      schema:
+        type: string
+
+  put:
+    summary: Add group member
+    description: Add a group as a member of another group. Only internal groups can be added as members.
+    operationId: addGroupMember
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: Group member added successfully
+      '400':
+        $ref: ../vosi/vosi-std-responses.yaml#/bad-request
+      '401':
+        $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+      '403':
+        $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+      '404':
+        description: One or both groups could not be found
+      '500':
+        $ref: ../vosi/vosi-std-responses.yaml#/internal-server-error
+      '503':
+        $ref: ../vosi/vosi-std-responses.yaml#/service-unavailable
+
+  delete:
+    summary: Remove group member
+    description: Remove a group as a member of another group. Only the group owner or administrators can remove
+      group members.
+    operationId: removeGroupMember
+    tags:
+      - Group Management
+    responses:
+      '200':
+        description: Group member removed successfully
