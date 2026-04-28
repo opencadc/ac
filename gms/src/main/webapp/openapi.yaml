@@ -1,5 +1,5 @@
 ## GMS OpenAPI root: path items under ./openapi/; shared parameters/schemas in ./openapi/components.yaml; standard HTTP error fragments in ./openapi/vosi/vosi-std-responses.yaml (avoid `$ref` from fragments back into this file — that can deadlock libopenapi/vacuum).
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: CANFAR Group Management System (GMS) API
   description: |
@@ -37,8 +37,7 @@ tags:
   - name: POSIX Groups
     description: POSIX group id (gid) and group name mapping  
 servers:
-  - url: https://ws-cadc.canfar.net/gms
-    description: Production server
+  - url: /gms
 
 paths:
   /capabilities:
