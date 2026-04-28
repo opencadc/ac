@@ -79,43 +79,15 @@ GroupById:
           application/xml:
             schema:
               $ref: ../components.yaml#/components/schemas/Group
-            example:
-              uri: "ivo://cadc.nrc.ca/gms#teamA"
-              owner: "owner1"
-              description: "Research team access group"
-              lastModified: "2015-07-24T17:38:18.000"
-              userMembers:
-                - "member1"
-                - "member2"
-                - "member3"
-              userAdmins:
-                - "admin1"
-                - "admin2"
-              groupMembers:
-                - uri: "ivo://cadc.nrc.ca/gms#shared-data"
-                - uri: "ivo://cadc.nrc.ca/gms#pipeline-users"
-              groupAdmins:
-                - uri: "ivo://cadc.nrc.ca/gms#platform-admins"
+            examples:
+              example-group:
+                $ref: ../components.yaml#/components/examples/example-group
           application/json:
             schema:
               $ref: ../components.yaml#/components/schemas/Group
-            example:
-              uri: "ivo://cadc.nrc.ca/gms#teamA"
-              owner: "owner1"
-              description: "Research team access group"
-              lastModified: "2015-07-24T17:38:18.000"
-              userMembers:
-                - "member1"
-                - "member2"
-                - "member3"
-              userAdmins:
-                - "admin1"
-                - "admin2"
-              groupMembers:
-                - uri: "ivo://cadc.nrc.ca/gms#shared-data"
-                - uri: "ivo://cadc.nrc.ca/gms#pipeline-users"
-              groupAdmins:
-                - uri: "ivo://cadc.nrc.ca/gms#platform-admins"
+            examples:
+              example-group:
+                $ref: ../components.yaml#/components/examples/example-group
       '400':
         $ref: ../vosi/vosi-std-responses.yaml#/bad-request
       '401':
