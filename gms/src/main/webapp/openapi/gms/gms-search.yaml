@@ -1,4 +1,3 @@
-# Path item for /search (GMS membership). Must be a Path Item object only — use root `openapi.yaml` for `components`.
 get:
   tags:
     - GMS
@@ -15,10 +14,11 @@ get:
     The response SHALL be plain text containing zero or more lines,
     each line containing a simple group name.
   operationId: getMembership
+
   parameters:
-    - name: group
+      - name: group
       in: query
-      description: Membership of one or more groups specified by name.
+      description: Membership of one or more groups.
       required: false
       schema:
         type: array
@@ -28,18 +28,7 @@ get:
           - "group1"
           - "group2"
           - "group3"
-    - name: role
-      in: query
-      description: Membership role.
-      required: false
-      schema:
-        type: string
-        example: "member"
-        enum:
-          - "member"
-          - "admin"
-          - "owner"
-      default: "member"
+
   responses:
     '200':
       description: Successful membership response
@@ -64,7 +53,31 @@ get:
             none:
               summary: No memberships
               value: ""
+
     '401':
       $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
     '403':
       $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+
+components:
+
+  parameters:
+
+    group:
+      name: group
+      in: query
+      description: |
+        Name of a group.
+
+        This parameter MAY be repeated to test membership in multiple groups.
+
+        If omitted, all group memberships SHALL be returned.
+      required: false
+      example:
+        - ivo://example.org/gms?engineering
+      schema:
+        type: array
+        items:
+          type: string
+          example: ivo://example.org/gms?engineering
+      style: form
