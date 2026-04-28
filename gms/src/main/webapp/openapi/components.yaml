@@ -113,8 +113,8 @@ components:
       example: "exampleuser"
 
   examples:
-    GroupJsonDetailed:
-      summary: Detailed group example (JSON)
+    example-group:
+      summary: Example group document (JSON/XML body shape)
       value:
         uri: "ivo://cadc.nrc.ca/gms#teamA"
         owner: "owner1"
