@@ -35,21 +35,6 @@ components:
     Group:
       type: object
       description: Representation of a group
-      example:
-        uri: "ivo://cadc.nrc.ca/gms#Example-group"
-        owner: "exampleuser"
-        description: "Group used for documentation example"
-        lastModified: "2015-07-24T17:38:18.000"
-        userMembers:
-          - "member1"
-          - "member2"
-        userAdmins:
-          - "admin1"
-        groupMembers:
-          - uri: "ivo://cadc.nrc.ca/gms#MemberGroup"
-        groupAdmins:
-          - uri: "ivo://cadc.nrc.ca/gms#AdminGroup"
-
     User:
       type: string
       description: User identifier (CANFAR HTTP username)
