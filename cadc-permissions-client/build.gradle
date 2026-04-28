@@ -15,7 +15,7 @@ sourceCompatibility = 11
 
 group = 'org.opencadc'
 
-version = '0.3.2'
+version = '0.3.3'
 
 description = 'OpenCADC Permissions client library'
 def git_url = 'https://github.com/opencadc/ac'
@@ -25,6 +25,7 @@ dependencies {
     api 'org.opencadc:cadc-permissions:[0.2,)'
     implementation 'org.opencadc:cadc-registry:[1.0,2.0)'
     implementation 'org.opencadc:cadc-util:[1.6,2.0)'
+    implementation 'org.json:json:20251224'
 
     testImplementation 'junit:junit:[4.0,)'
 }
