@@ -67,21 +67,17 @@
 
 package org.opencadc.permissions.client.srcnet;
 
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Test;
 
-/**
- * Result of {@code /v1/authorise/plugin} and {@code /v1/authorise/route}.
- */
-public final class AuthorisationResult {
+public class AuthorisationResultTest {
 
-    public final boolean isAuthorised;
-
-    private AuthorisationResult(boolean isAuthorised) {
-        this.isAuthorised = isAuthorised;
-    }
-
-    static AuthorisationResult parse(final JSONObject jsonObject) throws JSONException {
-        return new AuthorisationResult(jsonObject.getBoolean("is_authorised"));
+    @Test
+    public void parseAuthorisationResult() {
+        AuthorisationResult r = AuthorisationResult.parse(new JSONObject("{\"is_authorised\":true}"));
+        Assert.assertTrue(r.isAuthorised);
+        r = AuthorisationResult.parse(new JSONObject("{\"is_authorised\":false}"));
+        Assert.assertFalse(r.isAuthorised);
     }
 }
