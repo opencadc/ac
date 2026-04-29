@@ -152,7 +152,7 @@ public class PermissionsAPIClient {
         if (version != null && !version.isEmpty()) {
             q.append("&version=").append(NetUtil.encode(version));
         }
-        final String path = "v1/authorise/plugin/" + PermissionsAPIClient.encodePathSegment(serviceName);
+        final String path = "v1/authorise/plugin/" + serviceName;
 
         try {
             return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
@@ -172,17 +172,13 @@ public class PermissionsAPIClient {
         if (version != null && !version.isEmpty()) {
             q.append("&version=").append(NetUtil.encode(version));
         }
-        final String path = "v1/authorise/route/" + PermissionsAPIClient.encodePathSegment(serviceName);
+        final String path = "v1/authorise/route/" + serviceName;
 
         try {
             return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
         }  catch (MalformedURLException e) {
             throw new RuntimeException("BUG: failed to create valid Permissions API route request", e);
         }
-    }
-
-    private static String encodePathSegment(final String s) {
-        return NetUtil.encode(s);
     }
 
     private static URL normalizeBase(final URL u) {
