@@ -130,6 +130,8 @@ public class PermissionsAPIClient {
         assertArg(serviceName, "serviceName");
         assertArg(token, "token");
         final URL url = buildExchangeURL(serviceName, token, version);
+
+        // Empty JSON for the exchange request.
         final JSONObject json = PermissionsAPIClient.postJSON(url, "");
         try {
             return ExchangeAuthorisationResult.parse(json);
