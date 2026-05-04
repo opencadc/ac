@@ -71,25 +71,27 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Result of {@code /v1/authorise/plugin} and {@code /v1/authorise/route}.
- * {@link ExchangeAuthorisationResult} subclasses this type for exchange responses that add an {@code audience}.
+ * Result of {@code /v1/authorise/exchange}: extends {@link AuthorisationResult} with an optional {@code audience}
+ * for token-exchange targets (exchange itself is left to callers).
  */
-public class AuthorisationResult {
+public final class ExchangeAuthorisationResult extends AuthorisationResult {
 
-    public final boolean isAuthorised;
+    /** Null when absent or JSON null. */
+    public final String audience;
 
-    AuthorisationResult(final boolean isAuthorised) {
-        this.isAuthorised = isAuthorised;
+    private ExchangeAuthorisationResult(final boolean isAuthorised, final String audience) {
+        super(isAuthorised);
+        this.audience = audience;
     }
 
-    static AuthorisationResult parse(final JSONObject jsonObject) throws JSONException {
-        return new AuthorisationResult(parseIsAuthorised(jsonObject));
+    static ExchangeAuthorisationResult parse(final JSONObject jsonObject) throws JSONException {
+        return new ExchangeAuthorisationResult(parseIsAuthorised(jsonObject), parseAudienceOrNull(jsonObject));
     }
 
-    /**
-     * Reads {@code is_authorised} from Permissions API JSON responses.
-     */
-    static boolean parseIsAuthorised(final JSONObject jsonObject) throws JSONException {
-        return jsonObject.getBoolean("is_authorised");
+    private static String parseAudienceOrNull(final JSONObject jsonObject) throws JSONException {
+        if (!jsonObject.has("audience") || jsonObject.isNull("audience")) {
+            return null;
+        }
+        return jsonObject.getString("audience");
     }
 }

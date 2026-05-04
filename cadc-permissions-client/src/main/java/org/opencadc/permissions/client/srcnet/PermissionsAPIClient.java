@@ -104,6 +104,24 @@ public class PermissionsAPIClient {
     }
 
     /**
+     * POST {@code /v1/authorise/exchange/{service}} (no JSON body).
+     *
+     * @param version optional service version; if null or empty the server default applies
+     */
+    public ExchangeAuthorisationResult authoriseExchange(final String serviceName, final String token,
+                                                         final String version) throws IOException {
+        assertArg(serviceName, "serviceName");
+        assertArg(token, "token");
+        final URL url = buildExchangeURL(serviceName, token, version);
+        final JSONObject json = PermissionsAPIClient.postJsonEntity(url, "");
+        try {
+            return ExchangeAuthorisationResult.parse(json);
+        } catch (JSONException e) {
+            throw new IOException("invalid JSON response", e);
+        }
+    }
+
+    /**
      * POST {@code /v1/authorise/plugin/{service}}.
      *
      * @param requestBody JSON body; null is treated as {@code {}}
@@ -114,7 +132,7 @@ public class PermissionsAPIClient {
         assertArg(token, "token");
         final JSONObject body = requestBody != null ? requestBody : new JSONObject();
         final URL url = buildPluginURL(serviceName, token, version);
-        final JSONObject json = PermissionsAPIClient.postBody(url, body);
+        final JSONObject json = PermissionsAPIClient.postJsonEntity(url, body.toString());
         try {
             return AuthorisationResult.parse(json);
         } catch (JSONException e) {
@@ -137,7 +155,7 @@ public class PermissionsAPIClient {
         assertArg(token, "token");
         final JSONObject body = requestBody != null ? requestBody : new JSONObject();
         final URL url = buildRouteURL(serviceName, route, token, httpMethod, version);
-        final JSONObject json = PermissionsAPIClient.postBody(url, body);
+        final JSONObject json = PermissionsAPIClient.postJsonEntity(url, body.toString());
         try {
             return AuthorisationResult.parse(json);
         } catch (JSONException e) {
@@ -145,13 +163,18 @@ public class PermissionsAPIClient {
         }
     }
 
-    private URL buildPluginURL(final String serviceName, final String token, final String version) {
-        final StringBuilder q = new StringBuilder();
-
-        q.append("token=").append(NetUtil.encode(token));
-        if (version != null && !version.isEmpty()) {
-            q.append("&version=").append(NetUtil.encode(version));
+    private URL buildExchangeURL(final String serviceName, final String token, final String version) {
+        final String q = queryTokenVersion(token, version);
+        final String path = "v1/authorise/exchange/" + serviceName;
+        try {
+            return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("BUG: failed to create valid Permissions API exchange request", e);
         }
+    }
+
+    private URL buildPluginURL(final String serviceName, final String token, final String version) {
+        final String q = queryTokenVersion(token, version);
         final String path = "v1/authorise/plugin/" + serviceName;
 
         try {
@@ -159,6 +182,15 @@ public class PermissionsAPIClient {
         } catch (MalformedURLException e) {
             throw new RuntimeException("BUG: failed to create valid Permissions API plugin request", e);
         }
+    }
+
+    private static String queryTokenVersion(final String token, final String version) {
+        final StringBuilder q = new StringBuilder();
+        q.append("token=").append(NetUtil.encode(token));
+        if (version != null && !version.isEmpty()) {
+            q.append("&version=").append(NetUtil.encode(version));
+        }
+        return q.toString();
     }
 
     private URL buildRouteURL(final String serviceName, final String route, final String token,
@@ -176,7 +208,7 @@ public class PermissionsAPIClient {
 
         try {
             return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
-        }  catch (MalformedURLException e) {
+        } catch (MalformedURLException e) {
             throw new RuntimeException("BUG: failed to create valid Permissions API route request", e);
         }
     }
@@ -199,9 +231,10 @@ public class PermissionsAPIClient {
         }
     }
 
-    private static JSONObject postBody(final URL url, final JSONObject json) throws IOException {
-        final HttpPost post = new HttpPost(url, new FileContent(json.toString(), PermissionsAPIClient.JSON_CONTENT_TYPE,
-                StandardCharsets.UTF_8), false);
+    private static JSONObject postJsonEntity(final URL url, final String jsonEntity) throws IOException {
+        final HttpPost post =
+                new HttpPost(url, new FileContent(jsonEntity, PermissionsAPIClient.JSON_CONTENT_TYPE,
+                        StandardCharsets.UTF_8), false);
         post.setRequestProperty("Accept", "application/json");
         try {
             post.prepare();
