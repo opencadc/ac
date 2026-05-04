@@ -68,6 +68,7 @@
 package org.opencadc.permissions.client.srcnet;
 
 import ca.nrc.cadc.net.FileContent;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.NetUtil;
 import java.io.IOException;
@@ -81,9 +82,13 @@ import org.json.JSONTokener;
 
 /**
  * HTTP client for the SKAO Permissions API {@code /v1/authorise} endpoints.
- * Requires a proper base URL to be configured.
  *
- * <p>Endpoint shapes and behaviour follow the service OpenAPI description:
+ * <p>{@link #authorisePlugin} and {@link #authoriseRoute} perform an exchange authorisation check, obtain a
+ * service-scoped access token via the SRCNet Auth API {@code GET /v1/token/exchange/{service}}, then call the
+ * plugin/route endpoints with that token. Supply the Auth API base URL with
+ * {@link #PermissionsAPIClient(URL, URL)}.
+ *
+ * <p>Endpoint shapes for the Permissions API follow the service OpenAPI:
  * <a href="https://permissions.srcnet.skao.int/api/openapi.json">https://permissions.srcnet.skao.int/api/openapi.json</a>
  */
 public class PermissionsAPIClient {
@@ -91,16 +96,28 @@ public class PermissionsAPIClient {
     private static final String JSON_CONTENT_TYPE = "application/json";
 
     private final URL baseURL;
+    private final URL authApiBaseURL;
 
     /**
-     * Resolve the Permissions API base URL from the registry.
-     *
-     * @param baseServiceURL  Base URL to the PermissionsAPI service
-     * @throws NullPointerException if the given service URL is null.
+     * Permissions API only ({@link #authoriseExchange}); use {@link #PermissionsAPIClient(URL, URL)} for
+     * {@link #authorisePlugin} / {@link #authoriseRoute}.
      */
     public PermissionsAPIClient(final URL baseServiceURL) {
         Objects.requireNonNull(baseServiceURL, "Base service URL cannot be null");
         this.baseURL = normalizeBase(baseServiceURL);
+        this.authApiBaseURL = null;
+    }
+
+    /**
+     * @param baseServiceURL  Permissions API base URL
+     * @param authApiBaseURL  non-null SRCNet Auth API base URL (required for {@link #authorisePlugin} /
+     *                        {@link #authoriseRoute})
+     */
+    public PermissionsAPIClient(final URL baseServiceURL, final URL authApiBaseURL) {
+        Objects.requireNonNull(baseServiceURL, "Base service URL cannot be null");
+        Objects.requireNonNull(authApiBaseURL, "Auth API base URL cannot be null");
+        this.baseURL = normalizeBase(baseServiceURL);
+        this.authApiBaseURL = normalizeBase(authApiBaseURL);
     }
 
     /**
@@ -113,7 +130,7 @@ public class PermissionsAPIClient {
         assertArg(serviceName, "serviceName");
         assertArg(token, "token");
         final URL url = buildExchangeURL(serviceName, token, version);
-        final JSONObject json = PermissionsAPIClient.postJsonEntity(url, "");
+        final JSONObject json = PermissionsAPIClient.postJSON(url, "");
         try {
             return ExchangeAuthorisationResult.parse(json);
         } catch (JSONException e) {
@@ -122,7 +139,8 @@ public class PermissionsAPIClient {
     }
 
     /**
-     * POST {@code /v1/authorise/plugin/{service}}.
+     * POST {@code /v1/authorise/plugin/{service}} using a token obtained from {@code authoriseExchange} and the
+     * Auth API token exchange.
      *
      * @param requestBody JSON body; null is treated as {@code {}}
      */
@@ -130,9 +148,16 @@ public class PermissionsAPIClient {
                                                final JSONObject requestBody, final String version) throws IOException {
         assertArg(serviceName, "serviceName");
         assertArg(token, "token");
+        final URL authBase = Objects.requireNonNull(this.authApiBaseURL,
+                "Auth API base URL required; use PermissionsAPIClient(permissionsBaseUrl, authApiBaseUrl)");
+        final ExchangeAuthorisationResult exchange = authoriseExchange(serviceName, token, version);
+        if (!exchange.isAuthorised) {
+            return new AuthorisationResult(false);
+        }
+        final String accessToken = fetchExchangedAccessToken(authBase, serviceName, token, version);
         final JSONObject body = requestBody != null ? requestBody : new JSONObject();
-        final URL url = buildPluginURL(serviceName, token, version);
-        final JSONObject json = PermissionsAPIClient.postJsonEntity(url, body.toString());
+        final URL url = buildPluginURL(serviceName, accessToken, version);
+        final JSONObject json = PermissionsAPIClient.postJSON(url, body.toString());
         try {
             return AuthorisationResult.parse(json);
         } catch (JSONException e) {
@@ -141,7 +166,8 @@ public class PermissionsAPIClient {
     }
 
     /**
-     * POST {@code /v1/authorise/route/{service}}.
+     * POST {@code /v1/authorise/route/{service}} using a token obtained from {@code authoriseExchange} and the
+     * Auth API token exchange.
      *
      * @param route       required route query parameter
      * @param httpMethod  optional HTTP method; if null the server default applies
@@ -153,14 +179,46 @@ public class PermissionsAPIClient {
         assertArg(serviceName, "serviceName");
         assertArg(route, "route");
         assertArg(token, "token");
+        final URL authBase = Objects.requireNonNull(this.authApiBaseURL,
+                "Auth API base URL required; use PermissionsAPIClient(permissionsBaseUrl, authApiBaseUrl)");
+        final ExchangeAuthorisationResult exchange = authoriseExchange(serviceName, token, version);
+        if (!exchange.isAuthorised) {
+            return new AuthorisationResult(false);
+        }
+        final String accessToken = fetchExchangedAccessToken(authBase, serviceName, token, version);
         final JSONObject body = requestBody != null ? requestBody : new JSONObject();
-        final URL url = buildRouteURL(serviceName, route, token, httpMethod, version);
-        final JSONObject json = PermissionsAPIClient.postJsonEntity(url, body.toString());
+        final URL url = buildRouteURL(serviceName, route, accessToken, httpMethod, version);
+        final JSONObject json = PermissionsAPIClient.postJSON(url, body.toString());
         try {
             return AuthorisationResult.parse(json);
         } catch (JSONException e) {
             throw new IOException("invalid JSON response", e);
         }
+    }
+
+    /**
+     * GET {@code /v1/token/exchange/{service}}; response body must contain {@code access_token}.
+     */
+    private String fetchExchangedAccessToken(final URL authApiBase, final String serviceName, final String accessToken,
+                                             final String version) throws IOException {
+        final URL url = buildAuthTokenExchangeUrl(authApiBase, serviceName, accessToken, version);
+        final JSONObject json = getJSON(url);
+        try {
+            return json.getString("access_token");
+        } catch (JSONException e) {
+            throw new IOException("invalid token exchange JSON response", e);
+        }
+    }
+
+    static URL buildAuthTokenExchangeUrl(final URL authBase, final String serviceName, final String accessToken,
+                                         final String version) throws MalformedURLException {
+        final String path = "v1/token/exchange/" + serviceName;
+        final StringBuilder q = new StringBuilder();
+        q.append("access_token=").append(NetUtil.encode(accessToken));
+        if (version != null && !version.isEmpty()) {
+            q.append("&version=").append(NetUtil.encode(version));
+        }
+        return new URL(authBase.toExternalForm() + "/" + path + "?" + q);
     }
 
     private URL buildExchangeURL(final String serviceName, final String token, final String version) {
@@ -231,7 +289,19 @@ public class PermissionsAPIClient {
         }
     }
 
-    private static JSONObject postJsonEntity(final URL url, final String jsonEntity) throws IOException {
+    private static JSONObject getJSON(final URL url) throws IOException {
+        final HttpGet get = new HttpGet(url, true);
+        get.setRequestProperty("Accept", "application/json");
+        try {
+            get.prepare();
+        } catch (Throwable t) {
+            final int code = get.getResponseCode();
+            throw new IOException("HTTP transfer failed: " + code + ": " + t.getMessage(), t);
+        }
+        return new JSONObject(new JSONTokener(get.getInputStream()));
+    }
+
+    private static JSONObject postJSON(final URL url, final String jsonEntity) throws IOException {
         final HttpPost post =
                 new HttpPost(url, new FileContent(jsonEntity, PermissionsAPIClient.JSON_CONTENT_TYPE,
                         StandardCharsets.UTF_8), false);
