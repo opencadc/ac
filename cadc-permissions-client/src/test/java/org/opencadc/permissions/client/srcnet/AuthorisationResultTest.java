@@ -80,4 +80,28 @@ public class AuthorisationResultTest {
         r = AuthorisationResult.parse(new JSONObject("{\"is_authorised\":false}"));
         Assert.assertFalse(r.isAuthorised);
     }
+
+    @Test
+    public void parseExchangeAuthorisationResultWithAudience() {
+        ExchangeAuthorisationResult r = ExchangeAuthorisationResult.parse(
+                new JSONObject("{\"is_authorised\":true,\"audience\":\"data-management-api\"}"));
+        Assert.assertTrue(r.isAuthorised);
+        Assert.assertEquals("data-management-api", r.audience);
+    }
+
+    @Test
+    public void parseExchangeAuthorisationResultNullAudience() {
+        ExchangeAuthorisationResult r = ExchangeAuthorisationResult.parse(
+                new JSONObject("{\"is_authorised\":true,\"audience\":null}"));
+        Assert.assertTrue(r.isAuthorised);
+        Assert.assertNull(r.audience);
+    }
+
+    @Test
+    public void parseExchangeAuthorisationResultNotAuthorised() {
+        ExchangeAuthorisationResult r = ExchangeAuthorisationResult.parse(
+                new JSONObject("{\"is_authorised\":false}"));
+        Assert.assertFalse(r.isAuthorised);
+        Assert.assertNull(r.audience);
+    }
 }
