@@ -22,10 +22,9 @@ import org.junit.Test;
  * Live calls to a deployed Permissions API (OpenAPI
  * <a href="https://permissions.srcnet.skao.int/api/openapi.json">permissions.srcnet.skao.int</a>).
  * <p>
- * Set {@code PERMISSIONS_API_INT_TEST_BASE_URL} (e.g. {@code https://permissions.srcnet.skao.int}) and
- * {@code PERMISSIONS_API_INT_TEST_TOKEN} (access token for the {@code token} query parameter).
- * For {@link PermissionsAPIClient#authorisePlugin} and {@link PermissionsAPIClient#authoriseRoute}, also set
- * {@code AUTH_API_INT_TEST_BASE_URL} (SRCNet Auth API base URL).
+ * Set {@code PERMISSIONS_API_INT_TEST_BASE_URL} (e.g. {@code https://permissions.srcnet.skao.int}),
+ * {@code AUTH_API_INT_TEST_BASE_URL}, and {@code PERMISSIONS_API_INT_TEST_TOKEN} (access token for the
+ * {@code token} query parameter).
  * Optional: {@code PERMISSIONS_API_INT_TEST_PLUGIN_SERVICE} (defaults to {@code echo}),
  * {@code PERMISSIONS_API_INT_TEST_EXCHANGE_SERVICE} (defaults to {@code accounting-api}; exchange authorisation test),
  * {@code PERMISSIONS_API_INT_TEST_ROUTE_SERVICE}, {@code PERMISSIONS_API_INT_TEST_ROUTE_PATH},
@@ -68,17 +67,22 @@ public class PermissionsAPIClientIntTest {
     @Test
     public void testLiveAuthoriseExchange() throws Exception {
         final String base = System.getenv(ENV_BASE_URL);
+        final String authBase = System.getenv(ENV_AUTH_BASE_URL);
         final String token = System.getenv(ENV_TOKEN);
         Assume.assumeTrue(
-                "Set " + ENV_BASE_URL + " and " + ENV_TOKEN + " to run this integration test",
-                base != null && !base.trim().isEmpty() && token != null && !token.isEmpty());
+                "Set " + ENV_BASE_URL + ", " + ENV_AUTH_BASE_URL + ", and " + ENV_TOKEN
+                        + " to run this integration test",
+                base != null && !base.trim().isEmpty()
+                        && authBase != null && !authBase.trim().isEmpty()
+                        && token != null && !token.isEmpty());
 
         String exchangeService = System.getenv(ENV_EXCHANGE_SERVICE);
         if (exchangeService == null || exchangeService.isEmpty()) {
             exchangeService = "accounting-api";
         }
 
-        final PermissionsAPIClient client = new PermissionsAPIClient(new URL(base.trim()));
+        final PermissionsAPIClient client =
+                new PermissionsAPIClient(new URL(base.trim()), new URL(authBase.trim()));
         final ExchangeAuthorisationResult result = client.authoriseExchange(exchangeService, token, null);
         Assert.assertNotNull(result);
     }
