@@ -1,0 +1,314 @@
+/*
+ ************************************************************************
+ *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+ **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+ *
+ *  (c) 2026.                            (c) 2026.
+ *  Government of Canada                 Gouvernement du Canada
+ *  National Research Council            Conseil national de recherches
+ *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+ *  All rights reserved                  Tous droits réservés
+ *
+ *  NRC disclaims any warranties,        Le CNRC dénie toute garantie
+ *  expressed, implied, or               énoncée, implicite ou légale,
+ *  statutory, of any kind with          de quelque nature que ce
+ *  respect to the software,             soit, concernant le logiciel,
+ *  including without limitation         y compris sans restriction
+ *  any warranty of merchantability      toute garantie de valeur
+ *  or fitness for a particular          marchande ou de pertinence
+ *  purpose. NRC shall not be            pour un usage particulier.
+ *  liable in any event for any          Le CNRC ne pourra en aucun cas
+ *  damages, whether direct or           être tenu responsable de tout
+ *  indirect, special or general,        dommage, direct ou indirect,
+ *  consequential or incidental,         particulier ou général,
+ *  arising from the use of the          accessoire ou fortuit, résultant
+ *  software.  Neither the name          de l'utilisation du logiciel. Ni
+ *  of the National Research             le nom du Conseil National de
+ *  Council of Canada nor the            Recherches du Canada ni les noms
+ *  names of its contributors may        de ses  participants ne peuvent
+ *  be used to endorse or promote        être utilisés pour approuver ou
+ *  products derived from this           promouvoir les produits dérivés
+ *  software without specific prior      de ce logiciel sans autorisation
+ *  written permission.                  préalable et particulière
+ *                                       par écrit.
+ *
+ *  This file is part of the             Ce fichier fait partie du projet
+ *  OpenCADC project.                    OpenCADC.
+ *
+ *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
+ *  you can redistribute it and/or       vous pouvez le redistribuer ou le
+ *  modify it under the terms of         modifier suivant les termes de
+ *  the GNU Affero General Public        la “GNU Affero General Public
+ *  License as published by the          License” telle que publiée
+ *  Free Software Foundation,            par la Free Software Foundation
+ *  either version 3 of the              : soit la version 3 de cette
+ *  License, or (at your option)         licence, soit (à votre gré)
+ *  any later version.                   toute version ultérieure.
+ *
+ *  OpenCADC is distributed in the       OpenCADC est distribué
+ *  hope that it will be useful,         dans l’espoir qu’il vous
+ *  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+ *  without even the implied             GARANTIE : sans même la garantie
+ *  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+ *  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+ *  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+ *  General Public License for           Générale Publique GNU Affero
+ *  more details.                        pour plus de détails.
+ *
+ *  You should have received             Vous devriez avoir reçu une
+ *  a copy of the GNU Affero             copie de la Licence Générale
+ *  General Public License along         Publique GNU Affero avec
+ *  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+ *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+ *                                       <http://www.gnu.org/licenses/>.
+ *
+ ************************************************************************
+ */
+
+package org.opencadc.permissions.client.srcnet;
+
+import ca.nrc.cadc.net.FileContent;
+import ca.nrc.cadc.net.HttpGet;
+import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.NetUtil;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+
+import org.apache.log4j.Logger;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+/**
+ * HTTP client for the SKAO Permissions API {@code /v1/authorise} endpoints.
+ *
+ * <p>{@link #authorisePlugin} and {@link #authoriseRoute} perform an exchange authorisation check, obtain a
+ * service-scoped access token via the SRCNet Auth API {@code GET /v1/token/exchange/{service}}, then call the
+ * plugin/route endpoints with that token.
+ *
+ * <p>Both Permissions and Auth API base URLs are {@linkplain #PermissionsAPIClient(URL, URL) required} at construct time.
+ *
+ * <p>Endpoint shapes for the Permissions API follow the service OpenAPI:
+ * <a href="https://permissions.srcnet.skao.int/api/openapi.json">https://permissions.srcnet.skao.int/api/openapi.json</a>
+ */
+public class PermissionsAPIClient {
+    private static final Logger LOGGER = Logger.getLogger(PermissionsAPIClient.class);
+    private static final String JSON_CONTENT_TYPE = "application/json";
+
+    private final URL baseURL;
+    private final URL authApiBaseURL;
+
+    /**
+     * @param baseServiceURL  Permissions API base URL
+     * @param authApiBaseURL  SRCNet Auth API base URL (used for plugin/route token exchange); must not be null
+     */
+    public PermissionsAPIClient(final URL baseServiceURL, final URL authApiBaseURL) {
+        Objects.requireNonNull(baseServiceURL, "Base service URL cannot be null");
+        Objects.requireNonNull(authApiBaseURL, "Auth API base URL cannot be null");
+        this.baseURL = normalizeBase(baseServiceURL);
+        this.authApiBaseURL = normalizeBase(authApiBaseURL);
+    }
+
+    /**
+     * POST {@code /v1/authorise/exchange/{service}} (no JSON body).
+     *
+     * @param version optional service version; if null or empty the server default applies
+     */
+    public ExchangeAuthorisationResult authoriseExchange(final String serviceName, final String token,
+                                                         final String version) throws IOException {
+        assertArg(serviceName, "serviceName");
+        assertArg(token, "token");
+        LOGGER.debug("Authorising exchange for service " + serviceName + " version " + version);
+        final URL url = buildExchangeURL(serviceName, token, version);
+        LOGGER.debug("Exchange URL: " + url);
+
+        // Empty JSON for the exchange request.
+        final JSONObject json = PermissionsAPIClient.postJSON(url, "");
+        try {
+            return ExchangeAuthorisationResult.parse(json);
+        } catch (JSONException e) {
+            throw new IOException("invalid JSON response", e);
+        }
+    }
+
+    /**
+     * POST {@code /v1/authorise/plugin/{service}} using a token obtained from {@code authoriseExchange} and the
+     * Auth API token exchange.
+     *
+     * @param requestBody JSON body; null is treated as {@code {}}
+     */
+    public AuthorisationResult authorisePlugin(final String serviceName, final String token,
+                                               final JSONObject requestBody, final String version) throws IOException {
+        assertArg(serviceName, "serviceName");
+        assertArg(token, "token");
+        LOGGER.debug("Authorising plugin for service " + serviceName + " version " + version);
+        final ExchangeAuthorisationResult exchange = authoriseExchange(serviceName, token, version);
+        if (!exchange.isAuthorised) {
+            return new AuthorisationResult(false);
+        }
+        final String accessToken = fetchExchangedAccessToken(serviceName, token, version);
+        final JSONObject body = requestBody != null ? requestBody : new JSONObject();
+        final URL url = buildPluginURL(serviceName, accessToken, version);
+        LOGGER.debug("Plugin URL: " + url);
+        final JSONObject json = PermissionsAPIClient.postJSON(url, body.toString());
+        try {
+            return AuthorisationResult.parse(json);
+        } catch (JSONException e) {
+            throw new IOException("invalid JSON response", e);
+        }
+    }
+
+    /**
+     * POST {@code /v1/authorise/route/{service}} using a token obtained from {@code authoriseExchange} and the
+     * Auth API token exchange.
+     *
+     * @param route       required route query parameter
+     * @param httpMethod  optional HTTP method; if null the server default applies
+     * @param requestBody JSON body; null is treated as {@code {}}
+     */
+    public AuthorisationResult authoriseRoute(final String serviceName, final String route, final String token,
+                                              final String httpMethod, final JSONObject requestBody,
+                                              final String version) throws IOException {
+        assertArg(serviceName, "serviceName");
+        assertArg(route, "route");
+        assertArg(token, "token");
+        LOGGER.debug("Authorising route for service " + serviceName + " version " + version);
+        final ExchangeAuthorisationResult exchange = authoriseExchange(serviceName, token, version);
+        if (!exchange.isAuthorised) {
+            return new AuthorisationResult(false);
+        }
+        final String accessToken = fetchExchangedAccessToken(serviceName, token, version);
+        final JSONObject body = requestBody != null ? requestBody : new JSONObject();
+        final URL url = buildRouteURL(serviceName, route, accessToken, httpMethod, version);
+        LOGGER.debug("Route URL: " + url);
+        final JSONObject json = PermissionsAPIClient.postJSON(url, body.toString());
+        try {
+            return AuthorisationResult.parse(json);
+        } catch (JSONException e) {
+            throw new IOException("invalid JSON response", e);
+        }
+    }
+
+    /**
+     * GET {@code /v1/token/exchange/{service}}; response body must contain {@code access_token}.
+     */
+    private String fetchExchangedAccessToken(final String serviceName, final String accessToken, final String version)
+            throws IOException {
+        final URL url = buildAuthTokenExchangeUrl(this.authApiBaseURL, serviceName, accessToken, version);
+        final JSONObject json = getJSON(url);
+        try {
+            return json.getString("access_token");
+        } catch (JSONException e) {
+            throw new IOException("invalid token exchange JSON response", e);
+        }
+    }
+
+    static URL buildAuthTokenExchangeUrl(final URL authBase, final String serviceName, final String accessToken,
+                                         final String version) throws MalformedURLException {
+        final String path = "v1/token/exchange/" + serviceName;
+        final StringBuilder q = new StringBuilder();
+        q.append("access_token=").append(NetUtil.encode(accessToken));
+        if (version != null && !version.isEmpty()) {
+            q.append("&version=").append(NetUtil.encode(version));
+        }
+        return new URL(authBase.toExternalForm() + "/" + path + "?" + q);
+    }
+
+    private URL buildExchangeURL(final String serviceName, final String token, final String version) {
+        final String q = queryTokenVersion(token, version);
+        final String path = "v1/authorise/exchange/" + serviceName;
+        try {
+            return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("BUG: failed to create valid Permissions API exchange request", e);
+        }
+    }
+
+    private URL buildPluginURL(final String serviceName, final String token, final String version) {
+        final String q = queryTokenVersion(token, version);
+        final String path = "v1/authorise/plugin/" + serviceName;
+
+        try {
+            return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("BUG: failed to create valid Permissions API plugin request", e);
+        }
+    }
+
+    private static String queryTokenVersion(final String token, final String version) {
+        final StringBuilder q = new StringBuilder();
+        q.append("token=").append(NetUtil.encode(token));
+        if (version != null && !version.isEmpty()) {
+            q.append("&version=").append(NetUtil.encode(version));
+        }
+        return q.toString();
+    }
+
+    private URL buildRouteURL(final String serviceName, final String route, final String token,
+                              final String httpMethod, final String version) {
+        final StringBuilder q = new StringBuilder();
+        q.append("route=").append(NetUtil.encode(route));
+        q.append("&token=").append(NetUtil.encode(token));
+        if (httpMethod != null && !httpMethod.isEmpty()) {
+            q.append("&method=").append(NetUtil.encode(httpMethod));
+        }
+        if (version != null && !version.isEmpty()) {
+            q.append("&version=").append(NetUtil.encode(version));
+        }
+        final String path = "v1/authorise/route/" + serviceName;
+
+        try {
+            return new URL(baseURL.toExternalForm() + "/" + path + "?" + q);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("BUG: failed to create valid Permissions API route request", e);
+        }
+    }
+
+    private static URL normalizeBase(final URL u) {
+        try {
+            final String s = u.toExternalForm();
+            if (s.endsWith("/")) {
+                return new URL(s.substring(0, s.length() - 1));
+            }
+            return u;
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
+    private static void assertArg(final String value, final String name) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalArgumentException("invalid " + name + ": null or empty");
+        }
+    }
+
+    private static JSONObject getJSON(final URL url) throws IOException {
+        final HttpGet get = new HttpGet(url, true);
+        get.setRequestProperty("Accept", "application/json");
+        try {
+            get.prepare();
+        } catch (Throwable t) {
+            final int code = get.getResponseCode();
+            throw new IOException("HTTP transfer failed: " + code + ": " + t.getMessage(), t);
+        }
+        return new JSONObject(new JSONTokener(get.getInputStream()));
+    }
+
+    private static JSONObject postJSON(final URL url, final String jsonEntity) throws IOException {
+        final HttpPost post =
+                new HttpPost(url, new FileContent(jsonEntity, PermissionsAPIClient.JSON_CONTENT_TYPE,
+                        StandardCharsets.UTF_8), false);
+        post.setRequestProperty("Accept", "application/json");
+        try {
+            post.prepare();
+        } catch (Throwable t) {
+            final int code = post.getResponseCode();
+            throw new IOException("HTTP transfer failed: " + code + ": " + t.getMessage(), t);
+        }
+
+        return new JSONObject(new JSONTokener(post.getInputStream()));
+    }
+}
