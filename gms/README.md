@@ -25,6 +25,10 @@ See <a href="https://github.com/opencadc/core/tree/master/cadc-util">cadc-util</
 
 See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-registry</a>.
 
+### ac-ldap-config.properties
+
+See <a href="https://github.com/opencadc/ac/tree/master/cadc-access-control-server">cadc-access-control-server</a>.
+
 ### gms.properties
 TBD. At minimum, the following properties are required:
 - Corresponding user service base URL and the name of the user identity attribute.

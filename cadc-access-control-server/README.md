@@ -43,8 +43,90 @@ relational database).
 
 ## CONFIGURATION
 
-The service requires the following configuration files:
-.dbrc: stores data source configuration for the LDAP server
-ldap.properties: stores LDAP connection configuration
+See the [cadc-java](https://github.com/opencadc/docker-base/tree/master/cadc-java)
+image docs for general config requirements.
+
+Runtime configuration must be made available via the `/config` directory.
+
+### ac-ldap-config.properties
+
+This file configures connection to the back-end LDAP server. A template is provided in
+[this module](ac-ldap-config.properties).
+
+All three connection pools must be configured. Setting a pool's `poolMaxSize` to `0` affects
+service availability:
+
+- `readOnly.poolMaxSize = 0` or `unboundReadOnly.poolMaxSize = 0` puts the service in **offline** mode
+- `readWrite.poolMaxSize = 0` puts the service in **read-only** mode
+
+```
+################## Read-only connection pool ##################
+# space-separated list of hosts
+readOnly.servers = {ldap server}
+readOnly.poolInitSize = 1
+readOnly.poolMaxSize = 1
+# roundRobin || fewestConnections || fastestConnect
+readOnly.poolPolicy = roundRobin
+readOnly.maxWait = 30000
+readOnly.createIfNeeded = false
+# optional; 389, 636, or omit to use the default port below
+readOnly.port = 636
+
+################## Read-write connection pool #################
+# space-separated list of hosts
+readWrite.servers = {ldap server}
+readWrite.poolInitSize = 1
+readWrite.poolMaxSize = 1
+# roundRobin || fewestConnections
+readWrite.poolPolicy = roundRobin
+readWrite.maxWait = 30000
+readWrite.createIfNeeded = false
+# optional; 389, 636, or omit to use the default port below
+readWrite.port = 636
+
+############## Unbound-read-only connection pool ##############
+# space-separated list of hosts
+unboundReadOnly.servers = {ldap server}
+unboundReadOnly.poolInitSize = 1
+unboundReadOnly.poolMaxSize = 1
+# roundRobin || fewestConnections
+unboundReadOnly.poolPolicy = roundRobin
+unboundReadOnly.maxWait = 30000
+unboundReadOnly.createIfNeeded = false
+# optional; 389, 636, or omit to use the default port below
+unboundReadOnly.port = 636
+
+########## server configuration -- applies to all pools #######
+port = 636
+proxyUser = uid=webproxy,ou=SpecialUsers,dc=canfar,dc=net
+proxyPassword = {webproxy ldap password}
+usersDN = ou=Users,ou=ds,dc=canfar,dc=net
+userRequestsDN = ou=userRequests,ou=ds,dc=canfar,dc=net
+groupsDN = ou=Groups,ou=ds,dc=canfar,dc=net
+adminGroupsDN = ou=adminGroups,ou=ds,dc=canfar,dc=net
+```
+
+Property summary:
+
+| property | required | description |
+|----------|----------|-------------|
+| `{pool}.servers` | yes | Space-separated list of LDAP host names |
+| `{pool}.poolInitSize` | yes | Initial number of connections in the pool |
+| `{pool}.poolMaxSize` | yes | Maximum number of connections in the pool |
+| `{pool}.poolPolicy` | yes | Load-balancing policy for the pool |
+| `{pool}.maxWait` | yes | Connection wait timeout in milliseconds |
+| `{pool}.createIfNeeded` | yes | Whether to create connections beyond `poolMaxSize` |
+| `{pool}.port` | no | LDAP port for this pool; defaults to `port` |
+| `port` | yes* | Default LDAP port (389 or 636) when a pool port is omitted |
+| `proxyUser` | yes | DN of the LDAP proxy user |
+| `proxyPassword` | yes | Password for the LDAP proxy user |
+| `usersDN` | yes | DN of the users branch |
+| `userRequestsDN` | yes | DN of the new-user-requests branch |
+| `groupsDN` | yes | DN of the groups branch |
+| `adminGroupsDN` | yes | DN of the admin-groups branch |
+
+\* Required unless every pool specifies its own `{pool}.port`.
+
+The `fastestConnect` pool policy is supported for the read-only pool only.
 
 
