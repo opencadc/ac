@@ -1,2 +1,2 @@
 #server	proxyuser proxyUserDN password driver serverURL
-<server hostname> <proxyUser in LdapConfig.properties> <proxyUserLdapDN> <password> N/A N/A
+<server hostname> <proxyUser in ac-ldap-config.properties> <proxyUserLdapDN> <password> N/A N/A
