@@ -45,7 +45,6 @@ unboundReadOnly.maxWait = 30000
 unboundReadOnly.createIfNeeded = false
 
 ########## server configuration -- applies to all servers #####
-dbrcHost = devLdap
 port = 636
 proxyUser = uid=webproxy,ou=SpecialUsers,dc=canfar,dc=net
 proxyPassword = {webproxy ldap password}

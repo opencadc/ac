@@ -27,6 +27,11 @@ See <a href="https://github.com/opencadc/core/tree/master/cadc-util">cadc-util</
 See <a href="https://github.com/opencadc/reg/tree/master/cadc-registry">cadc-registry</a>.
 Note: this configuration file will soon be deprecated in favour of using the `ac.properties` file.
 
+### ac-ldap-config.properties
+
+See <a href="https://github.com/opencadc/ac/tree/master/cadc-access-control-server">cadc-access-control-server</a>.
+Note: this configuration file will soon be deprecated in favour of using the `ac.properties` file.
+
 ### cadc-log.properties (optional)
 See <a href="https://github.com/opencadc/core/tree/master/cadc-log">cadc-log</a> for common
 dynamic logging control.
@@ -43,13 +48,27 @@ org.opencadc.ac.readUser = cn={user},ou={org},o={org},c={country}
 ```
 X.509 DNs of privileged users with read access to any group.
 
+### ac-group-names.properties
+
+See <a href="src/test/resources/ac-group-names.properties">ac-group-names.properties</a>.
+Note: this configuration file will soon be deprecated in favour of using the `ac.properties` file.
+
+### ac-oidc-clients.properties
+
+See <a href="../cadc-access-control-server/src/test/config/ac-oidc-clients.properties">ac-oidc-clients.properties</a>.
+Note: this configuration file will soon be deprecated in favour of using the `ac.properties` file.
+
+### ac-domains.properties
+
+Space-separated list of domains included in OIDC access tokens for single sign-on:
+```
+domains = domain1 domain2
+```
+Note: this configuration file will soon be deprecated in favour of using the `ac.properties` file.
+
 ## TODO
 ### technical debt
-This service currently uses other configuration files that will be deprecated in future releases:
-- ac-oidc-clients.properties
-- ac-ldap-config.properties
-- ac-domains.properties
-- ac-group-names.properties
+Several configuration files listed above will be consolidated into `ac.properties` in future releases.
 
 ## building it
 ```

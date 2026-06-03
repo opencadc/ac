@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2023.                            (c) 2023.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,7 +72,9 @@ package ca.nrc.cadc.ac.server.ldap;
 import ca.nrc.cadc.util.MultiValuedProperties;
 import ca.nrc.cadc.util.PropertiesReader;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceConfigurationError;
 import org.apache.log4j.Logger;
 
@@ -96,6 +98,7 @@ public class LdapConfig {
     public static final String POOL_MAX_SIZE = "poolMaxSize";
     public static final String POOL_POLICY = "poolPolicy";
     public static final String POOL_PORT = "port";
+    public static final String POOL_SECURE = "secure";
     public static final String MAX_WAIT = "maxWait";
     public static final String CREATE_IF_NEEDED = "createIfNeeded";
 
@@ -107,7 +110,7 @@ public class LdapConfig {
     public static final String LDAP_GROUPS_DN = "groupsDN";
     public static final String LDAP_ADMIN_GROUPS_DN = "adminGroupsDN";
 
-    private final static int SECURE_PORT = 636;
+    private static final int SECURE_PORT = 636;
 
     public enum PoolPolicy {
         roundRobin,
@@ -126,6 +129,7 @@ public class LdapConfig {
         private int initSize;
         private int maxSize;
         private int port;
+        private boolean secure;
         private PoolPolicy policy;
         private long maxWait;
         private boolean createIfNeeded;
@@ -151,7 +155,7 @@ public class LdapConfig {
         }
 
         public boolean isSecure() {
-            return getPort() == SECURE_PORT;
+            return secure;
         }
 
         public long getMaxWait() {
@@ -170,6 +174,7 @@ public class LdapConfig {
                 sb.append(" [" + server + "]");
             }
             sb.append(" port: " + port);
+            sb.append(" secure: " + secure);
             sb.append(" initSize: " + initSize);
             sb.append(" maxSize: " + maxSize);
             sb.append(" policy: " + policy);
@@ -180,37 +185,47 @@ public class LdapConfig {
 
         @Override
         public boolean equals(Object other) {
-            if (other == null || !(other instanceof LdapPool))
+            if (other == null || !(other instanceof LdapPool)) {
                 return false;
+            }
 
             LdapPool l = (LdapPool) other;
 
-            if (l.port != port)
+            if (l.port != port) {
                 return false;
+            }
 
-            if (!l.servers.equals(servers))
+            if (l.secure != secure) {
                 return false;
+            }
 
-            if (l.initSize != initSize)
+            if (!l.servers.equals(servers)) {
                 return false;
+            }
 
-            if (l.maxSize != maxSize)
+            if (l.initSize != initSize) {
                 return false;
+            }
 
-            if (!(l.policy.equals(policy)))
+            if (l.maxSize != maxSize) {
                 return false;
+            }
 
-            if (!(l.maxWait == maxWait))
+            if (!(l.policy.equals(policy))) {
                 return false;
+            }
 
-            if (!(l.createIfNeeded == createIfNeeded))
+            if (!(l.maxWait == maxWait)) {
                 return false;
+            }
+
+            if (!(l.createIfNeeded == createIfNeeded)) {
+                return false;
+            }
 
             return true;
         }
     }
-
-    ;
 
     private LdapPool readOnlyPool = new LdapPool();
     private LdapPool readWritePool = new LdapPool();
@@ -251,6 +266,8 @@ public class LdapConfig {
         loadPoolConfig(ldapConfig.readWritePool, config, READWRITE_PREFIX);
         loadPoolConfig(ldapConfig.unboundReadOnlyPool, config, UB_READONLY_PREFIX);
 
+        validatePortSecureConsistency(ldapConfig);
+
         String defaultPort = config.getFirstPropertyValue(DEFAULT_LDAP_PORT);
         if (defaultPort != null) {
             ldapConfig.defaultPort = Integer.parseInt(defaultPort);
@@ -273,8 +290,8 @@ public class LdapConfig {
         pool.maxSize = Integer.parseInt(getProperty(pr, prefix + POOL_MAX_SIZE));
         pool.policy = PoolPolicy.valueOf(getProperty(pr, prefix + POOL_POLICY));
 
-        // Set the port to use for this pool's servers.  Default to the parent port config so that the isSecure()
-        // method still works.  Throw an Exception if no port found.
+        // Set the port to use for this pool's servers.  Default to the parent port config.  Throw an Exception
+        // if no port found.
         String port = pr.getFirstPropertyValue(prefix + POOL_PORT);
         if (port != null) {
             pool.port = Integer.parseInt(port);
@@ -287,13 +304,44 @@ public class LdapConfig {
                 pool.port = Integer.parseInt(port);
             }
         }
+        String secure = pr.getFirstPropertyValue(prefix + POOL_SECURE);
+        if (secure != null) {
+            pool.secure = Boolean.parseBoolean(secure);
+        } else {
+            pool.secure = pool.port == SECURE_PORT;
+        }
         if (pool.policy == PoolPolicy.fastestConnect && !prefix.equals(READONLY_PREFIX)) {
-            throw new ServiceConfigurationError(PoolPolicy.fastestConnect.toString() +
-                    " pool policy cannot be applied to " +
-                    prefix.substring(0, prefix.length() - 1) + " pool servers.");
+            throw new ServiceConfigurationError(PoolPolicy.fastestConnect.toString()
+                    + " pool policy cannot be applied to "
+                    + prefix.substring(0, prefix.length() - 1) + " pool servers.");
         }
         pool.maxWait = Long.parseLong(getProperty(pr, prefix + MAX_WAIT));
         pool.createIfNeeded = Boolean.parseBoolean(getProperty(pr, prefix + CREATE_IF_NEEDED));
+    }
+
+    private static void validatePortSecureConsistency(LdapConfig ldapConfig) {
+        Map<Integer, Boolean> portSecure = new HashMap<Integer, Boolean>();
+        Map<Integer, String> portPool = new HashMap<Integer, String>();
+        checkPoolPortSecure(READONLY_PREFIX, ldapConfig.getReadOnlyPool(), portSecure, portPool);
+        checkPoolPortSecure(READWRITE_PREFIX, ldapConfig.getReadWritePool(), portSecure, portPool);
+        checkPoolPortSecure(UB_READONLY_PREFIX, ldapConfig.getUnboundReadOnlyPool(), portSecure, portPool);
+    }
+
+    private static void checkPoolPortSecure(String prefix, LdapPool pool,
+            Map<Integer, Boolean> portSecure, Map<Integer, String> portPool) {
+        int port = pool.getPort();
+        boolean secure = pool.isSecure();
+        String poolName = prefix.substring(0, prefix.length() - 1);
+        if (portSecure.containsKey(port)) {
+            if (portSecure.get(port).booleanValue() != secure) {
+                throw new ServiceConfigurationError("Inconsistent secure setting for port " + port + ": "
+                        + portPool.get(port) + " has secure=" + portSecure.get(port)
+                        + " but " + poolName + " has secure=" + secure);
+            }
+        } else {
+            portSecure.put(port, secure);
+            portPool.put(port, poolName);
+        }
     }
 
     private static String getProperty(MultiValuedProperties properties, String key) {
@@ -331,40 +379,60 @@ public class LdapConfig {
         return SystemState.ONLINE;
     }
 
+    /**
+     * Check if in read-only or offline mode.
+     *
+     * <p>A read max connection size of zero implies offline mode.
+     * A read-wrtie max connection size of zero implies read-only mode.
+     */
+    public SystemState getSystemState() {
+        return systemState;
+    }
+
 
     @Override
     public boolean equals(Object other) {
-        if (other == null || !(other instanceof LdapConfig))
+        if (other == null || !(other instanceof LdapConfig)) {
             return false;
+        }
 
         LdapConfig l = (LdapConfig) other;
 
-        if (!(l.defaultPort == defaultPort))
+        if (!(l.defaultPort == defaultPort)) {
             return false;
+        }
 
-        if (!(l.usersDN.equals(usersDN)))
+        if (!(l.usersDN.equals(usersDN))) {
             return false;
+        }
 
-        if (!(l.userRequestsDN.equals(userRequestsDN)))
+        if (!(l.userRequestsDN.equals(userRequestsDN))) {
             return false;
+        }
 
-        if (!(l.groupsDN.equals(groupsDN)))
+        if (!(l.groupsDN.equals(groupsDN))) {
             return false;
+        }
 
-        if (!(l.adminGroupsDN.equals(adminGroupsDN)))
+        if (!(l.adminGroupsDN.equals(adminGroupsDN))) {
             return false;
+        }
 
-        if (!(l.proxyUserDN.equals(proxyUserDN)))
+        if (!(l.proxyUserDN.equals(proxyUserDN))) {
             return false;
+        }
 
-        if (!(l.readOnlyPool.equals(readOnlyPool)))
+        if (!(l.readOnlyPool.equals(readOnlyPool))) {
             return false;
+        }
 
-        if (!(l.readWritePool.equals(readWritePool)))
+        if (!(l.readWritePool.equals(readWritePool))) {
             return false;
+        }
 
-        if (!(l.unboundReadOnlyPool.equals(unboundReadOnlyPool)))
+        if (!(l.unboundReadOnlyPool.equals(unboundReadOnlyPool))) {
             return false;
+        }
 
         return true;
     }
@@ -410,16 +478,6 @@ public class LdapConfig {
 
     public String getAdminPasswd() {
         return this.proxyPasswd;
-    }
-
-    /**
-     * Check if in read-only or offline mode.
-     * <p>
-     * A read max connection size of zero implies offline mode.
-     * A read-wrtie max connection size of zero implies read-only mode.
-     */
-    public SystemState getSystemState() {
-        return systemState;
     }
 
     public String toString() {

@@ -44,7 +44,66 @@ relational database).
 ## CONFIGURATION
 
 The service requires the following configuration files:
-.dbrc: stores data source configuration for the LDAP server
-ldap.properties: stores LDAP connection configuration
+- `ac-ldap-config.properties`: stores LDAP connection and pool configuration
 
+### ac-ldap-config.properties
+
+This file configures connection to the back-end LDAP server. Three connection pools must be defined:
+read-only, read-write, and unbound read-only.
+
+```
+################## Read-only connection pool ##################
+# space separated list of hosts
+readOnly.servers = {ldap server}
+readOnly.port = 389
+readOnly.secure = false
+readOnly.poolInitSize = 1
+readOnly.poolMaxSize = 1
+# <roundRobin || fewestConnections || fastestConnect>
+readOnly.poolPolicy = roundRobin
+readOnly.maxWait = 30000
+readOnly.createIfNeeded = false
+
+################## Read-write connection pool #################
+# space separated list of hosts
+readWrite.servers = {ldap server}
+readWrite.port = 636
+readWrite.secure = true
+readWrite.poolInitSize = 1
+readWrite.poolMaxSize = 1
+# <roundRobin || fewestConnections>
+readWrite.poolPolicy = roundRobin
+readWrite.maxWait = 30000
+readWrite.createIfNeeded = false
+
+############## Unbound-Read-only connection pool ##############
+# space separated list of hosts
+unboundReadOnly.servers = {ldap server}
+unboundReadOnly.port = 636
+unboundReadOnly.secure = true
+unboundReadOnly.poolInitSize = 1
+unboundReadOnly.poolMaxSize = 1
+# <roundRobin || fewestConnections>
+unboundReadOnly.poolPolicy = roundRobin
+unboundReadOnly.maxWait = 30000
+unboundReadOnly.createIfNeeded = false
+
+########## server configuration -- applies to all servers #####
+port = 636
+proxyUser = uid=webproxy,ou=SpecialUsers,dc=canfar,dc=net
+proxyPassword = {webproxy ldap password}
+usersDN = ou=Users,ou=ds,dc=canfar,dc=net
+userRequestsDN = ou=userRequests,ou=ds,dc=canfar,dc=net
+groupsDN = ou=Groups,ou=ds,dc=canfar,dc=net
+adminGroupsDN = ou=adminGroups,ou=ds,dc=canfar,dc=net
+```
+
+Each pool may specify its own `port`. If omitted, the default `port` at the bottom of the file is used.
+
+Each pool may also specify `secure` to indicate whether connections use TLS. When omitted,
+`secure` defaults to `true` when the pool port is 636 and `false` otherwise. Set `secure = true`
+explicitly when using a non-standard port for LDAPS (for example, `readOnly.port = 10636` with
+`readOnly.secure = true`).
+
+See also [ac-ldap-config.properties](ac-ldap-config.properties) for a template with all supported keys.
 
