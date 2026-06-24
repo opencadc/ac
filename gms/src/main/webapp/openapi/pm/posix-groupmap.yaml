@@ -1,0 +1,125 @@
+get:
+  operationId: get-groupmap
+  tags:
+    - POSIX Groups
+  summary: get local posix info for groups
+  parameters:
+    - name: group
+      in: query
+      description: request only specified group records
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+        example:
+          - "ivo://foo.net/gms?group1"
+          - "ivo://foo.net/gms?group2"
+          - "ivo://bar.net/gms?group1"
+    - name: gid
+      in: query
+      description: request group record(s) by posix gid
+      schema:
+        type: array
+        items:
+          type: integer
+        example:
+          - 10001
+          - 10002
+          - 20001
+          - 20002
+  responses:
+    '200':
+      $ref: '#/components/responses/PosixGroups'
+    '401':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+    '403':
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+    '404':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-found
+post:
+  operationId: create-groupmap-entry
+  tags:
+    - POSIX Groups
+  summary: create a local posix info for a group
+  parameters:
+    - name: group
+      in: query
+      description: |
+        create and return a posix group entry for the specified group;
+        the value is an IVOA Group URI as defined by the GMS standard
+      required: false
+      schema:
+        type: string
+        example: "ivo://foo.net/gms?group1"
+  responses:
+    '201':
+      $ref: '#/components/responses/PosixGroups'
+    '401':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+    '403':
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+    '404':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-found
+    '405':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-implemented
+
+components:
+  responses:
+    PosixGroups:
+      description: list of groups with posix details
+      content:
+        text/plain:
+          description: posix groups in /etc/group format
+          schema:
+            type: string
+            example: |
+              foo_group1:x:20001:
+              foo_group2:x:20002
+              bar_group1:x:20003
+        application/x-posix-group+json:
+          description: POSIX group details as JSON array
+          schema:
+            type: array
+            example:
+              - uri: "ivo://foo.net/gms?group1"
+                posix:
+                  name: foo_group1
+                  gid: 20001
+              - uri: "ivo://foo.net/gms?group2"
+                posix:
+                  name: foo_group2
+                  gid: 20002
+              - uri: "ivo://bar.net/gms?group1"
+                posix:
+                  name: bar_group1
+                  gid: 20003
+            items:
+              type: object
+              example:
+                uri: "ivo://foo.net/gms?group1"
+                posix:
+                  name: foo_group1
+                  gid: 20001
+              required:
+                - uri
+                - posix
+              properties:
+                uri:
+                  type: string
+                  example: "ivo://foo.net/gms?group1"
+                posix:
+                  type: object
+                  example:
+                    name: foo_group1
+                    gid: 20001
+                  required:
+                    - name
+                    - gid
+                  properties:
+                    name:
+                      type: string
+                      example: foo_group1
+                    gid:
+                      type: integer
+                      example: 20001

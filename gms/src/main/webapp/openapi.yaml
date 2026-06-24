@@ -1,0 +1,59 @@
+## GMS OpenAPI root: path items under ./openapi/; shared parameters/schemas in ./openapi/components.yaml; standard HTTP error fragments in ./openapi/vosi/vosi-std-responses.yaml (avoid `$ref` from fragments back into this file — that can deadlock libopenapi/vacuum).
+openapi: 3.1.0
+info:
+  title: CANFAR Group Management System (GMS) API
+  description: |
+    This API provides RESTful access to group management operations in the CANFAR Group Management System.
+
+    Groups have an owner, a list of administrators, and a list of members. The list of members and
+    administrators can be composed of groups and users.
+
+    **Roles:**
+    - **owner** - Can modify administrators list and members list. Can delete the group.
+    - **admin** - Can modify the administrators and members list.
+    - **member** - Are granted access to the resources the group is associated with.
+
+    **Authentication Methods:**
+    - **CC** - Client certificates over HTTPS
+    - **JWT** - JWT Bearer token over HTTPS
+    - **AN** - Anonymous over HTTP
+
+    **User Identity:**
+    Users are identified by their unique userID in the Identity Provider (CANFAR HTTP username).
+  version: 1.0.0
+  contact:
+    url: https://www.canfar.net
+tags:
+  - name: Group Management
+    description: Operations for managing groups
+  - name: GMS
+    description: Operations for searching groups by user role (IVOA GMS 1.0)
+  - name: Group Membership
+    description: GMS membership and identity-related queries
+  - name: VOSI Capabilities
+    description: VOSI capability and probe operations
+  - name: Service availability
+    description: Service availability
+  - name: POSIX Groups
+    description: POSIX group id (gid) and group name mapping  
+servers:
+  - url: /gms
+
+paths:
+  /capabilities:
+    $ref: ./openapi/vosi/vosi-capabilities.yaml
+  /availability:
+    $ref: ./openapi/cadcvosi/availability.yaml
+  /groups:
+    $ref: ./openapi/service/group.yaml#/GroupsCollection
+  /groups/{groupName}:
+    $ref: ./openapi/service/group.yaml#/GroupById
+  /groups/{groupName}/userMembers/{userID}:
+    $ref: ./openapi/service/group.yaml#/GroupUserMembers
+  /groups/{groupName}/groupMembers/{groupName2}:
+    $ref: ./openapi/service/group.yaml#/GroupGroupMembers
+  /search:
+    $ref: ./openapi/gms/gms-search.yaml
+  /gidmap:
+    $ref: ./openapi/pm/posix-groupmap.yaml
+

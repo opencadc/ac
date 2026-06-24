@@ -1,0 +1,65 @@
+@startuml GMS Domain Model
+
+class Group {
+  - uri: URI
+  - description: String
+  - gid: Integer
+  - lastModified: Date
+  - owner: User
+  - userMembers: Set<User>
+  - userAdmins: Set<User>
+  - groupMembers: Set<Group>
+  - groupAdmins: Set<Group>
+}
+
+class User {
+  - identity: Identity
+  - firstName: String
+  - lastName: String
+  - email: String
+}
+
+class Identity {
+  - type: String
+  - value: String
+}
+
+enum IdentityType {
+  X500
+  OPENID
+  NUMERIC
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+' Relationships
+Group "1" *-- "1" User : owner
+Group "1" o-- "0..*" User : userMembers
+Group "1" o-- "0..*" User : userAdmins
+Group "1" o-- "0..*" Group : groupMembers
+Group "1" o-- "0..*" Group : groupAdmins
+
+User "1" *-- "1" Identity : key identity
+
+Identity ..> IdentityType : <<uses>>
+Group ..> Role : <<defines>>
+
+note right of Group
+  A group can contain both
+  users and other groups as
+  members or administrators
+end note
+
+note left of User
+  Users are identified by
+  a configurable identity
+  (primary key) that the 
+  corresponding user service
+  provides
+end note
+
+@enduml

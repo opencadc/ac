@@ -1,0 +1,66 @@
+# standard
+authenticated:
+    description: a response header indicating that authentication was successful
+    headers:
+      x-vo-authenticated:
+        schema:
+          type: string
+
+not-authenticated:
+    description: |
+      Authentication is required and the current attempt failed, or credentials were not provided.
+    headers:
+      www-authenticate:
+        schema:
+          type: string
+
+permission-denied:
+    description: |
+      Caller is not authorized to perform the operation (forbidden / permission denied).
+    content:
+      text/plain:
+        schema:
+          type: string
+
+bad-request:
+    description: |
+      Invalid request or input; the URL or request body may be malformed.
+    content:
+      text/plain:
+        schema:
+          type: string
+
+not-found:
+    description: resource not found
+    content:
+      text/plain:
+        schema:
+          type: string
+
+not-implemented:
+  description: this response indicates that the service does not support this operation
+  content:
+    text/plain:
+      schema:
+        type: string
+
+too-large:
+  description: the request content exceeds a server-side limitation on size
+  content:
+    text/plain:
+      schema:
+        type: string
+
+internal-server-error:
+  description: the server encountered an unrecoverable error
+  content:
+    text/plain:
+      schema:
+        type: string
+
+service-unavailable:
+  description: the server is too busy to perform the operation
+  content:
+    text/plain:
+      schema:
+        type: string
