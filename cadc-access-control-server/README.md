@@ -21,7 +21,7 @@ relational database).
 | operation                                    | 	HTTP Method                                                                                | description                                                                                                                                                                                                                                 | faults                                                                                                                                                      |
 |----------------------------------------------|---------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Group Management - List all groups           | GET                                                                                         | Lists the names of all the groups in the service                                                                                                                                                                                            |                                                                                                                                                             |
-| Group Management - Create group              | PUT                                                                                         | Ceate the group according to the group XML document in the HTTP PUT.                                                                                                                                                                        | 404 Not Found - If a member is not recognized.                                                                                                              | 409 Conflict - If a group with the same name already exists. |
+| Group Management - Create group              | PUT                                                                                         | Create the group according to the group XML document in the HTTP PUT.                                                                                                                                                                       | 404 Not Found - If a member is not recognized.<br/>409 Conflict - If a group with the same name already exists.                                             |
 | Group Management - Get group                 | GET                                                                                         | Get the group with name {groupID}.                                                                                                                                                                                                          | 404 Not Found - If the group {groupID} could not be found.                                                                                                  | 
 | Group Management - Delete group              | DELETE                                                                                      | DELETE the group with name {groupID}.                                                                                                                                                                                                       | 404 Not Found - If the group {groupID} could not be found.                                                                                                  |
 | Group Management - Modify group              | POST                                                                                        | Modify the group with name {groupID} according to the group XML document in the HTTP POST.                                                                                                                                                  | 404 Not Found - If the group {groupID} could not be found or if a member is not recognized<br/>409 Conflict - If a group with the same name already exists. |
@@ -29,16 +29,16 @@ relational database).
 | Group Management - Remove user member        | DELETE                                                                                      | Remove user {userID} as a member of group {groupID}.                                                                                                                                                                                        | 404 Not Found - If the group {groupID} could not be found or if the member {userID} is not recognized                                                       |
 | Group Management - Add group member          | PUT                                                                                         | Add group {groupID2} as a member of group {groupID}.	                                                                                                                                                                                       | 404 Not Found - If the group {groupID} or {groupID2} could not be found.                                                                                    |
 | Group Management - Remove group member       | DELETE                                                                                      | Remove group {groupID2} as a member of group {groupID}.                                                                                                                                                                                     | 404 Not Found - If the group {groupID} or {groupID2} could not be found.                                                                                    |
-| Group Searching - Search by role             | DELETE Find the groups in which the user (specified by param {userID}) has the role {role}. |                                                                                                                                                                                                                                             |
+| Group Searching - Search by role             | GET                                                                                         | Find the groups in which the user (specified by param {userID}) has the role {role}.                                                                                                                                                        |                                                                                                                                                             |
 | Group Searching - Search specific membership | POST	                                                                                       | If a user has the specified role in the specified group the group is returned. Otherwise returns an empty list of groups.	                                                                                                                  |                                                                                                                                                             |
 | User management - List all users             | GET                                                                                         | Lists basic information of all the users in the service                                                                                                                                                                                     |                                                                                                                                                             |
 | User Management - Request account            | PUT	                                                                                        | Request the user account in the user XML document in the HTTP PUT. This can take an arbitrary amount of time. If the account existed before but was deleted, this operation will reenable the account.                                      | 404 Not Found - If a member is not recognized.<br/>409 Conflict - If a group with the same name already exists.                                             |
 | User Management - Get user                   | GET                                                                                         | Get the user with userid {userID} of type {idType}. This operation supports an optional parameter: detail, which can have values of display or identity. The detail parameter adjusts the amount type of user information that is returned. | 404 Not Found - If the user {userID} could not be found.                                                                                                    |
 | User Management - Disable account            | DELETE                                                                                      | Disable the account for user with userid {userID} of type {idType}.                                                                                                                                                                         | 404 Not Found - If the group {userID} could not be found.                                                                                                   |
-| User Management - Modify user	               | POST                                                                                        | Modify the user with name {userID} and type {idType{ according to the user XML document in the HTTP POST.                                                                                                                                   | 404 Not Found - If the user {userID} could not be found.                                                                                                    |
-| User Login                                   | POST	                                                                                       | 	Validate the userID and password combination. If the combination is valid this operation will return a cookie that can be used to enter any of these endpoints over HTTP.                                                                  | 403 Permission Denied - If the userID / pasword validation failed.                                                                                          |
-| Password Changes                             | POST	                                                                                       | Change password from {old_password} to {new_password}.                                                                                                                                                                                      | 403 Permission Denied - If the old pasword is incorrect.                                                                                                    |
-| Who Am I - Logged-in user information        | GET	                                                                                        | Returns information about the authentication user.                                                                                                                                                                                          |                                                                                                                                                             |
+| User Management - Modify user	               | POST                                                                                        | Modify the user with name {userID} and type {idType} according to the user XML document in the HTTP POST.                                                                                                                                  | 404 Not Found - If the user {userID} could not be found.                                                                                                    |
+| User Login                                   | POST	                                                                                       | 	Validate the userID and password combination. If the combination is valid this operation will return a cookie that can be used to enter any of these endpoints over HTTP.                                                                  | 403 Permission Denied - If the userID / password validation failed.                                                                                         |
+| Password Changes                             | POST	                                                                                       | Change password from {old_password} to {new_password}.                                                                                                                                                                                      | 403 Permission Denied - If the old password is incorrect.                                                                                                   |
+| Who Am I - Logged-in user information        | GET	                                                                                        | Returns information about the authenticated user.                                                                                                                                                                                           |                                                                                                                                                             |
 | Service availability                         | GET                                                                                         |                                                                                                                                                                                                                                             |                                                                                                                                                             |	
 
 ## CONFIGURATION
@@ -63,38 +63,38 @@ service availability:
 ################## Read-only connection pool ##################
 # space-separated list of hosts
 readOnly.servers = {ldap server}
+readOnly.port = 389
+readOnly.secure = false
 readOnly.poolInitSize = 1
 readOnly.poolMaxSize = 1
 # roundRobin || fewestConnections || fastestConnect
 readOnly.poolPolicy = roundRobin
 readOnly.maxWait = 30000
 readOnly.createIfNeeded = false
-# optional; 389, 636, or omit to use the default port below
-readOnly.port = 636
 
 ################## Read-write connection pool #################
 # space-separated list of hosts
 readWrite.servers = {ldap server}
+readWrite.port = 636
+readWrite.secure = true
 readWrite.poolInitSize = 1
 readWrite.poolMaxSize = 1
 # roundRobin || fewestConnections
 readWrite.poolPolicy = roundRobin
 readWrite.maxWait = 30000
 readWrite.createIfNeeded = false
-# optional; 389, 636, or omit to use the default port below
-readWrite.port = 636
 
 ############## Unbound-read-only connection pool ##############
 # space-separated list of hosts
 unboundReadOnly.servers = {ldap server}
+unboundReadOnly.port = 636
+unboundReadOnly.secure = true
 unboundReadOnly.poolInitSize = 1
 unboundReadOnly.poolMaxSize = 1
 # roundRobin || fewestConnections
 unboundReadOnly.poolPolicy = roundRobin
 unboundReadOnly.maxWait = 30000
 unboundReadOnly.createIfNeeded = false
-# optional; 389, 636, or omit to use the default port below
-unboundReadOnly.port = 636
 
 ########## server configuration -- applies to all pools #######
 port = 636
@@ -105,6 +105,13 @@ userRequestsDN = ou=userRequests,ou=ds,dc=canfar,dc=net
 groupsDN = ou=Groups,ou=ds,dc=canfar,dc=net
 adminGroupsDN = ou=adminGroups,ou=ds,dc=canfar,dc=net
 ```
+
+Each pool may specify its own `port`. If omitted, the default `port` at the bottom of the file is used.
+
+Each pool may also specify `secure` to indicate whether connections use TLS. When omitted,
+`secure` defaults to `true` when the pool port is 636 and `false` otherwise. Set `secure = true`
+explicitly when using a non-standard port for LDAPS (for example, `readOnly.port = 10636` with
+`readOnly.secure = true`). Pools that share the same port must use the same `secure` setting.
 
 Property summary:
 
@@ -117,6 +124,7 @@ Property summary:
 | `{pool}.maxWait` | yes | Connection wait timeout in milliseconds |
 | `{pool}.createIfNeeded` | yes | Whether to create connections beyond `poolMaxSize` |
 | `{pool}.port` | no | LDAP port for this pool; defaults to `port` |
+| `{pool}.secure` | no | Whether the pool uses TLS; defaults from the pool port |
 | `port` | yes* | Default LDAP port (389 or 636) when a pool port is omitted |
 | `proxyUser` | yes | DN of the LDAP proxy user |
 | `proxyPassword` | yes | Password for the LDAP proxy user |
@@ -128,5 +136,4 @@ Property summary:
 \* Required unless every pool specifies its own `{pool}.port`.
 
 The `fastestConnect` pool policy is supported for the read-only pool only.
-
 
