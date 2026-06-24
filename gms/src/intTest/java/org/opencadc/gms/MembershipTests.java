@@ -96,7 +96,7 @@ public class MembershipTests {
     public MembershipTests() throws Exception {
         Log4jInit.setLevel("org.opencadc.gms", Level.DEBUG);
         RegistryClient rc = new RegistryClient();
-        searchURL = rc.getServiceURL(URI.create(ConfigUsers.GMS_SERVICE_ID), Standards.GMS_SEARCH_01, AuthMethod.CERT);
+        searchURL = rc.getServiceURL(URI.create(ConfigUsers.GMS_SERVICE_ID), Standards.GMS_SEARCH_10, AuthMethod.CERT);
     }
     
     @Test
