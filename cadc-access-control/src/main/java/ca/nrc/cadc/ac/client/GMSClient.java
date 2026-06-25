@@ -257,7 +257,7 @@ public class GMSClient implements TransferListener, GroupClient {
         }
 
         String roleString = role.getValue();
-        URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_01);
+        URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_10);
         URL getMembershipsURL = new URL(searchURL.toExternalForm()
                 + "?ROLE="
                 + NetUtil.encode(roleString));
@@ -830,7 +830,7 @@ public class GMSClient implements TransferListener, GroupClient {
         String searchGroupPath = "?ROLE=" + NetUtil.encode(roleString)
                 + "&GROUPID=" + NetUtil.encode(groupName);
 
-        URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_01);
+        URL searchURL = lookupServiceURL(Standards.GMS_SEARCH_10);
         URL getMembershipURL = new URL(searchURL.toExternalForm() + searchGroupPath);
 
         log.debug("getMembership request to " + getMembershipURL.toString());
