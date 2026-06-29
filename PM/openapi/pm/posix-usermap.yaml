@@ -1,0 +1,106 @@
+get:
+  operationId: get-usermap
+  tags:
+    - POSIX Users
+  summary: get local posix info for users
+  parameters:
+    - name: user
+      in: query
+      description: request user records by identity
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+        example: 
+          - "https://idp.example.net/ 2273b75c-33fd-4606-8119-37ed4909ba36"
+          - "https://idp.example.net/ d37a9f17-e1ae-4fe4-ae93-9fd6b42b2a79"
+    - name: uid
+      in: query
+      description: request user record(s) by posix uid
+      schema:
+        type: array
+        items:
+          type: integer
+        example:
+          - 10001
+          - 10002
+  responses:
+    '200':
+      $ref: '#/components/schemas/posix-users'
+    '401':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+    '403':
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+    '404':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-found
+post:
+  operationId: create-usermap-entry
+  tags:
+    - POSIX Users
+  summary: create a local posix info for a user
+  parameters:
+    - name: user
+      in: query
+      description: |
+        create and return a posix user entry for the specified user; the value is
+        a string representation of the identity and details depend on the identity
+        type(s) in use
+      required: false
+      schema:
+        type: string
+        example: "https://idp.example.net/ 2273b75c-33fd-4606-8119-37ed4909ba36"
+  responses:
+    '201':
+      $ref: '#/components/schemas/posix-users'
+    '401':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+    '403':
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+    '404':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-found
+    '405':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-implemented
+
+components:
+  schemas:
+    posix-users:
+      description: list of users with posix details
+      content:
+        text/plain:
+          description: posix users in /etc/passwd format
+          schema:
+            type: string
+            example: "someone:x:10001:10001::/home/someone:/bin/bash"
+        application/x-posix-user+json:
+          schema:
+            type: string
+            example: |
+              [
+                {
+                  "identity": "https://issuer.example.net/ 71f59b77-e71d-4cbb-9f7f-f8bfecdc3783"
+                  "posix": {
+                    "username": "someone",
+                    "uid": 10001,
+                    "home": "/home/someone",
+                    "shell": "/bin/bash",
+                    "group": {
+                      "name": "someone",
+                      "gid": 10001
+                    }
+                  }
+                },
+                {
+                  "identity": "https://issuer.example.net/ 8f478279-c148-46b3-8784-efd0ee5db242"
+                  "posix": {
+                    "username": "someone_else",
+                    "uid": 10002,
+                    "home": "/home/someone_else",
+                    "shell": "/bin/bash",
+                    "group": {
+                      "name": "someone_else",
+                      "gid": 10001
+                    }
+                  }
+                }
+              ]
