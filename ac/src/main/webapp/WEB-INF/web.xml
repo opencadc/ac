@@ -356,10 +356,6 @@
                 ca.nrc.cadc.vosi
             </param-value>
         </init-param>
-        <init-param>
-            <param-name>logControlProperties</param-name>
-            <param-value>ac-logControl.properties</param-value>
-        </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
@@ -374,18 +370,8 @@
   </servlet-mapping>
 
   <servlet-mapping>
-    <servlet-name>UserServlet</servlet-name>
-    <url-pattern>/auth/users/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
     <servlet-name>UserRequestServlet</servlet-name>
     <url-pattern>/userRequests/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>UserRequestServlet</servlet-name>
-    <url-pattern>/auth/userRequests/*</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
@@ -399,20 +385,10 @@
   </servlet-mapping>
 
   <servlet-mapping>
-    <servlet-name>ResetPasswordServlet</servlet-name>
-    <url-pattern>/auth/resetPassword</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
     <servlet-name>WhoAmIServlet</servlet-name>
     <url-pattern>/whoami</url-pattern>
   </servlet-mapping>
 
-  <servlet-mapping>
-    <servlet-name>WhoAmIServlet</servlet-name>
-    <url-pattern>/auth/whoami</url-pattern>
-  </servlet-mapping>
-  
   <!--
     OIDC Mappings
     -->
@@ -475,26 +451,6 @@
     <description>Public security role</description>
     <role-name>public</role-name>
   </security-role>
-
-  <!-- Define a security constraint for auth servlet -->
-  <security-constraint>
-    <web-resource-collection>
-      <web-resource-name>auth</web-resource-name>
-      <description/>
-      <url-pattern>/auth/*</url-pattern>
-      <http-method>GET</http-method>
-      <http-method>POST</http-method>
-      <http-method>HEAD</http-method>
-      <http-method>PUT</http-method>
-      <http-method>OPTIONS</http-method>
-      <http-method>TRACE</http-method>
-      <http-method>DELETE</http-method>
-    </web-resource-collection>
-    <auth-constraint>
-      <description>force authentication for all requests</description>
-      <role-name>public</role-name>
-    </auth-constraint>
-  </security-constraint>
 
   <!--
     BASIC Http Authentication for logControl
