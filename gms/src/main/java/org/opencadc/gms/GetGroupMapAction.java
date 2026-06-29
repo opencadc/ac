@@ -65,29 +65,31 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.server;
+package org.opencadc.gms;
 
-import ca.nrc.cadc.ac.server.impl.UserPersistenceImpl;
-import ca.nrc.cadc.auth.PosixPrincipal;
 import ca.nrc.cadc.net.HttpTransfer;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.rest.InlineContentHandler;
 import ca.nrc.cadc.rest.RestAction;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.apache.log4j.Logger;
+import org.opencadc.auth.PosixGroup;
+import org.opencadc.gms.GroupURI;
 
 /**
- *
+ * Implement the http://www.opencadc.org/std/posix#group-mapping-1.0 endpoint.
+ * 
  * @author pdowler
  */
-public class GetUserMapAction extends RestAction {
-    private static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
-    private static final Logger log = Logger.getLogger(GetUserMapAction.class);
+public class GetGroupMapAction extends RestAction {
+    private static final Logger log = Logger.getLogger(GetGroupMapAction.class);
 
-    public GetUserMapAction() { 
-    }
+    public static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
     
     @Override
     protected InlineContentHandler getInlineContentHandler() {
@@ -96,25 +98,38 @@ public class GetUserMapAction extends RestAction {
 
     @Override
     public void doAction() throws Exception {
+        GroupPersistenceImpl groupPersistence = new GroupPersistenceImpl();
+        GroupsConfig gmsConfig = new GroupsConfig();
+        URI gmsResourceID = gmsConfig.getResourceID();
         
-        String accept = syncInput.getHeader("accept");
-        boolean tsv = CONTENT_TYPE_TSV.equals(accept);
-        
-        UserPersistenceImpl groupPersistence = new UserPersistenceImpl();
-        
-        List<String> userParams = syncInput.getParameters("user");
-        List<String> uidParams = syncInput.getParameters("uid");
-        List<Integer> uidSubset = null;
-        if (uidParams != null && !uidParams.isEmpty()) {
-            uidSubset = new ArrayList<>(uidParams.size());
-            for (String s : uidParams) {
-                uidSubset.add(Integer.valueOf(s));
+        List<String> groupNameSubset = null;
+        List<String> groupParams = syncInput.getParameters("group");
+        if (groupParams != null && !groupParams.isEmpty()) {
+            groupNameSubset = new ArrayList<>(groupParams.size());
+            for (String s : groupParams) {
+                GroupURI guri = new GroupURI(new URI(s));
+                if (!guri.getServiceID().equals(gmsResourceID)) {
+                    throw new IllegalArgumentException("invalid group (non-local): " + s);
+                }
+                groupNameSubset.add(guri.getName());
+            }
+        } 
+
+        List<Integer> gidNameSubset = null;
+        List<String> gidParams = syncInput.getParameters("gid");
+        if (gidParams != null && !gidParams.isEmpty()) {
+            gidNameSubset = new ArrayList<>();
+            for (String s : gidParams) {
+                Integer gid = Integer.valueOf(s);
+                gidNameSubset.add(gid);
             }
         }
 
-        Collection<PosixPrincipal> users = groupPersistence.getUsers(userParams, uidSubset);
+        Collection<PosixGroup> groups = groupPersistence.getGroupNames(groupNameSubset, gidNameSubset);
 
-        log.debug("found: "  + users.size() + " matching users");
+        log.debug("found: "  + groups.size() + " matching groups");
+        String accept = syncInput.getHeader("accept");
+        boolean tsv = CONTENT_TYPE_TSV.equals(accept);
         if (tsv) {
             syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, CONTENT_TYPE_TSV);
         } else {
@@ -122,13 +137,11 @@ public class GetUserMapAction extends RestAction {
         }
         syncOutput.setCode(200);
         PrintWriter w = new PrintWriter(syncOutput.getOutputStream());
-        String home = "";
-        String shell = "";
-        for (PosixPrincipal pp : users) {
+        for (PosixGroup pg : groups) {
             if (tsv) {
-                w.println(pp.username + "\t" + pp.getUidNumber() + "\t" + pp.defaultGroup);
+                w.println(pg.getGroupURI().getURI().toASCIIString() + "\t" + pg.getGID());
             } else {
-                w.println(pp.username + ":x:" + pp.getUidNumber() + ":" + pp.defaultGroup + "::" + home + ":" + shell);
+                w.println(pg.getGroupURI().getName() + ":x:" + pg.getGID() + ":");
             }
         }
         w.close();

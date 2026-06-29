@@ -67,11 +67,10 @@
  ************************************************************************
  */
 
-package ca.nrc.cadc.ac.integration;
+package org.opencadc.gms;
 
 import ca.nrc.cadc.ac.client.UserClient;
 import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.BasicX509TrustManager;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.net.NetrcFile;
@@ -82,7 +81,6 @@ import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
-import java.util.Map;
 import java.util.Set;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
@@ -119,6 +117,7 @@ public class ConfigUsers {
     private static final String ANON_CERT_FILE = "ac-anon-user.pem";
     private static final String PRIV_CERT_FILE = "ac-priv-user.pem";
 
+    public static final String GMS_SERVICE_ID = "ivo://opencadc.org/gms"; // TODO make configurable
     public static final String AC_SERVICE_ID = "ivo://opencadc.org/ac"; // TODO make configurable
 
     PasswordAuthentication passwordAuthUser;
@@ -223,7 +222,7 @@ public class ConfigUsers {
             NetrcFile netrc = new NetrcFile();
             RegistryClient regClient = new RegistryClient();
             URL loginUrl = regClient
-                    .getServiceURL(URI.create(ConfigUsers.AC_SERVICE_ID), Standards.UMS_LOGIN_01, AuthMethod.ANON);
+                    .getServiceURL(URI.create(ConfigUsers.GMS_SERVICE_ID), Standards.UMS_LOGIN_01, AuthMethod.ANON);
             log.info("loginUrl: " + loginUrl);
             passwordAuthUser = netrc.getCredentials(loginUrl.getHost(), true);
             Assert.assertNotNull("~/.netrc credentials required for host: " + loginUrl.getHost(), passwordAuthUser);
