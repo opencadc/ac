@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2023.                            (c) 2023.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,12 +72,12 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.SSLUtil;
 import ca.nrc.cadc.cred.client.CredUtil;
 import ca.nrc.cadc.log.WebServiceLogInfo;
+import ca.nrc.cadc.net.PermissionDeniedException;
 import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.net.TransientException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.security.AccessControlException;
 import java.security.PrivilegedExceptionAction;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
@@ -170,12 +170,13 @@ public class PermissionsCheck {
      * Check the given read granting services for read permission to the artifact.
      *
      * @param readGrantServices list of granting services
-     * @throws AccessControlException    if read permission is denied
+     * @throws PermissionDeniedException    if read permission is denied
+     * @throws java.lang.InterruptedException
      * @throws TransientException        if call to permission service fails with transient status code
      * @throws ResourceNotFoundException from GroupClient call to GMS service
      */
     public void checkReadPermission(List<URI> readGrantServices)
-            throws AccessControlException, InterruptedException,
+            throws PermissionDeniedException, InterruptedException,
             ResourceNotFoundException, TransientException {
         assertNotNull(PermissionsCheck.class, "readGrantServices", readGrantServices);
 
@@ -203,7 +204,7 @@ public class PermissionsCheck {
         }
 
         if (granted.isEmpty()) {
-            throw new AccessControlException("permission denied: no read grants for " + this.artifactURI);
+            throw new PermissionDeniedException("permission denied: no read grants for " + this.artifactURI);
         }
 
         try {
@@ -222,29 +223,30 @@ public class PermissionsCheck {
         } catch (IOException ex) {
             throw new RuntimeException("unexpected failure", ex);
         } catch (CertificateException ex) {
-            throw new AccessControlException("permission denied (invalid delegated client certificate)");
+            throw new PermissionDeniedException("permission denied (invalid delegated client certificate)");
         }
 
-        throw new AccessControlException("permission denied");
+        throw new PermissionDeniedException("permission denied");
     }
 
     /**
      * Check the given write granting services for write permission to the artifact.
      *
      * @param writeGrantServices list of write granting services.
-     * @throws AccessControlException    if write permission is denied.
+     * @throws PermissionDeniedException    if write permission is denied.
+     * @throws java.lang.InterruptedException
      * @throws TransientException        if call to permission service fails with transient status code
      * @throws ResourceNotFoundException from GroupClient call to GMS service
      */
     public void checkWritePermission(List<URI> writeGrantServices)
-            throws AccessControlException, InterruptedException,
+            throws PermissionDeniedException, InterruptedException,
             ResourceNotFoundException, TransientException {
         assertNotNull(PermissionsCheck.class, "writeGrantServices", writeGrantServices);
 
         AuthMethod am = AuthenticationUtil.getAuthMethod(AuthenticationUtil.getCurrentSubject());
         if (am != null && am.equals(AuthMethod.ANON)) {
             // never support anon write
-            throw new AccessControlException("permission denied");
+            throw new PermissionDeniedException("permission denied");
         }
 
         if (this.authenticateOnly) {
@@ -266,7 +268,7 @@ public class PermissionsCheck {
         }
 
         if (granted.isEmpty()) {
-            throw new AccessControlException("permission denied: no write grants for " + this.artifactURI);
+            throw new PermissionDeniedException("permission denied: no write grants for " + this.artifactURI);
         }
 
         try {
@@ -285,10 +287,10 @@ public class PermissionsCheck {
         } catch (IOException ex) {
             throw new RuntimeException("unexpected failure", ex);
         } catch (CertificateException ex) {
-            throw new AccessControlException("permission denied (invalid delegated client certificate)");
+            throw new PermissionDeniedException("permission denied (invalid delegated client certificate)");
         }
 
-        throw new AccessControlException("permission denied");
+        throw new PermissionDeniedException("permission denied");
     }
 
     private class GetReadGrantsAction implements PrivilegedExceptionAction<List<ReadGrant>> {
