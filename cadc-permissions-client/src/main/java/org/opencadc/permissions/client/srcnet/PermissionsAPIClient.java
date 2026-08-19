@@ -67,6 +67,7 @@
 
 package org.opencadc.permissions.client.srcnet;
 
+import ca.nrc.cadc.auth.NotAuthenticatedException;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpConstants;
 import ca.nrc.cadc.net.HttpGet;
@@ -117,14 +118,18 @@ public class PermissionsAPIClient {
     /**
      * POST {@code /v1/authorise/exchange/{service}} (no JSON body).
      *
+     * @param serviceName service name
+     * @param token access token
      * @param version optional service version; if null or empty the server default applies
+     * @return exchange auth result
+     * @throws java.io.IOException
      */
     public ExchangeAuthorisationResult authoriseExchange(final String serviceName, final String token,
                                                          final String version) throws IOException {
         assertArg(serviceName, "serviceName");
         assertArg(token, "token");
         LOGGER.debug("Authorising exchange for service " + serviceName + " version " + version);
-        final URL url = buildExchangeURL(serviceName, token, version);
+        final URL url = buildExchangeURL(serviceName + "-api", token, version);
         LOGGER.debug("Exchange URL: " + url);
 
         // Empty JSON for the exchange request.
@@ -140,7 +145,12 @@ public class PermissionsAPIClient {
      * POST {@code /v1/authorise/plugin/{service}} using a token obtained from {@code authoriseExchange} and the
      * Auth API token exchange.
      *
+     * @param serviceName service name
+     * @param token access token
      * @param requestBody JSON body; null is treated as {@code {}}
+     * @param version service version
+     * @return plugin auth result
+     * @throws java.io.IOException invalid json response
      */
     public AuthorisationResult authorisePlugin(final String serviceName, final String token,
                                                final JSONObject requestBody, final String version) throws IOException {
@@ -167,22 +177,50 @@ public class PermissionsAPIClient {
      * POST {@code /v1/authorise/route/{service}} using a token obtained from {@code authoriseExchange} and the
      * Auth API token exchange.
      *
+     * @param serviceName service name
      * @param route       required route query parameter
+     * @param token       access token
      * @param httpMethod  optional HTTP method; if null the server default applies
      * @param requestBody JSON body; null is treated as {@code {}}
+     * @param version     service version
+     * @return the route authorisation result
+     * @throws IOException invalid json response
      */
     public AuthorisationResult authoriseRoute(final String serviceName, final String route, final String token,
                                               final String httpMethod, final JSONObject requestBody,
                                               final String version) throws IOException {
+        return authoriseRoute(serviceName, route, token, httpMethod, requestBody, version, true);
+    }
+
+    /**
+     * POST {@code /v1/authorise/route/{service}}. Obtaining an using a token via {@code authoriseExchange}
+     * and the Auth API token exchange is optional.
+     * 
+     * @param serviceName service name
+     * @param route       required route query parameter
+     * @param token       access token
+     * @param httpMethod  optional HTTP method; if null the server default applies
+     * @param requestBody JSON body; null is treated as {@code {}}
+     * @param version     service version
+     * @param exchangeToken true to authorise and exchange token; false to use provided token directly
+     * @return the route auth result
+     * @throws IOException invalid json response
+     */
+    public AuthorisationResult authoriseRoute(final String serviceName, final String route, final String token,
+                                              final String httpMethod, final JSONObject requestBody,
+                                              final String version, boolean exchangeToken) throws IOException {
         assertArg(serviceName, "serviceName");
         assertArg(route, "route");
         assertArg(token, "token");
         LOGGER.debug("Authorising route for service " + serviceName + " version " + version);
-        final ExchangeAuthorisationResult exchange = authoriseExchange(serviceName, token, version);
-        if (!exchange.isAuthorised) {
-            return new AuthorisationResult(false);
+        String accessToken = token;
+        if (exchangeToken) {
+            final ExchangeAuthorisationResult exchange = authoriseExchange(serviceName, token, version);
+            if (!exchange.isAuthorised) {
+                return new AuthorisationResult(false);
+            }
+            accessToken = fetchExchangedAccessToken(serviceName, token, version);
         }
-        final String accessToken = fetchExchangedAccessToken(serviceName, token, version);
         final JSONObject body = requestBody != null ? requestBody : new JSONObject();
         final URL url = buildRouteURL(serviceName, route, accessToken, httpMethod, version);
         LOGGER.debug("Route URL: " + url);
@@ -199,7 +237,8 @@ public class PermissionsAPIClient {
      */
     private String fetchExchangedAccessToken(final String serviceName, final String accessToken, final String version)
             throws IOException {
-        final URL url = buildAuthTokenExchangeUrl(this.authApiBaseURL, serviceName, accessToken, version);
+        final URL url = buildAuthTokenExchangeUrl(this.authApiBaseURL, serviceName + "-api", accessToken, version);
+        LOGGER.debug("fetch exchange token: " + url);
         final JSONObject json = getJSON(url);
         try {
             return json.getString("access_token");
@@ -308,7 +347,7 @@ public class PermissionsAPIClient {
                 }
             }
             throw ex;
-        } catch (PermissionDeniedException ex) {
+        } catch (NotAuthenticatedException | PermissionDeniedException ex) {
             throw ex;
         } catch (Exception ex) {
             final int code = get.getResponseCode();
@@ -323,6 +362,7 @@ public class PermissionsAPIClient {
                         StandardCharsets.UTF_8), false);
         post.setRequestProperty("Accept", "application/json");
         try {
+            LOGGER.debug("json:\n" + jsonEntity);
             post.prepare();
         } catch (IllegalArgumentException ex) {
             // ugh: 400 + msg when requesting a permission that does not exist
@@ -337,7 +377,7 @@ public class PermissionsAPIClient {
                 }
             }
             throw ex;
-        } catch (PermissionDeniedException ex) {
+        } catch (NotAuthenticatedException | PermissionDeniedException ex) {
             throw ex;
         } catch (Exception ex) {
             final int code = post.getResponseCode();
