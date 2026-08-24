@@ -68,6 +68,7 @@
 package org.opencadc.auth;
 
 import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.AuthorizationToken;
 import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.IdentityManager;
@@ -86,6 +87,7 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -171,6 +173,17 @@ public class StandardIdentityManagerTest {
             Assert.assertFalse("oidc iss/sub", validated.getPrincipals(OpenIdPrincipal.class).isEmpty());
             Assert.assertFalse("oidc username", validated.getPrincipals(HttpPrincipal.class).isEmpty());
 
+            // token captured
+            Set<AuthorizationToken> ats = validated.getPublicCredentials(AuthorizationToken.class);
+            Assert.assertNotNull(ats);
+            Assert.assertFalse(ats.isEmpty());
+            Iterator<AuthorizationToken> ai = ats.iterator();
+            AuthorizationToken atok = ai.next();
+            Assert.assertFalse(ai.hasNext());
+            for (String s : atok.getScopes()) {
+                log.info("scope: " + s);
+            }
+            
             Subject augmented = im.augment(validated);
             log.info("augmented: " + augmented);
             Assert.assertFalse("oidc iss/sub", validated.getPrincipals(OpenIdPrincipal.class).isEmpty());
