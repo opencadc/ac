@@ -428,12 +428,14 @@ public class StandardIdentityManager implements IdentityManager {
 
         AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains);
         authToken.getScopes().addAll(validatedPrincipals.scopes);
+        authToken.getAudience().addAll(validatedPrincipals.audiences);
         s.getPublicCredentials().add(authToken);
     }
     
     private class Validated {
         List<Principal> principals = new ArrayList<>();
         List<String> scopes = new ArrayList<>();
+        List<String> audiences = Collections.EMPTY_LIST;
     }
 
     private Validated validateWithPubKey(URI jwtIssuer, String challengeType, String credentials)
@@ -460,12 +462,16 @@ public class StandardIdentityManager implements IdentityManager {
             ret.principals.add(new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username")));
         }
         
+        // scopes
         String raw = jwtClaims.getClaimValue("scope", String.class);
         log.debug("raw scopes: " + raw);
         String[] scopes = raw.split("\\s+");
         for (String s : scopes) {
             ret.scopes.add(s);
         }
+        
+        // audience
+        ret.audiences = jwtClaims.getAudience();
         
         log.debug("Validated user via issuer pub key: " + oip);
         return ret;
@@ -500,12 +506,6 @@ public class StandardIdentityManager implements IdentityManager {
             ret.principals.add(new HttpPrincipal(username));
         }
         
-        if (json.has("scope")) {
-            JSONArray ja = json.getJSONArray("scope");
-            for (int i = 0; i < ja.length(); i++) {
-                ret.scopes.add(ja.getString(i));
-            }
-        }
         log.debug("Validated user via user info endpoint: " + oip);
         return ret;
     }

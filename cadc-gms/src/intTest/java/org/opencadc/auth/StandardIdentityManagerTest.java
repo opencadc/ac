@@ -170,9 +170,6 @@ public class StandardIdentityManagerTest {
             Subject validated = AuthenticationUtil.getSubject(new DummyPrincipalExtractor(false, true), false);
             final StandardIdentityManager im = new StandardIdentityManager();
             log.info("validated: " + validated);
-            Assert.assertFalse("oidc iss/sub", validated.getPrincipals(OpenIdPrincipal.class).isEmpty());
-            Assert.assertFalse("oidc username", validated.getPrincipals(HttpPrincipal.class).isEmpty());
-
             // token captured
             Set<AuthorizationToken> ats = validated.getPublicCredentials(AuthorizationToken.class);
             Assert.assertNotNull(ats);
@@ -183,6 +180,12 @@ public class StandardIdentityManagerTest {
             for (String s : atok.getScopes()) {
                 log.info("scope: " + s);
             }
+            for (String a : atok.getAudience()) {
+                log.info("audience: " + a);
+            }
+            Assert.assertFalse("oidc iss/sub", validated.getPrincipals(OpenIdPrincipal.class).isEmpty());
+            // this is present for user tokens with the right scope
+            Assert.assertFalse("oidc username", validated.getPrincipals(HttpPrincipal.class).isEmpty());
             
             Subject augmented = im.augment(validated);
             log.info("augmented: " + augmented);
