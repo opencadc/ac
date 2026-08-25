@@ -393,7 +393,7 @@ public class StandardIdentityManager implements IdentityManager {
         } catch (MalformedClaimException | InvalidJwtException | MalformedURLException e) {
             log.debug("Cannot determine issuer from token", e);
         }
-        List<Principal> validatedPrincipals = null;
+        Validated validatedPrincipals = null;
         if (jwtIssuer != null) {
             try {
                 validatedPrincipals = validateWithPubKey(jwtIssuer, challengeType, credentials);
@@ -421,16 +421,23 @@ public class StandardIdentityManager implements IdentityManager {
         }
 
         s.getPrincipals().remove(raw);
-        for (Principal p : validatedPrincipals) {
+        for (Principal p : validatedPrincipals.principals) {
             s.getPrincipals().add(p);
         }
 
-        // TODO - oidcScope not assigned yet
-        AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains, oidcScope);
+        AuthorizationToken authToken = new AuthorizationToken(challengeType, credentials, oidcDomains);
+        authToken.getScopes().addAll(validatedPrincipals.scopes);
+        authToken.getAudience().addAll(validatedPrincipals.audiences);
         s.getPublicCredentials().add(authToken);
     }
+    
+    private class Validated {
+        List<Principal> principals = new ArrayList<>();
+        List<String> scopes = new ArrayList<>();
+        List<String> audiences = Collections.EMPTY_LIST;
+    }
 
-    private List<Principal> validateWithPubKey(URI jwtIssuer, String challengeType, String credentials)
+    private Validated validateWithPubKey(URI jwtIssuer, String challengeType, String credentials)
             throws MalformedURLException, InvalidJwtException, MalformedClaimException {
         VerificationKeyResolver httpsJwksKeyResolver = getHttpsJwksVerificationKeyResolver(jwtIssuer, challengeType);
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
@@ -446,18 +453,30 @@ public class StandardIdentityManager implements IdentityManager {
 
         String sub = jwtClaims.getClaimValue("sub", String.class);
 
-        List<Principal> result = new ArrayList<>();
+        Validated ret = new Validated();
         OpenIdPrincipal oip = new OpenIdPrincipal(jwtIssuer.toURL(), sub);
-        result.add(oip);
+        ret.principals.add(oip);
 
         if (jwtClaims.getClaimValueAsString("preferred_username") != null) {
-            result.add(new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username")));
+            ret.principals.add(new HttpPrincipal(jwtClaims.getClaimValueAsString("preferred_username")));
         }
+        
+        // scopes
+        String raw = jwtClaims.getClaimValue("scope", String.class);
+        log.debug("raw scopes: " + raw);
+        String[] scopes = raw.split("\\s+");
+        for (String s : scopes) {
+            ret.scopes.add(s);
+        }
+        
+        // audience
+        ret.audiences = jwtClaims.getAudience();
+        
         log.debug("Validated user via issuer pub key: " + oip);
-        return result;
+        return ret;
     }
 
-    private static List<Principal> validateWithUserInfo(AuthorizationTokenPrincipal raw, URL issuerURL)
+    private Validated validateWithUserInfo(AuthorizationTokenPrincipal raw, URL issuerURL)
             throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException, InterruptedException {
         HttpGet get = new HttpGet(issuerURL, true);
         get.setRequestProperty("authorization", raw.getHeaderValue());
@@ -477,15 +496,17 @@ public class StandardIdentityManager implements IdentityManager {
         } else {
             log.debug("No username provided for OpenID identity issuer(" + issuerURL + "), sub(" + sub + ")");
         }
+        
 
-        List<Principal> result = new ArrayList<>();
+        Validated ret = new Validated();
         OpenIdPrincipal oip = new OpenIdPrincipal(issuerURL, sub);
-        result.add(oip);
+        ret.principals.add(oip);
         if (username != null) {
-            result.add(new HttpPrincipal(username));
+            ret.principals.add(new HttpPrincipal(username));
         }
+        
         log.debug("Validated user via user info endpoint: " + oip);
-        return result;
+        return ret;
     }
 
     private VerificationKeyResolver getHttpsJwksVerificationKeyResolver(URI jwtIssuer, String challengeType) throws
