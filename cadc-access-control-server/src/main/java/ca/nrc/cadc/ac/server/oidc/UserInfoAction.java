@@ -112,10 +112,9 @@ public class UserInfoAction extends RestAction {
         for (AuthorizationToken t : tokens) {
             log.debug("Token: " + t);
 
-            if (t.getScope() != null) {
-                String tScope = t.getScope().toString();
-                if (tScope.startsWith(OIDCUtil.ACCESS_TOKEN_SCOPE) &&
-                        tScope.length() > OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
+            for (String tScope : t.getScopes()) {
+                if (tScope.startsWith(OIDCUtil.ACCESS_TOKEN_SCOPE)
+                        && tScope.length() > OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
                     int slashIndex = tScope.lastIndexOf("/");
                     if (slashIndex == OIDCUtil.ACCESS_TOKEN_SCOPE.length()) {
                         clientID = tScope.substring(slashIndex + 1);
