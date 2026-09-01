@@ -5,7 +5,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2019.                            (c) 2019.
+*  (c) 2026.                            (c) 2026.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -77,17 +77,6 @@
   </welcome-file-list>
 
   <servlet>
-    <servlet-name>GroupMapServlet</servlet-name>
-    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
-    <init-param>
-      <param-name>get</param-name>
-      <param-value>org.opencadc.ac.GetGroupMapAction</param-value>
-    </init-param>
-
-    <load-on-startup>3</load-on-startup>
-  </servlet>
-
-  <servlet>
     <servlet-name>UserMapServlet</servlet-name>
     <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
     <init-param>
@@ -101,32 +90,6 @@
   <!--
     The Servlets to handle Requests.
   -->
-  <servlet>
-    <servlet-name>GroupServlet</servlet-name>
-    <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
-    <init-param>
-      <param-name>init</param-name>
-      <param-value>org.opencadc.ac.InitGroupAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>get</param-name>
-      <param-value>org.opencadc.ac.GetAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>delete</param-name>
-      <param-value>org.opencadc.ac.DeleteAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>post</param-name>
-      <param-value>org.opencadc.ac.ModifyAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>put</param-name>
-      <param-value>org.opencadc.ac.CreateAction</param-value>
-    </init-param>
-    <load-on-startup>2</load-on-startup>
-  </servlet>
-
   <servlet>
     <servlet-name>ResetPasswordServlet</servlet-name>
     <servlet-class>ca.nrc.cadc.ac.server.web.ResetPasswordServlet</servlet-class>
@@ -215,29 +178,6 @@
     <load-on-startup>3</load-on-startup>
   </servlet>
 
-  <!-- sync ac search servlet-->
-  <servlet>
-    <servlet-name>ACSearchServlet</servlet-name>
-    <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
-    <init-param>
-        <param-name>get</param-name>
-        <param-value>ca.nrc.cadc.uws.web.SyncGetAction</param-value>
-    </init-param>
-    <init-param>
-        <param-name>post</param-name>
-        <param-value>ca.nrc.cadc.uws.web.SyncPostAction</param-value>
-    </init-param>
-    <init-param>
-      <param-name>ca.nrc.cadc.uws.web.SyncPostAction.execOnPOST</param-name>
-      <param-value>true</param-value>
-    </init-param>
-    <init-param>
-      <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
-      <param-value>ca.nrc.cadc.ac.server.web.ACSearchJobManager</param-value>
-    </init-param>
-    <load-on-startup>2</load-on-startup>
-  </servlet>
-  
   <!-- OIDC Endpoints -->
 
   <servlet>
@@ -410,38 +350,18 @@
             <param-name>logLevelPackages</param-name>
             <param-value>
                 ca.nrc.cadc.ac
-                org.opencadc.ac
                 ca.nrc.cadc.auth
                 ca.nrc.cadc.rest
                 ca.nrc.cadc.uws
                 ca.nrc.cadc.vosi
             </param-value>
         </init-param>
-        <init-param>
-            <param-name>logControlProperties</param-name>
-            <param-value>ac-logControl.properties</param-value>
-        </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
     <servlet-mapping>
-        <servlet-name>GroupMapServlet</servlet-name>
-        <url-pattern>/gidmap/*</url-pattern>
-    </servlet-mapping>
-
-    <servlet-mapping>
         <servlet-name>UserMapServlet</servlet-name>
         <url-pattern>/uidmap/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>GroupServlet</servlet-name>
-    <url-pattern>/groups/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>GroupServlet</servlet-name>
-    <url-pattern>/auth/groups/*</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
@@ -450,18 +370,8 @@
   </servlet-mapping>
 
   <servlet-mapping>
-    <servlet-name>UserServlet</servlet-name>
-    <url-pattern>/auth/users/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
     <servlet-name>UserRequestServlet</servlet-name>
     <url-pattern>/userRequests/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>UserRequestServlet</servlet-name>
-    <url-pattern>/auth/userRequests/*</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
@@ -475,30 +385,10 @@
   </servlet-mapping>
 
   <servlet-mapping>
-    <servlet-name>ResetPasswordServlet</servlet-name>
-    <url-pattern>/auth/resetPassword</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>ACSearchServlet</servlet-name>
-    <url-pattern>/search/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>ACSearchServlet</servlet-name>
-    <url-pattern>/auth/search/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
     <servlet-name>WhoAmIServlet</servlet-name>
     <url-pattern>/whoami</url-pattern>
   </servlet-mapping>
 
-  <servlet-mapping>
-    <servlet-name>WhoAmIServlet</servlet-name>
-    <url-pattern>/auth/whoami</url-pattern>
-  </servlet-mapping>
-  
   <!--
     OIDC Mappings
     -->
@@ -562,31 +452,4 @@
     <role-name>public</role-name>
   </security-role>
 
-  <!-- Define a security constraint for auth servlet -->
-  <security-constraint>
-    <web-resource-collection>
-      <web-resource-name>auth</web-resource-name>
-      <description/>
-      <url-pattern>/auth/*</url-pattern>
-      <http-method>GET</http-method>
-      <http-method>POST</http-method>
-      <http-method>HEAD</http-method>
-      <http-method>PUT</http-method>
-      <http-method>OPTIONS</http-method>
-      <http-method>TRACE</http-method>
-      <http-method>DELETE</http-method>
-    </web-resource-collection>
-    <auth-constraint>
-      <description>force authentication for all requests</description>
-      <role-name>public</role-name>
-    </auth-constraint>
-  </security-constraint>
-
-  <!--
-    BASIC Http Authentication for logControl
-  -->
-  <login-config>
-    <auth-method>BASIC</auth-method>
-    <realm-name>Canadian Astronomy Data Centre</realm-name>
-  </login-config>
 </web-app>

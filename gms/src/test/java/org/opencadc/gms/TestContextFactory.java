@@ -62,75 +62,32 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
+*  $Revision: 5 $
+*
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.server;
+package org.opencadc.gms;
 
-import ca.nrc.cadc.ac.server.impl.UserPersistenceImpl;
-import ca.nrc.cadc.auth.PosixPrincipal;
-import ca.nrc.cadc.net.HttpTransfer;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import org.apache.log4j.Logger;
+import java.util.Hashtable;
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.spi.InitialContextFactory;
 
 /**
- *
- * @author pdowler
+ * A simple JNDI context factory to support testing.
  */
-public class GetUserMapAction extends RestAction {
-    private static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
-    private static final Logger log = Logger.getLogger(GetUserMapAction.class);
+public class TestContextFactory implements InitialContextFactory
+{
 
-    public GetUserMapAction() { 
-    }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
+    public TestContextFactory()
+    {
     }
 
     @Override
-    public void doAction() throws Exception {
-        
-        String accept = syncInput.getHeader("accept");
-        boolean tsv = CONTENT_TYPE_TSV.equals(accept);
-        
-        UserPersistenceImpl groupPersistence = new UserPersistenceImpl();
-        
-        List<String> userParams = syncInput.getParameters("user");
-        List<String> uidParams = syncInput.getParameters("uid");
-        List<Integer> uidSubset = null;
-        if (uidParams != null && !uidParams.isEmpty()) {
-            uidSubset = new ArrayList<>(uidParams.size());
-            for (String s : uidParams) {
-                uidSubset.add(Integer.valueOf(s));
-            }
-        }
-
-        Collection<PosixPrincipal> users = groupPersistence.getUsers(userParams, uidSubset);
-
-        log.debug("found: "  + users.size() + " matching users");
-        if (tsv) {
-            syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, CONTENT_TYPE_TSV);
-        } else {
-            syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, "text/plain");
-        }
-        syncOutput.setCode(200);
-        PrintWriter w = new PrintWriter(syncOutput.getOutputStream());
-        String home = "";
-        String shell = "";
-        for (PosixPrincipal pp : users) {
-            if (tsv) {
-                w.println(pp.username + "\t" + pp.getUidNumber() + "\t" + pp.defaultGroup);
-            } else {
-                w.println(pp.username + ":x:" + pp.getUidNumber() + ":" + pp.defaultGroup + "::" + home + ":" + shell);
-            }
-        }
-        w.close();
+    public Context getInitialContext(Hashtable environment) throws NamingException
+    {
+        return new TestContext();
     }
+
 }

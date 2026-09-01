@@ -25,36 +25,46 @@
  ****  C A N A D I A N   A S T R O N O M Y   D A T A   C E N T R E  *****
  ************************************************************************
  */
-package ca.nrc.cadc.ac.server.web;
+package org.opencadc.gms;
 
 import ca.nrc.cadc.ac.Group;
 import ca.nrc.cadc.ac.GroupNotFoundException;
 import ca.nrc.cadc.ac.server.GroupPersistence;
 import ca.nrc.cadc.ac.server.PluginFactory;
-import ca.nrc.cadc.ac.server.impl.UserPersistenceImpl;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig;
 import ca.nrc.cadc.ac.server.ldap.LdapConfig.SystemState;
+import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.X509CertificateChain;
 import ca.nrc.cadc.net.TransientException;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.LocalAuthority;
+import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.vosi.Availability;
 import ca.nrc.cadc.vosi.AvailabilityPlugin;
+import ca.nrc.cadc.vosi.avail.CheckCertificate;
 import ca.nrc.cadc.vosi.avail.CheckException;
+import ca.nrc.cadc.vosi.avail.CheckResource;
+import ca.nrc.cadc.vosi.avail.CheckWebService;
+import java.io.File;
+import java.net.URI;
+import java.net.URL;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashSet;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 public class ServiceAvailability implements AvailabilityPlugin {
+    private static final Logger log = Logger.getLogger(ServiceAvailability.class);
 
     private static final String CALLER_UID = "cadcregtest1"; // TODO configuration?
-
-    private static final Logger log = Logger.getLogger(ServiceAvailability.class);
+    private static final File AAI_PEM_FILE = new File(System.getProperty("user.home") + "/.ssl/cadcproxy.pem");
 
     @Override
     public void setAppName(String appName) {
@@ -103,13 +113,40 @@ public class ServiceAvailability implements AvailabilityPlugin {
 
     private String getPoolStats() throws TransientException {
         PluginFactory factory = new PluginFactory();
-        UserPersistenceImpl upi = (UserPersistenceImpl) factory.createUserPersistence();
+        GroupPersistenceImpl upi = (GroupPersistenceImpl) factory.createGroupPersistence();
         return upi.getPoolStatistics();
     }
     
     private void checkLdap() throws Exception {
         try {
             // augment a subject
+            log.debug("Start check LDAP");
+            RegistryClient reg = new RegistryClient();
+            LocalAuthority localAuthority = new LocalAuthority();
+            URI usersURI = null;
+            try {
+                usersURI = localAuthority.getServiceURI(Standards.UMS_USERS_01.toString());
+                URL url = reg.getServiceURL(usersURI, Standards.VOSI_AVAILABILITY, AuthMethod.ANON);
+                if (url != null) {
+                    CheckResource checkResource = new CheckWebService(url);
+                    checkResource.check();
+                } else {
+                    log.debug("check skipped: " + usersURI + " does not provide " + Standards.VOSI_AVAILABILITY);
+                }
+            } catch (NoSuchElementException ex) {
+                log.debug("not configured: " + Standards.UMS_USERS_01);
+            }
+
+            if (usersURI != null) {
+                if (AAI_PEM_FILE.exists() && AAI_PEM_FILE.canRead()) {
+                    // check for a certificate needed to perform network A&A ops
+                    CheckCertificate checkCert = new CheckCertificate(AAI_PEM_FILE);
+                    checkCert.check();
+                } else {
+                    log.debug("AAI cert not found or unreadable");
+                }
+            }
+
             Subject subject = AuthenticationUtil.getSubject(new PrincipalExtractor() {
                 public Set<Principal> getPrincipals() {
                     Set<Principal> ret = new HashSet<Principal>();
@@ -129,10 +166,10 @@ public class ServiceAvailability implements AvailabilityPlugin {
                     PluginFactory factory = new PluginFactory();
                     GroupPersistence dao = factory.createGroupPersistence();
 
-                    try {
-                        Group g = dao.getGroup(UUID.randomUUID().toString());
-                    } catch (GroupNotFoundException ignore) {
-                    }
+//                    try {
+//                        //Group g = dao.getGroup(UUID.randomUUID().toString());
+//                    } catch (GroupNotFoundException ignore) {
+//                    }
                     return null;
                 }
             });
@@ -152,5 +189,8 @@ public class ServiceAvailability implements AvailabilityPlugin {
             }
             throw new CheckException(sb.toString());
         }
+        
+        
+
     }
 }

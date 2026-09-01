@@ -65,72 +65,47 @@
 ************************************************************************
 */
 
-package ca.nrc.cadc.ac.server;
+package org.opencadc.gms;
 
-import ca.nrc.cadc.ac.server.impl.UserPersistenceImpl;
-import ca.nrc.cadc.auth.PosixPrincipal;
-import ca.nrc.cadc.net.HttpTransfer;
-import ca.nrc.cadc.rest.InlineContentHandler;
-import ca.nrc.cadc.rest.RestAction;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.Log4jInit;
+import java.net.URI;
+import java.security.PrivilegedExceptionAction;
+import java.util.Iterator;
+import javax.security.auth.Subject;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opencadc.auth.PosixGroup;
+import org.opencadc.auth.PosixMapperClient;
 
 /**
  *
  * @author pdowler
  */
-public class GetUserMapAction extends RestAction {
-    private static final String CONTENT_TYPE_TSV = "text/tab-separated-values";
-    private static final Logger log = Logger.getLogger(GetUserMapAction.class);
+public class GroupMapTest {
+    private static final Logger log = Logger.getLogger(GroupMapTest.class);
 
-    public GetUserMapAction() { 
-    }
-    
-    @Override
-    protected InlineContentHandler getInlineContentHandler() {
-        return null;
+    static {
+        Log4jInit.setLevel("org.opencadc.gms", Level.INFO);
     }
 
-    @Override
-    public void doAction() throws Exception {
-        
-        String accept = syncInput.getHeader("accept");
-        boolean tsv = CONTENT_TYPE_TSV.equals(accept);
-        
-        UserPersistenceImpl groupPersistence = new UserPersistenceImpl();
-        
-        List<String> userParams = syncInput.getParameters("user");
-        List<String> uidParams = syncInput.getParameters("uid");
-        List<Integer> uidSubset = null;
-        if (uidParams != null && !uidParams.isEmpty()) {
-            uidSubset = new ArrayList<>(uidParams.size());
-            for (String s : uidParams) {
-                uidSubset.add(Integer.valueOf(s));
-            }
-        }
+    @Test
+    public void testGroupMap() throws Exception {
+        RegistryClient reg = new RegistryClient();
+        URI srv = URI.create(ConfigUsers.GMS_SERVICE_ID);
+        PosixMapperClient pmc = new PosixMapperClient(srv);
 
-        Collection<PosixPrincipal> users = groupPersistence.getUsers(userParams, uidSubset);
+        Iterator<PosixGroup> iter = Subject.doAs(ConfigUsers.getInstance().getOwnerSubject(),
+            (PrivilegedExceptionAction<Iterator<PosixGroup>>) () -> pmc.getGroupMap());
 
-        log.debug("found: "  + users.size() + " matching users");
-        if (tsv) {
-            syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, CONTENT_TYPE_TSV);
-        } else {
-            syncOutput.setHeader(HttpTransfer.CONTENT_TYPE, "text/plain");
+        Assert.assertNotNull(iter);
+        Assert.assertTrue(iter.hasNext());
+        log.info("obtained uidmap:");
+        while (iter.hasNext()) {
+            PosixGroup pg = iter.next();
+            log.info(pg.getGroupURI() + " aka " + pg.getGID());
         }
-        syncOutput.setCode(200);
-        PrintWriter w = new PrintWriter(syncOutput.getOutputStream());
-        String home = "";
-        String shell = "";
-        for (PosixPrincipal pp : users) {
-            if (tsv) {
-                w.println(pp.username + "\t" + pp.getUidNumber() + "\t" + pp.defaultGroup);
-            } else {
-                w.println(pp.username + ":x:" + pp.getUidNumber() + ":" + pp.defaultGroup + "::" + home + ":" + shell);
-            }
-        }
-        w.close();
     }
 }
