@@ -4,7 +4,7 @@ kubectl -n {{ .Release.Namespace }} get pods
 
 Your release is named {{ .Release.Name }}.
 
-The ac service expects runtime credentials from Secret {{ include "ac.runtimeConfigSecretName" . }}.
+The ac service expects the LDAP proxy password from Secret {{ include "ac.ldapPasswordSecretName" . }}.
 
 To learn more about the release, try:
 

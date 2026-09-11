@@ -14,12 +14,44 @@ application:
   resourceID: ivo://example.org/gms
   registryURL: https://ac.example.org/reg
 
-  runtimeConfig:
-    existingSecret: ac-runtime-config
-
   logging:
     groups:
       - ivo://example.org/gms?admins
+
+ldap:
+  readOnly:
+    servers: ldap-ro.example.org
+  readWrite:
+    servers: ldap-rw.example.org
+  unboundReadOnly:
+    servers: ldap-ro.example.org
+  port: 636
+  proxyUser: uid=webproxy,ou=SpecialUsers,dc=example,dc=org
+  proxyPassword:
+    existingSecret: ac-ldap-config
+    key: proxyPassword
+  usersDN: ou=Users,ou=ds,dc=example,dc=org
+  groupsDN: ou=Groups,ou=ds,dc=example,dc=org
+  adminGroupsDN: ou=adminGroups,ou=ds,dc=example,dc=org
+  userRequestsDN: ou=userRequests,ou=ds,dc=example,dc=org
+
+oidc:
+  clients:
+    - name: client-1
+      secret:
+        existingSecret: ac-oidc-client-1
+        key: secret
+      description: Example client
+      accessGroup: ivo://example.org/gms?example-group
+      claims:
+        - name
+        - email
+        - memberOf
+      signDocuments: true
+  signingKeys:
+    existingSecret: ac-oidc-signing-keys
+    publicKey: oidc-rsa256-pub.key
+    privateKey: oidc-rsa256-priv.key
 
 ingress:
   enabled: true

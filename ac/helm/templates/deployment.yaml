@@ -1,4 +1,5 @@
 {{- $containerPort := .Values.service.port -}}
+{{- $ldapPasswordKey := .Values.ldap.proxyPassword.key | default "proxyPassword" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,6 +34,48 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        - name: merge-ac-config
+          image: {{ .Values.volumeInit.image | quote }}
+          imagePullPolicy: {{ .Values.volumeInit.imagePullPolicy }}
+          command: ['sh', '-c']
+          args:
+            - |
+              set -e
+              cp -R /config-src/. /config-dst/
+              LDAP_PASSWORD=$(tr -d '\n' < /ldap-secret/proxyPassword)
+              printf '\nproxyPassword = %s\n' "$LDAP_PASSWORD" >> /config-dst/ac-ldap-config.properties
+              {{- range $index, $client := .Values.oidc.clients }}
+              OIDC_SECRET=$(tr -d '\n' < /oidc-secrets/client-{{ $index }})
+              printf '\n%s.secret = %s\n' {{ required "oidc.clients[].name is required" $client.name | quote }} "$OIDC_SECRET" >> /config-dst/ac-oidc-clients.properties
+              {{- end }}
+              {{- with .Values.oidc.signingKeys.existingSecret }}
+              cp /oidc-signing/oidc-rsa256-pub.key /config-dst/oidc-rsa256-pub.key
+              cp /oidc-signing/oidc-rsa256-priv.key /config-dst/oidc-rsa256-priv.key
+              {{- end }}
+          volumeMounts:
+            - name: config-source
+              mountPath: /config-src
+              readOnly: true
+            - name: ldap-secret
+              mountPath: /ldap-secret
+              readOnly: true
+            {{- if .Values.oidc.clients }}
+            - name: oidc-secrets
+              mountPath: /oidc-secrets
+              readOnly: true
+            {{- end }}
+            {{- with .Values.oidc.signingKeys.existingSecret }}
+            - name: oidc-signing
+              mountPath: /oidc-signing
+              readOnly: true
+            {{- end }}
+            - name: config-merged
+              mountPath: /config-dst
+          {{- with .Values.volumeInit.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       containers:
         - image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -55,8 +98,7 @@ spec:
           {{- end }}
           volumeMounts:
             - mountPath: /config
-              name: runtime-config
-              readOnly: true
+              name: config-merged
           {{- with .Values.application.extraVolumeMounts }}
           {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -85,14 +127,39 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: runtime-config
+        - name: config-source
+          configMap:
+            name: {{ .Release.Name }}-config
+        - name: ldap-secret
+          secret:
+            secretName: {{ include "ac.ldapPasswordSecretName" . }}
+            items:
+              - key: {{ $ldapPasswordKey | quote }}
+                path: proxyPassword
+        {{- if .Values.oidc.clients }}
+        - name: oidc-secrets
           projected:
-            defaultMode: 0440
             sources:
-              - configMap:
-                  name: {{ .Release.Name }}-config
+            {{- range $index, $client := .Values.oidc.clients }}
               - secret:
-                  name: {{ include "ac.runtimeConfigSecretName" . }}
+                  name: {{ required "oidc.clients[].secret.existingSecret is required" $client.secret.existingSecret }}
+                  items:
+                    - key: {{ $client.secret.key | default "secret" | quote }}
+                      path: client-{{ $index }}
+            {{- end }}
+        {{- end }}
+        {{- with .Values.oidc.signingKeys.existingSecret }}
+        - name: oidc-signing
+          secret:
+            secretName: {{ . }}
+            items:
+              - key: {{ $.Values.oidc.signingKeys.publicKey | default "oidc-rsa256-pub.key" | quote }}
+                path: oidc-rsa256-pub.key
+              - key: {{ $.Values.oidc.signingKeys.privateKey | default "oidc-rsa256-priv.key" | quote }}
+                path: oidc-rsa256-priv.key
+        {{- end }}
+        - name: config-merged
+          emptyDir: {}
       {{- with .Values.application.extraVolumes }}
       {{- toYaml . | nindent 8 }}
       {{- end }}

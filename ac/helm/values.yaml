@@ -25,12 +25,6 @@ application:
   # Registry service URL.
   registryURL: https://example.org/reg
 
-  # Existing Secret containing ac-ldap-config.properties. When OIDC is
-  # enabled, use the same Secret for ac-oidc-clients.properties and the
-  # oidc-rsa256 public/private key pair.
-  runtimeConfig:
-    existingSecret: ac-runtime-config
-
   # Repeatable X.509 DNs with privileged read access to all groups.
   readUsers: []
 
@@ -74,6 +68,79 @@ application:
   # extraHosts:
   #   - ip: 127.3.34.5
   #     hostname: myhost.example.org
+
+# LDAP configuration rendered into ac-ldap-config.properties. Empty optional
+# values are omitted. Environment-specific servers, bind DN, and tree DNs must
+# be supplied by the deployer.
+ldap:
+  readOnly:
+    servers: ""
+    poolInitSize: 4
+    poolMaxSize: 100
+    poolPolicy: roundRobin
+    maxWait: 30000
+    createIfNeeded: false
+    port:
+    secure:
+
+  readWrite:
+    servers: ""
+    poolInitSize: 4
+    poolMaxSize: 10
+    poolPolicy: roundRobin
+    maxWait: 30000
+    createIfNeeded: false
+    port:
+    secure:
+
+  unboundReadOnly:
+    servers: ""
+    poolInitSize: 1
+    poolMaxSize: 25
+    poolPolicy: roundRobin
+    maxWait: 30000
+    createIfNeeded: false
+    port:
+    secure:
+
+  port: 636
+  proxyUser: ""
+  proxyPassword:
+    existingSecret: ac-ldap-config
+    key: proxyPassword
+  usersDN: ""
+  groupsDN: ""
+  adminGroupsDN: ""
+  userRequestsDN: ""
+
+# OIDC client properties are generated only for configured clients. Each
+# client secret is read from an existing Kubernetes Secret by an init
+# container and is never stored in the ConfigMap.
+oidc:
+  clients: []
+  # - name: client-1
+  #   secret:
+  #     existingSecret: ac-oidc-client-1
+  #     key: secret
+  #   description: Example client
+  #   accessGroup: ivo://example.org/gms?example-group
+  #   claims:
+  #     - name
+  #     - email
+  #     - memberOf
+  #   signDocuments: true
+
+  # Optional existing Secret containing the OIDC signing key pair. The keys
+  # are copied to /config only when existingSecret is set.
+  signingKeys:
+    existingSecret: ""
+    publicKey: oidc-rsa256-pub.key
+    privateKey: oidc-rsa256-priv.key
+
+volumeInit:
+  image: busybox:1.36
+  imagePullPolicy: IfNotPresent
+  securityContext: {}
 
 tolerations: []
 

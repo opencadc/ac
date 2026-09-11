@@ -50,7 +50,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 {{- end }}
 
-{{/* Runtime configuration Secret name. */}}
-{{- define "ac.runtimeConfigSecretName" -}}
-{{- required "application.runtimeConfig.existingSecret is required" .Values.application.runtimeConfig.existingSecret -}}
+{{/* LDAP proxy password Secret name. */}}
+{{- define "ac.ldapPasswordSecretName" -}}
+{{- required "ldap.proxyPassword.existingSecret is required" .Values.ldap.proxyPassword.existingSecret -}}
 {{- end -}}
