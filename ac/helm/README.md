@@ -54,16 +54,18 @@ kubectl create secret generic ac-oidc-client-1 \
   --from-literal=secret='<client-secret>'
 ```
 
-Then list the client in the values. Optional fields that are not present are
-omitted from `ac-oidc-clients.properties`:
+Then list the client in the values. `id` is the actual OIDC client ID, not a
+list position. `description`, `claims`, and `signDocuments` are required by the
+ac parser; only `accessGroup` is optional:
 
 ```yaml
 oidc:
   clients:
-    - name: client-1
+    - id: client-1
       secret:
         existingSecret: ac-oidc-client-1
         key: secret
+      description: Example client
       accessGroup: ivo://example.org/gms?example-group
       claims:
         - name
@@ -72,8 +74,9 @@ oidc:
       signDocuments: true
 ```
 
-If the OIDC endpoints are enabled, create a Secret containing the existing
-signing key pair and reference it in the values:
+When `oidc.clients` is not empty, create a Secret containing the existing
+signing key pair and reference it in the values. The chart requires this
+Secret whenever at least one client is configured:
 
 ```shell
 kubectl create secret generic ac-oidc-signing-keys \
@@ -89,19 +92,13 @@ oidc:
 
 Passwords, client secrets, and private keys must not be stored in Git.
 
-## Example Values
-
-Start from `examples/values.example.yaml` and replace the example hostname,
-resource identifier, registry URL, LDAP values, and Secret names.
-
 ## Test the Chart
 
 ```shell
 helm lint ac/helm
 
 helm template ac ac/helm \
-  --namespace ac \
-  --values ac/helm/examples/values.example.yaml
+  --namespace ac
 ```
 
 Dry-run against a cluster:
@@ -110,7 +107,6 @@ Dry-run against a cluster:
 helm upgrade --install ac ac/helm \
   --namespace ac \
   --create-namespace \
-  --values ac/helm/examples/values.example.yaml \
   --dry-run
 ```
 

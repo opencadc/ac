@@ -113,25 +113,26 @@ ldap:
   adminGroupsDN: ""
   userRequestsDN: ""
 
-# OIDC client properties are generated only for configured clients. Each
-# client secret is read from an existing Kubernetes Secret by an init
-# container and is never stored in the ConfigMap.
+# OIDC client properties are generated only for configured clients. The id,
+# secret reference, description, claims, and signDocuments are required for
+# every client; accessGroup is optional. Each client secret is read from an
+# existing Kubernetes Secret and is never stored in the ConfigMap.
 oidc:
   clients: []
-  # - name: client-1
+  # - id: <client-id>
   #   secret:
-  #     existingSecret: ac-oidc-client-1
+  #     existingSecret: <client-secret-name>
   #     key: secret
-  #   description: Example client
-  #   accessGroup: ivo://example.org/gms?example-group
+  #   description: <client-description>
   #   claims:
   #     - name
   #     - email
   #     - memberOf
   #   signDocuments: true
+  #   accessGroup: ivo://example.org/gms?example-group
 
-  # Optional existing Secret containing the OIDC signing key pair. The keys
-  # are copied to /config only when existingSecret is set.
+  # Existing Secret containing the OIDC signing key pair. existingSecret is
+  # required when clients is not empty; otherwise the keys are not mounted.
   signingKeys:
     existingSecret: ""
     publicKey: oidc-rsa256-pub.key

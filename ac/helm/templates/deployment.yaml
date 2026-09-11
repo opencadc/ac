@@ -47,9 +47,9 @@ spec:
               printf '\nproxyPassword = %s\n' "$LDAP_PASSWORD" >> /config-dst/ac-ldap-config.properties
               {{- range $index, $client := .Values.oidc.clients }}
               OIDC_SECRET=$(tr -d '\n' < /oidc-secrets/client-{{ $index }})
-              printf '\n%s.secret = %s\n' {{ required "oidc.clients[].name is required" $client.name | quote }} "$OIDC_SECRET" >> /config-dst/ac-oidc-clients.properties
+              printf '\n%s.secret = %s\n' {{ required "oidc.clients[].id is required" $client.id | quote }} "$OIDC_SECRET" >> /config-dst/ac-oidc-clients.properties
               {{- end }}
-              {{- with .Values.oidc.signingKeys.existingSecret }}
+              {{- if .Values.oidc.clients }}
               cp /oidc-signing/oidc-rsa256-pub.key /config-dst/oidc-rsa256-pub.key
               cp /oidc-signing/oidc-rsa256-priv.key /config-dst/oidc-rsa256-priv.key
               {{- end }}
@@ -65,7 +65,7 @@ spec:
               mountPath: /oidc-secrets
               readOnly: true
             {{- end }}
-            {{- with .Values.oidc.signingKeys.existingSecret }}
+            {{- if .Values.oidc.clients }}
             - name: oidc-signing
               mountPath: /oidc-signing
               readOnly: true
@@ -148,14 +148,14 @@ spec:
                       path: client-{{ $index }}
             {{- end }}
         {{- end }}
-        {{- with .Values.oidc.signingKeys.existingSecret }}
+        {{- if .Values.oidc.clients }}
         - name: oidc-signing
           secret:
-            secretName: {{ . }}
+            secretName: {{ required "oidc.signingKeys.existingSecret is required when oidc.clients is not empty" .Values.oidc.signingKeys.existingSecret }}
             items:
-              - key: {{ $.Values.oidc.signingKeys.publicKey | default "oidc-rsa256-pub.key" | quote }}
+              - key: {{ .Values.oidc.signingKeys.publicKey | default "oidc-rsa256-pub.key" | quote }}
                 path: oidc-rsa256-pub.key
-              - key: {{ $.Values.oidc.signingKeys.privateKey | default "oidc-rsa256-priv.key" | quote }}
+              - key: {{ .Values.oidc.signingKeys.privateKey | default "oidc-rsa256-priv.key" | quote }}
                 path: oidc-rsa256-priv.key
         {{- end }}
         - name: config-merged
