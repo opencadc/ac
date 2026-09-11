@@ -69,74 +69,74 @@ application:
   #   - ip: 127.3.34.5
   #     hostname: myhost.example.org
 
-# LDAP configuration rendered into ac-ldap-config.properties. Empty optional
-# values are omitted. Environment-specific servers, bind DN, and tree DNs must
-# be supplied by the deployer.
-ldap:
-  readOnly:
-    servers: ""
-    poolInitSize: 4
-    poolMaxSize: 100
-    poolPolicy: roundRobin
-    maxWait: 30000
-    createIfNeeded: false
-    port:
-    secure:
+  # LDAP configuration rendered into ac-ldap-config.properties. Empty optional
+  # values are omitted. Environment-specific servers, bind DN, and tree DNs
+  # must be supplied by the deployer.
+  ldap:
+    readOnly:
+      servers: ""
+      poolInitSize: 4
+      poolMaxSize: 100
+      poolPolicy: roundRobin
+      maxWait: 30000
+      createIfNeeded: false
+      port:
+      secure:
 
-  readWrite:
-    servers: ""
-    poolInitSize: 4
-    poolMaxSize: 10
-    poolPolicy: roundRobin
-    maxWait: 30000
-    createIfNeeded: false
-    port:
-    secure:
+    readWrite:
+      servers: ""
+      poolInitSize: 4
+      poolMaxSize: 10
+      poolPolicy: roundRobin
+      maxWait: 30000
+      createIfNeeded: false
+      port:
+      secure:
 
-  unboundReadOnly:
-    servers: ""
-    poolInitSize: 1
-    poolMaxSize: 25
-    poolPolicy: roundRobin
-    maxWait: 30000
-    createIfNeeded: false
-    port:
-    secure:
+    unboundReadOnly:
+      servers: ""
+      poolInitSize: 1
+      poolMaxSize: 25
+      poolPolicy: roundRobin
+      maxWait: 30000
+      createIfNeeded: false
+      port:
+      secure:
 
-  port: 636
-  proxyUser: ""
-  proxyPassword:
-    existingSecret: ac-ldap-config
-    key: proxyPassword
-  usersDN: ""
-  groupsDN: ""
-  adminGroupsDN: ""
-  userRequestsDN: ""
+    port: 636
+    proxyUser: ""
+    proxyPassword:
+      existingSecret: ac-ldap-config
+      key: proxyPassword
+    usersDN: ""
+    groupsDN: ""
+    adminGroupsDN: ""
+    userRequestsDN: ""
 
-# OIDC client properties are generated only for configured clients. The id,
-# secret reference, description, claims, and signDocuments are required for
-# every client; accessGroup is optional. Each client secret is read from an
-# existing Kubernetes Secret and is never stored in the ConfigMap.
-oidc:
-  clients: []
-  # - id: <client-id>
-  #   secret:
-  #     existingSecret: <client-secret-name>
-  #     key: secret
-  #   description: <client-description>
-  #   claims:
-  #     - name
-  #     - email
-  #     - memberOf
-  #   signDocuments: true
-  #   accessGroup: ivo://example.org/gms?example-group
+  # OIDC client properties are generated only for configured clients. The id,
+  # secret reference, description, claims, and signDocuments are required for
+  # every client; accessGroup is optional. Each client secret is read from an
+  # existing Kubernetes Secret and is never stored in the ConfigMap.
+  oidc:
+    clients: []
+    # - id: <client-id>
+    #   secret:
+    #     existingSecret: <client-secret-name>
+    #     key: secret
+    #   description: <client-description>
+    #   claims:
+    #     - name
+    #     - email
+    #     - memberOf
+    #   signDocuments: true
+    #   accessGroup: ivo://example.org/gms?example-group
 
-  # Existing Secret containing the OIDC signing key pair. existingSecret is
-  # required when clients is not empty; otherwise the keys are not mounted.
-  signingKeys:
-    existingSecret: ""
-    publicKey: oidc-rsa256-pub.key
-    privateKey: oidc-rsa256-priv.key
+    # Existing Secret containing the OIDC signing key pair. existingSecret is
+    # required when clients is not empty; otherwise the keys are not mounted.
+    signingKeys:
+      existingSecret: ""
+      publicKey: oidc-rsa256-pub.key
+      privateKey: oidc-rsa256-priv.key
 
 volumeInit:
   image: busybox:1.36

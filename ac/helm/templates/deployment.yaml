@@ -1,5 +1,5 @@
 {{- $containerPort := .Values.service.port -}}
-{{- $ldapPasswordKey := .Values.ldap.proxyPassword.key | default "proxyPassword" -}}
+{{- $ldapPasswordKey := .Values.application.ldap.proxyPassword.key | default "proxyPassword" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,11 +45,11 @@ spec:
               cp -R /config-src/. /config-dst/
               LDAP_PASSWORD=$(tr -d '\n' < /ldap-secret/proxyPassword)
               printf '\nproxyPassword = %s\n' "$LDAP_PASSWORD" >> /config-dst/ac-ldap-config.properties
-              {{- range $index, $client := .Values.oidc.clients }}
+              {{- range $index, $client := .Values.application.oidc.clients }}
               OIDC_SECRET=$(tr -d '\n' < /oidc-secrets/client-{{ $index }})
-              printf '\n%s.secret = %s\n' {{ required "oidc.clients[].id is required" $client.id | quote }} "$OIDC_SECRET" >> /config-dst/ac-oidc-clients.properties
+              printf '\n%s.secret = %s\n' {{ required "application.oidc.clients[].id is required" $client.id | quote }} "$OIDC_SECRET" >> /config-dst/ac-oidc-clients.properties
               {{- end }}
-              {{- if .Values.oidc.clients }}
+              {{- if .Values.application.oidc.clients }}
               cp /oidc-signing/oidc-rsa256-pub.key /config-dst/oidc-rsa256-pub.key
               cp /oidc-signing/oidc-rsa256-priv.key /config-dst/oidc-rsa256-priv.key
               {{- end }}
@@ -60,12 +60,12 @@ spec:
             - name: ldap-secret
               mountPath: /ldap-secret
               readOnly: true
-            {{- if .Values.oidc.clients }}
+            {{- if .Values.application.oidc.clients }}
             - name: oidc-secrets
               mountPath: /oidc-secrets
               readOnly: true
             {{- end }}
-            {{- if .Values.oidc.clients }}
+            {{- if .Values.application.oidc.clients }}
             - name: oidc-signing
               mountPath: /oidc-signing
               readOnly: true
@@ -136,26 +136,26 @@ spec:
             items:
               - key: {{ $ldapPasswordKey | quote }}
                 path: proxyPassword
-        {{- if .Values.oidc.clients }}
+        {{- if .Values.application.oidc.clients }}
         - name: oidc-secrets
           projected:
             sources:
-            {{- range $index, $client := .Values.oidc.clients }}
+            {{- range $index, $client := .Values.application.oidc.clients }}
               - secret:
-                  name: {{ required "oidc.clients[].secret.existingSecret is required" $client.secret.existingSecret }}
+                  name: {{ required "application.oidc.clients[].secret.existingSecret is required" $client.secret.existingSecret }}
                   items:
                     - key: {{ $client.secret.key | default "secret" | quote }}
                       path: client-{{ $index }}
             {{- end }}
         {{- end }}
-        {{- if .Values.oidc.clients }}
+        {{- if .Values.application.oidc.clients }}
         - name: oidc-signing
           secret:
-            secretName: {{ required "oidc.signingKeys.existingSecret is required when oidc.clients is not empty" .Values.oidc.signingKeys.existingSecret }}
+            secretName: {{ required "application.oidc.signingKeys.existingSecret is required when application.oidc.clients is not empty" .Values.application.oidc.signingKeys.existingSecret }}
             items:
-              - key: {{ .Values.oidc.signingKeys.publicKey | default "oidc-rsa256-pub.key" | quote }}
+              - key: {{ .Values.application.oidc.signingKeys.publicKey | default "oidc-rsa256-pub.key" | quote }}
                 path: oidc-rsa256-pub.key
-              - key: {{ .Values.oidc.signingKeys.privateKey | default "oidc-rsa256-priv.key" | quote }}
+              - key: {{ .Values.application.oidc.signingKeys.privateKey | default "oidc-rsa256-priv.key" | quote }}
                 path: oidc-rsa256-priv.key
         {{- end }}
         - name: config-merged

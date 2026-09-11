@@ -52,5 +52,5 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 
 {{/* LDAP proxy password Secret name. */}}
 {{- define "ac.ldapPasswordSecretName" -}}
-{{- required "ldap.proxyPassword.existingSecret is required" .Values.ldap.proxyPassword.existingSecret -}}
+{{- required "application.ldap.proxyPassword.existingSecret is required" .Values.application.ldap.proxyPassword.existingSecret -}}
 {{- end -}}

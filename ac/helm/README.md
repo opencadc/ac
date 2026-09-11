@@ -22,22 +22,23 @@ Set the LDAP values and Secret reference. The ac 1.5.0 ldap service receives
 `ac-ldap-config.properties`; it does not use `dbrcHost` or a `.dbrc` file.
 
 ```yaml
-ldap:
-  readOnly:
-    servers: ldap-ro.example.org
-  readWrite:
-    servers: ldap-rw.example.org
-  unboundReadOnly:
-    servers: ldap-ro.example.org
-  port: 636
-  proxyUser: uid=webproxy,ou=SpecialUsers,dc=example,dc=org
-  proxyPassword:
-    existingSecret: ac-ldap-config
-    key: proxyPassword
-  usersDN: ou=Users,ou=ds,dc=example,dc=org
-  groupsDN: ou=Groups,ou=ds,dc=example,dc=org
-  adminGroupsDN: ou=adminGroups,ou=ds,dc=example,dc=org
-  userRequestsDN: ou=userRequests,ou=ds,dc=example,dc=org
+application:
+  ldap:
+    readOnly:
+      servers: ldap-ro.example.org
+    readWrite:
+      servers: ldap-rw.example.org
+    unboundReadOnly:
+      servers: ldap-ro.example.org
+    port: 636
+    proxyUser: uid=webproxy,ou=SpecialUsers,dc=example,dc=org
+    proxyPassword:
+      existingSecret: ac-ldap-config
+      key: proxyPassword
+    usersDN: ou=Users,ou=ds,dc=example,dc=org
+    groupsDN: ou=Groups,ou=ds,dc=example,dc=org
+    adminGroupsDN: ou=adminGroups,ou=ds,dc=example,dc=org
+    userRequestsDN: ou=userRequests,ou=ds,dc=example,dc=org
 ```
 
 Pool tuning, per-pool `port`, and per-pool `secure` values are optional. An
@@ -59,24 +60,25 @@ list position. `description`, `claims`, and `signDocuments` are required by the
 ac parser; only `accessGroup` is optional:
 
 ```yaml
-oidc:
-  clients:
-    - id: client-1
-      secret:
-        existingSecret: ac-oidc-client-1
-        key: secret
-      description: Example client
-      accessGroup: ivo://example.org/gms?example-group
-      claims:
-        - name
-        - email
-        - memberOf
-      signDocuments: true
+application:
+  oidc:
+    clients:
+      - id: client-1
+        secret:
+          existingSecret: ac-oidc-client-1
+          key: secret
+        description: Example client
+        accessGroup: ivo://example.org/gms?example-group
+        claims:
+          - name
+          - email
+          - memberOf
+        signDocuments: true
 ```
 
-When `oidc.clients` is not empty, create a Secret containing the existing
-signing key pair and reference it in the values. The chart requires this
-Secret whenever at least one client is configured:
+When `application.oidc.clients` is not empty, create a Secret containing the
+existing signing key pair and reference it in the values. The chart requires
+this Secret whenever at least one client is configured:
 
 ```shell
 kubectl create secret generic ac-oidc-signing-keys \
@@ -85,9 +87,10 @@ kubectl create secret generic ac-oidc-signing-keys \
 ```
 
 ```yaml
-oidc:
-  signingKeys:
-    existingSecret: ac-oidc-signing-keys
+application:
+  oidc:
+    signingKeys:
+      existingSecret: ac-oidc-signing-keys
 ```
 
 Passwords, client secrets, and private keys must not be stored in Git.
