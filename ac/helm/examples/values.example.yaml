@@ -1,0 +1,44 @@
+# Example values for deploying the ac service.
+#
+# Copy this file and replace the example hostname, resource identifier,
+# registry URL, and Secret name.
+
+image:
+  repository: bucket.canfar.net/ac
+  tag: "1.5.0-20260127T224241"
+
+imagePullSecrets:
+  - name: bucket-registry-auth
+
+application:
+  resourceID: ivo://example.org/gms
+  registryURL: https://ac.example.org/reg
+
+  runtimeConfig:
+    existingSecret: ac-runtime-config
+
+  logging:
+    groups:
+      - ivo://example.org/gms?admins
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: ac.example.org
+      paths:
+        - path: /ac
+          pathType: Prefix
+
+httpRoute:
+  enabled: false
+  parentRefs:
+    - name: gateway
+      sectionName: http
+  hostnames:
+    - ac.example.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ac

@@ -1,0 +1,136 @@
+kubernetesClusterDomain: cluster.local
+
+replicaCount: 1
+
+image:
+  repository: bucket.canfar.net/ac
+  pullPolicy: IfNotPresent
+  tag: "1.5.0-20260127T224241"
+
+imagePullSecrets: []
+
+nameOverride: ""
+
+podSecurityContext: {}
+
+securityContext: {}
+
+application:
+  endpoint: /ac
+  availabilityPath: /ac/availability
+
+  # Resource identifier for this GMS service.
+  resourceID: ivo://example.org/gms
+
+  # Registry service URL.
+  registryURL: https://example.org/reg
+
+  # Existing Secret containing ac-ldap-config.properties. When OIDC is
+  # enabled, use the same Secret for ac-oidc-clients.properties and the
+  # oidc-rsa256 public/private key pair.
+  runtimeConfig:
+    existingSecret: ac-runtime-config
+
+  # Repeatable X.509 DNs with privileged read access to all groups.
+  readUsers: []
+
+  # Space-separated in the rendered ac-domains.properties file.
+  domains: []
+
+  # Reserved group-name prefix -> allowed HTTP user and optional admin group
+  # URI. An empty value prevents anyone from creating matching groups.
+  groupNameRules: {}
+
+  # Subjects allowed to alter logging.
+  logging:
+    users: []
+    usernames: []
+    groups: []
+
+  # Optionally set the DEBUG port.
+  # extraEnv:
+  #   - name: CATALINA_OPTS
+  #     value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5555"
+  # extraPorts:
+  #   - containerPort: 5555
+  #     protocol: TCP
+
+  # This applies to the ac service pod.
+  # nodeAffinity: {}
+
+  # Optionally mount additional configuration or certificates.
+  # extraVolumeMounts: []
+  # extraVolumes: []
+
+  resources:
+    requests:
+      memory: "500Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "750m"
+
+  # Specify extra hostnames added to the pod's /etc/hosts file.
+  # extraHosts:
+  #   - ip: 127.3.34.5
+  #     hostname: myhost.example.org
+
+tolerations: []
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /ac
+          pathType: Prefix
+  tls: []
+
+# Expose the service with a Kubernetes Gateway API HTTPRoute.
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: gateway
+      sectionName: http
+      # namespace: default
+  hostnames:
+    - chart-example.local
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ac
+
+serviceAccount:
+  create: false
+  automount: false
+  annotations: {}
+  name: ""
+
+livenessProbe:
+  httpGet:
+    path: /ac/availability
+    port: http
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /ac/availability
+    port: http
+  periodSeconds: 15
+
+startupProbe:
+  httpGet:
+    path: /ac/availability
+    port: http
+  initialDelaySeconds: 10
+  timeoutSeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30

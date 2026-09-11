@@ -1,0 +1,98 @@
+{{- $containerPort := .Values.service.port -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: {{ .Release.Name }}-tomcat
+    {{- include "ac.labels" . | nindent 4 }}
+  name: {{ .Release.Name }}-tomcat
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ default 1 .Values.replicaCount }}
+  selector:
+    matchLabels:
+      run: {{ .Release.Name }}-tomcat
+  template:
+    metadata:
+      labels:
+        run: {{ .Release.Name }}-tomcat
+        {{- include "ac.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ac.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.application.nodeAffinity }}
+      affinity:
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: {{ .Release.Name }}-tomcat
+          resources:
+            {{- toYaml .Values.application.resources | nindent 12 }}
+          {{- $tomcatSC := merge (dict "allowPrivilegeEscalation" false) (.Values.securityContext | default dict) }}
+          securityContext:
+            {{- toYaml $tomcatSC | nindent 12 }}
+          {{- with .Values.application.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ $containerPort }}
+              protocol: TCP
+          {{- with .Values.application.extraPorts }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /config
+              name: runtime-config
+              readOnly: true
+          {{- with .Values.application.extraVolumeMounts }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.application.extraHosts }}
+      hostAliases:
+      {{- range $extraHost := . }}
+        - ip: {{ $extraHost.ip }}
+          hostnames:
+            - {{ $extraHost.hostname }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: runtime-config
+          projected:
+            defaultMode: 0440
+            sources:
+              - configMap:
+                  name: {{ .Release.Name }}-config
+              - secret:
+                  name: {{ include "ac.runtimeConfigSecretName" . }}
+      {{- with .Values.application.extraVolumes }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
