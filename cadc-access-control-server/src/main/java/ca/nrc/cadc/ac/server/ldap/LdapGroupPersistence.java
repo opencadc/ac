@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2026.                            (c) 2026.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -295,31 +295,20 @@ public class LdapGroupPersistence extends LdapPersistence implements GroupPersis
                 log.debug("getGroups  " + role + ": " + groups.size());
                 Collection<Group> ret = new ArrayList<Group>(groups.size());
                 Iterator<Group> i = groups.iterator();
-                String posixUserName = null;
-                if (caller.getPrincipals(HttpPrincipal.class).size() == 1) {
-                    posixUserName = caller.getPrincipals(
-                            HttpPrincipal.class).iterator().next().getName();
-                }
                 while (i.hasNext()) {
                     Group g = i.next();
-
-                    // filter out the user's posix group
-                    if (posixUserName != null && g.getID().getName().equals(posixUserName)) {
-                        log.debug("Filtering out posix group: " + posixUserName);
-                    } else {
-                        if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID)) {
-                            if (detailSelector != null && detailSelector.isDetailedSearch(g, role)) {
-                                try {
-                                    Group g2 = groupDAO.getGroup(g.getID().getName(), false);
-                                    log.debug("role " + role + " loaded: " + g2);
-                                    ret.add(g2);
-                                } catch (GroupNotFoundException contentBug) {
-                                    log.error("group: " + g.getID() + " in cache but not found", contentBug);
-                                    // skip and continue so user gets something
-                                }
-                            } else {
-                                ret.add(g);
+                    if (groupID == null || g.getID().getName().equalsIgnoreCase(groupID)) {
+                        if (detailSelector != null && detailSelector.isDetailedSearch(g, role)) {
+                            try {
+                                Group g2 = groupDAO.getGroup(g.getID().getName(), false);
+                                log.debug("role " + role + " loaded: " + g2);
+                                ret.add(g2);
+                            } catch (GroupNotFoundException contentBug) {
+                                log.error("group: " + g.getID() + " in cache but not found", contentBug);
+                                // skip and continue so user gets something
                             }
+                        } else {
+                            ret.add(g);
                         }
                     }
                 }
