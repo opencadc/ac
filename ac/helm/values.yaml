@@ -15,6 +15,14 @@ podSecurityContext: {}
 
 securityContext: {}
 
+resources:
+  requests:
+    memory: "500Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "750m"
+
 application:
   endpoint: /ac
   availabilityPath: /ac/availability
@@ -40,14 +48,6 @@ application:
     users: []
     usernames: []
     groups: []
-
-  resources:
-    requests:
-      memory: "500Mi"
-      cpu: "500m"
-    limits:
-      memory: "1Gi"
-      cpu: "750m"
 
   # LDAP configuration rendered into ac-ldap-config.properties. Empty optional
   # values are omitted. Environment-specific servers, bind DN, and tree DNs

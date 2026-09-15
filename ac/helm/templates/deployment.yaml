@@ -81,7 +81,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           name: {{ .Release.Name }}-tomcat
           resources:
-            {{- toYaml .Values.application.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           {{- $tomcatSC := merge (dict "allowPrivilegeEscalation" false) (.Values.securityContext | default dict) }}
           securityContext:
             {{- toYaml $tomcatSC | nindent 12 }}
