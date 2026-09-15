@@ -15,6 +15,34 @@ podSecurityContext: {}
 
 securityContext: {}
 
+# Optionally set the DEBUG port.
+# extraEnv:
+#   - name: CATALINA_OPTS
+#     value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5555"
+# extraPorts:
+#   - containerPort: 5555
+#     protocol: TCP
+
+# This applies to the ac service pod.
+# nodeAffinity: {}
+
+# Optionally mount additional configuration or certificates.
+# extraVolumeMounts: []
+# extraVolumes: []
+
+resources:
+  requests:
+    memory: "500Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "750m"
+
+# Specify extra hostnames added to the pod's /etc/hosts file.
+# extraHosts:
+#   - ip: 127.3.34.5
+#     hostname: myhost.example.org
+
 application:
   endpoint: /ac
   availabilityPath: /ac/availability
@@ -40,34 +68,6 @@ application:
     users: []
     usernames: []
     groups: []
-
-  # Optionally set the DEBUG port.
-  # extraEnv:
-  #   - name: CATALINA_OPTS
-  #     value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5555"
-  # extraPorts:
-  #   - containerPort: 5555
-  #     protocol: TCP
-
-  # This applies to the ac service pod.
-  # nodeAffinity: {}
-
-  # Optionally mount additional configuration or certificates.
-  # extraVolumeMounts: []
-  # extraVolumes: []
-
-  resources:
-    requests:
-      memory: "500Mi"
-      cpu: "500m"
-    limits:
-      memory: "1Gi"
-      cpu: "750m"
-
-  # Specify extra hostnames added to the pod's /etc/hosts file.
-  # extraHosts:
-  #   - ip: 127.3.34.5
-  #     hostname: myhost.example.org
 
   # LDAP configuration rendered into ac-ldap-config.properties. Empty optional
   # values are omitted. Environment-specific servers, bind DN, and tree DNs
