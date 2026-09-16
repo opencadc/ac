@@ -1238,13 +1238,16 @@ public class GmsClientIntTest
             assertNotNull(groups);
             assertFalse(groups.isEmpty());
     
-            // search that returns nothing
+            // search that returns just the user primary group
             groups = getMembershipsAs(Role.MEMBER, ConfigUsers.getInstance().getRegisteredSubject());
             assertNotNull(groups);
             for (Group g : groups) {
                 log.debug("testSearch: found group: " + g.getID().getName());
             }
-            assertTrue("found " + groups.size() + " expected 0", groups.isEmpty());
+            assertEquals("found " + groups.size() + " expected 1", 1, groups.size());
+            String primaryGroupName = groups.iterator().next().getID().getName();
+            assertEquals("Expected user primary group, found: " + primaryGroupName,
+                         ConfigUsers.getInstance().getRegisteredUsername(), primaryGroupName);
     
             // assert owner
             Group group = getMembershipAs(testGroupID, Role.OWNER, ConfigUsers.getInstance().getOwnerSubject());
