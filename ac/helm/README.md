@@ -17,7 +17,7 @@ kubectl create secret generic ac-ldap-config \
   --from-literal=proxyPassword='<password>'
 ```
 
-Set the LDAP values and Secret reference. The ac 1.5.0 ldap service receives
+Set the LDAP values and Secret reference. The ac ldap service receives
 `proxyUser` and `proxyPassword` in the generated
 `ac-ldap-config.properties`; it does not use `dbrcHost` or a `.dbrc` file.
 
