@@ -1,0 +1,88 @@
+# Shared components for the GMS OpenAPI description (referenced from path fragments and the root document).
+components:
+  parameters:
+    groupName:
+      name: groupName
+      in: path
+      required: true
+      description: |
+        The group name (simple identifier), e.g. teamA, myGroup
+      schema:
+        type: string
+      example: teamA
+    userID:
+      name: userID
+      in: path
+      required: true
+      description: The unique user identifier (CANFAR HTTP username)
+      schema:
+        type: string
+      example: user1
+    idType:
+      name: idType
+      in: query
+      description: The type of userID (http, x509, cadc)
+      required: true
+      schema:
+        type: string
+        enum:
+          - http
+          - x509
+          - cadc
+      example: http
+
+  schemas:
+    Group:
+      type: object
+      description: Representation of a group
+    User:
+      type: string
+      description: User identifier (CANFAR HTTP username)
+      example: "exampleuser"
+
+  examples:
+    example-group:
+      summary: Example group document (JSON/XML body shape)
+      value:
+        uri: "ivo://cadc.nrc.ca/gms#teamA"
+        owner: "owner1"
+        description: "Research team access group"
+        lastModified: "2015-07-24T17:38:18.000"
+        userMembers:
+          - "member1"
+          - "member2"
+          - "member3"
+        userAdmins:
+          - "admin1"
+          - "admin2"
+        groupMembers:
+          - uri: "ivo://cadc.nrc.ca/gms#shared-data"
+          - uri: "ivo://cadc.nrc.ca/gms#pipeline-users"
+        groupAdmins:
+          - uri: "ivo://cadc.nrc.ca/gms#platform-admins"
+
+    GroupXmlDetailed:
+      summary: Detailed group example (XML)
+      value: |
+        <group>
+          <uri>ivo://cadc.nrc.ca/gms#teamA</uri>
+          <owner>owner1</owner>
+          <description>Research team access group</description>
+          <lastModified>2015-07-24T17:38:18.000</lastModified>
+          <userMembers>
+            <user>member1</user>
+            <user>member2</user>
+            <user>member3</user>
+          </userMembers>
+          <userAdmins>
+            <user>admin1</user>
+            <user>admin2</user>
+          </userAdmins>
+          <groupMembers>
+            <group><uri>ivo://cadc.nrc.ca/gms#shared-data</uri></group>
+            <group><uri>ivo://cadc.nrc.ca/gms#pipeline-users</uri></group>
+          </groupMembers>
+          <groupAdmins>
+            <group><uri>ivo://cadc.nrc.ca/gms#platform-admins</uri></group>
+          </groupAdmins>
+        </group>

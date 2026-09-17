@@ -1,0 +1,83 @@
+get:
+  tags:
+    - GMS
+  summary: Query group membership
+  description: |
+    Returns group memberships for the authenticated identity.
+
+    If one or more `group` parameters are supplied, the response SHALL
+    contain only those groups for which membership is confirmed.
+
+    If no `group` parameter is supplied, the response SHALL contain all
+    groups of which the identity is a member.
+
+    The response SHALL be plain text containing zero or more lines,
+    each line containing a simple group name.
+  operationId: getMembership
+
+  parameters:
+      - name: group
+      in: query
+      description: Membership of one or more groups.
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+        example:
+          - "group1"
+          - "group2"
+          - "group3"
+
+  responses:
+    '200':
+      description: Successful membership response
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: |
+              Plain text response listing simple group names, one per line.
+          examples:
+            filtered:
+              summary: Filtered by requested groups
+              value: |
+                groupA
+                groupC
+            allGroups:
+              summary: All memberships (no group parameter supplied)
+              value: |
+                groupA
+                groupB
+                groupC
+            none:
+              summary: No memberships
+              value: ""
+
+    '401':
+      $ref: ../vosi/vosi-std-responses.yaml#/not-authenticated
+    '403':
+      $ref: ../vosi/vosi-std-responses.yaml#/permission-denied
+
+components:
+
+  parameters:
+
+    group:
+      name: group
+      in: query
+      description: |
+        Name of a group.
+
+        This parameter MAY be repeated to test membership in multiple groups.
+
+        If omitted, all group memberships SHALL be returned.
+      required: false
+      example:
+        - ivo://example.org/gms?engineering
+      schema:
+        type: array
+        items:
+          type: string
+          example: ivo://example.org/gms?engineering
+      style: form
