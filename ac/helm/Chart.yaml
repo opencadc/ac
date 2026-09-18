@@ -1,0 +1,13 @@
+apiVersion: v2
+name: ac
+description: "A Helm chart to install the Access Control and Group Management service"
+
+maintainers:
+  - name: Canadian Astronomy Data Centre
+    email: cadc@nrc-cnrc.gc.ca
+
+type: application
+
+version: 0.1.0
+
+appVersion: "1.5.1-20260917T193124"

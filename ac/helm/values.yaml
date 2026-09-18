@@ -1,0 +1,204 @@
+kubernetesClusterDomain: cluster.local
+
+replicaCount: 1
+
+image:
+  repository: bucket.canfar.net/ac
+  pullPolicy: IfNotPresent
+  tag: "1.5.1-20260917T193124"
+
+imagePullSecrets: []
+
+nameOverride: ""
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources:
+  requests:
+    memory: "500Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "750m"
+
+application:
+  endpoint: /ac
+  availabilityPath: /ac/availability
+
+  # Resource identifier for this GMS service.
+  resourceID: ivo://example.org/gms
+
+  # Registry service URL.
+  registryURL: https://example.org/reg
+
+  # Repeatable X.509 DNs with privileged read access to all groups.
+  readUsers: []
+
+  # Space-separated in the rendered ac-domains.properties file.
+  domains: []
+
+  # Reserved group-name prefix -> allowed HTTP user and optional admin group
+  # URI. An empty value prevents anyone from creating matching groups.
+  groupNameRules: {}
+
+  # Subjects allowed to alter logging.
+  logging:
+    users: []
+    usernames: []
+    groups: []
+
+  # LDAP configuration rendered into ac-ldap-config.properties. Empty optional
+  # values are omitted. Environment-specific servers, bind DN, and tree DNs
+  # must be supplied by the deployer.
+  ldap:
+    readOnly:
+      servers: ""
+      poolInitSize: 4
+      poolMaxSize: 100
+      poolPolicy: roundRobin
+      maxWait: 30000
+      createIfNeeded: false
+      port:
+      secure:
+
+    readWrite:
+      servers: ""
+      poolInitSize: 4
+      poolMaxSize: 10
+      poolPolicy: roundRobin
+      maxWait: 30000
+      createIfNeeded: false
+      port:
+      secure:
+
+    unboundReadOnly:
+      servers: ""
+      poolInitSize: 1
+      poolMaxSize: 25
+      poolPolicy: roundRobin
+      maxWait: 30000
+      createIfNeeded: false
+      port:
+      secure:
+
+    port: 636
+    proxyUser: ""
+    proxyPassword:
+      existingSecret: ac-ldap-config
+      key: proxyPassword
+    usersDN: ""
+    groupsDN: ""
+    adminGroupsDN: ""
+    userRequestsDN: ""
+
+  # OIDC client properties are generated only for configured clients. The id,
+  # secret reference, description, claims, and signDocuments are required for
+  # every client; accessGroup is optional. Each client secret is read from an
+  # existing Kubernetes Secret and is never stored in the ConfigMap.
+  oidc:
+    clients: []
+    # - id: <client-id>
+    #   secret:
+    #     existingSecret: <client-secret-name>
+    #     key: secret
+    #   description: <client-description>
+    #   claims:
+    #     - name
+    #     - email
+    #     - memberOf
+    #   signDocuments: true
+    #   accessGroup: ivo://example.org/gms?example-group
+
+    # Existing Secret containing the OIDC signing key pair. existingSecret is
+    # required when clients is not empty; otherwise the keys are not mounted.
+    signingKeys:
+      existingSecret: ""
+      publicKey: oidc-rsa256-pub.key
+      privateKey: oidc-rsa256-priv.key
+
+# This applies to the ac service pod.
+# nodeAffinity: {}
+
+# Optionally mount additional configuration or certificates.
+# extraVolumeMounts: []
+# extraVolumes: []
+
+# Specify extra hostnames added to the pod's /etc/hosts file.
+# extraHosts:
+#   - ip: 127.3.34.5
+#     hostname: myhost.example.org
+
+# Optionally set the DEBUG port.
+# extraEnv:
+#   - name: CATALINA_OPTS
+#     value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5555"
+# extraPorts:
+#   - containerPort: 5555
+#     protocol: TCP
+
+volumeInit:
+  image: busybox:1.36
+  imagePullPolicy: IfNotPresent
+  securityContext: {}
+
+tolerations: []
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /ac
+          pathType: Prefix
+  tls: []
+
+# Expose the service with a Kubernetes Gateway API HTTPRoute.
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: gateway
+      sectionName: http
+      # namespace: default
+  hostnames:
+    - chart-example.local
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ac
+
+serviceAccount:
+  create: false
+  automount: false
+  annotations: {}
+  name: ""
+
+livenessProbe:
+  httpGet:
+    path: /ac/availability
+    port: http
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /ac/availability
+    port: http
+  periodSeconds: 15
+
+startupProbe:
+  httpGet:
+    path: /ac/availability
+    port: http
+  initialDelaySeconds: 10
+  timeoutSeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30

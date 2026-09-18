@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-connection"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ac.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox:1.36
+      command: ['wget']
+      args: ['{{ .Release.Name }}-tomcat-svc:{{ .Values.service.port }}{{ .Values.application.availabilityPath }}']
+  restartPolicy: Never

@@ -1,0 +1,12 @@
+'{{ .Chart.Name }}' installed successfully. You can monitor it in the {{ .Release.Namespace }} Namespace:
+
+kubectl -n {{ .Release.Namespace }} get pods
+
+Your release is named {{ .Release.Name }}.
+
+The ac service expects the LDAP proxy password from Secret {{ include "ac.ldapPasswordSecretName" . }}.
+
+To learn more about the release, try:
+
+  $ helm -n {{ .Release.Namespace }} status {{ .Release.Name }}
+  $ helm -n {{ .Release.Namespace }} get all {{ .Release.Name }}
