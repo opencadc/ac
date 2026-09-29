@@ -119,31 +119,47 @@ public class ApproveUser extends AbstractUserCommand {
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid DN format: " + dn);
         }
+        String username = this.getPrincipal().getName();
 
         try {
             this.getUserPersistence().approveUserRequest(this.getPrincipal());
-            this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
+            this.systemOut.println(username + " - UserRequest moved to Users");
         } catch (UserNotFoundException e) {
-            this.systemOut.println("Could not find userRequest " + this.getPrincipal());
+            // The UserRequest was not found; the user may already be approved.
+        }
+
+        // sleep for replication delay
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            this.systemOut.println(username + " - error sleeping, exiting");
             return;
         }
 
-        User user = null;
+        User user;
         try {
             user = this.getUserPersistence().getUser(this.getPrincipal());
         } catch (UserNotFoundException e) {
-            this.systemOut.println("Could not set user DN");
+            // UserRequest and User not found, likely input error
+            this.systemOut.println(username + " - UserRequest or User not found, exiting");
             return;
         }
 
-        // email the user
-        emailUser(user);
+        if (user.getIdentities().contains(dnPrincipal)) {
+            this.systemOut.println(username + " -  DN found, exiting");
+            this.printUser(user);
+            return;
+        }
 
         user.getIdentities().add(dnPrincipal);
         this.getUserPersistence().modifyUser(user);
-        String noWhiteSpaceDN = dn.replaceAll("\\s", "");
-        this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + noWhiteSpaceDN);
+        this.systemOut.println(username + " - DN updated");
         this.printUser(user);
+
+        // currently unable to sent email
+//        emailUser(user)
+        this.systemOut.println(username + " - user approved");
     }
 
     private void emailUser(User user) {
@@ -192,10 +208,10 @@ public class ApproveUser extends AbstractUserCommand {
 
             boolean authenticated = true;
             mailer.doSend(authenticated);
-            this.systemOut.println("Emailed approval message to user.");
+            this.systemOut.println("email sent");
         } catch (Exception e) {
-            this.systemOut.println("Failed to email user");
-            log.warn("Failed to email user", e);
+            this.systemOut.println("failed to send email");
+            log.warn("Failed to email user");
         }
     }
 }
