@@ -131,8 +131,8 @@ public class ApproveUser extends AbstractUserCommand {
 
             this.systemOut.println(username + " - approval complete");
 
-//        } catch (IllegalStateException e) {
-//            this.systemOut.println("ERROR: proxyUser in ac-ldap-config.properties is not authorized to approve UserRequest's");
+        } catch (IllegalStateException e) {
+            this.systemOut.println("ERROR: proxyUser in ac-ldap-config.properties is not authorized to approve UserRequest's");
         } catch (UserNotFoundException e) {
             // The UserRequest was not found; the user may already be approved.
             this.systemOut.println(username + " - UserRequest not found");
