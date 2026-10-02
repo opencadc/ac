@@ -113,53 +113,38 @@ public class ApproveUser extends AbstractUserCommand {
 
     protected void execute()
             throws AccessControlException, UserNotFoundException, TransientException {
-        X500Principal dnPrincipal = null;
+        X500Principal x500Principal = null;
         try {
-            dnPrincipal = new X500Principal(dn);
+            x500Principal = new X500Principal(dn);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid DN format: " + dn);
         }
         String username = this.getPrincipal().getName();
 
         try {
-            this.getUserPersistence().approveUserRequest(this.getPrincipal());
+            User approvedUser = this.getUserPersistence().approveUserRequest(this.getPrincipal(), x500Principal);
             this.systemOut.println(username + " - UserRequest moved to Users");
+            printUser(approvedUser);
+
+            // currently unable to sent email
+            // emailUser(user)
+
+            this.systemOut.println(username + " - approval complete");
+
+//        } catch (IllegalStateException e) {
+//            this.systemOut.println("ERROR: proxyUser in ac-ldap-config.properties is not authorized to approve UserRequest's");
         } catch (UserNotFoundException e) {
             // The UserRequest was not found; the user may already be approved.
+            this.systemOut.println(username + " - UserRequest not found");
+
+            try {
+                User user = this.getUserPersistence().getUser(this.getPrincipal());
+                this.systemOut.println(username + " - existing User found");
+                printUser(user);
+            } catch (UserNotFoundException ex) {
+                this.systemOut.println(username + " - User not found");
+            }
         }
-
-        // sleep for replication delay
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            this.systemOut.println(username + " - error sleeping, exiting");
-            return;
-        }
-
-        User user;
-        try {
-            user = this.getUserPersistence().getUser(this.getPrincipal());
-        } catch (UserNotFoundException e) {
-            // UserRequest and User not found, likely input error
-            this.systemOut.println(username + " - UserRequest or User not found, exiting");
-            return;
-        }
-
-        if (user.getIdentities().contains(dnPrincipal)) {
-            this.systemOut.println(username + " -  DN found, exiting");
-            this.printUser(user);
-            return;
-        }
-
-        user.getIdentities().add(dnPrincipal);
-        this.getUserPersistence().modifyUser(user);
-        this.systemOut.println(username + " - DN updated");
-        this.printUser(user);
-
-        // currently unable to sent email
-//        emailUser(user)
-        this.systemOut.println(username + " - user approved");
     }
 
     private void emailUser(User user) {

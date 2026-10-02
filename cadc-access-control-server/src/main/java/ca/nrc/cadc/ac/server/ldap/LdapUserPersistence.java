@@ -93,6 +93,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Logger;
 import org.opencadc.gms.GroupURI;
 
@@ -448,12 +449,13 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
      * user requests tree to the users tree.
      *
      * @param userID The user instance to move.
+     * @param x500 The user's X500Principal.
      * @return User instance or null if approval failed.
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User approveUserRequest(Principal userID)
+    public User approveUserRequest(Principal userID, X500Principal x500)
             throws UserNotFoundException, TransientException,
             AccessControlException {
         // admin API: no permission check
@@ -477,7 +479,7 @@ public class LdapUserPersistence extends LdapPersistence implements UserPersiste
                 if (activated) {
                     try {
                         // approve the userRequest
-                        return userDAO.approveUserRequest(userID);
+                        return userDAO.approveUserRequest(userID, x500);
                     } catch (Exception ex) {
                         // approval failed, deactivate the group
                         groupDAO.deactivateGroup(associatedGroup);
