@@ -129,7 +129,7 @@ public class PermissionsAPIClient {
         assertArg(serviceName, "serviceName");
         assertArg(token, "token");
         LOGGER.debug("Authorising exchange for service " + serviceName + " version " + version);
-        final URL url = buildExchangeURL(serviceName + "-api", token, version);
+        final URL url = buildExchangeURL(serviceName, token, version);
         LOGGER.debug("Exchange URL: " + url);
 
         // Empty JSON for the exchange request.
@@ -237,7 +237,7 @@ public class PermissionsAPIClient {
      */
     private String fetchExchangedAccessToken(final String serviceName, final String accessToken, final String version)
             throws IOException {
-        final URL url = buildAuthTokenExchangeUrl(this.authApiBaseURL, serviceName + "-api", accessToken, version);
+        final URL url = buildAuthTokenExchangeUrl(this.authApiBaseURL, serviceName, accessToken, version);
         LOGGER.debug("fetch exchange token: " + url);
         final JSONObject json = getJSON(url);
         try {
