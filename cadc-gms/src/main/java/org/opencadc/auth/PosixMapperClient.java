@@ -353,8 +353,8 @@ public class PosixMapperClient {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(get.getInputStream()))) {
             List<PosixGroup> posixGroups = new ArrayList<>();
-            while (reader.ready()) {
-                String line = reader.readLine();
+            String line;
+            while ((line = reader.readLine()) != null) {
                 posixGroups.add(tsvPosixGroupParser.parse(line));
             }
             return posixGroups;
