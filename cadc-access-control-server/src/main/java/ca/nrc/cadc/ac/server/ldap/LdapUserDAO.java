@@ -1096,7 +1096,7 @@ public class LdapUserDAO extends LdapDAO {
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    public User approveUserRequest(final Principal userID)
+    public User approveUserRequest(final Principal userID, X500Principal x500)
             throws UserNotFoundException, TransientException, AccessControlException {
         // ensure that we use the same LDAP server
         LDAPConnection ldapRWConn = getReadWriteConnection();
@@ -1107,22 +1107,50 @@ public class LdapUserDAO extends LdapDAO {
         String uid = "uid=" + uuid2long(userRequest.getID().getUUID());
         String dn = uid + "," + config.getUserRequestsDN();
 
+        // add the distinguishedName attribute to the user request
+        List<Modification> mods = new ArrayList<Modification>();
+        mods.add(new Modification(ModificationType.REPLACE, LDAP_DISTINGUISHED_NAME, x500.getName()));
+        try {
+            ModifyRequest modifyRequest = new ModifyRequest(getUserDN(userRequest, ldapRWConn, true), mods);
+            LdapDAO.checkLdapResult(ldapRWConn.modify(modifyRequest).getResultCode());
+        } catch (LDAPException e) {
+            logger.debug("Modify UserRequest Exception", e);
+            LdapDAO.checkLdapResult(e.getResultCode());
+        }
+
+        // sleep for possible replication delay
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Error sleeping");
+        }
+
+        // move the user request to users
         try {
             ModifyDNRequest modifyDNRequest =
                     new ModifyDNRequest(dn, uid, true, config.getUsersDN());
 
             LdapDAO.checkLdapResult(ldapRWConn.modifyDN(modifyDNRequest).getResultCode());
         } catch (LDAPException e) {
-            logger.debug("Modify Exception", e);
+            logger.debug("Modify DN Exception", e);
             LdapDAO.checkLdapResult(e.getResultCode());
         }
+
+        // sleep for possible replication delay
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Error sleeping");
+        }
+
         try {
             User user = getUser(userID, ldapRWConn);
             logger.debug("approvedUserRequest: " + userID.getName());
             return user;
         } catch (UserNotFoundException e) {
-            throw new RuntimeException(
-                    "BUG: approved user not found (" + userID.getName() + ")");
+            throw new RuntimeException("BUG: approved user not found (" + userID.getName() + ")");
         }
     }
 

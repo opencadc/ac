@@ -113,37 +113,38 @@ public class ApproveUser extends AbstractUserCommand {
 
     protected void execute()
             throws AccessControlException, UserNotFoundException, TransientException {
-        X500Principal dnPrincipal = null;
+        X500Principal x500Principal = null;
         try {
-            dnPrincipal = new X500Principal(dn);
+            x500Principal = new X500Principal(dn);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid DN format: " + dn);
         }
+        String username = this.getPrincipal().getName();
 
         try {
-            this.getUserPersistence().approveUserRequest(this.getPrincipal());
-            this.systemOut.println("User " + this.getPrincipal().getName() + " was approved successfully.");
+            User approvedUser = this.getUserPersistence().approveUserRequest(this.getPrincipal(), x500Principal);
+            this.systemOut.println(username + " - UserRequest moved to Users");
+            printUser(approvedUser);
+
+            // currently unable to sent email
+            // emailUser(user)
+
+            this.systemOut.println(username + " - approval complete");
+
+        } catch (IllegalStateException e) {
+            this.systemOut.println("ERROR: proxyUser in ac-ldap-config.properties is not authorized to approve UserRequest's");
         } catch (UserNotFoundException e) {
-            this.systemOut.println("Could not find userRequest " + this.getPrincipal());
-            return;
+            // The UserRequest was not found; the user may already be approved.
+            this.systemOut.println(username + " - UserRequest not found");
+
+            try {
+                User user = this.getUserPersistence().getUser(this.getPrincipal());
+                this.systemOut.println(username + " - existing User found");
+                printUser(user);
+            } catch (UserNotFoundException ex) {
+                this.systemOut.println(username + " - User not found");
+            }
         }
-
-        User user = null;
-        try {
-            user = this.getUserPersistence().getUser(this.getPrincipal());
-        } catch (UserNotFoundException e) {
-            this.systemOut.println("Could not set user DN");
-            return;
-        }
-
-        // email the user
-        emailUser(user);
-
-        user.getIdentities().add(dnPrincipal);
-        this.getUserPersistence().modifyUser(user);
-        String noWhiteSpaceDN = dn.replaceAll("\\s", "");
-        this.systemOut.println("User " + this.getPrincipal().getName() + " now has DN " + noWhiteSpaceDN);
-        this.printUser(user);
     }
 
     private void emailUser(User user) {
@@ -192,10 +193,10 @@ public class ApproveUser extends AbstractUserCommand {
 
             boolean authenticated = true;
             mailer.doSend(authenticated);
-            this.systemOut.println("Emailed approval message to user.");
+            this.systemOut.println("email sent");
         } catch (Exception e) {
-            this.systemOut.println("Failed to email user");
-            log.warn("Failed to email user", e);
+            this.systemOut.println("failed to send email");
+            log.warn("Failed to email user");
         }
     }
 }

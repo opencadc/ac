@@ -79,6 +79,7 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
+import javax.security.auth.x500.X500Principal;
 
 public interface UserPersistence {
 
@@ -219,12 +220,13 @@ public interface UserPersistence {
      * pending users tree to the active users tree.
      *
      * @param userID A Principal of the User.
+     * @param x500 The User's X500Principal.
      * @return User instance.
      * @throws UserNotFoundException  when the user is not found.
      * @throws TransientException     If an temporary, unexpected problem occurred.
      * @throws AccessControlException If the operation is not permitted.
      */
-    User approveUserRequest(Principal userID)
+    User approveUserRequest(Principal userID, X500Principal x500)
             throws UserNotFoundException, TransientException,
             AccessControlException;
 

@@ -91,6 +91,7 @@ import java.util.Set;
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
@@ -211,6 +212,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest {
             // add user using HttpPrincipal
             final String username = createUsername();
             final HttpPrincipal userID = new HttpPrincipal(username);
+            final X500Principal x500Principal = new X500Principal("cn=" + userID.getName() + ",ou=cadc,o=hia,c=ca");
 
             Subject subject = new Subject();
             subject.getPrincipals().add(userID);
@@ -232,7 +234,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest {
             try {
                 Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
                     public Object run() throws Exception {
-                        return userPersistence.approveUserRequest(userID);
+                        return userPersistence.approveUserRequest(userID, x500Principal);
                     }
                 });
 
@@ -306,6 +308,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest {
             // add user using HttpPrincipal
             final String username = createUsername();
             final HttpPrincipal userID = new HttpPrincipal(username);
+            final X500Principal x500Principal = new X500Principal("cn=" + userID.getName() + ",ou=cadc,o=hia,c=ca");
 
             Subject subject = new Subject();
             subject.getPrincipals().add(userID);
@@ -335,7 +338,7 @@ public class LdapUserPersistenceTest extends AbstractLdapDAOTest {
                 try {
                     Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
                         public Object run() throws Exception {
-                            return userPersistence.approveUserRequest(userID);
+                            return userPersistence.approveUserRequest(userID, x500Principal);
                         }
                     });
                     fail("Failed to delete userRequest.");
