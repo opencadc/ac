@@ -159,7 +159,15 @@ public class IdentityManagerImpl implements IdentityManager {
         return subject;
     }
 
-    public void augmentSubject(final Subject subject) {
+
+    /**
+     * Augment the subject with the user's identities and group memberships.
+     * @param subject   The subject to augment.
+     * @param primeGroupCache Whether to prime the group cache.
+     *                        If true, the group cache will be primed with the user's group memberships.
+     *                        If false, the group cache will not be primed.
+     */
+    public void augmentSubject(final Subject subject, final boolean primeGroupCache) {
         try {
             final Profiler profiler = new Profiler(IdentityManagerImpl.class);
             PluginFactory pluginFactory = new PluginFactory();
@@ -170,7 +178,7 @@ public class IdentityManagerImpl implements IdentityManager {
             // in HttpPrincipal in subject.
             subject.getPrincipals().removeAll(subject.getPrincipals(HttpPrincipal.class));
 
-            User user = userPersistence.getAugmentedUser(ldapPrincipal, true);
+            User user = userPersistence.getAugmentedUser(ldapPrincipal, primeGroupCache);
             if (user.getIdentities() != null) {
                 log.debug("Found " + user.getIdentities().size() + " principals after argument");
             } else {
@@ -204,6 +212,10 @@ public class IdentityManagerImpl implements IdentityManager {
         } catch (Exception e) {
             throw new IllegalStateException("Internal error", e);
         }
+    }
+
+    public void augmentSubject(final Subject subject) {
+        augmentSubject(subject, true);
     }
 
     @Override
