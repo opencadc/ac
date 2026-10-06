@@ -201,8 +201,6 @@ public class IdentityManagerImpl implements IdentityManager {
                     throw new RuntimeException("BUG: found User.appData but could not store in Subject as GroupMemberships cache", bug);
 
                 }
-            } else {
-                throw new RuntimeException("BUG: expected getAugmentedUser to return GroupMembership cache");
             }
             user.appData = null; // avoid loop that prevents GC???
             profiler.checkpoint("augmentSubject");
