@@ -173,15 +173,18 @@ public class LoginServlet extends HttpServlet {
                 userID = fields[1].trim();
                 checkCanImpersonate(userID, proxyUser);
             }
+            
+            HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
+            Subject userSubject = new Subject();
+            userSubject.getPrincipals().add(p);
+            logInfo.setSubject(userSubject);
+
             if ((StringUtil.hasText(proxyUser) &&
                     userPersistence.doLogin(proxyUser, password)) ||
                     (!StringUtil.hasText(proxyUser) &&
                             userPersistence.doLogin(userID, password))) {
                 String token = null;
-                HttpPrincipal p = new HttpPrincipal(userID, proxyUser);
-
-                Subject userSubject = new Subject();
-                userSubject.getPrincipals().add(p);
+                
                 if (addPrincipalsToCookie) {
                     // Get set of all principals that apply to the user.
                     // Cookie will have all principals added to it.
