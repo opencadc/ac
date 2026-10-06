@@ -186,7 +186,7 @@ public class LoginServlet extends HttpServlet {
                     // Get set of all principals that apply to the user.
                     // Cookie will have all principals added to it.
                     IdentityManagerImpl ai = new IdentityManagerImpl();
-                    ai.augmentSubject(userSubject);
+                    ai.augmentSubject(userSubject, false);
                 }
                 Set<Principal> userPrincipals = userSubject.getPrincipals();
 

@@ -155,26 +155,7 @@ public class LdapConnectionPool {
 
         try {
             Profiler profiler = new Profiler(LdapConnectionPool.class);
-            LDAPConnection conn = null;
-            synchronized (poolMonitor) {
-                conn = pool.getConnection();
-
-                // BM: This query to the base dn (starting at dc=) has the
-                // effect of clearing any proxied authorization state associated
-                // with the receiving ldap server connection.  Without this in
-                // place, proxied authorization information is sometimes ignored.
-//                logger.debug("Testing connection");
-//                int index = currentConfig.getGroupsDN().indexOf(',');
-//                String rdn = currentConfig.getGroupsDN().substring(0, index);
-//                Filter filter = Filter.create("(" + rdn + ")");
-//
-//                index = rdn.indexOf('=');
-//                String attribute = rdn.substring(0, index);
-//
-//                SearchRequest searchRequest = new SearchRequest(currentConfig.getGroupsDN(), SearchScope.BASE, filter, new String[] {attribute});
-//                conn.search(searchRequest);
-//                profiler.checkpoint("pool.initConnection");
-            }
+            LDAPConnection conn = pool.getConnection();
             logger.debug(poolName + " pool statistics after borrow:\n" + pool.getConnectionPoolStatistics());
             profiler.checkpoint("get " + poolName + " connection");
             conn.setConnectionOptions(connectionOptions);
